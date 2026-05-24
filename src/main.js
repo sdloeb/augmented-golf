@@ -9,6 +9,8 @@ let cameraLookAt = new THREE.Vector3(0, 0, -50);
 let currentLookAt = new THREE.Vector3(0, 0, -50);
 let wasMoving = false;
 
+let ballTargetScale = 1.0;
+
 function init() {
     // 1. Create the 3D World Scene
     scene = new THREE.Scene();
@@ -78,6 +80,9 @@ function init() {
 
     // Start Main Loop
     animate();
+
+
+    generateNewWind(); // NEW: Set up the wind for the very first shot
 }
 
 function onWindowResize() {
@@ -92,35 +97,42 @@ function animate() {
     // Run physics frames
     physics.update();
 
-    // DYNAMIC CAMERA LOGIC
+    // DYNAMIC CAMERA & SCALE LOGIC
     if (physics.isMoving) {
-        // 1. BALL IS FLYING: Lock the camera's view strictly to the launch pad station
         if (!wasMoving) {
             cameraTargetPos.set(ball.position.x, ball.position.y + 1.75, ball.position.z + 4);
             cameraLookAt.set(0, 0, -50);
+            ballTargetScale = 1.0; // Keep full size while flying down range
             wasMoving = true;
         }
     } else {
-        // 2. BALL IS STATIONARY
         if (wasMoving) {
-            // It JUST stopped! Glide the camera down the fairway for a close-up zoom
+            // It JUST stopped! Zoom camera and shrink ball target to 0.5 (half size)
             cameraTargetPos.set(ball.position.x, ball.position.y + 1.8, ball.position.z + 5.5);
             cameraLookAt.copy(ball.position);
+            ballTargetScale = 0.5;
+
+            generateNewWind(); // Fires exactly once right here!
+
+            wasMoving = false; // FIX: Flip this to false immediately so it doesn't loop!
         }
 
-        // 3. NEXT SHOT SETUP: If the player clicks to swing again, glide camera back behind the ball
         if (input && input.isSwinging) {
-            wasMoving = false; // Reset tracking flag
+            // We no longer clear wasMoving here because we safely cleared it above
             cameraTargetPos.set(ball.position.x, ball.position.y + 1.75, ball.position.z + 4);
             cameraLookAt.set(0, 0, -50);
+            ballTargetScale = 1.0;
         }
     }
 
-    // Smoothly glide (LERP) the camera position and look-at vector to their targets
-    // 0.05 controls the speed of the camera movement glide (lower is smoother)
+    // Smoothly glide (LERP) the camera position and look-at view
     camera.position.lerp(cameraTargetPos, 0.05);
     currentLookAt.lerp(cameraLookAt, 0.05);
     camera.lookAt(currentLookAt);
+
+    // NEW: Smoothly morph the ball's size to match our target scale
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
+    ball.scale.set(currentScale, currentScale, currentScale);
 
     // Render updated screen visual state
     renderer.render(scene, camera);
@@ -130,6 +142,28 @@ function animate() {
 
 
 
-
 // Fire up engine when script loads
 init();
+
+function generateNewWind() {
+    const maxWindSpeed = 25;
+    const windSpeed = Math.floor(Math.random() * maxWindSpeed);
+    const windAngle = Math.random() * Math.PI * 2; // Random angle in radians (0 to 360°)
+
+    // Update the UI HTML elements
+    const arrow = document.getElementById('windArrow');
+    const text = document.getElementById('windText');
+    if (arrow && text) {
+        const degrees = (windAngle * 180) / Math.PI;
+        arrow.style.transform = `rotate(${degrees}deg)`;
+        text.innerText = `${windSpeed} mph`;
+    }
+
+    // Convert the wind angle and speed into a tiny 3D force vector for our physics engine
+    const windScale = 0.00015; // Keeps the wind realistic so it doesn't violently throw the ball off-screen
+    physics.wind.set(
+        Math.sin(windAngle) * windSpeed * windScale,
+        0,
+        -Math.cos(windAngle) * windSpeed * windScale
+    );
+}

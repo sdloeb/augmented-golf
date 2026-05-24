@@ -5,6 +5,7 @@ export class PhysicsEngine {
         this.friction = 0.98; // Lower numbers slow the ball down faster
         this.gravity = 0.015;  // Pulls the ball back to earth
         this.bounce = 0.55;    // How elastic the bounces are (0.55 = 55% height kept)
+        this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
         this.isMoving = false;
     }
 
@@ -29,6 +30,9 @@ export class PhysicsEngine {
         // NEW: Apply gravity to vertical velocity if the ball is airborne
         if (this.ball.position.y > 0.25 || this.velocity.y > 0) {
             this.velocity.y -= this.gravity;
+            // NEW: Push the ball sideways (X) and forward/backward (Z) based on airborne wind
+            this.velocity.x += this.wind.x;
+            this.velocity.z += this.wind.z;
         }
 
         // Apply 3D velocity to ball position
