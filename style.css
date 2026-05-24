@@ -1,0 +1,60 @@
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #111;
+    font-family: Arial, sans-serif;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#distanceGauge {
+    position: absolute;
+    /* Positioned right next to the ball's screen location */
+    top: 55%;
+    left: 55%;
+    width: 20px;
+    height: 180px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #ffffff;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Fills from the top down */
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Class to handle fading the meter smoothly in and out */
+#distanceGauge.hidden {
+    opacity: 0;
+}
+
+#gaugeFill {
+    width: 100%;
+    height: 0%;
+    /* Controlled dynamically by JavaScript */
+    background: linear-gradient(to bottom, #00ffcc, #ff3366);
+    border-radius: 2px;
+}
+
+#gaugeLabel {
+    position: absolute;
+    left: 30px;
+    top: 0px;
+    /* Moves dynamically down the meter with the fluid */
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 16px;
+    text-shadow: 2px 2px 4px #000000;
+    white-space: nowrap;
+}
