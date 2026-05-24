@@ -3,7 +3,7 @@ export class PhysicsEngine {
         this.ball = ballMesh;
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.friction = 0.98; // Lower numbers slow the ball down faster
-        this.gravity = 0.015;  // Pulls the ball back to earth
+        this.gravity = 0.006;  // Pulls the ball back to earth
         this.bounce = 0.55;    // How elastic the bounces are (0.55 = 55% height kept)
         this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
         this.isMoving = false;
@@ -11,7 +11,7 @@ export class PhysicsEngine {
 
     applyImpulse(power, angle) {
         // NEW: A multiplier to dramatically slow down the forward and side-to-side speed
-        const speedScale = 0.04;
+        const speedScale = 0.018;
 
         // Apply the speed scale to forward (Z) and side (X) physics
         this.velocity.z = -Math.cos(angle) * power * speedScale;
@@ -19,7 +19,7 @@ export class PhysicsEngine {
 
         // NEW: Balanced upward loft so it creates a perfect visible parabola 
         // without flying off the top edge of your monitor
-        this.velocity.y = power * 0.055;
+        this.velocity.y = power * 0.035;
 
         this.isMoving = true;
     }

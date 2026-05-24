@@ -14,7 +14,7 @@ let ballTargetScale = 1.0;
 function init() {
     // 1. Create the 3D World Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222222);
+
 
     // 2. Setup Camera View (Fixed behind the ball, looking down the range)
     camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000); // <-- ADD THIS LINE
@@ -22,8 +22,9 @@ function init() {
     camera.lookAt(0, 0, -50);
 
     // 3. Setup WebGL Canvas Renderer
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+
 
     // 4. Create Lighting
     const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -32,7 +33,7 @@ function init() {
     scene.add(new THREE.AmbientLight(0x404040));
 
     // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(50, 100);
+    const floorGeo = new THREE.PlaneGeometry(60, 300);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2; // Lie flat
@@ -51,14 +52,14 @@ function init() {
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x32cd32, roughness: 0.8 }); // Brighter green
     const green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2; // Lie flat on top of the fairway
-    green.position.set(0, 0.02, -35); // Positioned far down the range (Z = -35)
+    green.position.set(0, 0.02, -55); // Positioned far down the range (Z = -35)
     scene.add(green);
 
     // Create a thin white flagstick (pin)
     const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 3, 8); // Thin pole, 3 units tall
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const pin = new THREE.Mesh(pinGeo, pinMat);
-    pin.position.set(0, 1.5, -35); // Centered on the green, standing upright
+    pin.position.set(0, 1.5, -55); // Centered on the green, standing upright
     scene.add(pin);
 
     // Create a bright red flag attached to the top of the pin
@@ -66,7 +67,7 @@ function init() {
     const flagMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
     const flag = new THREE.Mesh(flagGeo, flagMat);
     // Position it at the top right of the pin
-    flag.position.set(0.4, 2.75, -35);
+    flag.position.set(0.4, 2.75, -55);
     scene.add(flag);
 
     // 7. Initialize Modules
@@ -160,7 +161,7 @@ function generateNewWind() {
     }
 
     // Convert the wind angle and speed into a tiny 3D force vector for our physics engine
-    const windScale = 0.00015; // Keeps the wind realistic so it doesn't violently throw the ball off-screen
+    const windScale = 0.00004; // Keeps the wind realistic so it doesn't violently throw the ball off-screen
     physics.wind.set(
         Math.sin(windAngle) * windSpeed * windScale,
         0,

@@ -1,11 +1,13 @@
-body,
-html {
+/* CHANGE THIS BLOCK AT THE VERY TOP OF style.css: */
+body, html {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #111;
+    /* NEW: A beautiful, crisp sky image that fills the screen */
+    background: url('https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+    background-size: cover;
     font-family: Arial, sans-serif;
 }
 
