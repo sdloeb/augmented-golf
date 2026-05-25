@@ -1,8 +1,9 @@
 export class InputHandler {
     // UPDATED: Now accepts an optional callback to verify if the ball is on the green
-    constructor(onLaunchCallback, checkIsOnGreenCallback) {
+    constructor(onLaunchCallback, checkIsOnGreenCallback, getDistanceCallback) {
         this.onLaunch = onLaunchCallback;
         this.checkIsOnGreen = checkIsOnGreenCallback;
+        this.getDistance = getDistanceCallback;
 
         this.gauge = document.getElementById('distanceGauge');
         this.gaugeFill = document.getElementById('gaugeFill');
@@ -17,6 +18,28 @@ export class InputHandler {
 
         this.initEvents();
     }
+
+    getClubInfo() {
+        const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
+        if (isOnGreen) {
+            return { name: 'Putter', maxYards: 40, isGreen: true };
+        }
+
+        const currentYards = this.getDistance ? this.getDistance() : 0;
+
+        if (currentYards >= 250) return { name: 'Driver', maxYards: 325, isGreen: false };
+        if (currentYards >= 225) return { name: '3 Wood', maxYards: 250, isGreen: false };
+        if (currentYards >= 200) return { name: '5 Wood', maxYards: 225, isGreen: false };
+        if (currentYards >= 190) return { name: 'Hybrid', maxYards: 200, isGreen: false };
+        if (currentYards >= 180) return { name: '5 Iron', maxYards: 190, isGreen: false };
+        if (currentYards >= 170) return { name: '6 Iron', maxYards: 180, isGreen: false };
+        if (currentYards >= 160) return { name: '7 Iron', maxYards: 170, isGreen: false };
+        if (currentYards >= 150) return { name: '8 Iron', maxYards: 160, isGreen: false };
+        if (currentYards >= 140) return { name: '9 Iron', maxYards: 150, isGreen: false };
+        if (currentYards >= 130) return { name: 'PW Iron', maxYards: 140, isGreen: false };
+        return { name: 'SW Iron', maxYards: 120, isGreen: false };
+    }
+
 
     initEvents() {
         window.addEventListener('mousedown', (e) => this.onMouseDown(e));
@@ -36,9 +59,12 @@ export class InputHandler {
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
 
-        // Dynamic baseline unit selector on press
-        const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
-        this.gaugeLabel.innerText = isOnGreen ? '0 ft' : '0 yds';
+        const club = this.getClubInfo();
+        if (club.isGreen) {
+            this.gaugeLabel.innerText = `${club.name}: 0 ft`;
+        } else {
+            this.gaugeLabel.innerText = `${club.name}: 0 yds`;
+        }
         this.gaugeLabel.style.top = '0px';
     }
 
@@ -61,15 +87,13 @@ export class InputHandler {
             this.gaugeLabel.style.top = `${pullRatio * 160}px`;
 
             // DYNAMIC SWING GAUGE SCALING
-            const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
-            if (isOnGreen) {
-                // Putting mode: scale pull distance up to 40 feet maximum
+            const club = this.getClubInfo();
+            if (club.isGreen) {
                 const feet = Math.round(pullRatio * 40);
-                this.gaugeLabel.innerText = `${feet} ft`;
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
-                // Driving mode: calibrated to your preferred 200 yards maximum
-                const yards = Math.round(pullRatio * 200);
-                this.gaugeLabel.innerText = `${yards} yds`;
+                const yards = Math.round(pullRatio * club.maxYards);
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
             }
 
             if (currentY < this.maxPullY - 5) {
@@ -94,9 +118,19 @@ export class InputHandler {
         const targetPullDistance = this.maxPullY - this.startY;
         const actualForwardDistance = this.maxPullY - endY;
 
-        const powerMultiplier = actualForwardDistance / targetPullDistance;
+        const powerMultiplier = Math.min(1.0, actualForwardDistance / targetPullDistance);
         const basePower = targetPullDistance * 0.05;
-        const finalPower = basePower * powerMultiplier;
+        let finalPower = basePower * powerMultiplier;
+
+        const club = this.getClubInfo();
+        if (!club.isGreen) {
+            // Scales the velocity vector cleanly against original baseline engine limits
+            finalPower *= (club.maxYards / 200);
+
+            if (club.name === 'Driver') {
+                finalPower *= 0.80; // Cuts the driver's power down to 80% (change 0.80 to adjust distance)
+            }
+        }
 
         const horizontalDeviation = endX - this.startX;
         let horizontalAngle = horizontalDeviation * 0.005;

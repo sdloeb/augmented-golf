@@ -2,6 +2,8 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0;
+let green, pin, flag, holeCup;
+let ballTracer, tracerPoints = [];
 
 let sandTraps = [];
 let waterHazards = [];
@@ -15,7 +17,7 @@ let wasMoving = false;
 let ballTargetScale = 1.0;
 
 let strokeCount = 0;
-const holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green target
+let holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green target
 
 // NEW: Animation state tracker to let the ball physically drop into the cup
 let isSinking = false;
@@ -61,7 +63,7 @@ function generateNewWind() {
         text.innerText = `${windSpeed} mph`;
     }
 
-    const windScale = 0.00004;
+    const windScale = 0.00001;
     physics.wind.set(
         Math.sin(currentWindAngle) * windSpeed * windScale,
         0,
@@ -93,12 +95,12 @@ function generateHazards() {
         do {
             // Widened X to 50 to spread across the full course width (rough)
             x = (Math.random() - 0.5) * 50;
-            // Extended Z depth to allow hazards in front of and behind the green
-            z = -110 + Math.random() * 115;
+            // Change this line to scale with the dynamic hole depth:
+            z = (holePosition.z - 20) + Math.random() * (26 - holePosition.z);
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - (-55)) * (z - (-55))) < (12 + r) || // Avoid the Green (radius 12 at z:-55)
+            Math.sqrt(x * x + (z - holePosition.z) * (z - holePosition.z)) < (12 + r) || // Change -55 to holePosition.z on this line
             (z > 6 && Math.abs(x) < 4) // Avoid the Tee Box starting zone
         );
 
@@ -115,12 +117,12 @@ function generateHazards() {
         do {
             // Widened X to 50 to spread across the full course width (rough)
             x = (Math.random() - 0.5) * 50;
-            // Extended Z depth to allow hazards in front of and behind the green
-            z = -110 + Math.random() * 115;
+            // Change this line to scale with the dynamic hole depth:
+            z = (holePosition.z - 20) + Math.random() * (26 - holePosition.z);
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - (-55)) * (z - (-55))) < (12 + r) || // Avoid the Green (radius 12 at z:-55)
+            Math.sqrt(x * x + (z - holePosition.z) * (z - holePosition.z)) < (12 + r) || // Change -55 to holePosition.z on this line
             (z > 6 && Math.abs(x) < 4) // Avoid the Tee Box starting zone
         );
 
@@ -159,6 +161,19 @@ function resetEntireGame() {
     strokeCount = 0;
     document.getElementById('strokeText').innerText = strokeCount;
 
+    tracerPoints = [];
+    if (ballTracer) ballTracer.geometry.setFromPoints([]);
+
+    const randomYards = 130 + Math.random() * (550 - 130);
+    const gameUnits = randomYards / 2.76923;
+    holePosition.z = 10 - gameUnits;
+
+    // Add these lines to reposition the visual green elements to the new depth
+    if (green) green.position.z = holePosition.z;
+    if (pin) pin.position.z = holePosition.z;
+    if (flag) flag.position.z = holePosition.z;
+    if (holeCup) holeCup.position.z = holePosition.z;
+
     ball.position.set(0, 0.25, 10);
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
@@ -188,7 +203,7 @@ function animate() {
     }
 
     // 1. FIXED OUT OF BOUNDS CHECK
-    if (Math.abs(ball.position.x) > 30 || ball.position.z < -135) {
+    if (Math.abs(ball.position.x) > 30 || ball.position.z < holePosition.z - 40) {
         alert(`Out of Bounds! Ball flew off the course.`);
         resetEntireGame();
         return;
@@ -243,6 +258,11 @@ function animate() {
         if (!wasMoving) {
             wasMoving = true;
         }
+
+        updateDistanceDisplay();
+
+        tracerPoints.push(ball.position.clone());
+        if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         // Calculate the horizontal distance the ball has traveled from the Tee Box (0, 10)
@@ -320,7 +340,7 @@ function init() {
     scene.add(new THREE.AmbientLight(0x404040));
 
     // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(60, 300);
+    const floorGeo = new THREE.PlaneGeometry(60, 800);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -341,6 +361,11 @@ function init() {
     ball.position.set(0, 0.25, 10);
     scene.add(ball);
 
+    const tracerMat = new THREE.LineBasicMaterial({ color: 0x00ffcc });
+    const tracerGeo = new THREE.BufferGeometry();
+    ballTracer = new THREE.Line(tracerGeo, tracerMat);
+    scene.add(ballTracer);
+
 
 
     // 6.1. Add Tee Box Mat
@@ -353,26 +378,26 @@ function init() {
     // 6.5. Add the Putting Green, Flagstick, and Red Flag
     const greenGeo = new THREE.CircleGeometry(GREEN_RADIUS, 32);
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x32cd32, roughness: 0.8 });
-    const green = new THREE.Mesh(greenGeo, greenMat);
+    green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
     green.position.set(0, 0.02, -55);
     scene.add(green);
 
     const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 3, 8);
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const pin = new THREE.Mesh(pinGeo, pinMat);
+    pin = new THREE.Mesh(pinGeo, pinMat);
     pin.position.set(0, 1.5, -55);
     scene.add(pin);
 
     const flagGeo = new THREE.PlaneGeometry(0.8, 0.5);
     const flagMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
-    const flag = new THREE.Mesh(flagGeo, flagMat);
+    flag = new THREE.Mesh(flagGeo, flagMat);
     flag.position.set(0.4, 2.75, -55);
     scene.add(flag);
 
     const holeCupGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.01, 32);
     const holeCupMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    const holeCup = new THREE.Mesh(holeCupGeo, holeCupMat);
+    holeCup = new THREE.Mesh(holeCupGeo, holeCupMat);
     holeCup.position.set(0, 0.03, -55);
     scene.add(holeCup);
 
@@ -383,8 +408,12 @@ function init() {
     physics.sandTraps = sandTraps;
     physics.waterHazards = waterHazards;
 
+
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle) => {
+        tracerPoints = [];
+        tracerPoints.push(ball.position.clone()); // Add this line to anchor the tracer exactly at the ball's starting position
+        if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
         const forward = new THREE.Vector3();
         camera.getWorldDirection(forward);
         forward.y = 0;
@@ -413,13 +442,18 @@ function init() {
         const gX = ball.position.x - holePosition.x;
         const gZ = ball.position.z - holePosition.z;
         return Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
-    });
+    }, () => {
+        // Add this third callback function here to return current distance in yards
+        const dx = ball.position.x - holePosition.x;
+        const dz = ball.position.z - holePosition.z;
+        return Math.sqrt(dx * dx + dz * dz) * 2.76923;
+    }); // Add the bracket closure adjustments on this line
 
     window.addEventListener('resize', onWindowResize, false);
 
     generateNewWind();
     updateDistanceDisplay();
-
+    resetEntireGame();
     animate();
 }
 
