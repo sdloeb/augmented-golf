@@ -1,8 +1,9 @@
 export class InputHandler {
-    constructor(onLaunchCallback) {
+    // UPDATED: Now accepts an optional callback to verify if the ball is on the green
+    constructor(onLaunchCallback, checkIsOnGreenCallback) {
         this.onLaunch = onLaunchCallback;
+        this.checkIsOnGreen = checkIsOnGreenCallback;
 
-        // Grab our new HTML gauge elements
         this.gauge = document.getElementById('distanceGauge');
         this.gaugeFill = document.getElementById('gaugeFill');
         this.gaugeLabel = document.getElementById('gaugeLabel');
@@ -32,10 +33,12 @@ export class InputHandler {
         this.startY = e.clientY;
         this.maxPullY = e.clientY;
 
-        // Make the gauge visible and reset its values
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
-        this.gaugeLabel.innerText = '0 yds';
+
+        // Dynamic baseline unit selector on press
+        const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
+        this.gaugeLabel.innerText = isOnGreen ? '0 ft' : '0 yds';
         this.gaugeLabel.style.top = '0px';
     }
 
@@ -51,16 +54,23 @@ export class InputHandler {
             }
 
             const targetPullDistance = this.maxPullY - this.startY;
-
-            // Map 180 pixels of mouse movement to 180 yards maximum
             const maxPullPixels = 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
-            const yards = Math.round(pullRatio * 180);
 
-            // Visually expand the gauge downward and update text position
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
-            this.gaugeLabel.innerText = `${yards} yds`;
-            this.gaugeLabel.style.top = `${pullRatio * 160}px`; // Slides label down alongside the bar
+            this.gaugeLabel.style.top = `${pullRatio * 160}px`;
+
+            // DYNAMIC SWING GAUGE SCALING
+            const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
+            if (isOnGreen) {
+                // Putting mode: scale pull distance up to 25 feet maximum
+                const feet = Math.round(pullRatio * 25);
+                this.gaugeLabel.innerText = `${feet} ft`;
+            } else {
+                // Driving mode: calibrated to your preferred 200 yards maximum
+                const yards = Math.round(pullRatio * 200);
+                this.gaugeLabel.innerText = `${yards} yds`;
+            }
 
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
@@ -76,11 +86,9 @@ export class InputHandler {
 
     onMouseUp() {
         if (this.isSwinging && this.state !== 'IDLE') {
-            // Safely reset the swing and hide the yardage gauge
             this.resetSwing();
         }
     }
-
 
     executeLaunch(endX, endY) {
         const targetPullDistance = this.maxPullY - this.startY;
@@ -91,7 +99,6 @@ export class InputHandler {
         const finalPower = basePower * powerMultiplier;
 
         const horizontalDeviation = endX - this.startX;
-        // TO THIS:
         const horizontalAngle = horizontalDeviation * 0.005;
 
         this.onLaunch(finalPower, horizontalAngle);
@@ -102,7 +109,6 @@ export class InputHandler {
         this.isSwinging = false;
         this.state = 'IDLE';
 
-        // Keep gauge visible for a brief moment post-shot, then fade out
         setTimeout(() => {
             if (!this.isSwinging) {
                 this.gauge.classList.add('hidden');

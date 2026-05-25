@@ -14,6 +14,9 @@ let ballTargetScale = 1.0;
 let strokeCount = 0;
 const holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green target
 
+// NEW: Animation state tracker to let the ball physically drop into the cup
+let isSinking = false;
+
 // --- UTILITY FUNCTIONS ---
 
 function onWindowResize() {
@@ -31,13 +34,12 @@ function updateDistanceDisplay() {
     const unitText = document.getElementById('unitText');
 
     if (distanceText && unitText) {
-        // Radius 4 around the flagstick is the green
         if (gameDistance < 4.0) {
             const feet = Math.round(gameDistance * 6.25);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            const yards = Math.round(gameDistance * 3.0769);
+            const yards = Math.round(gameDistance * 3.076923); // Precise starting scale multiplier
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
@@ -73,6 +75,7 @@ function resetEntireGame() {
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
+    isSinking = false; // Reset sinking state
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
 
@@ -83,14 +86,16 @@ function resetEntireGame() {
     camera.lookAt(currentLookAt);
 
     generateNewWind();
-    updateDistanceDisplay(); // Reset back to 200 yards seamlessly
+    updateDistanceDisplay();
 }
 
 function animate() {
     requestAnimationFrame(animate);
 
-    // Run physics frames
-    physics.update();
+    // Only update standard physical trajectories if the ball isn't sinking into the cup
+    if (!isSinking) {
+        physics.update();
+    }
 
     // 1. FIXED OUT OF BOUNDS CHECK
     if (Math.abs(ball.position.x) > 30 || ball.position.z < -135) {
@@ -99,19 +104,40 @@ function animate() {
         return;
     }
 
-    // 2. CONTINUOUS HOLE COLLISION CHECK
-    const dx = ball.position.x - holePosition.x;
-    const dz = ball.position.z - holePosition.z;
-    const distanceToHole = Math.sqrt(dx * dx + dz * dz);
+    // 2. CONTINUOUS HOLE COLLISION & SMOOTH SINKING ANIMATION
+    if (!isSinking) {
+        const dx = ball.position.x - holePosition.x;
+        const dz = ball.position.z - holePosition.z;
+        const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-    if (distanceToHole < 0.45 && ball.position.y <= 0.25) {
-        ball.position.set(holePosition.x, 0.01, holePosition.z);
-        physics.velocity.set(0, 0, 0);
-        physics.isMoving = false;
+        // Capture condition: ball must hit the threshold and be near the grass level
+        if (distanceToHole < 0.45 && ball.position.y <= 0.25) {
+            isSinking = true;
+            physics.velocity.set(0, 0, 0);
+            physics.isMoving = false;
+            wasMoving = false;
 
-        alert(`Sunk it! 🎉 You finished in ${strokeCount} strokes.`);
-        resetEntireGame();
-        return;
+            // Snap perfectly center over the black hole disk layout
+            ball.position.x = holePosition.x;
+            ball.position.z = holePosition.z;
+        }
+    }
+
+    if (isSinking) {
+        // Linearly drop the ball downward beneath the flat ground plane layout
+        ball.position.y -= 0.015;
+
+        // Once it drops safely inside the hole depth out of sight (Y <= -0.15)
+        if (ball.position.y <= -0.15) {
+            isSinking = false;
+
+            // Give the browser 30ms to fully render the final subterranean frame before alerting
+            setTimeout(() => {
+                alert(`Sunk it! 🎉 You finished in ${strokeCount} strokes.`);
+                resetEntireGame();
+            }, 30);
+            return;
+        }
     }
 
     // 3. DYNAMIC CAMERA CONTROLLER
@@ -120,8 +146,7 @@ function animate() {
             wasMoving = true;
         }
     } else {
-        if (wasMoving) {
-            // BALL JUST STOPPED (And didn't hit the hole)
+        if (wasMoving && !isSinking) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
@@ -134,7 +159,7 @@ function animate() {
             ballTargetScale = 0.5;
 
             generateNewWind();
-            updateDistanceDisplay(); // Actively checks and updates your yards/feet right here
+            updateDistanceDisplay();
             wasMoving = false;
         }
 
@@ -223,6 +248,8 @@ function init() {
 
     // 7. Initialize Modules
     physics = new PhysicsEngine(ball);
+
+    // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle) => {
         const forward = new THREE.Vector3();
         camera.getWorldDirection(forward);
@@ -240,6 +267,11 @@ function init() {
 
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
+    }, () => {
+        // This execution frame allows InputHandler to track green conditions on drag
+        const gX = ball.position.x - holePosition.x;
+        const gZ = ball.position.z - holePosition.z;
+        return Math.sqrt(gX * gX + gZ * gZ) < 4.0;
     });
 
     window.addEventListener('resize', onWindowResize, false);
@@ -250,5 +282,4 @@ function init() {
     animate();
 }
 
-// Start everything up safely
 init();
