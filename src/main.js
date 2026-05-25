@@ -14,10 +14,34 @@ let ballTargetScale = 1.0;
 let strokeCount = 0;
 const holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green target
 
+// --- UTILITY FUNCTIONS ---
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function updateDistanceDisplay() {
+    const dx = ball.position.x - holePosition.x;
+    const dz = ball.position.z - holePosition.z;
+    const gameDistance = Math.sqrt(dx * dx + dz * dz);
+
+    const distanceText = document.getElementById('distanceText');
+    const unitText = document.getElementById('unitText');
+
+    if (distanceText && unitText) {
+        // Radius 4 around the flagstick is the green
+        if (gameDistance < 4.0) {
+            const feet = Math.round(gameDistance * 6.25);
+            distanceText.innerText = feet;
+            unitText.innerText = "feet";
+        } else {
+            const yards = Math.round(gameDistance * 3.0769);
+            distanceText.innerText = yards;
+            unitText.innerText = "yards";
+        }
+    }
 }
 
 function generateNewWind() {
@@ -44,7 +68,7 @@ function generateNewWind() {
 function resetEntireGame() {
     strokeCount = 0;
     document.getElementById('strokeText').innerText = strokeCount;
-    document.getElementById('distanceText').innerText = "200";
+
     ball.position.set(0, 0.25, 10);
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
@@ -59,6 +83,7 @@ function resetEntireGame() {
     camera.lookAt(currentLookAt);
 
     generateNewWind();
+    updateDistanceDisplay(); // Reset back to 200 yards seamlessly
 }
 
 function animate() {
@@ -67,24 +92,20 @@ function animate() {
     // Run physics frames
     physics.update();
 
-    // 1. FIXED OUT OF BOUNDS CHECK (Handles sides AND the deep sky horizon)
-    // Left/Right limit: 30 units from center
-    // Deep Horizon limit: -135 units down the range (where the grass meets the sky)
+    // 1. FIXED OUT OF BOUNDS CHECK
     if (Math.abs(ball.position.x) > 30 || ball.position.z < -135) {
         alert(`Out of Bounds! Ball flew off the course.`);
         resetEntireGame();
         return;
     }
 
-    // 2. CONTINUOUS HOLE COLLISION CHECK (Runs every single frame while moving or rolling!)
+    // 2. CONTINUOUS HOLE COLLISION CHECK
     const dx = ball.position.x - holePosition.x;
     const dz = ball.position.z - holePosition.z;
     const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-    // 0.45 means physical contact: Ball Radius (0.25) + Hole Radius (0.20)
-    if (distanceToHole < 0.45) {
-        // Drop the ball visually into the cup before alerting
-        ball.position.set(holePosition.x, 0.05, holePosition.z);
+    if (distanceToHole < 0.45 && ball.position.y <= 0.25) {
+        ball.position.set(holePosition.x, 0.01, holePosition.z);
         physics.velocity.set(0, 0, 0);
         physics.isMoving = false;
 
@@ -113,7 +134,7 @@ function animate() {
             ballTargetScale = 0.5;
 
             generateNewWind();
-            updateDistanceDisplay();
+            updateDistanceDisplay(); // Actively checks and updates your yards/feet right here
             wasMoving = false;
         }
 
@@ -131,12 +152,10 @@ function animate() {
         }
     }
 
-    // Smoothly glide camera and focus point
     camera.position.lerp(cameraTargetPos, 0.05);
     currentLookAt.lerp(cameraLookAt, 0.05);
     camera.lookAt(currentLookAt);
 
-    // Smoothly morph ball scale
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
 
@@ -205,18 +224,19 @@ function init() {
     // 7. Initialize Modules
     physics = new PhysicsEngine(ball);
     input = new InputHandler((power, angle) => {
-        // 1. Get the camera's forward direction vector
         const forward = new THREE.Vector3();
         camera.getWorldDirection(forward);
-        forward.y = 0; // Keep movement completely flat on the grass
+        forward.y = 0;
         forward.normalize();
 
-        // 2. Get the camera's right direction vector by crossing forward with the up-axis
         const right = new THREE.Vector3();
         right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-        // Pass the power, the mouse deviation angle, and our physical view vectors
-        physics.applyImpulse(power, angle, forward, right);
+        const gX = ball.position.x - holePosition.x;
+        const gZ = ball.position.z - holePosition.z;
+        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < 4.0;
+
+        physics.applyImpulse(power, angle, forward, right, isOnGreen);
 
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
@@ -224,26 +244,11 @@ function init() {
 
     window.addEventListener('resize', onWindowResize, false);
 
-    // FIX: Generate the wind vectors first so the UI shows data immediately
     generateNewWind();
+    updateDistanceDisplay();
 
-    // Start the main rendering loop
     animate();
 }
 
-// Fire up engine safely now that everything is declared
+// Start everything up safely
 init();
-
-function updateDistanceDisplay() {
-    const dx = ball.position.x - holePosition.x;
-    const dz = ball.position.z - holePosition.z;
-    const gameDistance = Math.sqrt(dx * dx + dz * dz);
-
-    // Scale multiplier: 65 units at the tee box = exactly 180 yards
-    const yards = Math.round(gameDistance * 2.7692);
-
-    const distanceText = document.getElementById('distanceText');
-    if (distanceText) {
-        distanceText.innerText = yards;
-    }
-}

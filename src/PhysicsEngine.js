@@ -9,24 +9,24 @@ export class PhysicsEngine {
         this.isMoving = false;
     }
 
-    applyImpulse(power, mouseAngle, cameraForward, cameraRight) {
-        const speedScale = 0.018;
+    applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
+        const speedScale = 0.020;
         const totalPower = power * speedScale;
 
-        // FIX: Treat the mouse calculation relative to the screen's vertical axis.
-        // This ensures that pulling down and flicking UP always moves the ball deep into the screen view.
-        // We subtract Math.PI / 2 if your InputHandler treats straight-down as 180 degrees.
-        const adjustedAngle = mouseAngle - Math.PI / 2;
+        // Calculate horizontal components based on camera view
+        const forwardComponent = Math.cos(mouseAngle) * totalPower;
+        const sideComponent = Math.sin(mouseAngle) * totalPower;
 
-        const forwardComponent = -Math.sin(adjustedAngle) * totalPower;
-        const sideComponent = Math.cos(adjustedAngle) * totalPower;
-
-        // Combine vectors: Forward movement + Sideways movement
+        // Combine vectors
         this.velocity.x = (cameraForward.x * forwardComponent) + (cameraRight.x * sideComponent);
-        this.velocity.z = (cameraForward.z * forwardComponent) - (cameraRight.z * sideComponent);
+        this.velocity.z = (cameraForward.z * forwardComponent) + (cameraRight.z * sideComponent);
 
-        // Keep your tuned vertical loft height intact
-        this.velocity.y = power * 0.045;
+        // FIX: If we are putting, completely kill vertical velocity. Otherwise, apply normal loft height.
+        if (isPutting) {
+            this.velocity.y = 0;
+        } else {
+            this.velocity.y = power * 0.045;
+        }
 
         this.isMoving = true;
     }
