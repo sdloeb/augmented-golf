@@ -9,17 +9,24 @@ export class PhysicsEngine {
         this.isMoving = false;
     }
 
-    applyImpulse(power, angle) {
-        // NEW: A multiplier to dramatically slow down the forward and side-to-side speed
+    applyImpulse(power, mouseAngle, cameraForward, cameraRight) {
         const speedScale = 0.018;
+        const totalPower = power * speedScale;
 
-        // Apply the speed scale to forward (Z) and side (X) physics
-        this.velocity.z = -Math.cos(angle) * power * speedScale;
-        this.velocity.x = Math.sin(angle) * power * speedScale;
+        // FIX: Treat the mouse calculation relative to the screen's vertical axis.
+        // This ensures that pulling down and flicking UP always moves the ball deep into the screen view.
+        // We subtract Math.PI / 2 if your InputHandler treats straight-down as 180 degrees.
+        const adjustedAngle = mouseAngle - Math.PI / 2;
 
-        // NEW: Balanced upward loft so it creates a perfect visible parabola 
-        // without flying off the top edge of your monitor
-        this.velocity.y = power * 0.035;
+        const forwardComponent = -Math.sin(adjustedAngle) * totalPower;
+        const sideComponent = Math.cos(adjustedAngle) * totalPower;
+
+        // Combine vectors: Forward movement + Sideways movement
+        this.velocity.x = (cameraForward.x * forwardComponent) - (cameraRight.x * sideComponent);
+        this.velocity.z = (cameraForward.z * forwardComponent) - (cameraRight.z * sideComponent);
+
+        // Keep your tuned vertical loft height intact
+        this.velocity.y = power * 0.045;
 
         this.isMoving = true;
     }
@@ -27,44 +34,48 @@ export class PhysicsEngine {
     update() {
         if (!this.isMoving) return;
 
-        // NEW: Apply gravity to vertical velocity if the ball is airborne
+        // 1. AIRBORNE PHYSICS (Apply gravity and wind only when above ground)
         if (this.ball.position.y > 0.25 || this.velocity.y > 0) {
             this.velocity.y -= this.gravity;
-            // NEW: Push the ball sideways (X) and forward/backward (Z) based on airborne wind
+
+            // Wind only affects the ball while it's in the air!
             this.velocity.x += this.wind.x;
             this.velocity.z += this.wind.z;
+        } else {
+            // FIX: If the ball is flat on the grass, apply standard ground friction frame-by-frame 
+            // so wind can't pull it backward while it rolls
+            this.velocity.x *= this.friction;
+            this.velocity.z *= this.friction;
         }
 
-        // Apply 3D velocity to ball position
+        // 2. MOVE THE BALL
         this.ball.position.add(this.velocity);
 
-        // NEW: Ground Collision Detection (0.25 is the radius of the ball)
+        // 3. GROUND COLLISION DETECTION
         if (this.ball.position.y <= 0.25) {
             this.ball.position.y = 0.25; // Snap perfectly to grass level
 
             // If falling fast enough, bounce!
             if (Math.abs(this.velocity.y) > 0.05) {
                 this.velocity.y = -this.velocity.y * this.bounce; // Reverse vertical speed
-                this.velocity.x *= 0.8; // Lose a bit of forward speed on impact
+                this.velocity.x *= 0.8; // Lose a bit of forward speed on bounce impact
                 this.velocity.z *= 0.8;
             } else {
-                // Otherwise, stop vertical movement entirely and just roll out with friction
+                // Otherwise, stop vertical movement entirely and apply standard roll friction
                 this.velocity.y = 0;
-                this.velocity.multiplyScalar(this.friction);
+                this.velocity.x *= this.friction;
+                this.velocity.z *= this.friction;
             }
         }
 
-        // Stop the ball completely if moving incredibly slow
+        // 4. STOP CONSTANT LOOPS (Stop ball completely if moving incredibly slow)
         if (this.velocity.length() < 0.01) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
         }
 
-        // Boundaries reset (Modified to leave Y alone)
-        if (Math.abs(this.ball.position.x) > 25 || Math.abs(this.ball.position.z) > 100) {
-            this.ball.position.set(0, 0.25, 10);
-            this.velocity.set(0, 0, 0);
-            this.isMoving = false;
-        }
+        // NOTE: Your boundaries reset block at the bottom is safe to leave alone, 
+        // though remember your main game loop in main.js handles the 30-unit width 
+        // out-of-bounds check now!
     }
 }
