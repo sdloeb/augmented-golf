@@ -58,6 +58,15 @@ export class PhysicsEngine {
             // Wind only affects the ball while it's in the air!
             this.velocity.x += this.wind.x;
             this.velocity.z += this.wind.z;
+
+            let bounceWindMultiplier = 1.0;
+            if (this.ball.position.y < 1.5) {
+                bounceWindMultiplier = 0.20; // Cuts wind force to 20% strength on low bounces
+            }
+
+            // Change the two lines below to include * bounceWindMultiplier:
+            this.velocity.x += this.wind.x * bounceWindMultiplier;
+            this.velocity.z += this.wind.z * bounceWindMultiplier;
         } else {
             // UPDATED: Apply calculated ground friction frame-by-frame
             this.velocity.x *= currentFriction;

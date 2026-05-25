@@ -2,7 +2,7 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0;
-let green, pin, flag, holeCup;
+let green, pin, flag, holeCup, fairway;
 let ballTracer, tracerPoints = [];
 
 let sandTraps = [];
@@ -174,6 +174,12 @@ function resetEntireGame() {
     if (flag) flag.position.z = holePosition.z;
     if (holeCup) holeCup.position.z = holePosition.z;
 
+    if (fairway) {
+        const fairwayLength = 8 - holePosition.z; // Measures distance from just past Tee (Z: 8) to Green center
+        fairway.scale.set(1, fairwayLength, 1);   // Stretches local Y-axis (which is world Z-axis due to rotation)
+        fairway.position.set(0, 0.01, (8 + holePosition.z) / 2); // Places it exactly halfway between Tee and Green
+    }
+
     ball.position.set(0, 0.25, 10);
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
@@ -225,6 +231,14 @@ function animate() {
 
         // Capture condition: ball must hit the threshold and be near the grass level
         if (distanceToHole < 0.45 && ball.position.y <= 0.25) {
+            // Add this speed block right here:
+            const ballSpeed = physics.velocity.length();
+            if (ballSpeed > 0.07) {
+                physics.velocity.y = 0.04; // Pops the ball up into the air slightly
+                physics.velocity.x *= 0.85; // Slightly slows down forward momentum from the impact
+                physics.velocity.z *= 0.85;
+                return; // Exits early so the ball avoids the sinking code below!
+            }
             isSinking = true;
             physics.velocity.set(0, 0, 0);
             physics.isMoving = false;
@@ -292,6 +306,9 @@ function animate() {
             generateNewWind();
             updateDistanceDisplay();
             wasMoving = false;
+
+            tracerPoints = [];
+            if (ballTracer) ballTracer.geometry.setFromPoints([]);
         }
 
         if (input && input.isSwinging) {
@@ -347,9 +364,9 @@ function init() {
     scene.add(floor);
 
     // ADD THIS BLOCK RIGHT BELOW THE FLOOR MESH:
-    const fairwayGeo = new THREE.PlaneGeometry(18, 53);
+    const fairwayGeo = new THREE.PlaneGeometry(18, 1);
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
-    const fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
+    fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
     fairway.rotation.x = -Math.PI / 2;
     fairway.position.set(0, 0.01, -16.5);
     scene.add(fairway);
@@ -430,7 +447,7 @@ function init() {
         if (isOnGreen) {
             // Multiply to fine-tune putting physics:
             // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 2.0;
+            finalPower *= 2.4;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
