@@ -63,8 +63,8 @@ export class InputHandler {
             // DYNAMIC SWING GAUGE SCALING
             const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
             if (isOnGreen) {
-                // Putting mode: scale pull distance up to 25 feet maximum
-                const feet = Math.round(pullRatio * 25);
+                // Putting mode: scale pull distance up to 40 feet maximum
+                const feet = Math.round(pullRatio * 40);
                 this.gaugeLabel.innerText = `${feet} ft`;
             } else {
                 // Driving mode: calibrated to your preferred 200 yards maximum

@@ -398,9 +398,10 @@ function init() {
         const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
 
         let finalPower = power;
-        // If it's past the tee shot (strokeCount > 0) and not on the green, boost the power
-        if (strokeCount > 0 && !isOnGreen) {
-            finalPower *= 1.20; // Boosts power by 25%
+        if (isOnGreen) {
+            // Multiply to fine-tune putting physics:
+            // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
+            finalPower *= 2.0;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
