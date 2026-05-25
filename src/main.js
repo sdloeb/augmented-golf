@@ -39,7 +39,7 @@ function updateDistanceDisplay() {
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            const yards = Math.round(gameDistance * 3.076923); // Precise starting scale multiplier
+            const yards = Math.round(gameDistance * 2.76923); // Precise starting scale multiplier
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
