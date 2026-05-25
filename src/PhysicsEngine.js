@@ -22,7 +22,7 @@ export class PhysicsEngine {
         const sideComponent = Math.cos(adjustedAngle) * totalPower;
 
         // Combine vectors: Forward movement + Sideways movement
-        this.velocity.x = (cameraForward.x * forwardComponent) - (cameraRight.x * sideComponent);
+        this.velocity.x = (cameraForward.x * forwardComponent) + (cameraRight.x * sideComponent);
         this.velocity.z = (cameraForward.z * forwardComponent) - (cameraRight.z * sideComponent);
 
         // Keep your tuned vertical loft height intact

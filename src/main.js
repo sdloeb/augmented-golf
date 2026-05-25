@@ -44,7 +44,7 @@ function generateNewWind() {
 function resetEntireGame() {
     strokeCount = 0;
     document.getElementById('strokeText').innerText = strokeCount;
-
+    document.getElementById('distanceText').innerText = "180";
     ball.position.set(0, 0.25, 10);
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
@@ -64,32 +64,43 @@ function resetEntireGame() {
 function animate() {
     requestAnimationFrame(animate);
 
+    // Run physics frames
     physics.update();
 
-    // 1. OUT OF BOUNDS CHECK
-    if (Math.abs(ball.position.x) > 30) {
-        alert(`Out of Bounds! Total Strokes Reset.`);
+    // 1. FIXED OUT OF BOUNDS CHECK (Handles sides AND the deep sky horizon)
+    // Left/Right limit: 30 units from center
+    // Deep Horizon limit: -135 units down the range (where the grass meets the sky)
+    if (Math.abs(ball.position.x) > 30 || ball.position.z < -135) {
+        alert(`Out of Bounds! Ball flew off the course.`);
         resetEntireGame();
         return;
     }
 
-    // 2. DYNAMIC CAMERA & WIN LOGIC
+    // 2. CONTINUOUS HOLE COLLISION CHECK (Runs every single frame while moving or rolling!)
+    const dx = ball.position.x - holePosition.x;
+    const dz = ball.position.z - holePosition.z;
+    const distanceToHole = Math.sqrt(dx * dx + dz * dz);
+
+    // 0.45 means physical contact: Ball Radius (0.25) + Hole Radius (0.20)
+    if (distanceToHole < 0.45) {
+        // Drop the ball visually into the cup before alerting
+        ball.position.set(holePosition.x, 0.05, holePosition.z);
+        physics.velocity.set(0, 0, 0);
+        physics.isMoving = false;
+
+        alert(`Sunk it! 🎉 You finished in ${strokeCount} strokes.`);
+        resetEntireGame();
+        return;
+    }
+
+    // 3. DYNAMIC CAMERA CONTROLLER
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
         }
     } else {
         if (wasMoving) {
-            const dx = ball.position.x - holePosition.x;
-            const dz = ball.position.z - holePosition.z;
-            const distanceToHole = Math.sqrt(dx * dx + dz * dz);
-
-            if (distanceToHole < 0.8) {
-                alert(`Sunk it! 🎉 You finished in ${strokeCount} strokes.`);
-                resetEntireGame();
-                return;
-            }
-
+            // BALL JUST STOPPED (And didn't hit the hole)
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
@@ -102,6 +113,7 @@ function animate() {
             ballTargetScale = 0.5;
 
             generateNewWind();
+            updateDistanceDisplay();
             wasMoving = false;
         }
 
@@ -119,10 +131,12 @@ function animate() {
         }
     }
 
+    // Smoothly glide camera and focus point
     camera.position.lerp(cameraTargetPos, 0.05);
     currentLookAt.lerp(cameraLookAt, 0.05);
     camera.lookAt(currentLookAt);
 
+    // Smoothly morph ball scale
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
 
@@ -219,3 +233,17 @@ function init() {
 
 // Fire up engine safely now that everything is declared
 init();
+
+function updateDistanceDisplay() {
+    const dx = ball.position.x - holePosition.x;
+    const dz = ball.position.z - holePosition.z;
+    const gameDistance = Math.sqrt(dx * dx + dz * dz);
+
+    // Scale multiplier: 65 units at the tee box = exactly 180 yards
+    const yards = Math.round(gameDistance * 2.7692);
+
+    const distanceText = document.getElementById('distanceText');
+    if (distanceText) {
+        distanceText.innerText = yards;
+    }
+}
