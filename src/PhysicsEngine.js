@@ -4,7 +4,7 @@ export class PhysicsEngine {
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.friction = 0.98; // Lower numbers slow the ball down faster
         this.gravity = 0.006;  // Pulls the ball back to earth
-        this.bounce = 0.55;    // How elastic the bounces are (0.55 = 55% height kept)
+        this.bounce = 0.40;    // How elastic the bounces are (0.55 = 55% height kept)
         this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
         this.isMoving = false;
     }

@@ -44,7 +44,7 @@ function generateNewWind() {
 function resetEntireGame() {
     strokeCount = 0;
     document.getElementById('strokeText').innerText = strokeCount;
-    document.getElementById('distanceText').innerText = "180";
+    document.getElementById('distanceText').innerText = "200";
     ball.position.set(0, 0.25, 10);
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
