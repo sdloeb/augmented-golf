@@ -7,6 +7,9 @@ export class PhysicsEngine {
         this.bounce = 0.40;    // How elastic the bounces are (0.55 = 55% height kept)
         this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
         this.isMoving = false;
+        this.sandTraps = [];
+        this.waterHazards = [];
+        this.hitWater = false;
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
@@ -31,8 +34,22 @@ export class PhysicsEngine {
         this.isMoving = true;
     }
 
+
     update() {
         if (!this.isMoving) return;
+
+        // 0. SURFACE FRICTION CHECK
+        let currentFriction = this.friction;
+        if (this.ball.position.y <= 0.25) {
+            for (let sand of this.sandTraps) {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
+                if (Math.sqrt(dx * dx + dz * dz) < sand.geometry.parameters.radius) {
+                    currentFriction = 0.80; // Heavy friction for sand
+                    break;
+                }
+            }
+        }
 
         // 1. AIRBORNE PHYSICS (Apply gravity and wind only when above ground)
         if (this.ball.position.y > 0.25 || this.velocity.y > 0) {
@@ -42,18 +59,29 @@ export class PhysicsEngine {
             this.velocity.x += this.wind.x;
             this.velocity.z += this.wind.z;
         } else {
-            // FIX: If the ball is flat on the grass, apply standard ground friction frame-by-frame 
-            // so wind can't pull it backward while it rolls
-            this.velocity.x *= this.friction;
-            this.velocity.z *= this.friction;
+            // UPDATED: Apply calculated ground friction frame-by-frame
+            this.velocity.x *= currentFriction;
+            this.velocity.z *= currentFriction;
         }
 
         // 2. MOVE THE BALL
         this.ball.position.add(this.velocity);
 
-        // 3. GROUND COLLISION DETECTION
+        // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= 0.25) {
             this.ball.position.y = 0.25; // Snap perfectly to grass level
+
+            // ADDED: Check for Water Hazard collision contact
+            for (let water of this.waterHazards) {
+                const dx = this.ball.position.x - water.position.x;
+                const dz = this.ball.position.z - water.position.z;
+                if (Math.sqrt(dx * dx + dz * dz) < water.geometry.parameters.radius) {
+                    this.velocity.set(0, 0, 0);
+                    this.isMoving = false;
+                    this.hitWater = true; // Alerts main loop to trigger game reset
+                    return;
+                }
+            }
 
             // If falling fast enough, bounce!
             if (Math.abs(this.velocity.y) > 0.05) {
@@ -61,10 +89,11 @@ export class PhysicsEngine {
                 this.velocity.x *= 0.8; // Lose a bit of forward speed on bounce impact
                 this.velocity.z *= 0.8;
             } else {
-                // Otherwise, stop vertical movement entirely and apply standard roll friction
+                // Otherwise, stop vertical movement entirely and apply calculated roll friction
                 this.velocity.y = 0;
-                this.velocity.x *= this.friction;
-                this.velocity.z *= this.friction;
+                // UPDATED: Apply calculated ground friction here too
+                this.velocity.x *= currentFriction;
+                this.velocity.z *= currentFriction;
             }
         }
 
@@ -73,9 +102,5 @@ export class PhysicsEngine {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
         }
-
-        // NOTE: Your boundaries reset block at the bottom is safe to leave alone, 
-        // though remember your main game loop in main.js handles the 30-unit width 
-        // out-of-bounds check now!
     }
 }

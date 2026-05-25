@@ -3,6 +3,9 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0;
 
+let sandTraps = [];
+let waterHazards = [];
+
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
 let cameraLookAt = new THREE.Vector3(0, 0, -50);
@@ -66,6 +69,60 @@ function generateNewWind() {
     );
 }
 
+// ADD THIS NEW FUNCTION:
+function generateHazards() {
+    sandTraps.forEach(mesh => scene.remove(mesh));
+    waterHazards.forEach(mesh => scene.remove(mesh));
+    sandTraps = [];
+    waterHazards = [];
+
+    const numWater = Math.floor(Math.random() * 3); // 0 to 2
+    const numSand = Math.floor(Math.random() * 3);  // 0 to 2
+
+    const checkOverlap = (x, z, r, list) => {
+        return list.some(mesh => {
+            const dx = x - mesh.position.x;
+            const dz = z - mesh.position.z;
+            return Math.sqrt(dx * dx + dz * dz) < (r + mesh.geometry.parameters.radius);
+        });
+    };
+
+    // Spawn Water
+    for (let i = 0; i < numWater; i++) {
+        let x, z, r = 2.0 + Math.random() * 1.5;
+        do {
+            x = (Math.random() - 0.5) * 12;
+            z = -35 + Math.random() * 35;
+        } while (checkOverlap(x, z, r, waterHazards) || checkOverlap(x, z, r, sandTraps));
+
+        const waterMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.1 }));
+        waterMesh.rotation.x = -Math.PI / 2;
+        waterMesh.position.set(x, 0.018, z);
+        scene.add(waterMesh);
+        waterHazards.push(waterMesh);
+    }
+
+    // Spawn Sand
+    for (let i = 0; i < numSand; i++) {
+        let x, z, r = 1.8 + Math.random() * 1.2;
+        do {
+            x = (Math.random() - 0.5) * 12;
+            z = -35 + Math.random() * 35;
+        } while (checkOverlap(x, z, r, waterHazards) || checkOverlap(x, z, r, sandTraps));
+
+        const sandMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0xe0ca9b, roughness: 0.9 }));
+        sandMesh.rotation.x = -Math.PI / 2;
+        sandMesh.position.set(x, 0.017, z);
+        scene.add(sandMesh);
+        sandTraps.push(sandMesh);
+    }
+
+    if (physics) {
+        physics.sandTraps = sandTraps;
+        physics.waterHazards = waterHazards;
+    }
+}
+
 function updateWindArrowDisplay() {
     const arrow = document.getElementById('windArrow');
     if (!arrow || !camera) return;
@@ -104,6 +161,7 @@ function resetEntireGame() {
     camera.lookAt(currentLookAt);
 
     generateNewWind();
+    generateHazards();
     updateDistanceDisplay();
 }
 
@@ -118,6 +176,14 @@ function animate() {
     // 1. FIXED OUT OF BOUNDS CHECK
     if (Math.abs(ball.position.x) > 30 || ball.position.z < -135) {
         alert(`Out of Bounds! Ball flew off the course.`);
+        resetEntireGame();
+        return;
+    }
+
+    // ADD THIS BLOCK:
+    if (physics && physics.hitWater) {
+        physics.hitWater = false;
+        alert(`Water Hazard! 🌊 Your ball splashed in. Resetting hole!`);
         resetEntireGame();
         return;
     }
@@ -234,12 +300,22 @@ function init() {
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
+    // ADD THIS BLOCK RIGHT BELOW THE FLOOR MESH:
+    const fairwayGeo = new THREE.PlaneGeometry(18, 53);
+    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
+    const fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
+    fairway.rotation.x = -Math.PI / 2;
+    fairway.position.set(0, 0.01, -16.5);
+    scene.add(fairway);
+
     // 6. Add Golf Ball Mesh
     const ballGeo = new THREE.SphereGeometry(0.25, 32, 32);
     const ballMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     ball = new THREE.Mesh(ballGeo, ballMat);
     ball.position.set(0, 0.25, 10);
     scene.add(ball);
+
+
 
     // 6.1. Add Tee Box Mat
     const teeGeo = new THREE.BoxGeometry(1.5, 0.02, 2.5);
@@ -276,6 +352,10 @@ function init() {
 
     // 7. Initialize Modules
     physics = new PhysicsEngine(ball);
+
+    generateHazards();
+    physics.sandTraps = sandTraps;
+    physics.waterHazards = waterHazards;
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle) => {
