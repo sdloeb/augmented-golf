@@ -87,13 +87,20 @@ function generateHazards() {
         });
     };
 
-    // Spawn Water
+    // REPLACE the Spawn Water loop with this:
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 2.0 + Math.random() * 1.5;
         do {
-            x = (Math.random() - 0.5) * 12;
-            z = -35 + Math.random() * 35;
-        } while (checkOverlap(x, z, r, waterHazards) || checkOverlap(x, z, r, sandTraps));
+            // Widened X to 50 to spread across the full course width (rough)
+            x = (Math.random() - 0.5) * 50;
+            // Extended Z depth to allow hazards in front of and behind the green
+            z = -110 + Math.random() * 115;
+        } while (
+            checkOverlap(x, z, r, waterHazards) ||
+            checkOverlap(x, z, r, sandTraps) ||
+            Math.sqrt(x * x + (z - (-55)) * (z - (-55))) < (12 + r) || // Avoid the Green (radius 12 at z:-55)
+            (z > 6 && Math.abs(x) < 4) // Avoid the Tee Box starting zone
+        );
 
         const waterMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.1 }));
         waterMesh.rotation.x = -Math.PI / 2;
@@ -102,13 +109,20 @@ function generateHazards() {
         waterHazards.push(waterMesh);
     }
 
-    // Spawn Sand
+    // REPLACE the Spawn Sand loop with this:
     for (let i = 0; i < numSand; i++) {
         let x, z, r = 1.8 + Math.random() * 1.2;
         do {
-            x = (Math.random() - 0.5) * 12;
-            z = -35 + Math.random() * 35;
-        } while (checkOverlap(x, z, r, waterHazards) || checkOverlap(x, z, r, sandTraps));
+            // Widened X to 50 to spread across the full course width (rough)
+            x = (Math.random() - 0.5) * 50;
+            // Extended Z depth to allow hazards in front of and behind the green
+            z = -110 + Math.random() * 115;
+        } while (
+            checkOverlap(x, z, r, waterHazards) ||
+            checkOverlap(x, z, r, sandTraps) ||
+            Math.sqrt(x * x + (z - (-55)) * (z - (-55))) < (12 + r) || // Avoid the Green (radius 12 at z:-55)
+            (z > 6 && Math.abs(x) < 4) // Avoid the Tee Box starting zone
+        );
 
         const sandMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0xe0ca9b, roughness: 0.9 }));
         sandMesh.rotation.x = -Math.PI / 2;
@@ -229,6 +243,18 @@ function animate() {
         if (!wasMoving) {
             wasMoving = true;
         }
+
+        // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
+        // Calculate the horizontal distance the ball has traveled from the Tee Box (0, 10)
+        const dx = ball.position.x - 0;
+        const dz = ball.position.z - 10;
+        const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
+
+        // Starts at 1.0 at the tee box, and gets smaller the further away it travels.
+        // Change 0.006 to make it shrink faster or slower over distance.
+        // Math.max(0.4, ...) ensures it doesn't get smaller than 40% of its original size while in flight.
+        ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+        // -------------------------------------------------------------------
     } else {
         if (wasMoving && !isSinking) {
             const dirX = holePosition.x - ball.position.x;
