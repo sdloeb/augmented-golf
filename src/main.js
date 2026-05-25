@@ -1,7 +1,7 @@
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 
-let scene, camera, renderer, ball, physics, input;
+let scene, camera, renderer, ball, physics, input, teeBox;
 
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
@@ -77,6 +77,7 @@ function resetEntireGame() {
     wasMoving = false;
     isSinking = false; // Reset sinking state
     ballTargetScale = 1.0;
+    if (teeBox) teeBox.visible = true;
     ball.scale.set(1, 1, 1);
 
     cameraTargetPos.set(0, 2, 14);
@@ -157,6 +158,7 @@ function animate() {
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
             cameraLookAt.copy(holePosition);
             ballTargetScale = 0.5;
+            if (teeBox) teeBox.visible = false;
 
             generateNewWind();
             updateDistanceDisplay();
@@ -220,6 +222,13 @@ function init() {
     ball.position.set(0, 0.25, 10);
     scene.add(ball);
 
+    // 6.1. Add Tee Box Mat
+    const teeGeo = new THREE.BoxGeometry(1.5, 0.02, 2.5);
+    const teeMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 }); // Dark brown/wood mat
+    teeBox = new THREE.Mesh(teeGeo, teeMat);
+    teeBox.position.set(0, 0.01, 10); // Placed slightly above the main floor to prevent flickering
+    scene.add(teeBox);
+
     // 6.5. Add the Putting Green, Flagstick, and Red Flag
     const greenGeo = new THREE.CircleGeometry(4, 32);
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x32cd32, roughness: 0.8 });
@@ -263,7 +272,13 @@ function init() {
         const gZ = ball.position.z - holePosition.z;
         const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < 4.0;
 
-        physics.applyImpulse(power, angle, forward, right, isOnGreen);
+        let finalPower = power;
+        // If it's past the tee shot (strokeCount > 0) and not on the green, boost the power
+        if (strokeCount > 0 && !isOnGreen) {
+            finalPower *= 1.20; // Boosts power by 25%
+        }
+
+        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
 
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;

@@ -99,7 +99,10 @@ export class InputHandler {
         const finalPower = basePower * powerMultiplier;
 
         const horizontalDeviation = endX - this.startX;
-        const horizontalAngle = horizontalDeviation * 0.005;
+        let horizontalAngle = horizontalDeviation * 0.005;
+        // Clamp the angle to prevent extreme sideways or backward shots (max ~35 degrees)
+        const maxAngle = 35 * Math.PI / 180;
+        horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
         this.onLaunch(finalPower, horizontalAngle);
         this.resetSwing();
