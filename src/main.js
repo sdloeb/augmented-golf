@@ -1,7 +1,7 @@
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 
-let scene, camera, renderer, ball, physics, input, teeBox;
+let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0;
 
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
@@ -16,6 +16,8 @@ const holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green tar
 
 // NEW: Animation state tracker to let the ball physically drop into the cup
 let isSinking = false;
+
+const GREEN_RADIUS = 12.0;
 
 // --- UTILITY FUNCTIONS ---
 
@@ -34,8 +36,8 @@ function updateDistanceDisplay() {
     const unitText = document.getElementById('unitText');
 
     if (distanceText && unitText) {
-        if (gameDistance < 4.0) {
-            const feet = Math.round(gameDistance * 6.25);
+        if (gameDistance < GREEN_RADIUS) {
+            const feet = Math.round(gameDistance * 3.00);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
@@ -49,22 +51,37 @@ function updateDistanceDisplay() {
 function generateNewWind() {
     const maxWindSpeed = 25;
     const windSpeed = Math.floor(Math.random() * maxWindSpeed);
-    const windAngle = Math.random() * Math.PI * 2;
+    currentWindAngle = Math.random() * Math.PI * 2; // Save globally
 
-    const arrow = document.getElementById('windArrow');
     const text = document.getElementById('windText');
-    if (arrow && text) {
-        const degrees = (windAngle * 180) / Math.PI;
-        arrow.style.transform = `rotate(${degrees}deg)`;
+    if (text) {
         text.innerText = `${windSpeed} mph`;
     }
 
     const windScale = 0.00004;
     physics.wind.set(
-        Math.sin(windAngle) * windSpeed * windScale,
+        Math.sin(currentWindAngle) * windSpeed * windScale,
         0,
-        -Math.cos(windAngle) * windSpeed * windScale
+        -Math.cos(currentWindAngle) * windSpeed * windScale
     );
+}
+
+function updateWindArrowDisplay() {
+    const arrow = document.getElementById('windArrow');
+    if (!arrow || !camera) return;
+
+    // Get the horizontal direction vector the camera is facing
+    const forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+
+    // Calculate the camera's heading angle in radians
+    const cameraAngle = Math.atan2(forward.x, -forward.z);
+
+    // Wind direction relative to the camera's perspective
+    const relativeAngle = currentWindAngle - cameraAngle;
+    const degrees = (relativeAngle * 180) / Math.PI;
+
+    arrow.style.transform = `rotate(${degrees}deg)`;
 }
 
 function resetEntireGame() {
@@ -186,6 +203,8 @@ function animate() {
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
 
+    updateWindArrowDisplay();
+
     renderer.render(scene, camera);
 }
 
@@ -230,7 +249,7 @@ function init() {
     scene.add(teeBox);
 
     // 6.5. Add the Putting Green, Flagstick, and Red Flag
-    const greenGeo = new THREE.CircleGeometry(4, 32);
+    const greenGeo = new THREE.CircleGeometry(GREEN_RADIUS, 32);
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x32cd32, roughness: 0.8 });
     const green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
@@ -270,7 +289,7 @@ function init() {
 
         const gX = ball.position.x - holePosition.x;
         const gZ = ball.position.z - holePosition.z;
-        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < 4.0;
+        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
 
         let finalPower = power;
         // If it's past the tee shot (strokeCount > 0) and not on the green, boost the power
@@ -286,7 +305,7 @@ function init() {
         // This execution frame allows InputHandler to track green conditions on drag
         const gX = ball.position.x - holePosition.x;
         const gZ = ball.position.z - holePosition.z;
-        return Math.sqrt(gX * gX + gZ * gZ) < 4.0;
+        return Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
     });
 
     window.addEventListener('resize', onWindowResize, false);
