@@ -139,7 +139,6 @@ function generateNewWind() {
     );
 }
 
-// ADD THIS NEW FUNCTION:
 function generateHazards() {
     sandTraps.forEach(mesh => scene.remove(mesh));
     waterHazards.forEach(mesh => scene.remove(mesh));
@@ -157,19 +156,20 @@ function generateHazards() {
         });
     };
 
-    // REPLACE the Spawn Water loop with this:
+    // Use a safe fallback if green hasn't initialized yet
+    const targetGreenZ = green ? green.position.z : -55;
+
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 2.0 + Math.random() * 1.5;
         do {
-            // Widened X to 50 to spread across the full course width (rough)
             x = (Math.random() - 0.5) * 50;
-            // Change this line to scale with the dynamic hole depth:
-            z = (holePosition.z - 20) + Math.random() * (26 - holePosition.z);
+            // Spawns hazards relative to the actual circular putting green plane depth location
+            z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - holePosition.z) * (z - holePosition.z)) < (12 + r) || // Change -55 to holePosition.z on this line
-            (z > 6 && Math.abs(x) < 4) // Avoid the Tee Box starting zone
+            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r) ||
+            (z > 6 && Math.abs(x) < 4) // Safe zone protection surrounding the Tee Box area
         );
 
         const waterMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.1 }));
@@ -179,19 +179,16 @@ function generateHazards() {
         waterHazards.push(waterMesh);
     }
 
-    // REPLACE the Spawn Sand loop with this:
     for (let i = 0; i < numSand; i++) {
         let x, z, r = 1.8 + Math.random() * 1.2;
         do {
-            // Widened X to 50 to spread across the full course width (rough)
             x = (Math.random() - 0.5) * 50;
-            // Change this line to scale with the dynamic hole depth:
-            z = (holePosition.z - 20) + Math.random() * (26 - holePosition.z);
+            z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - holePosition.z) * (z - holePosition.z)) < (12 + r) || // Change -55 to holePosition.z on this line
-            (z > 6 && Math.abs(x) < 4) // Avoid the Tee Box starting zone
+            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r) ||
+            (z > 6 && Math.abs(x) < 4)
         );
 
         const sandMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0xe0ca9b, roughness: 0.9 }));
@@ -236,6 +233,8 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
+
+    // NEW: Assign Par properties against the distance requirements provided
     const randomYards = 130 + Math.random() * (550 - 130);
 
     // NEW: Assign Par properties against the distance requirements provided
@@ -254,37 +253,52 @@ function resetEntireGame(advanceHole = false) {
     if (mapParElement) mapParElement.innerText = `PAR ${currentPar}`;
 
     const gameUnits = randomYards / 2.76923;
-    holePosition.z = 10 - gameUnits;
+    const greenCenterZ = 10 - gameUnits;
 
-    // Add these lines to reposition the visual green elements to the new depth
-    if (green) green.position.z = holePosition.z;
-    if (pin) pin.position.z = holePosition.z;
-    if (flag) flag.position.z = holePosition.z;
-    if (holeCup) holeCup.position.z = holePosition.z;
-    if (greenGrid) greenGrid.position.z = holePosition.z;
+    // NEW: Dynamically shift the physical pin location anywhere within the circular green boundaries
+    const pinAngle = Math.random() * Math.PI * 2;
+    // Keep the pin at least 2 units safely away from the absolute outer perimeter edge of the green grass
+    const pinRadius = Math.random() * (GREEN_RADIUS - 2.0);
 
-    slopeX = (Math.random() - 0.5) * 0.0014
-    slopeZ = (Math.random() - 0.5) * 0.0014; // Controls uphill/downhill speed strength
+    holePosition.x = Math.cos(pinAngle) * pinRadius;
+    holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
+
+    // The circular putting green and its helper grid map layer align centered with the course layout track
+    if (green) {
+        green.position.x = 0;
+        green.position.z = greenCenterZ;
+    }
+    if (greenGrid) {
+        greenGrid.position.x = 0;
+        greenGrid.position.z = greenCenterZ;
+    }
+
+    // The physical pin flagstick, target flag mesh, and open target hole cup track the randomized target position
+    if (pin) pin.position.set(holePosition.x, 1.5, holePosition.z);
+    if (flag) flag.position.set(holePosition.x + 0.4, 2.75, holePosition.z);
+    if (holeCup) holeCup.position.set(holePosition.x, 0.03, holePosition.z);
+
+    slopeX = (Math.random() - 0.5) * 0.0014;
+    slopeZ = (Math.random() - 0.5) * 0.0014;
 
     if (gridCanvas && gridTexture) {
         const ctx = gridCanvas.getContext('2d');
-        ctx.clearRect(0, 0, 64, 64); // Clear the previous hole's arrows
+        ctx.clearRect(0, 0, 64, 64);
 
         ctx.save();
-        ctx.translate(32, 32); // Move to the center of the grid tile
-        ctx.rotate(Math.atan2(slopeZ, slopeX)); // Rotate arrow perfectly towards downhill drift
+        ctx.translate(32, 32);
+        ctx.rotate(Math.atan2(slopeZ, slopeX));
 
-        // Draw a clean, semi-transparent white arrow 
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(-12, 0); ctx.lineTo(12, 0);  // Arrow shaft
-        ctx.lineTo(4, -6);                      // Top barb pointer
-        ctx.moveTo(12, 0); ctx.lineTo(4, 6);   // Bottom barb pointer
+        ctx.moveTo(-12, 0); ctx.lineTo(12, 0);
+        ctx.lineTo(4, -6);
+        ctx.moveTo(12, 0); ctx.lineTo(4, 6);
         ctx.stroke();
         ctx.restore();
 
-        gridTexture.needsUpdate = true; // Tell Three.js to upload the updated arrow image
+        gridTexture.needsUpdate = true;
     }
 
     if (physics) {
@@ -294,23 +308,31 @@ function resetEntireGame(advanceHole = false) {
     }
 
     if (fairway) {
-        const fairwayLength = 8 - holePosition.z; // Measures distance from just past Tee (Z: 8) to Green center
-        fairway.scale.set(1, fairwayLength, 1);   // Stretches local Y-axis (which is world Z-axis due to rotation)
-        fairway.position.set(0, 0.01, (8 + holePosition.z) / 2); // Places it exactly halfway between Tee and Green
+        const fairwayLength = 8 - greenCenterZ;
+        fairway.scale.set(1, fairwayLength, 1);
+        fairway.position.set(0, 0.01, (8 + greenCenterZ) / 2);
     }
 
-    ball.position.set(0, 0.25, 10);
+    // NEW: Randomize the Tee Box horizontal offset left or right to vary the shot angles
+    const teeBoxX = (Math.random() - 0.5) * 7.0; // Shifting limits spanning between -3.5 and +3.5
+    if (teeBox) {
+        teeBox.position.set(teeBoxX, 0.01, 10);
+        teeBox.visible = true;
+    }
+
+    ball.position.set(teeBoxX, 0.25, 10);
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
-    isSinking = false; // Reset sinking state
+    isSinking = false;
     ballTargetScale = 1.0;
-    if (teeBox) teeBox.visible = true;
     ball.scale.set(1, 1, 1);
 
-    cameraTargetPos.set(0, 2, 14);
-    cameraLookAt.set(0, 0, -50);
-    currentLookAt.set(0, 0, -50);
+    // NEW: Frame the starting camera location cleanly behind the randomized Tee position 
+    // and lock initial gaze target parameters exactly onto the new offset pin cup location
+    cameraTargetPos.set(teeBoxX, 2, 14);
+    cameraLookAt.copy(holePosition);
+    currentLookAt.copy(holePosition);
     camera.position.copy(cameraTargetPos);
     camera.lookAt(currentLookAt);
 
