@@ -1,7 +1,8 @@
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
+import { SoundManager } from './SoundManager.js';
 
-let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0;
+let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds;
 let green, pin, flag, holeCup, fairway;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas;
@@ -361,6 +362,7 @@ function animate() {
         // Once it drops safely inside the hole depth out of sight (Y <= -0.15)
         if (ball.position.y <= -0.15 && ball.position.y > -900) {
             ball.position.y = -999;
+            if (sounds) sounds.play('sink');
 
             // Give the browser 30ms to fully render the final subterranean frame before alerting
             setTimeout(() => {
@@ -551,7 +553,12 @@ function init() {
     scene.add(holeCup);
 
     // 7. Initialize Modules
+
     physics = new PhysicsEngine(ball);
+
+    // Add these lines below to create the sound instance and pass it to physics
+    sounds = new SoundManager();
+    physics.sounds = sounds;
 
     generateHazards();
     physics.sandTraps = sandTraps;
@@ -589,9 +596,7 @@ function init() {
 
 
 
-        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
-
-        // Add these lines below to trigger the first-person club swipe animation
+        if (sounds) sounds.play('swing');
         const club = input.getClubInfo();
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {

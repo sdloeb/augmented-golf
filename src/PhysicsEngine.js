@@ -95,12 +95,17 @@ export class PhysicsEngine {
             this.ball.position.y = 0.25; // Snap perfectly to grass level
 
             // ADDED: Check for Water Hazard collision contact
+            // REPLACE the block below to fix the duplicate nested loops
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
                 const dz = this.ball.position.z - water.position.z;
                 if (Math.sqrt(dx * dx + dz * dz) < water.geometry.parameters.radius) {
                     this.velocity.set(0, 0, 0);
                     this.isMoving = false;
+
+                    // Play the water splash audio cleanly
+                    if (this.sounds) this.sounds.play('water');
+
                     this.hitWater = true; // Alerts main loop to trigger game reset
                     return;
                 }
@@ -108,6 +113,7 @@ export class PhysicsEngine {
 
             // If falling fast enough, bounce!
             if (Math.abs(this.velocity.y) > 0.05) {
+                if (this.sounds) this.sounds.play('bounce');
                 this.velocity.y = -this.velocity.y * this.bounce; // Reverse vertical speed
                 this.velocity.x *= 0.8; // Lose a bit of forward speed on bounce impact
                 this.velocity.z *= 0.8;
