@@ -10,6 +10,8 @@ let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas;
 let sandTraps = [];
 let waterHazards = [];
 let sceneryObjects = [];
+let currentHoleNumber = 1;
+let currentPar = 4;
 
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
@@ -223,18 +225,34 @@ function updateWindArrowDisplay() {
     arrow.style.transform = `rotate(${degrees}deg)`;
 }
 
-function resetEntireGame() {
+function resetEntireGame(advanceHole = false) {
+    if (advanceHole) {
+        currentHoleNumber++;
+    }
+
     strokeCount = 0;
     document.getElementById('strokeText').innerText = strokeCount;
 
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-    if (input) {
-        input.chosenClubIndex = null; // Clear override selections on hole transitions
+    const randomYards = 130 + Math.random() * (550 - 130);
+
+    // NEW: Assign Par properties against the distance requirements provided
+    if (randomYards < 220) {
+        currentPar = 3;
+    } else if (randomYards <= 450) {
+        currentPar = 4;
+    } else {
+        currentPar = 5;
     }
 
-    const randomYards = 130 + Math.random() * (550 - 130);
+    // NEW: Update the Wood Placard Map Dashboard display readings
+    const mapTitleElement = document.getElementById('holeMapTitle');
+    const mapParElement = document.getElementById('holeMapPar');
+    if (mapTitleElement) mapTitleElement.innerText = `HOLE ${currentHoleNumber}`;
+    if (mapParElement) mapParElement.innerText = `PAR ${currentPar}`;
+
     const gameUnits = randomYards / 2.76923;
     holePosition.z = 10 - gameUnits;
 
@@ -378,7 +396,7 @@ function animate() {
     // 1. FIXED OUT OF BOUNDS CHECK
     if (Math.abs(ball.position.x) > 30 || ball.position.z < holePosition.z - 40) {
         alert(`Out of Bounds! Ball flew off the course.`);
-        resetEntireGame();
+        resetEntireGame(false); // Retain same hole and generate new layouts
         return;
     }
 
@@ -386,7 +404,7 @@ function animate() {
     if (physics && physics.hitWater) {
         physics.hitWater = false;
         alert(`Water Hazard! 🌊 Your ball splashed in. Resetting hole!`);
-        resetEntireGame();
+        resetEntireGame(false); // Retain same hole and generate new layouts
         return;
     }
 
@@ -426,10 +444,28 @@ function animate() {
             ball.position.y = -999;
             if (sounds) sounds.play('sink');
 
+            // NEW: Calculate the descriptive contextual score terminology card
+            const scoreDifferential = strokeCount - currentPar;
+            let standardTermCelebration = `Finished in ${strokeCount} strokes.`;
+
+            if (strokeCount === 1) {
+                standardTermCelebration = `HOLE-IN-ONE! 👑 Absolute legendary shot!`;
+            } else if (scoreDifferential === -2) {
+                standardTermCelebration = `EAGLE! 🦅 Incredible performance!`;
+            } else if (scoreDifferential === -1) {
+                standardTermCelebration = `BIRDIE! 🐤 Under par! Brilliant job!`;
+            } else if (scoreDifferential === 0) {
+                standardTermCelebration = `PAR! 🎯 Even score, perfectly executed!`;
+            } else if (scoreDifferential === 1) {
+                standardTermCelebration = `Bogey. 🪵 Just over par. You'll get it next time!`;
+            } else if (scoreDifferential >= 2) {
+                standardTermCelebration = `Double Bogey (+${scoreDifferential}). ❌ Shrug it off!`;
+            }
+
             // Give the browser 30ms to fully render the final subterranean frame before alerting
             setTimeout(() => {
-                alert(`Sunk it! 🎉 You finished in ${strokeCount} strokes.`);
-                resetEntireGame();
+                alert(`Sunk it! 🎉 ${standardTermCelebration}`);
+                resetEntireGame(true); // Advance layout tracking systems to the next hole number configuration
             }, 30);
             return;
         }
