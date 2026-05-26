@@ -4,6 +4,7 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0;
 let green, pin, flag, holeCup, fairway;
 let ballTracer, tracerPoints = [];
+let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas;
 
 let sandTraps = [];
 let waterHazards = [];
@@ -173,6 +174,37 @@ function resetEntireGame() {
     if (pin) pin.position.z = holePosition.z;
     if (flag) flag.position.z = holePosition.z;
     if (holeCup) holeCup.position.z = holePosition.z;
+    if (greenGrid) greenGrid.position.z = holePosition.z;
+
+    slopeX = (Math.random() - 0.5) * 0.0014; // Controls left/right break strength
+    slopeZ = (Math.random() - 0.5) * 0.0014; // Controls uphill/downhill speed strength
+
+    if (gridCanvas && gridTexture) {
+        const ctx = gridCanvas.getContext('2d');
+        ctx.clearRect(0, 0, 64, 64); // Clear the previous hole's arrows
+
+        ctx.save();
+        ctx.translate(32, 32); // Move to the center of the grid tile
+        ctx.rotate(Math.atan2(slopeZ, slopeX)); // Rotate arrow perfectly towards downhill drift
+
+        // Draw a clean, semi-transparent white arrow 
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-12, 0); ctx.lineTo(12, 0);  // Arrow shaft
+        ctx.lineTo(4, -6);                      // Top barb pointer
+        ctx.moveTo(12, 0); ctx.lineTo(4, 6);   // Bottom barb pointer
+        ctx.stroke();
+        ctx.restore();
+
+        gridTexture.needsUpdate = true; // Tell Three.js to upload the updated arrow image
+    }
+
+    if (physics) {
+        physics.holePosition.copy(holePosition);
+        physics.slopeX = slopeX;
+        physics.slopeZ = slopeZ;
+    }
 
     if (fairway) {
         const fairwayLength = 8 - holePosition.z; // Measures distance from just past Tee (Z: 8) to Green center
@@ -202,6 +234,8 @@ function resetEntireGame() {
 
 function animate() {
     requestAnimationFrame(animate);
+
+
 
     // Only update standard physical trajectories if the ball isn't sinking into the cup
     if (!isSinking) {
@@ -409,6 +443,24 @@ function init() {
     green.rotation.x = -Math.PI / 2;
     green.position.set(0, 0.02, -55);
     scene.add(green);
+
+    gridCanvas = document.createElement('canvas'); // Change "const canvas" to "gridCanvas"
+    gridCanvas.width = 64;
+    gridCanvas.height = 64;
+
+    gridTexture = new THREE.CanvasTexture(gridCanvas); // Change "canvas" to "gridCanvas"
+    gridTexture.wrapS = THREE.RepeatWrapping;
+    gridTexture.wrapT = THREE.RepeatWrapping;
+    gridTexture.repeat.set(12, 12);
+
+    greenGrid = new THREE.Mesh(greenGeo, new THREE.MeshBasicMaterial({
+        map: gridTexture,
+        transparent: true,
+        side: THREE.DoubleSide
+    }));
+    greenGrid.rotation.x = -Math.PI / 2;
+    greenGrid.position.set(0, 0.021, -55); // Placed 0.001 higher to prevent flickering
+    scene.add(greenGrid);
 
     const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 3, 8);
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });

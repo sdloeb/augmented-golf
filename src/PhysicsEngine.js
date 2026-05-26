@@ -11,6 +11,9 @@ export class PhysicsEngine {
         this.waterHazards = [];
         this.hitWater = false;
         this.isPutting = false;
+        this.holePosition = new THREE.Vector3(0, 0.25, -55);
+        this.slopeX = 0;
+        this.slopeZ = 0;
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
@@ -75,6 +78,13 @@ export class PhysicsEngine {
             // UPDATED: Apply calculated ground friction frame-by-frame
             this.velocity.x *= currentFriction;
             this.velocity.z *= currentFriction;
+            // Add this block below to apply slope drift frame-by-frame when on the green:
+            const dx = this.ball.position.x - this.holePosition.x;
+            const dz = this.ball.position.z - this.holePosition.z;
+            if (Math.sqrt(dx * dx + dz * dz) < 12.0 && this.velocity.length() > 0.025) {
+                this.velocity.x += this.slopeX;
+                this.velocity.z += this.slopeZ;
+            }
         }
 
         // 2. MOVE THE BALL
