@@ -128,11 +128,11 @@ export class InputHandler {
             finalPower *= (club.maxYards / 200);
 
             if (club.name === 'Driver') {
-                finalPower *= 0.95;
+                finalPower *= 1.0;
             }
             // Add this else if block here for the SW:
             else if (club.name === 'SW Iron') {
-                finalPower *= 1.75; // Change 1.10 to adjust the Sand Wedge power separately
+                finalPower *= 1.85; // Change 1.10 to adjust the Sand Wedge power separately
             }
             // This else now handles all other irons and woods:
             else {

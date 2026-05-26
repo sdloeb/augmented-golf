@@ -277,6 +277,7 @@ function animate() {
 
         tracerPoints.push(ball.position.clone());
         if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
+        ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         // Calculate the horizontal distance the ball has traveled from the Tee Box (0, 10)
@@ -306,6 +307,16 @@ function animate() {
             generateNewWind();
             updateDistanceDisplay();
             wasMoving = false;
+            // Add this block below to wipe the tracer clean only when landing on the green:
+            const gX = ball.position.x - holePosition.x;
+            const gZ = ball.position.z - holePosition.z;
+            if (Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS) {
+                tracerPoints = [];
+                if (ballTracer) {
+                    ballTracer.geometry.setFromPoints(tracerPoints);
+                    ballTracer.geometry.computeBoundingSphere();
+                }
+            }
 
 
         }
@@ -428,8 +439,10 @@ function init() {
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle) => {
         tracerPoints = [];
+
         tracerPoints.push(ball.position.clone()); // Add this line to anchor the tracer exactly at the ball's starting position
         if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
+        ballTracer.geometry.computeBoundingSphere();
         const forward = new THREE.Vector3();
         camera.getWorldDirection(forward);
         forward.y = 0;
