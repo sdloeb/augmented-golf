@@ -176,13 +176,13 @@ function resetEntireGame() {
     holePosition.z = 10 - gameUnits;
 
     // Add these lines to reposition the visual green elements to the new depth
-    if (green) green.position.z = holePosition.z;
+   if (green) green.position.z = holePosition.z;
     if (pin) pin.position.z = holePosition.z;
     if (flag) flag.position.z = holePosition.z;
     if (holeCup) holeCup.position.z = holePosition.z;
     if (greenGrid) greenGrid.position.z = holePosition.z;
 
-    slopeX = (Math.random() - 0.5) * 0.0014; // Controls left/right break strength
+    slopeX = (Math.random() - 0.5) * 0.0014
     slopeZ = (Math.random() - 0.5) * 0.0014; // Controls uphill/downhill speed strength
 
     if (gridCanvas && gridTexture) {
