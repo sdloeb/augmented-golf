@@ -15,6 +15,54 @@ export class PhysicsEngine {
         this.greenCenterZ = -55;
         this.slopeX = 0;
         this.slopeZ = 0;
+        this.backZone = { rx: 0, rz: 0 };
+        this.midZone = { rx: 0, rz: 0 };
+        this.frontZone = { rx: 0, rz: 0 };
+    }
+
+    // NEW: Receives the shuffled configurations from the map setup
+    setGreenContours(back, mid, front, centerZ) {
+        this.backZone = back;
+        this.midZone = mid;
+        this.frontZone = front;
+        this.greenCenterZ = centerZ;
+    }
+
+    // Analytical height function that calculates 3D elevations anywhere on the green
+    getGreenHeight(x, z) {
+        const dz = z - this.greenCenterZ;
+        const dx = x;
+        const distanceSq = dx * dx + dz * dz;
+
+        // Out of bounds safety fallback
+        if (distanceSq >= 144) return 0;
+
+        const r = Math.sqrt(distanceSq);
+
+        // 1. Calculate smooth transition blending weights along the Z axis (Front to Back)
+        let wBack = Math.max(0, Math.min(1, (-dz - 1.5) / 5));
+        let wFront = Math.max(0, Math.min(1, (dz - 1.5) / 5));
+        wBack = wBack * wBack * (3 - 2 * wBack);
+        wFront = wFront * wFront * (3 - 2 * wFront);
+        let wMid = 1 - wBack - wFront;
+
+        // 2. Accumulate the active randomized slope breaks across the tiers
+        const hBack = this.backZone.rx * dx + this.backZone.rz * dz;
+        const hMid = this.midZone.rx * dx + this.midZone.rz * dz;
+        const hFront = this.frontZone.rx * dx + this.frontZone.rz * dz;
+        const rawSlopeHeight = hBack * wBack + hMid * wMid + hFront * wFront;
+
+        // 3. NEW: Add a protective circular plateau mound foundation (+0.5 units at center)
+        // This keeps downhill valleys elevated safely above the flat infinite floor sheet
+        const basePlateau = 0.20 * (1.0 - (distanceSq / 144));
+        const combinedHeight = basePlateau + rawSlopeHeight;
+
+        // 4. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
+        const edgeFade = Math.min(1, Math.max(0, (12.0 - r) / 2.0));
+        const smoothFade = edgeFade * edgeFade * (3 - 2 * edgeFade);
+
+        // Mathematical floor guard ensures the mesh can never drop below baseline ground level
+        return Math.max(0.001, combinedHeight * smoothFade);
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
@@ -52,11 +100,13 @@ export class PhysicsEngine {
 
         // 0. SURFACE PHYSICS PARAMETERS CHECK
         let currentFriction = this.friction;
-        let currentBounceHeight = this.bounce;      // Defaults to base engine elastic properties (0.40)
-        let currentBounceForwardLoss = 0.80;        // Defaults to retaining 80% forward speed per bounce impact
+        let currentBounceHeight = this.bounce;
+        let currentBounceForwardLoss = 0.80;
 
-        // FIXED: Pulled out of the height wrapper completely. 
-        // The ball now monitors the surface directly underneath it while flying through the air.
+        // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
+        const greenHeightOffset = this.getGreenHeight(this.ball.position.x, this.ball.position.z);
+        const groundY = 0.25 + greenHeightOffset;
+
         const gX = this.ball.position.x - 0;
         const gZ = this.ball.position.z - this.greenCenterZ;
         const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
@@ -73,94 +123,94 @@ export class PhysicsEngine {
         }
 
         if (inSand) {
-            currentFriction = 0.80;          // Heavy friction for sand
-            currentBounceHeight = 0.12;      // Sand completely absorbs bounce altitude
-            currentBounceForwardLoss = 0.30; // Sand completely kills forward rolling velocities
+            currentFriction = 0.80;
+            currentBounceHeight = 0.12;
+            currentBounceForwardLoss = 0.30;
         }
-        // FIXED & UPDATED: Your custom dampening properties will now apply perfectly to the very first bounce impact frame
         else if (!onGreen && Math.abs(this.ball.position.x) >= 9.0) {
-            currentFriction = 0.92;          // Your custom heavier roll resistance
-            currentBounceHeight = 0.12;      // Your custom deadened rough bounce loft 
-            currentBounceForwardLoss = 0.45; // Your custom killed forward skipping velocity momentum
+            currentFriction = 0.92;
+            currentBounceHeight = 0.12;
+            currentBounceForwardLoss = 0.45;
         }
 
+        // Determine if the ball is currently airborne relative to the dynamic 3D slope height
+        const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
+        const timeScale = isAirborne ? 0.6 : 1.0;
 
-        // Determine if the ball is currently airborne to apply a slow-motion effect
-        const isAirborne = this.ball.position.y > 0.25 || this.velocity.y > 0;
-        // 0.5 cuts time speed in half while in the air (change to 0.4 for slower, 0.7 for faster)
-        const timeScale = isAirborne ? 0.5 : 1.0;
-
-        // 1. AIRBORNE PHYSICS (Apply gravity and wind only when above ground)
+        // 1. AIRBORNE PHYSICS 
         if (isAirborne) {
-            // Apply gravity over scaled time increments
             this.velocity.y -= this.gravity * timeScale;
 
-            // Wind only affects the ball while it's in the air!
             if (!this.isPutting) {
                 this.velocity.x += this.wind.x * timeScale;
                 this.velocity.z += this.wind.z * timeScale;
 
                 let bounceWindMultiplier = 1.0;
-                if (this.ball.position.y < 1.5) {
-                    bounceWindMultiplier = 0.20; // Cuts wind force to 20% strength on low bounces
+                if (this.ball.position.y < groundY + 1.25) {
+                    bounceWindMultiplier = 0.20;
                 }
 
                 this.velocity.x += this.wind.x * bounceWindMultiplier * timeScale;
                 this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
-            // Apply calculated surface ground friction frame-by-frame
+            // Apply ground surface friction
             this.velocity.x *= currentFriction;
             this.velocity.z *= currentFriction;
-            // FIXED: Applies the slope rolling drift continuously anywhere within the actual green circle dimensions
-            const gX = this.ball.position.x - 0;
-            const gZ = this.ball.position.z - this.greenCenterZ;
-            if (Math.sqrt(gX * gX + gZ * gZ) < 12.0 && this.velocity.length() > 0.025) {
-                this.velocity.x += this.slopeX;
-                this.velocity.z += this.slopeZ;
+
+            // NEW: Continuous 3D gradient vector checks when rolling across the contoured green tiers
+            if (onGreen) {
+                const delta = 0.1;
+                const hL = this.getGreenHeight(this.ball.position.x - delta, this.ball.position.z);
+                const hR = this.getGreenHeight(this.ball.position.x + delta, this.ball.position.z);
+                const hB = this.getGreenHeight(this.ball.position.x, this.ball.position.z - delta);
+                const hF = this.getGreenHeight(this.ball.position.x, this.ball.position.z + delta);
+
+                // Calculates precise slope forces pulling the ball downhill based on local mesh angles
+                this.slopeX = ((hL - hR) / (2 * delta)) * 0.015;
+                this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015;
+
+                if (this.velocity.length() > 0.025) {
+                    this.velocity.x += this.slopeX;
+                    this.velocity.z += this.slopeZ;
+                }
             }
         }
 
-        // 2. MOVE THE BALL (Scaled by our timeScale factor for flawless slow motion)
+        // 2. MOVE THE BALL 
         this.ball.position.x += this.velocity.x * timeScale;
         this.ball.position.y += this.velocity.y * timeScale;
         this.ball.position.z += this.velocity.z * timeScale;
 
         // 3. GROUND COLLISION & HAZARD DETECTION
-        if (this.ball.position.y <= 0.25) {
-            this.ball.position.y = 0.25; // Snap perfectly to grass level
+        if (this.ball.position.y <= groundY) {
+            this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
 
-            // Check for Water Hazard collision contact
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
                 const dz = this.ball.position.z - water.position.z;
                 if (Math.sqrt(dx * dx + dz * dz) < water.geometry.parameters.radius) {
                     this.velocity.set(0, 0, 0);
                     this.isMoving = false;
-
-                    // Play the water splash audio cleanly
                     if (this.sounds) this.sounds.play('water');
-
-                    this.hitWater = true; // Alerts main loop to trigger game reset
+                    this.hitWater = true;
                     return;
                 }
             }
 
-            // If falling fast enough, bounce! (Using the dynamic surface modifiers calculated above)
             if (Math.abs(this.velocity.y) > 0.05) {
                 if (this.sounds) this.sounds.play('bounce');
                 this.velocity.y = -this.velocity.y * currentBounceHeight;
                 this.velocity.x *= currentBounceForwardLoss;
                 this.velocity.z *= currentBounceForwardLoss;
             } else {
-                // Otherwise, stop vertical movement entirely and apply calculated roll friction
                 this.velocity.y = 0;
                 this.velocity.x *= currentFriction;
                 this.velocity.z *= currentFriction;
             }
         }
 
-        // 4. STOP CONSTANT LOOPS (Stop ball completely if moving incredibly slow)
+        // 4. STOP CONSTANT LOOPS 
         if (this.velocity.length() < 0.01) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;

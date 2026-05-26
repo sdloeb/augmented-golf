@@ -274,12 +274,63 @@ function resetEntireGame(advanceHole = false) {
     }
 
     // The physical pin flagstick, target flag mesh, and open target hole cup track the randomized target position
-    if (pin) pin.position.set(holePosition.x, 1.5, holePosition.z);
-    if (flag) flag.position.set(holePosition.x + 0.4, 2.75, holePosition.z);
-    if (holeCup) holeCup.position.set(holePosition.x, 0.03, holePosition.z);
+    // NEW: Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
+    const horizontalOptions = [0.0, 0.02, -0.02];
 
-    slopeX = (Math.random() - 0.5) * 0.0014;
-    slopeZ = (Math.random() - 0.5) * 0.0014;
+    // Shuffle the array so the horizontal options map randomly to Front, Mid, or Back tiers
+    for (let i = horizontalOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [horizontalOptions[i], horizontalOptions[j]] = [horizontalOptions[j], horizontalOptions[i]];
+    }
+
+    // FIXED: Drastically lowered from 0.04 to 0.01 to make uphill/downhill putts fair and readable
+    const verticalOptions = [0.01, -0.01, 0.0];
+
+    // Build the 3 distinct randomized tier zones configuration blocks
+    const backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    const midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    const frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+
+    // Pass the full contoured landscape configurations down to the physics machine instance
+    if (physics) {
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterZ);
+    }
+
+    // NEW: Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
+    const specificPinCupY = physics.getGreenHeight(holePosition.x, holePosition.z);
+
+    // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
+    if (pin) pin.position.set(holePosition.x, 1.5 + specificPinCupY, holePosition.z);
+    if (flag) flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
+    if (holeCup) holeCup.position.set(holePosition.x, 0.03 + specificPinCupY, holePosition.z);
+
+    // NEW: Deform the visual green mesh geometries to create real 3D ridges and valleys
+    const deformVisualGreenMesh = (targetMesh) => {
+        if (!targetMesh) return;
+        const posAttr = targetMesh.geometry.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const localX = posAttr.getX(i);
+            const localY = posAttr.getY(i); // CircleGeometry sets up flat on local 2D XY plane initially
+
+            // Map local plane points to true world coordinate spaces
+            const worldX = localX + targetMesh.position.x;
+            const worldZ = -localY + targetMesh.position.z;
+
+            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
+            const calculatedHeight = physics.getGreenHeight(worldX, worldZ);
+            posAttr.setZ(i, calculatedHeight);
+        }
+        posAttr.needsUpdate = true;
+        targetMesh.geometry.computeVertexNormals(); // Forces Three.js to re-render lighting shadows smoothly
+    };
+
+    // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
+    deformVisualGreenMesh(green);
+    deformVisualGreenMesh(greenGrid);
+
+    // Extract middle zone values as reference for drawing the helper guide canvas texture arrow
+    slopeX = midZoneProfile.rx * 0.015;
+    slopeZ = midZoneProfile.rz * 0.015;
 
     if (gridCanvas && gridTexture) {
         const ctx = gridCanvas.getContext('2d');
@@ -301,12 +352,6 @@ function resetEntireGame(advanceHole = false) {
         gridTexture.needsUpdate = true;
     }
 
-    if (physics) {
-        physics.holePosition.copy(holePosition);
-        physics.greenCenterZ = greenCenterZ; // NEW: Pass the true visual green center depth into the physics engine
-        physics.slopeX = slopeX;
-        physics.slopeZ = slopeZ;
-    }
 
     if (fairway) {
         const fairwayLength = 8 - greenCenterZ;
@@ -417,25 +462,23 @@ function resetEntireGame(advanceHole = false) {
 function animate() {
     requestAnimationFrame(animate);
 
-
-
-    // Only update standard physical trajectories if the ball isn't sinking into the cup
-    if (!isSinking) {
+    // FIXED: Re-added the frame tick runner so the ball can actually move through space!
+    if (physics && !isSinking) {
         physics.update();
     }
 
-    // 1. FIXED OUT OF BOUNDS CHECK
+    // FIXED: Re-added your Out of Bounds course boundary tracking check
     if (Math.abs(ball.position.x) > 30 || ball.position.z < holePosition.z - 40) {
         alert(`Out of Bounds! Ball flew off the course.`);
-        resetEntireGame(false); // Retain same hole and generate new layouts
+        resetEntireGame(false);
         return;
     }
 
-    // ADD THIS BLOCK:
+    // FIXED: Re-added your Water Hazard tracker check
     if (physics && physics.hitWater) {
         physics.hitWater = false;
         alert(`Water Hazard! 🌊 Your ball splashed in. Resetting hole!`);
-        resetEntireGame(false); // Retain same hole and generate new layouts
+        resetEntireGame(false);
         return;
     }
 
@@ -445,22 +488,24 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-        // Capture condition: ball must hit the threshold and be near the grass level
-        if (distanceToHole < 0.35 && ball.position.y <= 0.25) {
-            // Add this speed block right here:
+        // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
+        // even with minor floating-point variations or light bounces on the 3D mound
+        if (distanceToHole < 0.35 && ball.position.y <= (0.25 + physics.getGreenHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
-            if (ballSpeed > 0.07) {
+
+            // FIXED: Raised speed threshold from 0.07 to 0.14 so true putts sink cleanly 
+            // instead of automatically bouncing off the rim due to mound acceleration
+            if (ballSpeed > 0.14) {
                 physics.velocity.y = 0.04; // Pops the ball up into the air slightly
-                physics.velocity.x *= 0.85; // Slightly slows down forward momentum from the impact
+                physics.velocity.x *= 0.85;
                 physics.velocity.z *= 0.85;
-                return; // Exits early so the ball avoids the sinking code below!
+                return;
             }
             isSinking = true;
             physics.velocity.set(0, 0, 0);
             physics.isMoving = false;
             wasMoving = false;
 
-            // Snap perfectly center over the black hole disk layout
             ball.position.x = holePosition.x;
             ball.position.z = holePosition.z;
         }
@@ -638,29 +683,34 @@ function init() {
     scene.add(teeBox);
 
     // 6.5. Add the Putting Green, Flagstick, and Red Flag
-    const greenGeo = new THREE.CircleGeometry(GREEN_RADIUS, 32);
-    const greenMat = new THREE.MeshStandardMaterial({ color: 0x32cd32, roughness: 0.8 });
+    // FIXED: Changed to solid RingGeometry (0 inner radius) to unlock actual high-density concentric vertex rings
+    const greenGeo = new THREE.RingGeometry(0, GREEN_RADIUS, 64, 32);
+    // FIXED: Giving the grid map its own independent mesh geometry prevents shared-vertex texture coordinate breaks
+    const gridGeo = new THREE.RingGeometry(0, GREEN_RADIUS - 0.02, 64, 32);
+
+    const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.4 });
     green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
     green.position.set(0, 0.02, -55);
     scene.add(green);
 
-    gridCanvas = document.createElement('canvas'); // Change "const canvas" to "gridCanvas"
+
+    gridCanvas = document.createElement('canvas');
     gridCanvas.width = 64;
     gridCanvas.height = 64;
 
-    gridTexture = new THREE.CanvasTexture(gridCanvas); // Change "canvas" to "gridCanvas"
+    gridTexture = new THREE.CanvasTexture(gridCanvas);
     gridTexture.wrapS = THREE.RepeatWrapping;
     gridTexture.wrapT = THREE.RepeatWrapping;
     gridTexture.repeat.set(12, 12);
 
-    greenGrid = new THREE.Mesh(greenGeo, new THREE.MeshBasicMaterial({
+    greenGrid = new THREE.Mesh(gridGeo, new THREE.MeshBasicMaterial({
         map: gridTexture,
         transparent: true,
         side: THREE.DoubleSide
     }));
     greenGrid.rotation.x = -Math.PI / 2;
-    greenGrid.position.set(0, 0.021, -55); // Placed 0.001 higher to prevent flickering
+    greenGrid.position.set(0, 0.021, -55);
     scene.add(greenGrid);
 
     const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 3, 8);
