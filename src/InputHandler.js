@@ -1,3 +1,18 @@
+const CLUBS = [
+    { name: 'Driver', maxYards: 325, isGreen: false },
+    { name: '3 Wood', maxYards: 250, isGreen: false },
+    { name: '5 Wood', maxYards: 225, isGreen: false },
+    { name: 'Hybrid', maxYards: 200, isGreen: false },
+    { name: '5 Iron', maxYards: 190, isGreen: false },
+    { name: '6 Iron', maxYards: 180, isGreen: false },
+    { name: '7 Iron', maxYards: 170, isGreen: false },
+    { name: '8 Iron', maxYards: 160, isGreen: false },
+    { name: '9 Iron', maxYards: 150, isGreen: false },
+    { name: 'PW Iron', maxYards: 140, isGreen: false },
+    { name: 'SW Iron', maxYards: 120, isGreen: false }
+];
+
+
 export class InputHandler {
     // UPDATED: Now accepts an optional callback to verify if the ball is on the green
     constructor(onLaunchCallback, checkIsOnGreenCallback, getDistanceCallback) {
@@ -15,8 +30,28 @@ export class InputHandler {
         this.startX = 0;
         this.startY = 0;
         this.maxPullY = 0;
+        this.chosenClubIndex = null;
 
         this.initEvents();
+    }
+
+    getClubList() {
+        return CLUBS;
+    }
+
+    getDefaultClubIndex() {
+        const currentYards = this.getDistance ? this.getDistance() : 0;
+        if (currentYards >= 250) return 0;  // Driver
+        if (currentYards >= 225) return 1;  // 3 Wood
+        if (currentYards >= 200) return 2;  // 5 Wood
+        if (currentYards >= 190) return 3;  // Hybrid
+        if (currentYards >= 180) return 4;  // 5 Iron
+        if (currentYards >= 170) return 5;  // 6 Iron
+        if (currentYards >= 160) return 6;  // 7 Iron
+        if (currentYards >= 150) return 7;  // 8 Iron
+        if (currentYards >= 140) return 8;  // 9 Iron
+        if (currentYards >= 130) return 9;  // PW Iron
+        return 10;                          // SW Iron
     }
 
     getClubInfo() {
@@ -25,19 +60,14 @@ export class InputHandler {
             return { name: 'Putter', maxYards: 40, isGreen: true };
         }
 
-        const currentYards = this.getDistance ? this.getDistance() : 0;
+        // If player explicitly manually selected a club option, return that one
+        if (this.chosenClubIndex !== null && this.chosenClubIndex !== undefined) {
+            return CLUBS[this.chosenClubIndex];
+        }
 
-        if (currentYards >= 250) return { name: 'Driver', maxYards: 325, isGreen: false };
-        if (currentYards >= 225) return { name: '3 Wood', maxYards: 250, isGreen: false };
-        if (currentYards >= 200) return { name: '5 Wood', maxYards: 225, isGreen: false };
-        if (currentYards >= 190) return { name: 'Hybrid', maxYards: 200, isGreen: false };
-        if (currentYards >= 180) return { name: '5 Iron', maxYards: 190, isGreen: false };
-        if (currentYards >= 170) return { name: '6 Iron', maxYards: 180, isGreen: false };
-        if (currentYards >= 160) return { name: '7 Iron', maxYards: 170, isGreen: false };
-        if (currentYards >= 150) return { name: '8 Iron', maxYards: 160, isGreen: false };
-        if (currentYards >= 140) return { name: '9 Iron', maxYards: 150, isGreen: false };
-        if (currentYards >= 130) return { name: 'PW Iron', maxYards: 140, isGreen: false };
-        return { name: 'SW Iron', maxYards: 120, isGreen: false };
+        // Default back to standard auto distance selection index
+        const defaultIndex = this.getDefaultClubIndex();
+        return CLUBS[defaultIndex];
     }
 
 
@@ -49,6 +79,7 @@ export class InputHandler {
 
     onMouseDown(e) {
         if (e.button !== 0) return;
+        if (e.target.closest('.club-option')) return
 
         this.isSwinging = true;
         this.state = 'PULLBACK';
@@ -178,6 +209,7 @@ export class InputHandler {
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
         this.onLaunch(finalPower, horizontalAngle);
+        this.chosenClubIndex = null;
         this.resetSwing();
     }
 

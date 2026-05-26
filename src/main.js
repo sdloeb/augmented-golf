@@ -59,6 +59,63 @@ function updateDistanceDisplay() {
         const club = input.getClubInfo();
         clubText.innerText = club.name;
     }
+
+    // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
+    const container = document.getElementById('clubOptionsContainer');
+    if (container && input) {
+        container.innerHTML = ''; // Wipe out old button listings
+
+        // Hide panel if the ball is currently moving through physical trajectory or sinking out of view
+        if ((physics && physics.isMoving) || isSinking) {
+            return;
+        }
+
+        const isOnGreen = gameDistance < GREEN_RADIUS;
+        // On the putting green, lock to the putter with no extra layout elements
+        if (isOnGreen) {
+            return;
+        }
+
+        const defaultIdx = input.getDefaultClubIndex();
+        const activeClub = input.getClubInfo();
+        const clubList = input.getClubList();
+
+        const indicesToShow = [];
+
+        // 1. One club above (longer range distance) if not hitting Driver edge boundary
+        if (defaultIdx > 0) {
+            indicesToShow.push(defaultIdx - 1);
+        }
+
+        // 2. The standard automatic club index matching current target yards distance
+        indicesToShow.push(defaultIdx);
+
+        // 3. One club below (shorter range distance) if not hitting SW Iron edge boundary
+        if (defaultIdx < 10) {
+            indicesToShow.push(defaultIdx + 1);
+        }
+
+        // Construct HTML layouts for valid club candidate index options
+        indicesToShow.forEach(idx => {
+            const clubInfo = clubList[idx];
+            const btn = document.createElement('button');
+            btn.className = 'club-option';
+
+            if (activeClub.name === clubInfo.name) {
+                btn.classList.add('active');
+            }
+
+            btn.innerText = clubInfo.name;
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Shield external capture setups from click triggers
+                input.chosenClubIndex = idx;
+                updateDistanceDisplay(); // Instantly update active class highlights
+            });
+
+            container.appendChild(btn);
+        });
+    }
 }
 
 function generateNewWind() {
@@ -171,6 +228,10 @@ function resetEntireGame() {
 
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
+
+    if (input) {
+        input.chosenClubIndex = null; // Clear override selections on hole transitions
+    }
 
     const randomYards = 130 + Math.random() * (550 - 130);
     const gameUnits = randomYards / 2.76923;
