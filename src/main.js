@@ -122,7 +122,7 @@ function updateDistanceDisplay() {
 }
 
 function generateNewWind() {
-    const maxWindSpeed = 25;
+    const maxWindSpeed = 21;
     const windSpeed = Math.floor(Math.random() * maxWindSpeed);
     currentWindAngle = Math.random() * Math.PI * 2; // Save globally
 
@@ -131,7 +131,7 @@ function generateNewWind() {
         text.innerText = `${windSpeed} mph`;
     }
 
-    const windScale = 0.00001;
+    const windScale = 0.000005;
     physics.wind.set(
         Math.sin(currentWindAngle) * windSpeed * windScale,
         0,
@@ -303,6 +303,7 @@ function resetEntireGame(advanceHole = false) {
 
     if (physics) {
         physics.holePosition.copy(holePosition);
+        physics.greenCenterZ = greenCenterZ; // NEW: Pass the true visual green center depth into the physics engine
         physics.slopeX = slopeX;
         physics.slopeZ = slopeZ;
     }
@@ -328,16 +329,24 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
 
-    // NEW: Frame the starting camera location cleanly behind the randomized Tee position 
-    // and lock initial gaze target parameters exactly onto the new offset pin cup location
-    cameraTargetPos.set(teeBoxX, 2, 14);
+
+    // NEW: Calculate the precise target-line vector between the randomized tee and pin positions
+    const startDirX = holePosition.x - teeBoxX;
+    const startDirZ = holePosition.z - 10; // Ball starts at Z: 10
+    const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ);
+
+    // Position the camera exactly 4 units backward along the true ball-to-hole line of sight
+    const startBackX = -(startDirX / startLength) * 4;
+    const startBackZ = -(startDirZ / startLength) * 4;
+
+    // Set the starting position using the precise target line vector to prevent swing shift adjustments
+    cameraTargetPos.set(teeBoxX + startBackX, 2, 10 + startBackZ);
     cameraLookAt.copy(holePosition);
     currentLookAt.copy(holePosition);
     camera.position.copy(cameraTargetPos);
     camera.lookAt(currentLookAt);
 
     sceneryObjects.forEach(obj => scene.remove(obj));
-    sceneryObjects = [];
 
     // Materials for the scenery elements
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });

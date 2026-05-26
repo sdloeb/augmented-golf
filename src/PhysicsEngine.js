@@ -12,6 +12,7 @@ export class PhysicsEngine {
         this.hitWater = false;
         this.isPutting = false;
         this.holePosition = new THREE.Vector3(0, 0.25, -55);
+        this.greenCenterZ = -55;
         this.slopeX = 0;
         this.slopeZ = 0;
     }
@@ -49,23 +50,45 @@ export class PhysicsEngine {
     update() {
         if (!this.isMoving) return;
 
-        // 0. SURFACE FRICTION CHECK
+        // 0. SURFACE PHYSICS PARAMETERS CHECK
         let currentFriction = this.friction;
-        if (this.ball.position.y <= 0.25) {
-            for (let sand of this.sandTraps) {
-                const dx = this.ball.position.x - sand.position.x;
-                const dz = this.ball.position.z - sand.position.z;
-                if (Math.sqrt(dx * dx + dz * dz) < sand.geometry.parameters.radius) {
-                    currentFriction = 0.80; // Heavy friction for sand
-                    break;
-                }
+        let currentBounceHeight = this.bounce;      // Defaults to base engine elastic properties (0.40)
+        let currentBounceForwardLoss = 0.80;        // Defaults to retaining 80% forward speed per bounce impact
+
+        // FIXED: Pulled out of the height wrapper completely. 
+        // The ball now monitors the surface directly underneath it while flying through the air.
+        const gX = this.ball.position.x - 0;
+        const gZ = this.ball.position.z - this.greenCenterZ;
+        const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
+
+        // Check Sand Traps contact
+        let inSand = false;
+        for (let sand of this.sandTraps) {
+            const dx = this.ball.position.x - sand.position.x;
+            const dz = this.ball.position.z - sand.position.z;
+            if (Math.sqrt(dx * dx + dz * dz) < sand.geometry.parameters.radius) {
+                inSand = true;
+                break;
             }
         }
 
-        // NEW: Determine if the ball is currently airborne to apply a slow-motion effect
+        if (inSand) {
+            currentFriction = 0.80;          // Heavy friction for sand
+            currentBounceHeight = 0.12;      // Sand completely absorbs bounce altitude
+            currentBounceForwardLoss = 0.30; // Sand completely kills forward rolling velocities
+        }
+        // FIXED & UPDATED: Your custom dampening properties will now apply perfectly to the very first bounce impact frame
+        else if (!onGreen && Math.abs(this.ball.position.x) >= 9.0) {
+            currentFriction = 0.92;          // Your custom heavier roll resistance
+            currentBounceHeight = 0.12;      // Your custom deadened rough bounce loft 
+            currentBounceForwardLoss = 0.45; // Your custom killed forward skipping velocity momentum
+        }
+
+
+        // Determine if the ball is currently airborne to apply a slow-motion effect
         const isAirborne = this.ball.position.y > 0.25 || this.velocity.y > 0;
         // 0.5 cuts time speed in half while in the air (change to 0.4 for slower, 0.7 for faster)
-        const timeScale = isAirborne ? 0.70 : 1.0;
+        const timeScale = isAirborne ? 0.5 : 1.0;
 
         // 1. AIRBORNE PHYSICS (Apply gravity and wind only when above ground)
         if (isAirborne) {
@@ -86,13 +109,13 @@ export class PhysicsEngine {
                 this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
-            // UPDATED: Apply calculated ground friction frame-by-frame
+            // Apply calculated surface ground friction frame-by-frame
             this.velocity.x *= currentFriction;
             this.velocity.z *= currentFriction;
-            // Add this block below to apply slope drift frame-by-frame when on the green:
-            const dx = this.ball.position.x - this.holePosition.x;
-            const dz = this.ball.position.z - this.holePosition.z;
-            if (Math.sqrt(dx * dx + dz * dz) < 12.0 && this.velocity.length() > 0.025) {
+            // FIXED: Applies the slope rolling drift continuously anywhere within the actual green circle dimensions
+            const gX = this.ball.position.x - 0;
+            const gZ = this.ball.position.z - this.greenCenterZ;
+            if (Math.sqrt(gX * gX + gZ * gZ) < 12.0 && this.velocity.length() > 0.025) {
                 this.velocity.x += this.slopeX;
                 this.velocity.z += this.slopeZ;
             }
@@ -123,16 +146,15 @@ export class PhysicsEngine {
                 }
             }
 
-            // If falling fast enough, bounce!
+            // If falling fast enough, bounce! (Using the dynamic surface modifiers calculated above)
             if (Math.abs(this.velocity.y) > 0.05) {
                 if (this.sounds) this.sounds.play('bounce');
-                this.velocity.y = -this.velocity.y * this.bounce; // Reverse vertical speed
-                this.velocity.x *= 0.8; // Lose a bit of forward speed on bounce impact
-                this.velocity.z *= 0.8;
+                this.velocity.y = -this.velocity.y * currentBounceHeight;
+                this.velocity.x *= currentBounceForwardLoss;
+                this.velocity.z *= currentBounceForwardLoss;
             } else {
                 // Otherwise, stop vertical movement entirely and apply calculated roll friction
                 this.velocity.y = 0;
-                // UPDATED: Apply calculated ground friction here too
                 this.velocity.x *= currentFriction;
                 this.velocity.z *= currentFriction;
             }
