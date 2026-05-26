@@ -5,7 +5,7 @@ import { SoundManager } from './SoundManager.js';
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds;
 let green, pin, flag, holeCup, fairway;
 let ballTracer, tracerPoints = [];
-let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas;
+let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 
 let sandTraps = [];
 let waterHazards = [];
@@ -72,7 +72,11 @@ function updateDistanceDisplay() {
             return;
         }
 
-        const isOnGreen = gameDistance < GREEN_RADIUS;
+        // FIXED: Check distance to the green's center instead of the hole cup
+        const greenCheckX = ball.position.x - 0;
+        const greenCheckZ = ball.position.z - greenCenterZ;
+        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < GREEN_RADIUS;
+
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
             return;
@@ -253,7 +257,7 @@ function resetEntireGame(advanceHole = false) {
     if (mapParElement) mapParElement.innerText = `PAR ${currentPar}`;
 
     const gameUnits = randomYards / 2.76923;
-    const greenCenterZ = 10 - gameUnits;
+    greenCenterZ = 10 - gameUnits;
 
     // NEW: Dynamically shift the physical pin location anywhere within the circular green boundaries
     const pinAngle = Math.random() * Math.PI * 2;
@@ -760,8 +764,9 @@ function init() {
         const right = new THREE.Vector3();
         right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-        const gX = ball.position.x - holePosition.x;
-        const gZ = ball.position.z - holePosition.z;
+        // FIXED: Measures from the green's center to scale the hitting power multiplier accurately
+        const gX = ball.position.x - 0;
+        const gZ = ball.position.z - greenCenterZ;
         const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
 
         let finalPower = power;
@@ -802,9 +807,9 @@ function init() {
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
     }, () => {
-        // This execution frame allows InputHandler to track green conditions on drag
-        const gX = ball.position.x - holePosition.x;
-        const gZ = ball.position.z - holePosition.z;
+        // FIXED: Tracks the green boundaries accurately from the true center point during click-drags
+        const gX = ball.position.x - 0;
+        const gZ = ball.position.z - greenCenterZ;
         return Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
     }, () => {
         // Add this third callback function here to return current distance in yards
