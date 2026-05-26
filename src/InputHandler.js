@@ -153,22 +153,49 @@ export class InputHandler {
         const basePower = targetPullDistance * 0.05;
         let finalPower = basePower * powerMultiplier;
 
+
         const club = this.getClubInfo();
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
 
             if (club.name === 'Driver') {
-                finalPower *= 1.0;
+                finalPower *= 0.90;
             }
-            // Add this else if block here for the SW:
+            else if (club.name === '3 Wood') {
+                finalPower *= 1.1;
+            }
+            else if (club.name === '5 Wood') {
+                finalPower *= 1.05;
+            }
+            else if (club.name === 'Hybrid') {
+                finalPower *= 1.15; // Adjust to tune Hybrid distance separately
+            }
+            else if (club.name === '5 Iron') {
+                finalPower *= 1.15; // Adjust to tune 5 Iron distance separately
+            }
+            else if (club.name === '6 Iron') {
+                finalPower *= 1.15; // Adjust to tune 6 Iron distance separately
+            }
+            else if (club.name === '7 Iron') {
+                finalPower *= 1.15; // Adjust to tune 7 Iron distance separately
+            }
+            else if (club.name === '8 Iron') {
+                finalPower *= 1.15; // Adjust to tune 8 Iron distance separately
+            }
+            else if (club.name === '9 Iron') {
+                finalPower *= 1.15; // Adjust to tune 9 Iron distance separately
+            }
+            else if (club.name === 'PW Iron') {
+                finalPower *= 1.15; // Adjust to tune Pitching Wedge distance separately
+            }
             else if (club.name === 'SW Iron') {
-                finalPower *= 1.85; // Change 1.10 to adjust the Sand Wedge power separately
+                finalPower *= 1.85; // Adjust to tune Sand Wedge distance separately
             }
-            // This else now handles all other irons and woods:
             else {
-                finalPower *= 1.45;
+                finalPower *= 1.0; // Safe catch-all fallback
             }
+
 
 
             if (this.ballRef) {

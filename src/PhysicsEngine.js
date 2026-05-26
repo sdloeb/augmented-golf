@@ -32,7 +32,13 @@ export class PhysicsEngine {
         if (isPutting) {
             this.velocity.y = 0;
         } else {
-            this.velocity.y = power * 0.045;
+            // Lowered from 0.045 to 0.024 to make the vertical launch arc significantly flatter
+            this.velocity.y = power * 0.042;
+
+            // Compensate horizontal velocity to make up for the reduced airborne time,
+            // preserving the total travel distance of the clubs.
+            this.velocity.x *= 1.61;
+            this.velocity.z *= 1.61;
         }
         this.isPutting = isPutting;
 
@@ -56,23 +62,28 @@ export class PhysicsEngine {
             }
         }
 
+        // NEW: Determine if the ball is currently airborne to apply a slow-motion effect
+        const isAirborne = this.ball.position.y > 0.25 || this.velocity.y > 0;
+        // 0.5 cuts time speed in half while in the air (change to 0.4 for slower, 0.7 for faster)
+        const timeScale = isAirborne ? 0.70 : 1.0;
+
         // 1. AIRBORNE PHYSICS (Apply gravity and wind only when above ground)
-        if (this.ball.position.y > 0.25 || this.velocity.y > 0) {
-            this.velocity.y -= this.gravity;
+        if (isAirborne) {
+            // Apply gravity over scaled time increments
+            this.velocity.y -= this.gravity * timeScale;
 
             // Wind only affects the ball while it's in the air!
             if (!this.isPutting) {
-                this.velocity.x += this.wind.x;
-                this.velocity.z += this.wind.z;
+                this.velocity.x += this.wind.x * timeScale;
+                this.velocity.z += this.wind.z * timeScale;
 
                 let bounceWindMultiplier = 1.0;
                 if (this.ball.position.y < 1.5) {
                     bounceWindMultiplier = 0.20; // Cuts wind force to 20% strength on low bounces
                 }
 
-                // Change the two lines below to include * bounceWindMultiplier:
-                this.velocity.x += this.wind.x * bounceWindMultiplier;
-                this.velocity.z += this.wind.z * bounceWindMultiplier;
+                this.velocity.x += this.wind.x * bounceWindMultiplier * timeScale;
+                this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
             // UPDATED: Apply calculated ground friction frame-by-frame
@@ -87,15 +98,16 @@ export class PhysicsEngine {
             }
         }
 
-        // 2. MOVE THE BALL
-        this.ball.position.add(this.velocity);
+        // 2. MOVE THE BALL (Scaled by our timeScale factor for flawless slow motion)
+        this.ball.position.x += this.velocity.x * timeScale;
+        this.ball.position.y += this.velocity.y * timeScale;
+        this.ball.position.z += this.velocity.z * timeScale;
 
         // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= 0.25) {
             this.ball.position.y = 0.25; // Snap perfectly to grass level
 
-            // ADDED: Check for Water Hazard collision contact
-            // REPLACE the block below to fix the duplicate nested loops
+            // Check for Water Hazard collision contact
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
                 const dz = this.ball.position.z - water.position.z;
