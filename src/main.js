@@ -8,6 +8,7 @@ let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas;
 
 let sandTraps = [];
 let waterHazards = [];
+let sceneryObjects = [];
 
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
@@ -231,6 +232,70 @@ function resetEntireGame() {
     currentLookAt.set(0, 0, -50);
     camera.position.copy(cameraTargetPos);
     camera.lookAt(currentLookAt);
+
+    sceneryObjects.forEach(obj => scene.remove(obj));
+    sceneryObjects = [];
+
+    // Materials for the scenery elements
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+    const foliageMat = new THREE.MeshStandardMaterial({ color: 0x1d5330, roughness: 0.6 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.5 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 }); // Dark Red roofs
+
+    // Generate 35 pieces of random scenery scattered along the edges
+    for (let i = 0; i < 35; i++) {
+        // Determine whether to place on the left side or right side of the track
+        const side = Math.random() > 0.5 ? 1 : -1;
+        const x = side * (31 + Math.random() * 15); // Outside the fairway but on the grass plane
+
+        // Scatter evenly from the tee box (Z: 15) up past the green destination
+        const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
+
+        const sceneryGroup = new THREE.Group();
+        sceneryGroup.position.set(x, 0, z);
+
+        if (Math.random() > 0.4) {
+            // --- BUILD A PROCEDURAL TREE ---
+            const treeHeight = 1.5; // Explicit trunk height variable
+            const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, treeHeight, 8);
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+
+            // Change this line to set position perfectly flat to the main floor:
+            trunk.position.y = treeHeight / 2;
+            sceneryGroup.add(trunk);
+
+            const leavesHeight = 2.5; // Explicit foliage height variable
+            const leavesGeo = new THREE.ConeGeometry(1.2, leavesHeight, 8);
+            const leaves = new THREE.Mesh(leavesGeo, foliageMat);
+
+            // Change this line to stack perfectly on top of the trunk height:
+            leaves.position.y = treeHeight + (leavesHeight / 2);
+            sceneryGroup.add(leaves);
+        } else {
+            // --- BUILD A PROCEDURAL HOUSE ---
+            const houseWidth = 2.0 + Math.random() * 1.5;
+            const houseHeight = 1.5 + Math.random() * 1.0; // Dynamic height variable
+
+            const baseGeo = new THREE.BoxGeometry(houseWidth, houseHeight, houseWidth);
+            const base = new THREE.Mesh(baseGeo, wallMat);
+
+            // Change this line to map perfectly from the ground floor up:
+            base.position.y = houseHeight / 2;
+            sceneryGroup.add(base);
+
+            // Give it a pointed triangular roof
+            const roofGeo = new THREE.ConeGeometry(houseWidth * 0.8, 1.2, 4);
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+
+            // Change this line to place the roof perfectly flush with the top of the walls:
+            roof.position.y = houseHeight + 0.6;
+            roof.rotation.y = Math.PI / 4;
+            sceneryGroup.add(roof);
+        }
+
+        scene.add(sceneryGroup);
+        sceneryObjects.push(sceneryGroup);
+    }
 
     generateNewWind();
     generateHazards();
