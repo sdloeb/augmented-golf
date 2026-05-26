@@ -334,7 +334,7 @@ function animate() {
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
         // Capture condition: ball must hit the threshold and be near the grass level
-        if (distanceToHole < 0.25 && ball.position.y <= 0.25) {
+        if (distanceToHole < 0.35 && ball.position.y <= 0.25) {
             // Add this speed block right here:
             const ballSpeed = physics.velocity.length();
             if (ballSpeed > 0.07) {
@@ -359,8 +359,8 @@ function animate() {
         ball.position.y -= 0.015;
 
         // Once it drops safely inside the hole depth out of sight (Y <= -0.15)
-        if (ball.position.y <= -0.15) {
-            isSinking = false;
+        if (ball.position.y <= -0.15 && ball.position.y > -900) {
+            ball.position.y = -999;
 
             // Give the browser 30ms to fully render the final subterranean frame before alerting
             setTimeout(() => {
@@ -414,7 +414,7 @@ function animate() {
             // Add this block below to wipe the tracer clean only when landing on the green:
             const gX = ball.position.x - holePosition.x;
             const gZ = ball.position.z - holePosition.z;
-            if (Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS) {
+            if (Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS || ball.position.z <= holePosition.z) {
                 tracerPoints = [];
                 if (ballTracer) {
                     ballTracer.geometry.setFromPoints(tracerPoints);
