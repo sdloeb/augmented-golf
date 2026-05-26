@@ -1,5 +1,6 @@
 /* CHANGE THIS BLOCK AT THE VERY TOP OF style.css: */
-body, html {
+body,
+html {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -73,7 +74,7 @@ body, html {
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
     pointer-events: none;
 }
 
@@ -82,7 +83,8 @@ body, html {
     font-weight: bold;
     color: #00ffcc;
     display: inline-block;
-    transition: transform 0.4s ease; /* Smooth arrow rotation transition */
+    transition: transform 0.4s ease;
+    /* Smooth arrow rotation transition */
 }
 
 #windText {
@@ -102,6 +104,87 @@ body, html {
     color: white;
     font-size: 18px;
     font-weight: bold;
-    box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
     pointer-events: none;
+}
+
+/* ==========================================================================
+   FIRST PERSON GOLF CLUB SWIPE EFFECT
+   ========================================================================== */
+#clubSwipe {
+    position: absolute;
+    bottom: -200px;
+    right: -200px;
+    width: 140px;
+    height: 70px;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+}
+
+/* Active trigger animation utility class */
+#clubSwipe.swipe-animation {
+    animation: clubSwipeAnim 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Rounded & dark */
+#clubSwipe.wood {
+    background: radial-gradient(circle at 30% 30%, #3a3a3a, #111111);
+    border-radius: 40px 70px 30px 50px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset -4px -4px 10px rgba(0, 0, 0, 0.6);
+    border: 1px solid #222;
+}
+
+/* Top view style of an Iron (Irons, PW, SW) - Sleek, metallic & angled blade */
+#clubSwipe.iron {
+    background: linear-gradient(135deg, #e0e0e0 0%, #b5b5b5 50%, #8e8e8e 100%);
+    border-radius: 4px 40px 8px 12px;
+    width: 130px;
+    height: 35px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    border: 1px solid #999;
+}
+
+/* Top view style of a Putter - Solid block rectangular design */
+#clubSwipe.putter {
+    background: linear-gradient(to right, #2c3e50, #34495e);
+    border-radius: 4px;
+    width: 150px;
+    height: 40px;
+    border-left: 12px solid #7f8c8d;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Arc motion simulating a golf swing through the ball location */
+
+@keyframes clubSwipeAnim {
+    0% {
+        bottom: -100px;
+        left: 43%;
+        /* Lowered from 49% to shift starting point further left */
+        right: auto;
+        transform: rotate(30deg) scale(1.7);
+        opacity: 0;
+    }
+
+    15% {
+        opacity: 1;
+    }
+
+    35% {
+        bottom: 12%;
+        left: 38%;
+        /* Lowered from 44% to shift impact point further left */
+        right: auto;
+        transform: rotate(0deg) scale(1.2);
+    }
+
+    100% {
+        bottom: 45%;
+        left: 30%;
+        /* Lowered from 36% to shift follow-through further left */
+        right: auto;
+        transform: rotate(-40deg) scale(0.5);
+        opacity: 0;
+    }
 }

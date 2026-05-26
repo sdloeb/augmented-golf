@@ -176,7 +176,7 @@ function resetEntireGame() {
     holePosition.z = 10 - gameUnits;
 
     // Add these lines to reposition the visual green elements to the new depth
-   if (green) green.position.z = holePosition.z;
+    if (green) green.position.z = holePosition.z;
     if (pin) pin.position.z = holePosition.z;
     if (flag) flag.position.z = holePosition.z;
     if (holeCup) holeCup.position.z = holePosition.z;
@@ -560,6 +560,7 @@ function init() {
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle) => {
+
         tracerPoints = [];
 
         tracerPoints.push(ball.position.clone()); // Add this line to anchor the tracer exactly at the ball's starting position
@@ -585,6 +586,34 @@ function init() {
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
+
+
+
+        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
+
+        // Add these lines below to trigger the first-person club swipe animation
+        const club = input.getClubInfo();
+        const clubSwipe = document.getElementById('clubSwipe');
+        if (clubSwipe) {
+            clubSwipe.className = ''; // Clear out previous animation or styling classes
+
+            // Assign the style type based on the active club selection
+            if (club.name === 'Putter') {
+                clubSwipe.classList.add('putter');
+            } else if (club.name === 'Driver' || club.name.includes('Wood') || club.name === 'Hybrid') {
+                clubSwipe.classList.add('wood');
+            } else {
+                clubSwipe.classList.add('iron');
+            }
+
+            // Kick off the swipe animation
+            clubSwipe.classList.add('swipe-animation');
+
+            // Remove the utility class once finished so it can be re-triggered next stroke
+            setTimeout(() => {
+                clubSwipe.classList.remove('swipe-animation');
+            }, 350);
+        }
 
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
