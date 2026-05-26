@@ -307,8 +307,7 @@ function animate() {
             updateDistanceDisplay();
             wasMoving = false;
 
-            tracerPoints = [];
-            if (ballTracer) ballTracer.geometry.setFromPoints([]);
+
         }
 
         if (input && input.isSwinging) {

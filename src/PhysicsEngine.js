@@ -10,6 +10,7 @@ export class PhysicsEngine {
         this.sandTraps = [];
         this.waterHazards = [];
         this.hitWater = false;
+        this.isPutting = false;
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
@@ -30,6 +31,7 @@ export class PhysicsEngine {
         } else {
             this.velocity.y = power * 0.045;
         }
+        this.isPutting = isPutting;
 
         this.isMoving = true;
     }
@@ -56,17 +58,19 @@ export class PhysicsEngine {
             this.velocity.y -= this.gravity;
 
             // Wind only affects the ball while it's in the air!
-            this.velocity.x += this.wind.x;
-            this.velocity.z += this.wind.z;
+            if (!this.isPutting) {
+                this.velocity.x += this.wind.x;
+                this.velocity.z += this.wind.z;
 
-            let bounceWindMultiplier = 1.0;
-            if (this.ball.position.y < 1.5) {
-                bounceWindMultiplier = 0.20; // Cuts wind force to 20% strength on low bounces
+                let bounceWindMultiplier = 1.0;
+                if (this.ball.position.y < 1.5) {
+                    bounceWindMultiplier = 0.20; // Cuts wind force to 20% strength on low bounces
+                }
+
+                // Change the two lines below to include * bounceWindMultiplier:
+                this.velocity.x += this.wind.x * bounceWindMultiplier;
+                this.velocity.z += this.wind.z * bounceWindMultiplier;
             }
-
-            // Change the two lines below to include * bounceWindMultiplier:
-            this.velocity.x += this.wind.x * bounceWindMultiplier;
-            this.velocity.z += this.wind.z * bounceWindMultiplier;
         } else {
             // UPDATED: Apply calculated ground friction frame-by-frame
             this.velocity.x *= currentFriction;
@@ -110,6 +114,7 @@ export class PhysicsEngine {
         if (this.velocity.length() < 0.01) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
+            this.isPutting = false;
         }
     }
 }

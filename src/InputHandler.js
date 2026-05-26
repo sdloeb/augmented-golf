@@ -115,7 +115,7 @@ export class InputHandler {
     }
 
     executeLaunch(endX, endY) {
-        const targetPullDistance = this.maxPullY - this.startY;
+        const targetPullDistance = Math.min(180, this.maxPullY - this.startY);
         const actualForwardDistance = this.maxPullY - endY;
 
         const powerMultiplier = Math.min(1.0, actualForwardDistance / targetPullDistance);
@@ -128,7 +128,15 @@ export class InputHandler {
             finalPower *= (club.maxYards / 200);
 
             if (club.name === 'Driver') {
-                finalPower *= 0.80; // Cuts the driver's power down to 80% (change 0.80 to adjust distance)
+                finalPower *= 0.95;
+            }
+            // Add this else if block here for the SW:
+            else if (club.name === 'SW Iron') {
+                finalPower *= 1.75; // Change 1.10 to adjust the Sand Wedge power separately
+            }
+            // This else now handles all other irons and woods:
+            else {
+                finalPower *= 1.45;
             }
         }
 
