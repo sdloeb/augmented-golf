@@ -105,7 +105,8 @@ function updateDistanceDisplay() {
                 btn.classList.add('active');
             }
 
-            btn.innerText = clubInfo.name;
+            // NEW: Displays the club's name alongside its maximum capacity yardage
+            btn.innerText = `${clubInfo.name} (${clubInfo.maxYards} yds)`;
 
             btn.addEventListener('click', (e) => {
                 e.stopPropagation(); // Shield external capture setups from click triggers
