@@ -138,7 +138,38 @@ export class InputHandler {
             else {
                 finalPower *= 1.45;
             }
+
+
+            if (this.ballRef) {
+                let inSand = false;
+
+                // 1. Check Sand Traps contact
+                if (this.sandTrapsRef) {
+                    for (let sand of this.sandTrapsRef) {
+                        const dx = this.ballRef.position.x - sand.position.x;
+                        const dz = this.ballRef.position.z - sand.position.z;
+                        if (Math.sqrt(dx * dx + dz * dz) < sand.geometry.parameters.radius) {
+                            inSand = true;
+                            break;
+                        }
+                    }
+                }
+
+                // 2. Check if on the Green
+                const gX = this.ballRef.position.x - this.holePositionRef.x;
+                const gZ = this.ballRef.position.z - this.holePositionRef.z;
+                const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
+
+                // 3. Apply Penalties
+                if (inSand) {
+                    finalPower *= 0.50; // Lose 50% power in sand bunker
+                } else if (!onGreen && Math.abs(this.ballRef.position.x) >= 9.0) {
+                    finalPower *= 0.90; // Lose 10% power in the rough (outside fairway width 18)
+                }
+            }
         }
+
+
 
         const horizontalDeviation = endX - this.startX;
         let horizontalAngle = horizontalDeviation * 0.005;

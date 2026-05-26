@@ -52,6 +52,11 @@ function updateDistanceDisplay() {
             unitText.innerText = "yards";
         }
     }
+    const clubText = document.getElementById('clubText');
+    if (clubText && input) {
+        const club = input.getClubInfo();
+        clubText.innerText = club.name;
+    }
 }
 
 function generateNewWind() {
@@ -264,7 +269,7 @@ function animate() {
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
         // Capture condition: ball must hit the threshold and be near the grass level
-        if (distanceToHole < 0.45 && ball.position.y <= 0.25) {
+        if (distanceToHole < 0.25 && ball.position.y <= 0.25) {
             // Add this speed block right here:
             const ballSpeed = physics.velocity.length();
             if (ballSpeed > 0.07) {
@@ -529,6 +534,10 @@ function init() {
         const dz = ball.position.z - holePosition.z;
         return Math.sqrt(dx * dx + dz * dz) * 2.76923;
     }); // Add the bracket closure adjustments on this line
+
+    input.ballRef = ball;
+    input.sandTrapsRef = sandTraps;
+    input.holePositionRef = holePosition;
 
     window.addEventListener('resize', onWindowResize, false);
 
