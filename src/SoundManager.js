@@ -14,15 +14,18 @@ export class SoundManager {
         this.sounds.bounce.volume = 0.5;
         this.sounds.water.volume = 0.6;
         this.sounds.sink.volume = 0.7;
+
+        Object.values(this.sounds).forEach(sound => {
+            sound.preload = 'auto';
+            sound.load();
+        });
     }
 
     play(soundName) {
         const sound = this.sounds[soundName];
         if (sound) {
-            // Only rewind if the sound has already started playing to prevent unprimed load errors
-            if (sound.currentTime > 0) {
-                sound.currentTime = 0;
-            }
+            // Change this line: Reset the track timeline instantly on every play invoke
+            sound.currentTime = 0;
 
             // Browsers require a user click before playing audio, catch prevents console errors
             sound.play().catch(err => console.log("Audio playback waiting for user click:", err));
