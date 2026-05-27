@@ -339,9 +339,9 @@ function resetEntireGame(advanceHole = false) {
         ctx.clearRect(0, 0, 512, 512);
 
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 12.0;
 
-        const gridCount = 16; // Number of arrow columns and rows across the green
+        const gridCount = 2; // Change this line (Lowered from 16 to spread them out nicely)
         const spacing = 512 / gridCount;
 
         for (let row = 0; row < gridCount; row++) {
@@ -372,13 +372,13 @@ function resetEntireGame(advanceHole = false) {
                         ctx.save();
                         ctx.translate(cx, cy);
                         ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points arrow downhill
-                        ctx.scale(1.8, 1.8);
+                        // (The old ctx.scale line has been deleted)
 
-                        // Draw clean, subtle directional arrows
+                        // Draw clean, bolder medium-sized arrows
                         ctx.beginPath();
-                        ctx.moveTo(-7, 0); ctx.lineTo(7, 0);
-                        ctx.lineTo(2, -4);
-                        ctx.moveTo(7, 0); ctx.lineTo(2, 4);
+                        ctx.moveTo(-80, 0); ctx.lineTo(80, 0); // Change this line (Expands total arrow length)
+                        ctx.lineTo(40, -28);                  // Change this line (Resizes upper arrowhead)
+                        ctx.moveTo(80, 0); ctx.lineTo(40, 28);  // Change this line (Resizes lower arrowhead)
                         ctx.stroke();
                         ctx.restore();
                     }
