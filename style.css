@@ -251,13 +251,7 @@ html {
     margin-bottom: 6px;
 }
 
-#holeMapPar {
-    font-size: 15px;
-    font-weight: bold;
-    color: #ffcc66;
-    /* Standout gold tone for target par rating */
-    letter-spacing: 0.5px;
-}
+
 
 #holeMapPar {
     font-size: 15px;
@@ -266,7 +260,7 @@ html {
     /* Standout gold tone for target par rating */
     letter-spacing: 0.5px;
 }
-}
+
 
 /* Add this block below at the very end of the file */
 @media (orientation: portrait),
