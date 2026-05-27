@@ -80,6 +80,8 @@ export class PhysicsEngine {
         // FIX: If we are putting, completely kill vertical velocity. Otherwise, apply normal loft height.
         if (isPutting) {
             this.velocity.y = 0;
+            this.velocity.x *= 0.5;
+            this.velocity.z *= 0.5;
         } else {
             // Lowered from 0.045 to 0.024 to make the vertical launch arc significantly flatter
             this.velocity.y = power * 0.042;
@@ -132,6 +134,9 @@ export class PhysicsEngine {
             currentBounceHeight = 0.12;
             currentBounceForwardLoss = 0.45;
         }
+        if (this.isPutting) {
+            currentFriction = 0.99; // Add this block (Balances distance perfectly for half-speed roll)
+        }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
         const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
@@ -167,8 +172,8 @@ export class PhysicsEngine {
                 const hF = this.getGreenHeight(this.ball.position.x, this.ball.position.z + delta);
 
                 // Calculates precise slope forces pulling the ball downhill based on local mesh angles
-                this.slopeX = ((hL - hR) / (2 * delta)) * 0.015;
-                this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015;
+                this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
+                this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
                 // Change this section below:
                 this.velocity.x += this.slopeX;

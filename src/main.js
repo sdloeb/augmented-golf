@@ -339,9 +339,9 @@ function resetEntireGame(advanceHole = false) {
         ctx.clearRect(0, 0, 512, 512);
 
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 12.0;
+        ctx.lineWidth = 4.0;
 
-        const gridCount = 2; // Change this line (Lowered from 16 to spread them out nicely)
+        const gridCount = 5; // Change this line (Lowered from 16 to spread them out nicely)
         const spacing = 512 / gridCount;
 
         for (let row = 0; row < gridCount; row++) {
@@ -375,10 +375,12 @@ function resetEntireGame(advanceHole = false) {
                         // (The old ctx.scale line has been deleted)
 
                         // Draw clean, bolder medium-sized arrows
+
+
                         ctx.beginPath();
-                        ctx.moveTo(-80, 0); ctx.lineTo(80, 0); // Change this line (Expands total arrow length)
-                        ctx.lineTo(40, -28);                  // Change this line (Resizes upper arrowhead)
-                        ctx.moveTo(80, 0); ctx.lineTo(40, 28);  // Change this line (Resizes lower arrowhead)
+                        ctx.moveTo(-25, 0); ctx.lineTo(25, 0); // Change this line (Total arrow length)
+                        ctx.lineTo(12, -9);                    // Change this line (Arrowhead point)
+                        ctx.moveTo(25, 0); ctx.lineTo(12, 9);   // Change this line (Arrowhead point)
                         ctx.stroke();
                         ctx.restore();
                     }
@@ -652,8 +654,13 @@ function animate() {
         }
     }
 
-    camera.position.lerp(cameraTargetPos, 0.05);
-    currentLookAt.lerp(cameraLookAt, 0.05);
+    const ballGreenX = ball.position.x - 0;
+    const ballGreenZ = ball.position.z - greenCenterZ;
+    const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+    const activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05; // Add this line (Slower on the green)
+
+    camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Change this line
+    currentLookAt.lerp(cameraLookAt, activeCameraSpeed); // Change this line
     camera.lookAt(currentLookAt);
 
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
@@ -737,9 +744,7 @@ function init() {
     gridCanvas.height = 512; // Change this line
 
     gridTexture = new THREE.CanvasTexture(gridCanvas);
-    gridTexture.wrapS = THREE.RepeatWrapping;
-    gridTexture.wrapT = THREE.RepeatWrapping;
-    gridTexture.repeat.set(12, 12);
+
 
     greenGrid = new THREE.Mesh(gridGeo, new THREE.MeshBasicMaterial({
         map: gridTexture,
