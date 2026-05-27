@@ -308,7 +308,7 @@ function resetEntireGame(advanceHole = false) {
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
     if (pin) pin.position.set(holePosition.x, 1.5 + specificPinCupY, holePosition.z);
     if (flag) flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
-    if (holeCup) holeCup.position.set(holePosition.x, 0.03 + specificPinCupY, holePosition.z);
+    if (holeCup) holeCup.position.set(holePosition.x, 0.04 + specificPinCupY, holePosition.z);
 
     // NEW: Deform the visual green mesh geometries to create real 3D ridges and valleys
     const deformVisualGreenMesh = (targetMesh) => {
@@ -323,7 +323,9 @@ function resetEntireGame(advanceHole = false) {
             const worldZ = -localY + targetMesh.position.z;
 
             // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
-            const calculatedHeight = physics.getGreenHeight(worldX, worldZ);
+            let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
+            if (targetMesh === green) calculatedHeight += 0.02;
+            if (targetMesh === greenGrid) calculatedHeight += 0.03;
             posAttr.setZ(i, calculatedHeight);
         }
         posAttr.needsUpdate = true;
@@ -719,10 +721,10 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     // 4. Create Lighting
-    const light = new THREE.DirectionalLight(0xffffff, 1);
+    const light = new THREE.DirectionalLight(0xffffff, 0.7);
     light.position.set(12, 8, 15).normalize();
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0x404040));
+    scene.add(new THREE.AmbientLight(0x666666));
 
     // 5. Add Virtual Golf Green Floor
     const floorGeo = new THREE.PlaneGeometry(60, 800, 40, 300);
@@ -767,7 +769,7 @@ function init() {
     // FIXED: Giving the grid map its own independent mesh geometry prevents shared-vertex texture coordinate breaks
     const gridGeo = new THREE.RingGeometry(0, GREEN_RADIUS - 0.02, 64, 32);
 
-    const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.4 });
+    const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.85 });
     green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
     green.position.set(0, 0.02, -55);
