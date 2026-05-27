@@ -169,6 +169,7 @@ html {
     height: 35px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
     border: 1px solid #999;
+    margin-bottom: 35px;
 }
 
 /* Top view style of a Putter - Solid block rectangular design */
@@ -179,15 +180,16 @@ html {
     height: 40px;
     border-left: 12px solid #7f8c8d;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    margin-bottom: 30px;
 }
 
 /* Arc motion simulating a golf swing through the ball location */
 
+/* Arc motion simulating a golf swing, shifted right to line up perfectly with the ball center */
 @keyframes clubSwipeAnim {
     0% {
         bottom: -100px;
-        left: 43%;
-        /* Lowered from 49% to shift starting point further left */
+        left: 51%;
         right: auto;
         transform: rotate(30deg) scale(1.7);
         opacity: 0;
@@ -198,21 +200,40 @@ html {
     }
 
     35% {
-        bottom: 12%;
-        left: 38%;
-        /* Lowered from 44% to shift impact point further left */
+        bottom: 24%;
+        left: 47%;
+        /* Shifted right from 38% to align beautifully with the center of the ball */
         right: auto;
         transform: rotate(0deg) scale(1.2);
     }
 
     100% {
         bottom: 45%;
-        left: 30%;
-        /* Lowered from 36% to shift follow-through further left */
+        left: 38%;
         right: auto;
         transform: rotate(-40deg) scale(0.5);
         opacity: 0;
     }
+}
+
+/* NEW: Club resting right behind the ball at address */
+#clubSwipe.idle-stance {
+    bottom: 24% !important;
+    left: 47% !important;
+    right: auto !important;
+    transform: rotate(0deg) scale(1.2) !important;
+    opacity: 1 !important;
+    transition: opacity 0.2s ease, bottom 0.2s ease, left 0.2s ease, transform 0.2s ease;
+}
+
+/* NEW: Club tracking backwards and fading out of view as the user pulls back the power gauge */
+#clubSwipe.pullback-stance {
+    bottom: -100px !important;
+    left: 51% !important;
+    right: auto !important;
+    transform: rotate(30deg) scale(1.7) !important;
+    opacity: 0 !important;
+    transition: opacity 0.25s ease, bottom 0.25s ease, left 0.25s ease, transform 0.25s ease;
 }
 
 /* ==========================================================================

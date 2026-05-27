@@ -475,12 +475,12 @@ function resetEntireGame(advanceHole = false) {
     const startBackX = -(startDirX / startLength) * 5.5;
     const startBackZ = -(startDirZ / startLength) * 5.5;
 
-    // Set starting view directly to 1.8 height to establish unified matching camera frames
-    cameraTargetPos.set(teeBoxX + startBackX, 2.05, 10 + startBackZ);
-    cameraLookAt.copy(holePosition);
-    currentLookAt.copy(holePosition);
-    camera.position.copy(cameraTargetPos);
-    camera.lookAt(currentLookAt);
+    cameraTargetPos.set(teeBoxX + startBackX, ball.position.y + 1.8, 10 + startBackZ);
+    // NEW: Look at a fixed target point 12 units directly ahead of the ball instead of tilting down to the hole
+    const startForwardX = startDirX / startLength;
+    const startForwardZ = startDirZ / startLength;
+    cameraLookAt.set(ball.position.x + startForwardX * 12, ball.position.y, ball.position.z + startForwardZ * 12);
+    currentLookAt.copy(cameraLookAt);
 
     sceneryObjects.forEach(obj => scene.remove(obj));
     sceneryObjects = [];
@@ -665,7 +665,8 @@ function animate() {
 
             if (!isOverheadActive) {
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-                cameraLookAt.copy(holePosition);
+                // NEW: Locks look-at vector along a consistent 12-unit horizon line
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12, ball.position.y, ball.position.z + (dirZ / length) * 12);
             }
             ballTargetScale = 0.5;
             if (teeBox) teeBox.visible = false;
@@ -681,7 +682,7 @@ function animate() {
                 ballTracer.geometry.computeBoundingSphere();
             }
 
-            // Delete the old "const gX...", "const gZ...", and "if (Math.sqrt...)" lines that used to wrap this block
+
         }
 
         if (input && input.isSwinging) {
@@ -695,7 +696,8 @@ function animate() {
 
             // CHANGED: Height adjusted from 1.75 to 1.8 to prevent vertical screen lurching
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-            cameraLookAt.copy(holePosition);
+            // NEW: Mirrors the exact same horizon line to eliminate layout drift when swinging
+            cameraLookAt.set(ball.position.x + (dirX / length) * 12, ball.position.y, ball.position.z + (dirZ / length) * 12);
             ballTargetScale = 1.0;
         }
     }
@@ -711,6 +713,35 @@ function animate() {
 
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
+
+    // --- DYNAMIC CLUB STANCE STATE MACHINE ---
+    const clubSwipeElement = document.getElementById('clubSwipe');
+    if (clubSwipeElement && input) {
+        // Only modify stance classes if the forward swing animation isn't currently playing
+        if (!clubSwipeElement.classList.contains('swipe-animation')) {
+            if (!physics.isMoving && !isSinking) {
+                const activeClub = input.getClubInfo();
+
+                // Establish base club layout shapes
+                let clubTypeClass = 'iron';
+                if (activeClub.name === 'Putter') {
+                    clubTypeClass = 'putter';
+                } else if (activeClub.name === 'Driver' || activeClub.name.includes('Wood') || activeClub.name === 'Hybrid') {
+                    clubTypeClass = 'wood';
+                }
+
+                // Switch utility classes matching the interactive InputHandler tracking states
+                if (input.state === 'IDLE') {
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
+                } else if (input.state === 'PULLBACK') {
+                    clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
+                }
+            } else {
+                // Clear all classes to hide the club entirely when the ball is in motion
+                clubSwipeElement.className = '';
+            }
+        }
+    }
 
     updateWindArrowDisplay();
 
@@ -951,8 +982,9 @@ function init() {
                 const backZ = -(dirZ / length) * 6.5;
                 const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
 
-                cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
-                cameraLookAt.copy(holePosition);
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                // NEW: Stabilizes focus when dropping back out of the overhead view map mode
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12, ball.position.y, ball.position.z + (dirZ / length) * 12);
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
