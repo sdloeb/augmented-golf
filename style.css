@@ -153,23 +153,97 @@ html {
     animation: clubSwipeAnim 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-/* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Rounded & dark */
+/* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
 #clubSwipe.wood {
-    background: radial-gradient(circle at 30% 30%, #3a3a3a, #111111);
-    border-radius: 40px 70px 30px 50px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset -4px -4px 10px rgba(0, 0, 0, 0.6);
-    border: 1px solid #222;
+    /* Aerodynamic pear-shaped shell curve optimizing structural toe/heel transitions */
+    border-radius: 38px 85px 60px 44px;
+    background:
+        /* Clean pearlescent sweet-spot alignment tracker graphic */
+        radial-gradient(circle at 22px 35px, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 3.5px),
+        /* Specular sunburst gloss reflection across the curved aerodynamic crown */
+        linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 55%),
+        /* Deep multi-tone carbon composite dark graphite body weave coloring */
+        radial-gradient(circle at 35% 50%, #2c2e30 0%, #161719 55%, #08090a 100%);
+    border: 1px solid #1c1d1e;
+    /* Satin silver titanium striking face plate wrapped over the leading edge */
+    border-left: 4px solid #63676a;
+    box-shadow:
+        0 10px 22px rgba(0, 0, 0, 0.55),
+        inset -6px -2px 16px rgba(0, 0, 0, 0.85),
+        inset 2px 0 3px rgba(255, 255, 255, 0.25);
+    /* Internal leading edge face highlight reflection */
 }
 
-/* Top view style of an Iron (Irons, PW, SW) - Sleek, metallic & angled blade */
+/* Authentic rear chassis stability perimeter weight cartridge trim */
+#clubSwipe.wood::before {
+    content: '';
+    position: absolute;
+    right: 5px;
+    top: 11px;
+    width: 32px;
+    height: 48px;
+    /* Mimics structural tungsten weight ports along the back trailing rim */
+    border-radius: 8px 45px 45px 8px;
+    background: linear-gradient(to right, transparent, #3c3f42, #8b8e91 75%, #1b1c1d);
+    opacity: 0.65;
+    pointer-events: none;
+    box-shadow: inset -1px -1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Top view style of an Iron (Irons, PW, SW) - Multi-Piece Forged Muscle-Back Design */
 #clubSwipe.iron {
-    background: linear-gradient(135deg, #e0e0e0 0%, #b5b5b5 50%, #8e8e8e 100%);
-    border-radius: 4px 40px 8px 12px;
+    /* Main Chassis: Defines the polished chrome outer perimeter shell & muscle-back weight mass */
+    border-radius: 6px 34px 20px 12px;
     width: 130px;
     height: 35px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-    border: 1px solid #999;
-    margin-bottom: 35px;
+    background: linear-gradient(to bottom, #ffffff 0%, #dcdfe1 18%, #b4b8bb 40%, #595d60 100%);
+    border: 1px solid #6c6f72;
+    box-shadow:
+        0 10px 20px rgba(0, 0, 0, 0.45),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
+    /* Polished chrome topline reflection edge */
+    margin-bottom: 5px;
+    /* Unchanged: Keeps the club perfectly grounded behind the ball */
+    position: absolute;
+}
+
+/* 1. The Lofted Hitting Face Plate Insert: Creates a realistic curved hitting face profile */
+#clubSwipe.iron::before {
+    content: '';
+    position: absolute;
+    /* Anchors below the thin chrome topline, leaving a distinct heavy muscle border on the rear and toe */
+    top: 5px;
+    left: 14px;
+    width: 88px;
+    height: 26px;
+    /* Creates an organic curved face pocket that tapers smoothly toward the rounded toe */
+    border-radius: 2px 24px 10px 4px;
+    background:
+        /* Clean sand-blasted horizontal score grooves */
+        repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(0, 0, 0, 0.16) 3px, rgba(0, 0, 0, 0.16) 4px),
+        /* Satin steel finish contrasting against the polished mirror shell body */
+        linear-gradient(to right, #bcbfc2 0%, #ced2d5 40%, #d8dcde 100%);
+    border: 1px solid #94989b;
+    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+    /* Inset shadow accentuating face loft depth */
+    pointer-events: none;
+}
+
+/* 2. The Hosel Neck Adapter Offset: Completes the top-down iron profile on the left heel */
+#clubSwipe.iron::after {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 11px;
+    width: 24px;
+    height: 16px;
+    /* Cylindrical tube blending seamlessly into the heel of the primary clubhead blade */
+    border-radius: 6px 0 0 6px;
+    background: linear-gradient(to bottom, #ffffff, #9fa2a5 45%, #4b4e50 100%);
+    border: 1px solid #6c6f72;
+    border-right: none;
+    box-shadow: -2px 4px 6px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
 }
 
 /* Top view style of a premium milled blade putter - compact and detailed */
