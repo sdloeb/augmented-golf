@@ -75,6 +75,75 @@ export class InputHandler {
         window.addEventListener('mousedown', (e) => this.onMouseDown(e));
         window.addEventListener('mousemove', (e) => this.onMouseMove(e));
         window.addEventListener('mouseup', () => this.onMouseUp());
+        //mobile
+        window.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+        window.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+        window.addEventListener('touchend', () => this.onTouchEnd());
+    }
+
+    onTouchStart(e) {
+        if (e.target.closest('.club-option')) return;
+        const touch = e.touches[0];
+        this.isSwinging = true;
+        this.state = 'PULLBACK';
+        this.startX = touch.clientX;
+        this.startY = touch.clientY;
+        this.maxPullY = touch.clientY;
+
+        this.gauge.classList.remove('hidden');
+        this.gaugeFill.style.height = '0%';
+
+        const club = this.getClubInfo();
+        if (club.isGreen) {
+            this.gaugeLabel.innerText = `${club.name}: 0 ft`;
+        } else {
+            this.gaugeLabel.innerText = `${club.name}: 0 yds`;
+        }
+        this.gaugeLabel.style.top = '0px';
+    }
+
+    onTouchMove(e) {
+        if (!this.isSwinging) return;
+        const touch = e.touches[0];
+        const currentX = touch.clientX;
+        const currentY = touch.clientY;
+
+        if (this.state === 'PULLBACK') {
+            if (currentY > this.maxPullY) {
+                this.maxPullY = currentY;
+            }
+
+            const targetPullDistance = this.maxPullY - this.startY;
+            const maxPullPixels = 180;
+            const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+
+            this.gaugeFill.style.height = `${pullRatio * 100}%`;
+            this.gaugeLabel.style.top = `${pullRatio * 160}px`;
+
+            const club = this.getClubInfo();
+            if (club.isGreen) {
+                const feet = Math.round(pullRatio * 40);
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+            } else {
+                const yards = Math.round(pullRatio * club.maxYards);
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
+            }
+
+            if (currentY < this.maxPullY - 5) {
+                this.state = 'FORWARD';
+            }
+        }
+        else if (this.state === 'FORWARD') {
+            if (currentY <= this.startY) {
+                this.executeLaunch(currentX, currentY);
+            }
+        }
+    }
+
+    onTouchEnd() {
+        if (this.isSwinging && this.state !== 'IDLE') {
+            this.resetSwing();
+        }
     }
 
     onMouseDown(e) {

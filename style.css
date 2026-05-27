@@ -258,3 +258,56 @@ html {
     /* Standout gold tone for target par rating */
     letter-spacing: 0.5px;
 }
+
+#holeMapPar {
+    font-size: 15px;
+    font-weight: bold;
+    color: #ffcc66;
+    /* Standout gold tone for target par rating */
+    letter-spacing: 0.5px;
+}
+}
+
+/* Add this block below at the very end of the file */
+@media (orientation: portrait),
+(max-width: 768px) {
+
+    /* Adjust map to sit safely on the left under the wind container, avoiding club options collisions */
+    #holeMapContainer {
+        top: 95px !important;
+        left: 20px !important;
+        right: auto !important;
+        width: 140px !important;
+        padding: 8px !important;
+    }
+
+    #holeMapTitle {
+        font-size: 13px !important;
+    }
+
+    #holeMapPar {
+        font-size: 12px !important;
+    }
+
+    /* Scale overlays down slightly so they don't block the visual field of view */
+    #windContainer,
+    #scoreContainer {
+        padding: 8px 12px !important;
+        font-size: 15px !important;
+    }
+
+    #windArrow {
+        font-size: 20px !important;
+    }
+
+    #windText,
+    #scoreContainer div {
+        font-size: 14px !important;
+    }
+
+    .club-option {
+        padding: 8px 12px !important;
+        /* Slightly larger clickable buttons for mobile thumbs */
+        font-size: 12px !important;
+    }
+}
