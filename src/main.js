@@ -728,7 +728,22 @@ function init() {
 
     // 5. Add Virtual Golf Green Floor
     const floorGeo = new THREE.PlaneGeometry(60, 800, 40, 300);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631 });
+
+    // Procedural rough grass noise texture generator
+    const rCanvas = document.createElement('canvas'); // Add this line
+    rCanvas.width = 64; rCanvas.height = 64; // Add this line
+    const rCtx = rCanvas.getContext('2d'); // Add this line
+    rCtx.fillStyle = '#a5a5a5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
+    for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
+        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#686868'; // Add this line
+        rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
+    } // Add this line
+    const roughTexture = new THREE.CanvasTexture(rCanvas); // Add this line
+    roughTexture.wrapS = THREE.RepeatWrapping; // Add this line
+    roughTexture.wrapT = THREE.RepeatWrapping; // Add this line
+    roughTexture.repeat.set(90, 600); // Tightly repeats noise to keep blades look micro-fine (Add this line)
+
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, map: roughTexture }); // Update this line (added roughness and map)
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
