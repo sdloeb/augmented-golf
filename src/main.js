@@ -382,15 +382,22 @@ function resetEntireGame(advanceHole = false) {
                     const absX = Math.abs(worldX);
                     if (absX <= 9.0) {
                         // Solid, unyielding clearance across the entire fairway width
-                        calculatedHeight -= 0.35;
+                        calculatedHeight -= 0.75; // Increased from 0.35 to completely submerge the rough floor mesh
                     } else if (absX <= 12.0) {
                         // Smoothly taper the push-down OUTSIDE the fairway lanes (from 9.0 to 12.0)
-                        // Keeps the edge fully buried by 0.35 units without leaving gaps in the outer turf
+                        // Keeps the edge fully buried by 0.75 units without leaving gaps in the outer turf
                         const sideFade = (12.0 - absX) / 3.0;
-                        calculatedHeight -= 0.35 * sideFade;
+                        calculatedHeight -= 0.75 * sideFade; // Increased from 0.35 to match the new depth
                     }
                 }
             }
+
+            // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+            // Adds a small vertical safety cushion to counteract vertex interpolation discrepancies on steep mounds
+            if (targetMesh === fairway) {
+                calculatedHeight += 0.03;
+            }
+
             posAttr.setZ(i, calculatedHeight);
         }
         posAttr.needsUpdate = true;
