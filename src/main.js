@@ -3,7 +3,7 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds;
-let green, pin, flag, holeCup, fairway;
+let green, pin, flag, holeCup, fairway, floor;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 
@@ -176,9 +176,10 @@ function generateHazards() {
             (z > 6 && Math.abs(x) < 4) // Safe zone protection surrounding the Tee Box area
         );
 
+        const currentWaterGroundY = physics.getGroundHeight(x, z);
         const waterMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.1 }));
         waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(x, 0.018, z);
+        waterMesh.position.set(x, currentWaterGroundY + 0.008, z);
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
     }
@@ -195,9 +196,10 @@ function generateHazards() {
             (z > 6 && Math.abs(x) < 4)
         );
 
+        const currentSandGroundY = physics.getGroundHeight(x, z);
         const sandMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0xe0ca9b, roughness: 0.9 }));
         sandMesh.rotation.x = -Math.PI / 2;
-        sandMesh.position.set(x, 0.017, z);
+        sandMesh.position.set(x, currentSandGroundY + 0.007, z);
         scene.add(sandMesh);
         sandTraps.push(sandMesh);
     }
@@ -328,6 +330,37 @@ function resetEntireGame(advanceHole = false) {
         targetMesh.geometry.computeVertexNormals(); // Forces Three.js to re-render lighting shadows smoothly
     };
 
+    const deformCourseMesh = (targetMesh, useScale = false) => {
+        if (!targetMesh) return;
+        const posAttr = targetMesh.geometry.attributes.position;
+        const scaleX = useScale ? targetMesh.scale.x : 1;
+        const scaleY = useScale ? targetMesh.scale.y : 1;
+        for (let i = 0; i < posAttr.count; i++) {
+            const localX = posAttr.getX(i);
+            const localY = posAttr.getY(i);
+
+            // Map local plane points to true world spaces, respecting dynamic mesh scales
+            const worldX = localX * scaleX + targetMesh.position.x;
+            const worldZ = -localY * scaleY + targetMesh.position.z;
+
+            let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
+            if (targetMesh === floor) { // Add this line
+                const gX = worldX; // Add this line
+                const gZ = worldZ - greenCenterZ; // Add this line
+                const distToGreen = Math.sqrt(gX * gX + gZ * gZ); // Add this line
+                const inFairway = Math.abs(worldX) <= 9.0 && worldZ >= greenCenterZ && worldZ <= 8; // Add this line
+                if (distToGreen < 14.0 || inFairway) {
+                    calculatedHeight -= 0.40;
+                } else if (inFairway) {   // Add this line
+                    calculatedHeight -= 0.05; // Add this line
+                }
+            }
+            posAttr.setZ(i, calculatedHeight);
+        }
+        posAttr.needsUpdate = true;
+        targetMesh.geometry.computeVertexNormals();
+    };
+
     // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
     deformVisualGreenMesh(green);
     deformVisualGreenMesh(greenGrid);
@@ -398,6 +431,9 @@ function resetEntireGame(advanceHole = false) {
         fairway.position.set(0, 0.01, (8 + greenCenterZ) / 2);
     }
 
+    deformCourseMesh(floor, false);
+    deformCourseMesh(fairway, true);
+
     // NEW: Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0; // Shifting limits spanning between -3.5 and +3.5
     if (teeBox) {
@@ -431,6 +467,7 @@ function resetEntireGame(advanceHole = false) {
     camera.lookAt(currentLookAt);
 
     sceneryObjects.forEach(obj => scene.remove(obj));
+    sceneryObjects = [];
 
     // Materials for the scenery elements
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
@@ -448,7 +485,8 @@ function resetEntireGame(advanceHole = false) {
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
         const sceneryGroup = new THREE.Group();
-        sceneryGroup.position.set(x, 0, z);
+        const courseHeight = physics.getGroundHeight(x, z);
+        sceneryGroup.position.set(x, courseHeight, z);
 
         if (Math.random() > 0.4) {
             // --- BUILD A PROCEDURAL TREE ---
@@ -494,7 +532,6 @@ function resetEntireGame(advanceHole = false) {
     }
 
     generateNewWind();
-    generateHazards();
     updateDistanceDisplay();
 }
 
@@ -529,7 +566,7 @@ function animate() {
 
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
-        if (distanceToHole < 0.35 && ball.position.y <= (0.25 + physics.getGreenHeight(ball.position.x, ball.position.z) + 0.15)) {
+        if (distanceToHole < 0.35 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
 
             // FIXED: Raised speed threshold from 0.07 to 0.14 so true putts sink cleanly 
@@ -683,19 +720,20 @@ function init() {
 
     // 4. Create Lighting
     const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 10, 7).normalize();
+    light.position.set(12, 8, 15).normalize();
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x404040));
 
     // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(60, 800);
+    const floorGeo = new THREE.PlaneGeometry(60, 800, 40, 300);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
+    const fairwayGeo = new THREE.PlaneGeometry(18, 1, 15, 100);
 
     // ADD THIS BLOCK RIGHT BELOW THE FLOOR MESH:
-    const fairwayGeo = new THREE.PlaneGeometry(18, 1);
+
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
     fairway.rotation.x = -Math.PI / 2;

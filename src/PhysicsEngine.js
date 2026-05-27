@@ -26,6 +26,18 @@ export class PhysicsEngine {
         this.midZone = mid;
         this.frontZone = front;
         this.greenCenterZ = centerZ;
+
+        // Randomize fairway/rough course contours for the new hole
+        this.courseSeedX1 = Math.random() * 50; // Add this line
+        this.courseSeedZ1 = Math.random() * 50; // Add this line
+        this.courseSeedX2 = Math.random() * 50; // Add this line
+        this.courseSeedZ2 = Math.random() * 50; // Add this line
+
+        // Occasional big feature toggle (60% chance of a major hill or drop-off)
+        this.hasBigFeature = Math.random() > 0.4; // Add this line
+        this.bigFeatureX = (Math.random() - 0.5) * 25; // Add this line
+        this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120; // Add this line
+        this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2); // Add this line
     }
 
     // Analytical height function that calculates 3D elevations anywhere on the green
@@ -63,6 +75,49 @@ export class PhysicsEngine {
 
         // Mathematical floor guard ensures the mesh can never drop below baseline ground level
         return Math.max(0.001, combinedHeight * smoothFade);
+    } // Find this closing bracket of getGreenHeight
+
+    // NEW: Analytical height function for fairway and rough contours
+    getCourseHeight(x, z) {
+        const dxTee = x - 0;
+        const dzTee = z - 10;
+        const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
+        let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
+
+        // Base undulating small mounds and dips (mostly flat, natural ripples)
+        const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0)); // Update this line
+        const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0)); // Update this line
+        let height = (wave1 * 1.8 + wave2 * 0.9);
+
+        // Occasional larger feature (big hill or drop-off)
+        if (this.hasBigFeature) {
+            const dxBig = x - this.bigFeatureX;
+            const dzBig = z - this.bigFeatureZ;
+            const distBigSq = dxBig * dxBig + dzBig * dzBig;
+            const bigInfluence = Math.exp(-distBigSq / 900); // Spread across the course width
+            height += (this.bigFeatureScale || 0) * 2.5 * bigInfluence;
+        }
+
+        return Math.max(0.001, height * teeFade);
+    }
+
+    // NEW: Unified ground height method that blends course and green transitions seamlessly
+    getGroundHeight(x, z) {
+        const gX = x;
+        const gZ = z - this.greenCenterZ;
+        const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
+
+        if (distFromGreen < 12.0) {
+            return this.getGreenHeight(x, z);
+        } else {
+            const courseHeight = this.getCourseHeight(x, z);
+            if (distFromGreen < 16.0) {
+                // Between 12 and 16 units out, blend smoothly from 0 to course height
+                const blend = (distFromGreen - 12.0) / 4.0;
+                return courseHeight * blend;
+            }
+            return courseHeight;
+        }
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
@@ -106,7 +161,7 @@ export class PhysicsEngine {
         let currentBounceForwardLoss = 0.80;
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
-        const greenHeightOffset = this.getGreenHeight(this.ball.position.x, this.ball.position.z);
+        const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
         const groundY = 0.25 + greenHeightOffset;
 
         const gX = this.ball.position.x - 0;
@@ -163,23 +218,23 @@ export class PhysicsEngine {
             this.velocity.x *= currentFriction;
             this.velocity.z *= currentFriction;
 
-            // NEW: Continuous 3D gradient vector checks when rolling across the contoured green tiers
-            if (onGreen) {
-                const delta = 0.1;
-                const hL = this.getGreenHeight(this.ball.position.x - delta, this.ball.position.z);
-                const hR = this.getGreenHeight(this.ball.position.x + delta, this.ball.position.z);
-                const hB = this.getGreenHeight(this.ball.position.x, this.ball.position.z - delta);
-                const hF = this.getGreenHeight(this.ball.position.x, this.ball.position.z + delta);
+            // NEW: Continuous 3D gradient vector checks when rolling across the contoured tiers
+            // Delete 'if (onGreen) {' from here
+            const delta = 0.1;
+            const hL = this.getGroundHeight(this.ball.position.x - delta, this.ball.position.z); // Update this line
+            const hR = this.getGroundHeight(this.ball.position.x + delta, this.ball.position.z); // Update this line
+            const hB = this.getGroundHeight(this.ball.position.x, this.ball.position.z - delta); // Update this line
+            const hF = this.getGroundHeight(this.ball.position.x, this.ball.position.z + delta); // Update this line
 
-                // Calculates precise slope forces pulling the ball downhill based on local mesh angles
-                this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
-                this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
+            // Calculates precise slope forces pulling the ball downhill based on local mesh angles
+            this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
+            this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
-                // Change this section below:
-                this.velocity.x += this.slopeX;
-                this.velocity.z += this.slopeZ;
+            // Change this section below:
+            this.velocity.x += this.slopeX;
+            this.velocity.z += this.slopeZ;
 
-            }
+
         }
 
         // 2. MOVE THE BALL 
