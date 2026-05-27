@@ -733,8 +733,29 @@ function animate() {
                 // Switch utility classes matching the interactive InputHandler tracking states
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
+                    // Clean out dynamic inline properties when resting at address
+                    clubSwipeElement.style.bottom = '';
+                    clubSwipeElement.style.left = '';
+                    clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
+
+                    if (activeClub.name === 'Putter') {
+                        // NEW: Dynamically map the club's position directly to the real-time drag ratio
+                        const ratio = input.pullRatio || 0;
+                        const currentBottom = 24 - (22 * ratio); // Smoothly moves from 24% address down to 2% screen edge
+                        const currentLeft = 47 + (6 * ratio);   // Curves outward from 47% center to 53% backswing pocket
+                        const currentRotate = 20 * ratio;       // Smoothly hinges face open up to 20 degrees
+
+                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
+                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${1.2 - 0.2 * ratio})`, 'important');
+                    } else {
+                        // Clean defaults for woods/irons if pulled back
+                        clubSwipeElement.style.bottom = '';
+                        clubSwipeElement.style.left = '';
+                        clubSwipeElement.style.transform = '';
+                    }
                 }
             } else {
                 // Clear all classes to hide the club entirely when the ball is in motion
@@ -936,10 +957,16 @@ function init() {
             // Kick off the swipe animation
             clubSwipe.classList.add('swipe-animation');
 
-            // Remove the utility class once finished so it can be re-triggered next stroke
+            // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
+            clubSwipe.style.bottom = '';
+            clubSwipe.style.left = '';
+            clubSwipe.style.transform = '';
+
+            // NEW: Scales timeout to match the active club (1000ms for slow putts, 350ms for swift swings)
+            const swingDuration = club.name === 'Putter' ? 1000 : 350;
             setTimeout(() => {
                 clubSwipe.classList.remove('swipe-animation');
-            }, 350);
+            }, swingDuration);
         }
 
         strokeCount++;

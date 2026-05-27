@@ -395,3 +395,50 @@ html {
         font-size: 12px !important;
     }
 }
+
+/* ==========================================================================
+   PUTTER-SPECIFIC VISUAL STROKE MODIFICATIONS
+   ========================================================================== */
+
+/* 1. Holds the putter configuration visible during drag actions without static constraints */
+#clubSwipe.putter.pullback-stance {
+    right: auto !important;
+    opacity: 1 !important;
+    /* NEW: Kills standard CSS timing delay loops so the club moves instantly with your input pointer */
+    transition: none !important;
+}
+
+/* 2. Slows the forward acceleration down into a highly deliberate, professional tempo */
+#clubSwipe.putter.swipe-animation {
+    /* CHANGED: Increased from 0.6s to 1.0s to give you a very smooth, gentle forward swing speed */
+    animation: putterSwipeAnim 1.0s linear forwards;
+}
+
+/* 3. Extended track path that bridges the deep screen edge all the way through the contact center point */
+@keyframes putterSwipeAnim {
+    0% {
+        bottom: 2%;
+        /* Matches the deep pullback edge position */
+        left: 53%;
+        transform: rotate(20deg) scale(1.0);
+        opacity: 1;
+    }
+
+    35% {
+        bottom: 24%;
+        /* Unchanged: Safely preserves your exact centered ball address contact alignment */
+        left: 47%;
+        /* Unchanged: Hits through the perfect horizontal center of the ball */
+        transform: rotate(0deg) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        bottom: 32%;
+        /* Extended follow-through height to balance out the long backswing line */
+        left: 43%;
+        transform: rotate(-15deg) scale(1.1);
+        opacity: 0;
+        /* Smoothly clears from screen view upon completing follow-through stroke */
+    }
+}

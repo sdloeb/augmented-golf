@@ -182,6 +182,7 @@ export class InputHandler {
             const targetPullDistance = this.maxPullY - this.startY;
             const maxPullPixels = 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+                       this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = `${pullRatio * 160}px`;
@@ -312,6 +313,7 @@ export class InputHandler {
     resetSwing() {
         this.isSwinging = false;
         this.state = 'IDLE';
+        this.pullRatio = 0;
 
         setTimeout(() => {
             if (!this.isSwinging) {
