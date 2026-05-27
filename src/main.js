@@ -655,18 +655,21 @@ function animate() {
         ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         // -------------------------------------------------------------------
     } else {
+        const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+        const camDist = onGreen ? 2.5 : 5.5;      // Zooms in close on the green
+        const camHeight = onGreen ? 0.82 : 1.8;    // Lowers camera proportionally to keep the same view angle
+        const lookDist = onGreen ? 5.45 : 12.0;
         if (wasMoving && !isSinking) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            const backX = -(dirX / length) * 5.5;
-            const backZ = -(dirZ / length) * 5.5;
+            const backX = -(dirX / length) * camDist; // CHANGED
+            const backZ = -(dirZ / length) * camDist; // CHANGED
 
             if (!isOverheadActive) {
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-                // NEW: Locks look-at vector along a consistent 12-unit horizon line
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12, ball.position.y, ball.position.z + (dirZ / length) * 12);
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
+                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
             }
             ballTargetScale = 0.5;
             if (teeBox) teeBox.visible = false;
@@ -690,14 +693,11 @@ function animate() {
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            // CHANGED: Increased from 4 to 5.5 to perfectly match standard resting view calculations
-            const backX = -(dirX / length) * 5.5;
-            const backZ = -(dirZ / length) * 5.5;
+            const backX = -(dirX / length) * camDist; // CHANGED
+            const backZ = -(dirZ / length) * camDist; // CHANGED
 
-            // CHANGED: Height adjusted from 1.75 to 1.8 to prevent vertical screen lurching
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-            // NEW: Mirrors the exact same horizon line to eliminate layout drift when swinging
-            cameraLookAt.set(ball.position.x + (dirX / length) * 12, ball.position.y, ball.position.z + (dirZ / length) * 12);
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
+            cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
             ballTargetScale = 1.0;
         }
     }
@@ -711,7 +711,17 @@ function animate() {
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed); // Change this line
     camera.lookAt(currentLookAt);
 
-    const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
+    // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
+    let finalBallTargetScale = ballTargetScale;
+    if (!physics.isMoving) {
+        if (isCamOnGreen) {
+            // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
+            finalBallTargetScale *= (2.5 / 5.5) * 1.0;
+        }
+    }
+
+    // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
 
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
@@ -1009,21 +1019,26 @@ function init() {
                 const backZ = -(dirZ / length) * 6.5;
                 const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
 
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-                // NEW: Stabilizes focus when dropping back out of the overhead view map mode
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12, ball.position.y, ball.position.z + (dirZ / length) * 12);
+                // RESTORED: Puts the camera back up high and focuses directly on the target hole pin map area
+                cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
+                cameraLookAt.copy(holePosition);
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
 
-                const backX = -(dirX / length) * 5.5;
-                const backZ = -(dirZ / length) * 5.5;
+                // Check green tracking states on click release to select matching land coordinates
+                const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+                const camDist = checkOnGreen ? 2.5 : 5.5;
+                const camHeight = checkOnGreen ? 0.82 : 1.8;
+                const lookDist = checkOnGreen ? 5.45 : 12.0;
 
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-                cameraLookAt.copy(holePosition);
+                const backX = -(dirX / length) * camDist;
+                const backZ = -(dirZ / length) * camDist;
+
+                // CORRECTED: Smoothly transitions the camera back to your active zoom/horizon offsets
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ);
+                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist);
             }
-
-            // (The old "savedTargetPos" variables and "setTimeout" block have been completely deleted)
         });
     }
 
