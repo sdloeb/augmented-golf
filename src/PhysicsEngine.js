@@ -170,10 +170,10 @@ export class PhysicsEngine {
                 this.slopeX = ((hL - hR) / (2 * delta)) * 0.015;
                 this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015;
 
-                if (this.velocity.length() > 0.025) {
-                    this.velocity.x += this.slopeX;
-                    this.velocity.z += this.slopeZ;
-                }
+                // Change this section below:
+                this.velocity.x += this.slopeX;
+                this.velocity.z += this.slopeZ;
+
             }
         }
 

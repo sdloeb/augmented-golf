@@ -279,7 +279,7 @@ function resetEntireGame(advanceHole = false) {
 
     // The physical pin flagstick, target flag mesh, and open target hole cup track the randomized target position
     // NEW: Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
-    const horizontalOptions = [0.0, 0.02, -0.02];
+    const horizontalOptions = [0.0, 0.05, -0.05]; // Change this line (increased from 0.02)
 
     // Shuffle the array so the horizontal options map randomly to Front, Mid, or Back tiers
     for (let i = horizontalOptions.length - 1; i > 0; i--) {
@@ -288,7 +288,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     // FIXED: Drastically lowered from 0.04 to 0.01 to make uphill/downhill putts fair and readable
-    const verticalOptions = [0.01, -0.01, 0.0];
+    const verticalOptions = [0.03, -0.03, 0.0]; // Change this line (increased from 0.01)
 
     // Build the 3 distinct randomized tier zones configuration blocks
     const backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
@@ -333,28 +333,61 @@ function resetEntireGame(advanceHole = false) {
     deformVisualGreenMesh(greenGrid);
 
     // Extract middle zone values as reference for drawing the helper guide canvas texture arrow
-    slopeX = midZoneProfile.rx * 0.015;
-    slopeZ = midZoneProfile.rz * 0.015;
-
+    // Extract local physics engine height maps to draw custom contour arrows across the surface grid
     if (gridCanvas && gridTexture) {
         const ctx = gridCanvas.getContext('2d');
-        ctx.clearRect(0, 0, 64, 64);
-
-        ctx.save();
-        ctx.translate(32, 32);
-        ctx.rotate(Math.atan2(slopeZ, slopeX));
+        ctx.clearRect(0, 0, 512, 512);
 
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(-12, 0); ctx.lineTo(12, 0);
-        ctx.lineTo(4, -6);
-        ctx.moveTo(12, 0); ctx.lineTo(4, 6);
-        ctx.stroke();
-        ctx.restore();
+        ctx.lineWidth = 2.5;
 
+        const gridCount = 16; // Number of arrow columns and rows across the green
+        const spacing = 512 / gridCount;
+
+        for (let row = 0; row < gridCount; row++) {
+            for (let col = 0; col < gridCount; col++) {
+                const cx = col * spacing + spacing / 2;
+                const cy = row * spacing + spacing / 2;
+
+                // Map canvas coordinates to world coordinates relative to the green center
+                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2);
+                const wz = (cy / 512 - 0.5) * (GREEN_RADIUS * 2) + greenCenterZ;
+
+                // Check if this point falls inside the circular green grass area
+                const distFromCenter = Math.sqrt(wx * wx + (wz - greenCenterZ) * (wz - greenCenterZ));
+                if (distFromCenter < GREEN_RADIUS - 0.5) {
+
+                    // Sample local neighbors to get the exact slope direction at this specific point
+                    const delta = 0.1;
+                    const hL = physics.getGreenHeight(wx - delta, wz);
+                    const hR = physics.getGreenHeight(wx + delta, wz);
+                    const hB = physics.getGreenHeight(wx, wz - delta);
+                    const hF = physics.getGreenHeight(wx, wz + delta);
+
+                    const localSlopeX = (hL - hR) / (2 * delta);
+                    const localSlopeZ = (hB - hF) / (2 * delta);
+
+                    // Only paint an arrow if there is an active slope angle here
+                    if (Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ) > 0.001) {
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points arrow downhill
+                        ctx.scale(1.8, 1.8);
+
+                        // Draw clean, subtle directional arrows
+                        ctx.beginPath();
+                        ctx.moveTo(-7, 0); ctx.lineTo(7, 0);
+                        ctx.lineTo(2, -4);
+                        ctx.moveTo(7, 0); ctx.lineTo(2, 4);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+        }
         gridTexture.needsUpdate = true;
     }
+
 
 
     if (fairway) {
@@ -700,8 +733,8 @@ function init() {
 
 
     gridCanvas = document.createElement('canvas');
-    gridCanvas.width = 64;
-    gridCanvas.height = 64;
+    gridCanvas.width = 512; // Change this line
+    gridCanvas.height = 512; // Change this line
 
     gridTexture = new THREE.CanvasTexture(gridCanvas);
     gridTexture.wrapS = THREE.RepeatWrapping;
