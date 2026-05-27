@@ -61,7 +61,8 @@ function updateDistanceDisplay() {
     const clubText = document.getElementById('clubText');
     if (clubText && input) {
         const club = input.getClubInfo();
-        clubText.innerText = club.name;
+        // CHANGED: Appends the max yards capacity directly after the club name string
+        clubText.innerText = `${club.name} (${club.maxYards} yds)`;
     }
 
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
@@ -88,42 +89,58 @@ function updateDistanceDisplay() {
         const activeClub = input.getClubInfo();
         const clubList = input.getClubList();
 
-        const indicesToShow = [];
+        // Reconfigure the container style from vertical column to horizontal row row
+        container.style.flexDirection = 'row';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center'; // CHANGED: Centers the arrows horizontally
+        container.style.gap = '20px';
 
-        // 1. One club above (longer range distance) if not hitting Driver edge boundary
-        if (defaultIdx > 0) {
-            indicesToShow.push(defaultIdx - 1);
+        // Calculate what index is currently highlighted
+        let currentIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
+
+        // 1. BUILD THE LEFT SCROLL ARROW (Goes to longer distance clubs)
+        const leftBtn = document.createElement('button');
+        leftBtn.className = 'club-option';
+        leftBtn.innerText = '◀';
+
+        // Disable the arrow if we are already holding the longest club (Driver at index 0)
+        if (currentIdx === 0) {
+            leftBtn.style.opacity = '0.3';
+            leftBtn.style.pointerEvents = 'none';
         }
-
-        // 2. The standard automatic club index matching current target yards distance
-        indicesToShow.push(defaultIdx);
-
-        // 3. One club below (shorter range distance) if not hitting SW Iron edge boundary
-        if (defaultIdx < 10) {
-            indicesToShow.push(defaultIdx + 1);
-        }
-
-        // Construct HTML layouts for valid club candidate index options
-        indicesToShow.forEach(idx => {
-            const clubInfo = clubList[idx];
-            const btn = document.createElement('button');
-            btn.className = 'club-option';
-
-            if (activeClub.name === clubInfo.name) {
-                btn.classList.add('active');
+        leftBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
+            if (cIdx > 0) {
+                input.chosenClubIndex = cIdx - 1;
+                updateDistanceDisplay(); // Refresh UI layout positions instantly
             }
-
-            // NEW: Displays the club's name alongside its maximum capacity yardage
-            btn.innerText = `${clubInfo.name} (${clubInfo.maxYards} yds)`;
-
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Shield external capture setups from click triggers
-                input.chosenClubIndex = idx;
-                updateDistanceDisplay(); // Instantly update active class highlights
-            });
-
-            container.appendChild(btn);
         });
+
+
+
+        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to shorter distance clubs)
+        const rightBtn = document.createElement('button');
+        rightBtn.className = 'club-option';
+        rightBtn.innerText = '▶';
+
+        // Disable the arrow if we are already holding the shortest club (SW Iron at max index)
+        if (currentIdx === clubList.length - 1) {
+            rightBtn.style.opacity = '0.3';
+            rightBtn.style.pointerEvents = 'none';
+        }
+        rightBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
+            if (cIdx < clubList.length - 1) {
+                input.chosenClubIndex = cIdx + 1;
+                updateDistanceDisplay(); // Refresh UI layout positions instantly
+            }
+        });
+
+        // Append all three nodes to create the smooth inline selection row
+        container.appendChild(leftBtn);
+        container.appendChild(rightBtn);
     }
 }
 
