@@ -241,11 +241,9 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-
-    // NEW: Assign Par properties against the distance requirements provided
+    // Assign Par properties against the distance requirements provided
     const randomYards = 130 + Math.random() * (550 - 130);
 
-    // NEW: Assign Par properties against the distance requirements provided
     if (randomYards < 220) {
         currentPar = 3;
     } else if (randomYards <= 450) {
@@ -254,7 +252,7 @@ function resetEntireGame(advanceHole = false) {
         currentPar = 5;
     }
 
-    // NEW: Update the Wood Placard Map Dashboard display readings
+    // Update the Wood Placard Map Dashboard display readings
     const mapTitleElement = document.getElementById('holeMapTitle');
     const mapParElement = document.getElementById('holeMapPar');
     if (mapTitleElement) mapTitleElement.innerText = `HOLE ${currentHoleNumber}`;
@@ -263,7 +261,7 @@ function resetEntireGame(advanceHole = false) {
     const gameUnits = randomYards / 2.76923;
     greenCenterZ = 10 - gameUnits;
 
-    // NEW: Dynamically shift the physical pin location anywhere within the circular green boundaries
+    // Dynamically shift the physical pin location anywhere within the circular green boundaries
     const pinAngle = Math.random() * Math.PI * 2;
     // Keep the pin at least 2 units safely away from the absolute outer perimeter edge of the green grass
     const pinRadius = Math.random() * (GREEN_RADIUS - 2.0);
@@ -281,9 +279,8 @@ function resetEntireGame(advanceHole = false) {
         greenGrid.position.z = greenCenterZ;
     }
 
-    // The physical pin flagstick, target flag mesh, and open target hole cup track the randomized target position
-    // NEW: Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
-    const horizontalOptions = [0.0, 0.05, -0.05]; // Change this line (increased from 0.02)
+    // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
+    const horizontalOptions = [0.0, 0.05, -0.05];
 
     // Shuffle the array so the horizontal options map randomly to Front, Mid, or Back tiers
     for (let i = horizontalOptions.length - 1; i > 0; i--) {
@@ -291,8 +288,7 @@ function resetEntireGame(advanceHole = false) {
         [horizontalOptions[i], horizontalOptions[j]] = [horizontalOptions[j], horizontalOptions[i]];
     }
 
-    // FIXED: Drastically lowered from 0.04 to 0.01 to make uphill/downhill putts fair and readable
-    const verticalOptions = [0.03, -0.03, 0.0]; // Change this line (increased from 0.01)
+    const verticalOptions = [0.03, -0.03, 0.0];
 
     // Build the 3 distinct randomized tier zones configuration blocks
     const backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
@@ -304,7 +300,7 @@ function resetEntireGame(advanceHole = false) {
         physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterZ);
     }
 
-    // NEW: Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
+    // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
     const specificPinCupY = physics.getGreenHeight(holePosition.x, holePosition.z);
 
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
@@ -312,13 +308,13 @@ function resetEntireGame(advanceHole = false) {
     if (flag) flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
     if (holeCup) holeCup.position.set(holePosition.x, 0.04 + specificPinCupY, holePosition.z);
 
-    // NEW: Deform the visual green mesh geometries to create real 3D ridges and valleys
+    // Deform the visual green mesh geometries to create real 3D ridges and valleys
     const deformVisualGreenMesh = (targetMesh) => {
         if (!targetMesh) return;
         const posAttr = targetMesh.geometry.attributes.position;
         for (let i = 0; i < posAttr.count; i++) {
             const localX = posAttr.getX(i);
-            const localY = posAttr.getY(i); // CircleGeometry sets up flat on local 2D XY plane initially
+            const localY = posAttr.getY(i);
 
             // Map local plane points to true world coordinate spaces
             const worldX = localX + targetMesh.position.x;
@@ -349,18 +345,33 @@ function resetEntireGame(advanceHole = false) {
 
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            // Move distance calculations outside the block so they apply to both meshes
             const gX = worldX;
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // FIX: Pushes BOTH the fairway and floor meshes down under the green area to stop all clipping
-            if (distToGreen < 15.0) {
-                calculatedHeight -= 0.40;
-            } else if (targetMesh === floor) {
-                const inFairway = Math.abs(worldX) <= 9.0 && worldZ >= greenCenterZ && worldZ <= 8;
-                if (inFairway) {
-                    calculatedHeight -= 0.05; // Keeps floor hidden beneath the fairway (Add this line)
+            // 1. Smooth Green Concealment Push-Down (applies to BOTH fairway and floor meshes)
+            // Increased to 0.45 and stretched to a 3-unit window to safely cushion the dense circular green edge
+            if (distToGreen < 12.0) {
+                calculatedHeight -= 0.45;
+            } else if (distToGreen < 15.0) {
+                const greenFade = (15.0 - distToGreen) / 3.0;
+                calculatedHeight -= 0.45 * greenFade;
+            }
+
+            // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
+            // Locks a flat, uniform deep buffer inside the track and offsets the fade to the outer rough
+            if (targetMesh === floor) {
+                if (worldZ >= greenCenterZ && worldZ <= 8) {
+                    const absX = Math.abs(worldX);
+                    if (absX <= 9.0) {
+                        // Solid, unyielding clearance across the entire fairway width
+                        calculatedHeight -= 0.35;
+                    } else if (absX <= 12.0) {
+                        // Smoothly taper the push-down OUTSIDE the fairway lanes (from 9.0 to 12.0)
+                        // Keeps the edge fully buried by 0.35 units without leaving gaps in the outer turf
+                        const sideFade = (12.0 - absX) / 3.0;
+                        calculatedHeight -= 0.35 * sideFade;
+                    }
                 }
             }
             posAttr.setZ(i, calculatedHeight);
@@ -373,7 +384,6 @@ function resetEntireGame(advanceHole = false) {
     deformVisualGreenMesh(green);
     deformVisualGreenMesh(greenGrid);
 
-    // Extract middle zone values as reference for drawing the helper guide canvas texture arrow
     // Extract local physics engine height maps to draw custom contour arrows across the surface grid
     if (gridCanvas && gridTexture) {
         const ctx = gridCanvas.getContext('2d');
@@ -382,7 +392,7 @@ function resetEntireGame(advanceHole = false) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
         ctx.lineWidth = 4.0;
 
-        const gridCount = 5; // Change this line (Lowered from 16 to spread them out nicely)
+        const gridCount = 5;
         const spacing = 512 / gridCount;
 
         for (let row = 0; row < gridCount; row++) {
@@ -413,15 +423,12 @@ function resetEntireGame(advanceHole = false) {
                         ctx.save();
                         ctx.translate(cx, cy);
                         ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points arrow downhill
-                        // (The old ctx.scale line has been deleted)
 
                         // Draw clean, bolder medium-sized arrows
-
-
                         ctx.beginPath();
-                        ctx.moveTo(-25, 0); ctx.lineTo(25, 0); // Change this line (Total arrow length)
-                        ctx.lineTo(12, -9);                    // Change this line (Arrowhead point)
-                        ctx.moveTo(25, 0); ctx.lineTo(12, 9);   // Change this line (Arrowhead point)
+                        ctx.moveTo(-25, 0); ctx.lineTo(25, 0);
+                        ctx.lineTo(12, -9);
+                        ctx.moveTo(25, 0); ctx.lineTo(12, 9);
                         ctx.stroke();
                         ctx.restore();
                     }
@@ -431,8 +438,9 @@ function resetEntireGame(advanceHole = false) {
         gridTexture.needsUpdate = true;
     }
 
-
-
+    // =========================================================================
+    // RESTORED INLINE STRUCTURAL CODE (RE-ADDED SECOND HALF OF FUNCTION PIPELINE)
+    // =========================================================================
     if (fairway) {
         const fairwayLength = 8 - greenCenterZ;
         fairway.scale.set(1, fairwayLength, 1);
@@ -442,8 +450,8 @@ function resetEntireGame(advanceHole = false) {
     deformCourseMesh(floor, false);
     deformCourseMesh(fairway, true);
 
-    // NEW: Randomize the Tee Box horizontal offset left or right to vary the shot angles
-    const teeBoxX = (Math.random() - 0.5) * 7.0; // Shifting limits spanning between -3.5 and +3.5
+    // Randomize the Tee Box horizontal offset left or right to vary the shot angles
+    const teeBoxX = (Math.random() - 0.5) * 7.0;
     if (teeBox) {
         teeBox.position.set(teeBoxX, 0.01, 10);
         teeBox.visible = true;
@@ -458,18 +466,17 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
 
-
-    // NEW: Calculate the precise target-line vector between the randomized tee and pin positions
+    // Calculate the precise target-line vector between the randomized tee and pin positions
     const startDirX = holePosition.x - teeBoxX;
-    const startDirZ = holePosition.z - 10; // Ball starts at Z: 10
+    const startDirZ = holePosition.z - 10;
     const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ);
 
-    // Position the camera exactly 4 units backward along the true ball-to-hole line of sight
-    const startBackX = -(startDirX / startLength) * 4;
-    const startBackZ = -(startDirZ / startLength) * 4;
+    // Position the camera exactly 5.5 units backward along the true ball-to-hole line of sight
+    const startBackX = -(startDirX / startLength) * 5.5;
+    const startBackZ = -(startDirZ / startLength) * 5.5;
 
-    // Set the starting position using the precise target line vector to prevent swing shift adjustments
-    cameraTargetPos.set(teeBoxX + startBackX, 2, 10 + startBackZ);
+    // Set starting view directly to 1.8 height to establish unified matching camera frames
+    cameraTargetPos.set(teeBoxX + startBackX, 2.05, 10 + startBackZ);
     cameraLookAt.copy(holePosition);
     currentLookAt.copy(holePosition);
     camera.position.copy(cameraTargetPos);
@@ -482,15 +489,12 @@ function resetEntireGame(advanceHole = false) {
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
     const foliageMat = new THREE.MeshStandardMaterial({ color: 0x1d5330, roughness: 0.6 });
     const wallMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.5 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 }); // Dark Red roofs
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 });
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 35; i++) {
-        // Determine whether to place on the left side or right side of the track
         const side = Math.random() > 0.5 ? 1 : -1;
-        const x = side * (31 + Math.random() * 15); // Outside the fairway but on the grass plane
-
-        // Scatter evenly from the tee box (Z: 15) up past the green destination
+        const x = side * (31 + Math.random() * 15);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
         const sceneryGroup = new THREE.Group();
@@ -498,39 +502,31 @@ function resetEntireGame(advanceHole = false) {
         sceneryGroup.position.set(x, courseHeight, z);
 
         if (Math.random() > 0.4) {
-            // --- BUILD A PROCEDURAL TREE ---
-            const treeHeight = 1.5; // Explicit trunk height variable
+            // BUILD A PROCEDURAL TREE
+            const treeHeight = 1.5;
             const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, treeHeight, 8);
             const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-
-            // Change this line to set position perfectly flat to the main floor:
             trunk.position.y = treeHeight / 2;
             sceneryGroup.add(trunk);
 
-            const leavesHeight = 2.5; // Explicit foliage height variable
+            const leavesHeight = 2.5;
             const leavesGeo = new THREE.ConeGeometry(1.2, leavesHeight, 8);
             const leaves = new THREE.Mesh(leavesGeo, foliageMat);
-
-            // Change this line to stack perfectly on top of the trunk height:
             leaves.position.y = treeHeight + (leavesHeight / 2);
             sceneryGroup.add(leaves);
         } else {
-            // --- BUILD A PROCEDURAL HOUSE ---
+            // BUILD A PROCEDURAL HOUSE
             const houseWidth = 2.0 + Math.random() * 1.5;
-            const houseHeight = 1.5 + Math.random() * 1.0; // Dynamic height variable
+            const houseHeight = 1.5 + Math.random() * 1.0;
 
             const baseGeo = new THREE.BoxGeometry(houseWidth, houseHeight, houseWidth);
             const base = new THREE.Mesh(baseGeo, wallMat);
-
-            // Change this line to map perfectly from the ground floor up:
             base.position.y = houseHeight / 2;
             sceneryGroup.add(base);
 
             // Give it a pointed triangular roof
             const roofGeo = new THREE.ConeGeometry(houseWidth * 0.8, 1.2, 4);
             const roof = new THREE.Mesh(roofGeo, roofMat);
-
-            // Change this line to place the roof perfectly flush with the top of the walls:
             roof.position.y = houseHeight + 0.6;
             roof.rotation.y = Math.PI / 4;
             sceneryGroup.add(roof);
@@ -693,10 +689,12 @@ function animate() {
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            const backX = -(dirX / length) * 4;
-            const backZ = -(dirZ / length) * 4;
+            // CHANGED: Increased from 4 to 5.5 to perfectly match standard resting view calculations
+            const backX = -(dirX / length) * 5.5;
+            const backZ = -(dirZ / length) * 5.5;
 
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.75, ball.position.z + backZ);
+            // CHANGED: Height adjusted from 1.75 to 1.8 to prevent vertical screen lurching
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
             cameraLookAt.copy(holePosition);
             ballTargetScale = 1.0;
         }
