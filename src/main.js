@@ -626,18 +626,15 @@ function animate() {
             generateNewWind();
             updateDistanceDisplay();
             wasMoving = false;
-            // Add this block below to wipe the tracer clean only when landing on the green:
-            const gX = ball.position.x - holePosition.x;
-            const gZ = ball.position.z - holePosition.z;
-            if (Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS || ball.position.z <= holePosition.z) {
-                tracerPoints = [];
-                if (ballTracer) {
-                    ballTracer.geometry.setFromPoints(tracerPoints);
-                    ballTracer.geometry.computeBoundingSphere();
-                }
-            }
 
+            // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
+            tracerPoints = []; // Add this line
+            if (ballTracer) { // Add this line
+                ballTracer.geometry.setFromPoints(tracerPoints); // Add this line
+                ballTracer.geometry.computeBoundingSphere(); // Add this line
+            } // Add this line
 
+            // Delete the old "const gX...", "const gZ...", and "if (Math.sqrt...)" lines that used to wrap this block
         }
 
         if (input && input.isSwinging) {
