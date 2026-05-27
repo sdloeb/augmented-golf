@@ -183,10 +183,11 @@ function generateHazards() {
     const targetGreenZ = green ? green.position.z : -55;
 
     for (let i = 0; i < numWater; i++) {
-        let x, z, r = 2.0 + Math.random() * 1.5;
+        // CHANGED: Minimum size is now 3.8 and maximum is 5.5 units to ensure only large sizes spawn
+        let x, z, r = 4.5 + Math.random() * 3.5;
         do {
             x = (Math.random() - 0.5) * 50;
-            // Spawns hazards relative to the actual circular putting green plane depth location
+            // Spawns hazards relative to the actual circular putting green depth location
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
         } while (
             checkOverlap(x, z, r, waterHazards) ||
@@ -195,7 +196,13 @@ function generateHazards() {
             (z > 6 && Math.abs(x) < 4) // Safe zone protection surrounding the Tee Box area
         );
 
-        const currentWaterGroundY = physics.getGroundHeight(x, z);
+        let currentWaterGroundY = physics.getGroundHeight(x, z);
+
+        // NEW: If water spawns inside the fairway lane, elevate it slightly to match the fairway mesh cushion (+0.03)
+        if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
+            currentWaterGroundY += 0.035;
+        }
+
         const waterMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.1 }));
         waterMesh.rotation.x = -Math.PI / 2;
         waterMesh.position.set(x, currentWaterGroundY + 0.008, z);
@@ -204,7 +211,8 @@ function generateHazards() {
     }
 
     for (let i = 0; i < numSand; i++) {
-        let x, z, r = 1.8 + Math.random() * 1.2;
+        // CHANGED: Minimum size is now 4.5 and maximum is 7.5 units to significantly upscale the sand trap sizes
+        let x, z, r = 4.5 + Math.random() * 2.5;
         do {
             x = (Math.random() - 0.5) * 50;
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
@@ -215,7 +223,13 @@ function generateHazards() {
             (z > 6 && Math.abs(x) < 4)
         );
 
-        const currentSandGroundY = physics.getGroundHeight(x, z);
+        let currentSandGroundY = physics.getGroundHeight(x, z);
+
+        // NEW: If sand spawns inside the fairway lane, elevate it slightly to match the fairway mesh cushion (+0.03)
+        if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
+            currentSandGroundY += 0.035;
+        }
+
         const sandMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0xe0ca9b, roughness: 0.9 }));
         sandMesh.rotation.x = -Math.PI / 2;
         sandMesh.position.set(x, currentSandGroundY + 0.007, z);
