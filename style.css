@@ -172,15 +172,34 @@ html {
     margin-bottom: 35px;
 }
 
-/* Top view style of a Putter - Solid block rectangular design */
+/* Top view style of a premium milled blade putter - compact and detailed */
 #clubSwipe.putter {
-    background: linear-gradient(to right, #2c3e50, #34495e);
-    border-radius: 4px;
-    width: 150px;
-    height: 40px;
-    border-left: 12px solid #7f8c8d;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    margin-bottom: 30px;
+    background: linear-gradient(to bottom, #efefef 0%, #d5d5d5 25%, #b0b0b0 75%, #888888 100%);
+    border-radius: 3px 10px 10px 3px;
+    /* Weighted, curved bumpers on the rear back cavity */
+    width: 110px;
+    /* Decreased from 150px to make it realistically smaller */
+    height: 26px;
+    /* Sleeker blade height profile down from 40px */
+    border: 1px solid #7f8c8d;
+    border-left: 5px solid #222222;
+    /* High-contrast dark face plate insert on the striking edge */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    margin-bottom: 44px;
+    /* Adjusted offset: 70px base wood height minus 26px putter height keeps it centered */
+}
+
+/* Crisp vertical alignment sight line etched into the center cavity of the putter head */
+#clubSwipe.putter::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    background-color: #111111;
+    transform: translateX(-50%);
+    opacity: 0.75;
 }
 
 /* Arc motion simulating a golf swing through the ball location */
