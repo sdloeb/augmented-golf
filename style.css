@@ -18,6 +18,32 @@ html {
     display: block;
 }
 
+#overheadBtn {
+    position: absolute;
+    top: 100px;
+    /* Sits perfectly below the wind box on your computer */
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #ffffff;
+    border-radius: 5px;
+    padding: 6px 12px;
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.15s ease;
+    pointer-events: auto;
+    z-index: 9999;
+    /* Keeps button on top of the game canvas so it can be clicked */
+}
+
+#overheadBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #00ffcc;
+    color: #00ffcc;
+}
+
 #distanceGauge {
     position: absolute;
     /* Positioned right next to the ball's screen location */
@@ -268,7 +294,7 @@ html {
 
     /* Adjust map to sit safely on the left under the wind container, avoiding club options collisions */
     #holeMapContainer {
-        top: 95px !important;
+        top: 165px !important;
         left: 20px !important;
         right: auto !important;
         width: 140px !important;
@@ -297,6 +323,30 @@ html {
     #windText,
     #scoreContainer div {
         font-size: 14px !important;
+    }
+
+    #overheadBtn {
+        position: absolute;
+        top: 115px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 2px solid #ffffff;
+        border-radius: 5px;
+        padding: 6px 12px;
+        color: white;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        transition: all 0.15s ease;
+        pointer-events: auto;
+        z-index: 10;
+    }
+
+    #overheadBtn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: #00ffcc;
+        color: #00ffcc;
     }
 
     .club-option {

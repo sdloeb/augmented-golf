@@ -18,6 +18,8 @@ let cameraTargetPos = new THREE.Vector3(0, 2, 14);
 let cameraLookAt = new THREE.Vector3(0, 0, -50);
 let currentLookAt = new THREE.Vector3(0, 0, -50);
 let wasMoving = false;
+let overheadTimeout = null;
+let isOverheadActive = false;
 
 let ballTargetScale = 1.0;
 
@@ -346,15 +348,19 @@ function resetEntireGame(advanceHole = false) {
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
-            if (targetMesh === floor) { // Add this line
-                const gX = worldX; // Add this line
-                const gZ = worldZ - greenCenterZ; // Add this line
-                const distToGreen = Math.sqrt(gX * gX + gZ * gZ); // Add this line
-                const inFairway = Math.abs(worldX) <= 9.0 && worldZ >= greenCenterZ && worldZ <= 8; // Add this line
-                if (distToGreen < 17.0 || inFairway) {
-                    calculatedHeight -= 0.40;
-                } else if (inFairway) {   // Add this line
-                    calculatedHeight -= 0.05; // Add this line
+
+            // Move distance calculations outside the block so they apply to both meshes
+            const gX = worldX;
+            const gZ = worldZ - greenCenterZ;
+            const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
+
+            // FIX: Pushes BOTH the fairway and floor meshes down under the green area to stop all clipping
+            if (distToGreen < 15.0) {
+                calculatedHeight -= 0.40;
+            } else if (targetMesh === floor) {
+                const inFairway = Math.abs(worldX) <= 9.0 && worldZ >= greenCenterZ && worldZ <= 8;
+                if (inFairway) {
+                    calculatedHeight -= 0.05; // Keeps floor hidden beneath the fairway (Add this line)
                 }
             }
             posAttr.setZ(i, calculatedHeight);
@@ -448,6 +454,7 @@ function resetEntireGame(advanceHole = false) {
     physics.isMoving = false;
     wasMoving = false;
     isSinking = false;
+    isOverheadActive = false;
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
 
@@ -626,6 +633,9 @@ function animate() {
     }
 
     // 3. DYNAMIC CAMERA CONTROLLER
+
+
+
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
@@ -657,8 +667,10 @@ function animate() {
             const backX = -(dirX / length) * 5.5;
             const backZ = -(dirZ / length) * 5.5;
 
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-            cameraLookAt.copy(holePosition);
+            if (!isOverheadActive) {
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                cameraLookAt.copy(holePosition);
+            }
             ballTargetScale = 0.5;
             if (teeBox) teeBox.visible = false;
 
@@ -667,11 +679,11 @@ function animate() {
             wasMoving = false;
 
             // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
-            tracerPoints = []; // Add this line
-            if (ballTracer) { // Add this line
-                ballTracer.geometry.setFromPoints(tracerPoints); // Add this line
-                ballTracer.geometry.computeBoundingSphere(); // Add this line
-            } // Add this line
+            tracerPoints = [];
+            if (ballTracer) {
+                ballTracer.geometry.setFromPoints(tracerPoints);
+                ballTracer.geometry.computeBoundingSphere();
+            }
 
             // Delete the old "const gX...", "const gZ...", and "if (Math.sqrt...)" lines that used to wrap this block
         }
@@ -693,7 +705,7 @@ function animate() {
     const ballGreenX = ball.position.x - 0;
     const ballGreenZ = ball.position.z - greenCenterZ;
     const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
-    const activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05; // Add this line (Slower on the green)
+    const activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;  //(Slower on the green)
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Change this line
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed); // Change this line
@@ -730,17 +742,17 @@ function init() {
     const floorGeo = new THREE.PlaneGeometry(60, 800, 40, 300);
 
     // Procedural rough grass noise texture generator
-    const rCanvas = document.createElement('canvas'); // Add this line
-    rCanvas.width = 64; rCanvas.height = 64; // Add this line
-    const rCtx = rCanvas.getContext('2d'); // Add this line
+    const rCanvas = document.createElement('canvas');
+    rCanvas.width = 64; rCanvas.height = 64;
+    const rCtx = rCanvas.getContext('2d');
     rCtx.fillStyle = '#a5a5a5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
     for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
-        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#686868'; // Add this line
+        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#686868';
         rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
-    } // Add this line
-    const roughTexture = new THREE.CanvasTexture(rCanvas); // Add this line
-    roughTexture.wrapS = THREE.RepeatWrapping; // Add this line
-    roughTexture.wrapT = THREE.RepeatWrapping; // Add this line
+    }
+    const roughTexture = new THREE.CanvasTexture(rCanvas);
+    roughTexture.wrapS = THREE.RepeatWrapping;
+    roughTexture.wrapT = THREE.RepeatWrapping;
     roughTexture.repeat.set(90, 600); // Tightly repeats noise to keep blades look micro-fine (Add this line)
 
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, map: roughTexture }); // Update this line (added roughness and map)
@@ -749,13 +761,13 @@ function init() {
     scene.add(floor);
     const fairwayGeo = new THREE.PlaneGeometry(18, 1, 15, 100);
 
-    const fCanvas = document.createElement('canvas'); // Add this line
-    fCanvas.width = 128; fCanvas.height = 4; // Add this line
-    const fCtx = fCanvas.getContext('2d'); // Add this line
+    const fCanvas = document.createElement('canvas');
+    fCanvas.width = 128; fCanvas.height = 4;
+    const fCtx = fCanvas.getContext('2d');
     fCtx.fillStyle = '#ffffff'; fCtx.fillRect(0, 0, 64, 4); // Light stripe tint (Add this line)
     fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4); // Dark stripe tint (Add this line)
-    const fairwayTexture = new THREE.CanvasTexture(fCanvas); // Add this line
-    fairwayTexture.wrapS = THREE.RepeatWrapping; // Add this line
+    const fairwayTexture = new THREE.CanvasTexture(fCanvas);
+    fairwayTexture.wrapS = THREE.RepeatWrapping;
     fairwayTexture.repeat.set(4, 1);
 
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture });
@@ -850,7 +862,7 @@ function init() {
 
         tracerPoints = [];
 
-        tracerPoints.push(ball.position.clone()); // Add this line to anchor the tracer exactly at the ball's starting position
+        tracerPoints.push(ball.position.clone());  //to anchor the tracer exactly at the ball's starting position
         if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
         ballTracer.geometry.computeBoundingSphere();
         const forward = new THREE.Vector3();
@@ -920,6 +932,43 @@ function init() {
     input.holePositionRef = holePosition;
 
     window.addEventListener('resize', onWindowResize, false);
+
+    // Add overhead view button click listener
+    const overheadBtn = document.getElementById('overheadBtn');
+    if (overheadBtn) {
+        overheadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isSinking) return; // Ignore if ball is dropping in the cup
+
+            // Calculate direction vectors from ball to hole dynamically
+            const dirX = holePosition.x - ball.position.x;
+            const dirZ = holePosition.z - ball.position.z;
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+
+            if (!isOverheadActive) {
+                // TOGGLE ON: Go up to the 20-foot elevated view
+                isOverheadActive = true;
+
+                const backX = -(dirX / length) * 6.5;
+                const backZ = -(dirZ / length) * 6.5;
+                const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
+
+                cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
+                cameraLookAt.copy(holePosition);
+            } else {
+                // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
+                isOverheadActive = false;
+
+                const backX = -(dirX / length) * 5.5;
+                const backZ = -(dirZ / length) * 5.5;
+
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                cameraLookAt.copy(holePosition);
+            }
+
+            // (The old "savedTargetPos" variables and "setTimeout" block have been completely deleted)
+        });
+    }
 
     generateNewWind();
     updateDistanceDisplay();
