@@ -351,7 +351,7 @@ function resetEntireGame(advanceHole = false) {
                 const gZ = worldZ - greenCenterZ; // Add this line
                 const distToGreen = Math.sqrt(gX * gX + gZ * gZ); // Add this line
                 const inFairway = Math.abs(worldX) <= 9.0 && worldZ >= greenCenterZ && worldZ <= 8; // Add this line
-                if (distToGreen < 14.0 || inFairway) {
+                if (distToGreen < 17.0 || inFairway) {
                     calculatedHeight -= 0.40;
                 } else if (inFairway) {   // Add this line
                     calculatedHeight -= 0.05; // Add this line
@@ -734,9 +734,16 @@ function init() {
     scene.add(floor);
     const fairwayGeo = new THREE.PlaneGeometry(18, 1, 15, 100);
 
-    // ADD THIS BLOCK RIGHT BELOW THE FLOOR MESH:
+    const fCanvas = document.createElement('canvas'); // Add this line
+    fCanvas.width = 128; fCanvas.height = 4; // Add this line
+    const fCtx = fCanvas.getContext('2d'); // Add this line
+    fCtx.fillStyle = '#ffffff'; fCtx.fillRect(0, 0, 64, 4); // Light stripe tint (Add this line)
+    fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4); // Dark stripe tint (Add this line)
+    const fairwayTexture = new THREE.CanvasTexture(fCanvas); // Add this line
+    fairwayTexture.wrapS = THREE.RepeatWrapping; // Add this line
+    fairwayTexture.repeat.set(4, 1);
 
-    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7 });
+    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
     fairway.rotation.x = -Math.PI / 2;
     fairway.position.set(0, 0.01, -16.5);
