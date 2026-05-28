@@ -176,7 +176,7 @@ function generateHazards() {
         return list.some(mesh => {
             const dx = x - mesh.position.x;
             const dz = z - mesh.position.z;
-            return Math.sqrt(dx * dx + dz * dz) < (r + mesh.geometry.parameters.radius);
+            return Math.sqrt(dx * dx + dz * dz) < (r + mesh.geometry.parameters.radius + padding);
         });
     };
 
@@ -185,16 +185,16 @@ function generateHazards() {
 
     for (let i = 0; i < numWater; i++) {
         // CHANGED: Minimum size is now 3.8 and maximum is 5.5 units to ensure only large sizes spawn
-        let x, z, r = 4.5 + Math.random() * 3.5;
+        let x, z, r = 5.0 + Math.random() * 11.0;
         do {
             x = (Math.random() - 0.5) * 50;
             // Spawns hazards relative to the actual circular putting green depth location
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
         } while (
-            checkOverlap(x, z, r, waterHazards) ||
+            checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r) ||
-            (z > 6 && Math.abs(x) < 4) // Safe zone protection surrounding the Tee Box area
+            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) || // Update this line to add a 2-unit green safety buffer
+            (z > -15 && Math.abs(x) < 15) // Update this line to give the Tee Box a massive clearing
         );
 
         let currentWaterGroundY = physics.getGroundHeight(x, z);
@@ -220,8 +220,8 @@ function generateHazards() {
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r) ||
-            (z > 6 && Math.abs(x) < 4)
+            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) || // Update this line to add a 2-unit green safety buffer
+            (z > -15 && Math.abs(x) < 15) // Update this line to give the Tee Box a massive clearing
         );
 
         let currentSandGroundY = physics.getGroundHeight(x, z);
@@ -575,6 +575,7 @@ function resetEntireGame(advanceHole = false) {
         sceneryObjects.push(sceneryGroup);
     }
 
+    generateHazards();
     generateNewWind();
     updateDistanceDisplay();
 }
@@ -699,6 +700,7 @@ function animate() {
         const camHeight = onGreen ? 0.82 : 1.8;    // Lowers camera proportionally to keep the same view angle
         const lookDist = onGreen ? 5.45 : 12.0;
         if (wasMoving && !isSinking) {
+            isOverheadActive = false;
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
@@ -950,10 +952,6 @@ function init() {
     // Add these lines below to create the sound instance and pass it to physics
     sounds = new SoundManager();
     physics.sounds = sounds;
-
-    generateHazards();
-    physics.sandTraps = sandTraps;
-    physics.waterHazards = waterHazards;
 
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
