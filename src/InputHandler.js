@@ -121,13 +121,24 @@ export class InputHandler {
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = `${pullRatio * 160}px`;
 
+            // Calculate screen positions to check side-of-screen pullbacks
+            const screenCenter = window.innerWidth / 2;
+            const ballPathWidth = 120; // 120px vertical center band for the ball path
+            let shotModifier = "";
+
+            if (this.startX < screenCenter - ballPathWidth / 2) {
+                shotModifier = " (Fade)";
+            } else if (this.startX > screenCenter + ballPathWidth / 2) {
+                shotModifier = " (Slice)";
+            }
+
             const club = this.getClubInfo();
             if (club.isGreen) {
                 const feet = Math.round(pullRatio * 40);
-                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds${shotModifier}`;
             }
 
             if (currentY < this.maxPullY - 5) {
@@ -195,16 +206,26 @@ export class InputHandler {
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = `${pullRatio * 160}px`;
 
+            // Calculate screen positions to check side-of-screen pullbacks
+            const screenCenter = window.innerWidth / 2;
+            const ballPathWidth = 120; // 120px vertical center band for the ball path
+            let shotModifier = "";
+
+            if (this.startX < screenCenter - ballPathWidth / 2) {
+                shotModifier = " (Fade)";
+            } else if (this.startX > screenCenter + ballPathWidth / 2) {
+                shotModifier = " (Slice)";
+            }
+
             // DYNAMIC SWING GAUGE SCALING
             const club = this.getClubInfo();
             if (club.isGreen) {
                 const feet = Math.round(pullRatio * 40);
-                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds${shotModifier}`;
             }
-
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
                 this.forwardStartTime = performance.now();
@@ -324,7 +345,25 @@ export class InputHandler {
         const maxAngle = 35 * Math.PI / 180;
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
-        this.onLaunch(finalPower, horizontalAngle, -this.pullbackDriftX, club.loft || 0.042);
+        // FIXED LOGIC: Spin is now a flat constant depending only on the zone.
+        // Follow-through horizontal angle rules handle all aim control symmetrically.
+        const screenCenter = window.innerWidth / 2;
+        const ballPathWidth = 120;
+        let spinValue = 0;
+
+        if (this.startX < screenCenter - ballPathWidth / 2) {
+            // LEFT SIDE: Uniform Fade Spin (always reliable, no matter how far left they touch)
+            spinValue = -45;
+        } else if (this.startX > screenCenter + ballPathWidth / 2) {
+            // RIGHT SIDE: Uniform Slice Spin (Set to 45 to perfectly mirror the fade magnitude)
+            spinValue = 45;
+        } else {
+            // STRAIGHT PATH: Inside the vertical center path of the ball
+            spinValue = 0;
+        }
+
+        // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable
+        this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft || 0.042);
         this.chosenClubIndex = null;
         this.resetSwing();
     }

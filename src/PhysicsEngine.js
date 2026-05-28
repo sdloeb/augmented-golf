@@ -121,47 +121,48 @@ export class PhysicsEngine {
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false, spin = 0, loft = 0.042) {
-        const speedScale = 0.020;
+        const speedScale = 0.069;
         const totalPower = power * speedScale;
 
-        // Calculate horizontal components based on camera view
-        const forwardComponent = Math.cos(mouseAngle) * totalPower;
-        const sideComponent = Math.sin(mouseAngle) * totalPower;
+        // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
+        this.spin = isPutting ? 0 : spin;
+
+        // 2. ROTATE THE INITIAL TRAJECTORY OUTWARDS
+        let adjustedAngle = mouseAngle;
+        if (!isPutting && spin !== 0) {
+            if (spin < 0) {
+                // FADE (Negative spin): Pushes initial launch direction to the RIGHT
+                adjustedAngle = mouseAngle - (spin * 0.006);
+            } else {
+                // SLICE (Positive spin): Pushes initial launch direction significantly further LEFT at start
+                adjustedAngle = mouseAngle - (spin * 0.012);
+            }
+        }
+
+        // Calculate horizontal components using our newly adjusted starting angle
+        const forwardComponent = Math.cos(adjustedAngle) * totalPower;
+        const sideComponent = Math.sin(adjustedAngle) * totalPower;
 
         // Combine vectors
         this.velocity.x = (cameraForward.x * forwardComponent) + (cameraRight.x * sideComponent);
         this.velocity.z = (cameraForward.z * forwardComponent) + (cameraRight.z * sideComponent);
 
-        // FIX: If we are putting, completely kill vertical velocity. Otherwise, apply normal loft height.
+        // If we are putting, completely kill vertical velocity. Otherwise, apply normal loft height.
         if (isPutting) {
             this.velocity.y = 0;
             this.velocity.x *= 0.5;
             this.velocity.z *= 0.5;
-            this.spinForce = null;
         } else {
-            // Update this entire else block: calculates low-piercing woods vs high-popping wedges
+            // Calculates low-piercing woods vs high-popping wedges
             this.velocity.y = power * loft;
 
             const horizontalAdjustment = 1.0 / (loft * 18.0);
             this.velocity.x *= horizontalAdjustment;
             this.velocity.z *= horizontalAdjustment;
-
-            // Update this entire block below to add a hand wobble deadzone and lower the curve sensitivity
-            let dampenedSpin = spin;
-            if (Math.abs(dampenedSpin) < 30) {
-                dampenedSpin = 0; // Add this line: completely ignores slight 15-pixel hand drifting
-            } else {
-                dampenedSpin = Math.sign(dampenedSpin) * (Math.abs(dampenedSpin) - 30); // Add this line: subtracts threshold for smooth scaling
-            }
-
-            // Update this line: changed multiplier from 0.003 to 0.0005 for a much softer side curve
-            this.spinForce = new THREE.Vector3(cameraRight.x * dampenedSpin * 0.00012, 0, cameraRight.z * dampenedSpin * 0.00012);
         }
         this.isPutting = isPutting;
-
         this.isMoving = true;
     }
-
 
     update() {
         if (!this.isMoving) return;
@@ -211,9 +212,31 @@ export class PhysicsEngine {
         // 1. AIRBORNE PHYSICS 
         if (isAirborne) {
             this.velocity.y -= this.gravity * timeScale;
-            if (this.spinForce && !this.isPutting) {
-                this.velocity.x += this.spinForce.x * timeScale;
-                this.velocity.z += this.spinForce.z * timeScale;
+
+            // APPLY AIR DRAG: Smoothly reduces forward/side speeds to simulate wind resistance
+            this.velocity.x *= 0.993;
+            this.velocity.z *= 0.993;
+
+            // CALCULATE TRUE PERPENDICULAR AERODYNAMIC SPIN (Magnus Effect)
+            if (this.spin && this.spin !== 0) {
+                const horizSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+                if (horizSpeed > 0.01) {
+                    // Generates a vector pointing exactly 90-degrees perpendicular to the current flight path
+                    const perpX = -this.velocity.z / horizSpeed;
+                    const perpZ = this.velocity.x / horizSpeed;
+
+                    // FIXED: Increased Slice from 0.00034 to 0.00048. 
+                    // This gives the ball enough mid-air aerodynamic pull to overcome the initial leftward push 
+                    // and carry the ball completely past the straight center line onto the right side!
+                    const curveCoeff = this.spin < 0 ? 0.00062 : 0.00092;
+                    const sideForceMagnitude = this.spin * curveCoeff * horizSpeed;
+
+                    this.velocity.x += perpX * sideForceMagnitude * timeScale;
+                    this.velocity.z += perpZ * sideForceMagnitude * timeScale;
+                }
+
+                // Spin decay rate keeps spin active through the descent
+                this.spin *= 0.975;
             }
 
             if (!this.isPutting) {
