@@ -484,10 +484,78 @@ html {
         font-size: 12px !important;
     }
 
-    #clubSwipe {
-        margin-left: -42px !important;
+    /* Update this block to lock the club alignment to the 50% ball center on mobile */
+    #clubSwipe.idle-stance {
+        left: calc(50% - 68px) !important;
+    }
+
+    #clubSwipe.pullback-stance {
+        left: calc(50% - 52px) !important;
+    }
+
+    #clubSwipe.swipe-animation {
+        animation: clubSwipeAnimMobile 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+    }
+
+    #clubSwipe.putter.swipe-animation {
+        animation: putterSwipeAnimMobile 1.0s linear forwards !important;
     }
 }
+
+/* New mobile-specific swing tracking keyframes centered on the ball coordinate */
+@keyframes clubSwipeAnimMobile {
+    0% {
+        bottom: -100px;
+        left: calc(50% - 40px);
+        right: auto;
+        transform: rotate(30deg) scale(1.7);
+        opacity: 0;
+    }
+
+    15% {
+        opacity: 1;
+    }
+
+    35% {
+        bottom: 24%;
+        left: calc(50% - 68px);
+        right: auto;
+        transform: rotate(0deg) scale(1.2);
+    }
+
+    100% {
+        bottom: 45%;
+        left: calc(50% - 100px);
+        right: auto;
+        transform: rotate(-40deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes putterSwipeAnimMobile {
+    0% {
+        bottom: 2%;
+        left: calc(50% - 40px);
+        transform: rotate(20deg) scale(1.0);
+        opacity: 1;
+    }
+
+    35% {
+        bottom: 24%;
+        left: calc(50% - 68px);
+        transform: rotate(0deg) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        bottom: 32%;
+        left: calc(50% - 85px);
+        transform: rotate(-15deg) scale(1.1);
+        opacity: 0;
+    }
+}
+
+
 
 /* ==========================================================================
    PUTTER-SPECIFIC VISUAL STROKE MODIFICATIONS
