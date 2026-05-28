@@ -607,9 +607,10 @@ html {
 /* ==========================================================================
    LAPTOP AND SMALL SCREEN RESPONSIVE CLUB SCALING
    ========================================================================== */
-@media (max-height: 850px) {
+/* Update this line to isolate laptops and increase zoom size */
+@media (max-height: 850px) and (min-width: 769px) {
     #clubSwipe {
-        zoom: 0.60;
-        /* Add this line to scale down the club on smaller laptop heights */
+        zoom: 1.2;
+        /* Update this line to make it slightly larger on laptops */
     }
 }
