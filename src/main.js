@@ -9,6 +9,7 @@ let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 
 let sandTraps = [];
 let waterHazards = [];
+let waterShores = [];
 let sceneryObjects = [];
 let currentHoleNumber = 1;
 let currentPar = 4;
@@ -166,8 +167,10 @@ function generateNewWind() {
 function generateHazards() {
     sandTraps.forEach(mesh => scene.remove(mesh));
     waterHazards.forEach(mesh => scene.remove(mesh));
+    waterShores.forEach(mesh => scene.remove(mesh));
     sandTraps = [];
     waterHazards = [];
+    waterShores = [];
 
     const numWater = 1 + Math.floor(Math.random() * 2);
     const numSand = Math.floor(Math.random() * 3);  // 0 to 2
@@ -206,22 +209,50 @@ function generateHazards() {
             currentWaterGroundY += 0.035;
         }
 
-        // Update this block to enhance your water visuals
+        const waterGeo = new THREE.PlaneGeometry(r * 2, r * 2, 24, 24);
+        const waterGeoPos = waterGeo.attributes.position;
+        for (let j = 0; j < waterGeoPos.count; j++) {
+            let pX = waterGeoPos.getX(j);
+            let pY = waterGeoPos.getY(j);
+            let pDist = Math.sqrt(pX * pX + pY * pY);
+            if (pDist > r) {
+                waterGeoPos.setX(j, (pX / pDist) * r);
+                waterGeoPos.setY(j, (pY / pDist) * r);
+            }
+        }
+        waterGeo.computeVertexNormals();
+
         const waterMesh = new THREE.Mesh(
-            new THREE.CircleGeometry(r, 64), // Update this line to 64 to add extra wave resolution
-            new THREE.MeshStandardMaterial({
-                color: 0x0066cc,             // Update this line for a rich deep lake blue
-                roughness: 0.03,             // Update this line to make the water highly glossy
-                metalness: 0.15,             // Add this line to capture nice sky reflections
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -4
+            waterGeo, // Update this line: Swapped from CircleGeometry to our custom grid geometry
+            new THREE.MeshPhongMaterial({
+                color: 0x0000ff,                         // Update this line: Vibrant deep lake blue
+                specular: 0xffffff,                     // Add this line: Gives it crisp white sun-glint highlights
+                shininess: 150,                         // Add this line: Increases gloss factor for high contrast
+                flatShading: true,                      // Keep this line
+                polygonOffset: true,                    // Keep this line
+                polygonOffsetFactor: -1,                // Keep this line
+                polygonOffsetUnits: -4                  // Keep this line
             })
         );
         waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(x, currentWaterGroundY + 0.11, z);
+        waterMesh.position.set(x, currentWaterGroundY + 0.06, z);
+        waterMesh.userData = { radius: r };
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
+
+        const shoreMesh = new THREE.Mesh(
+            new THREE.RingGeometry(r - 0.05, r + 0.6, 64), // Blends slightly into water, extends 0.6 units out
+            new THREE.MeshStandardMaterial({
+                color: 0x655545,             // Natural rock/dirt brownish-gray
+                roughness: 0.95,             // Flat, matte finish for earth texture
+                metalness: 0.1
+            })
+        );
+        shoreMesh.rotation.x = -Math.PI / 2;
+        shoreMesh.position.set(x, currentWaterGroundY + 0.16, z);
+        scene.add(shoreMesh);
+        waterShores.push(shoreMesh);
+
     }
 
     for (let i = 0; i < numSand; i++) {
@@ -393,6 +424,16 @@ function resetEntireGame(advanceHole = false) {
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
+
+            waterHazards.forEach(water => {
+                const dxW = worldX - water.position.x;
+                const dzW = worldZ - water.position.z;
+                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                const lakeRadius = water.userData.radius || 5;
+                if (distToWater < lakeRadius + 0.4) {
+                    calculatedHeight -= 1.2; // Forces the underlying grass down by 1.2 units
+                }
+            });
 
             const gX = worldX;
             const gZ = worldZ - greenCenterZ;
@@ -839,8 +880,12 @@ function animate() {
             for (let i = 0; i < posAttr.count; i++) {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
-                // Computes complex overlapping sine and cosine waves for organic ripple variations
-                const waveHeight = Math.sin(u * 0.35 + time) * 0.05 + Math.cos(v * 0.35 + time * 1.3) * 0.04;
+                // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
+                const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
+                const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
+                const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
+                const waveHeight = (wave1 + wave2 + wave3) + 0.07;
+
                 posAttr.setZ(i, waveHeight);
             }
             posAttr.needsUpdate = true; // Forces the GPU to reload the fresh wave coordinates
