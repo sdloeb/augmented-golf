@@ -264,7 +264,11 @@ export class PhysicsEngine {
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
                 const dz = this.ball.position.z - water.position.z;
-                if (Math.sqrt(dx * dx + dz * dz) < water.geometry.parameters.radius) {
+
+                // FIXED: Reads from userData.radius instead of geometry parameters because of PlaneGeometry conversion
+                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+
+                if (Math.sqrt(dx * dx + dz * dz) < lakeRadius) {
                     this.velocity.set(0, 0, 0);
                     this.isMoving = false;
                     if (this.sounds) this.sounds.play('water');

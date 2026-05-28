@@ -430,8 +430,23 @@ function resetEntireGame(advanceHole = false) {
                 const dzW = worldZ - water.position.z;
                 const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                 const lakeRadius = water.userData.radius || 5;
-                if (distToWater < lakeRadius + 0.4) {
-                    calculatedHeight -= 1.2; // Forces the underlying grass down by 1.2 units
+
+                // FIXED: Read the level baseline ground height of this specific lake center point
+                const centerLakeHeight = water.position.y - 0.06;
+
+                // 0.6 matches the outer radius extension of your shore ring (r + 0.6)
+                if (distToWater < lakeRadius + 0.6) {
+                    // 1. Flatten the terrain mesh completely to form a level shelf for the shore ring
+                    calculatedHeight = centerLakeHeight;
+
+                    // 2. Drop the center down to form the water basin
+                    if (distToWater < lakeRadius) {
+                        calculatedHeight -= 1.2;
+                    }
+                } else if (distToWater < lakeRadius + 2.5) {
+                    // 3. Smoothly blend the flat shore shelf back out into the undulating course hills over a 1.9 unit window
+                    const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9;
+                    calculatedHeight = THREE.MathUtils.lerp(centerLakeHeight, calculatedHeight, blendFactor);
                 }
             });
 
