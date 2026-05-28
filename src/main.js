@@ -202,14 +202,23 @@ function generateHazards() {
 
         let currentWaterGroundY = physics.getGroundHeight(x, z);
 
-        // NEW: If water spawns inside the fairway lane, elevate it slightly to match the fairway mesh cushion (+0.03)
         if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
             currentWaterGroundY += 0.035;
         }
 
-        const waterMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.1 }));
+        // Update this block to add polygonOffset rules to the material
+        const waterMesh = new THREE.Mesh(
+            new THREE.CircleGeometry(r, 32),
+            new THREE.MeshStandardMaterial({
+                color: 0x1d70b8,
+                roughness: 0.1,
+                polygonOffset: true,         // Add this line
+                polygonOffsetFactor: -1,     // Add this line
+                polygonOffsetUnits: -4       // Add this line
+            })
+        );
         waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(x, currentWaterGroundY + 0.008, z);
+        waterMesh.position.set(x, currentWaterGroundY + 0.045, z); // Update this line to lift water above the curves
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
     }
