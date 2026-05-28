@@ -172,7 +172,7 @@ function generateHazards() {
     const numWater = Math.floor(Math.random() * 3); // 0 to 2
     const numSand = Math.floor(Math.random() * 3);  // 0 to 2
 
-    const checkOverlap = (x, z, r, list) => {
+    const checkOverlap = (x, z, r, list, padding = 0) => {
         return list.some(mesh => {
             const dx = x - mesh.position.x;
             const dz = z - mesh.position.z;
@@ -184,18 +184,21 @@ function generateHazards() {
     const targetGreenZ = green ? green.position.z : -55;
 
     for (let i = 0; i < numWater; i++) {
-        // CHANGED: Minimum size is now 3.8 and maximum is 5.5 units to ensure only large sizes spawn
-        let x, z, r = 5.0 + Math.random() * 11.0;
+        let x, z, r = 7.0 + Math.random() * 4.5;
+        let waterAttempts = 0; // Add this line
         do {
             x = (Math.random() - 0.5) * 50;
-            // Spawns hazards relative to the actual circular putting green depth location
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
+            waterAttempts++; // Add this line
+            if (waterAttempts > 50) break; // Add this line to prevent browser freezing
         } while (
-            checkOverlap(x, z, r, waterHazards, 3.0) ||
+            checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) || // Update this line to add a 2-unit green safety buffer
-            (z > -15 && Math.abs(x) < 15) // Update this line to give the Tee Box a massive clearing
+            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) ||
+            (z > -15 && Math.abs(x) < 15)
         );
+
+        if (waterAttempts > 50) continue; // Add this line to skip placement if no space was found
 
         let currentWaterGroundY = physics.getGroundHeight(x, z);
 
@@ -212,17 +215,21 @@ function generateHazards() {
     }
 
     for (let i = 0; i < numSand; i++) {
-        // CHANGED: Minimum size is now 4.5 and maximum is 7.5 units to significantly upscale the sand trap sizes
         let x, z, r = 4.5 + Math.random() * 2.5;
+        let sandAttempts = 0; // Add this line
         do {
             x = (Math.random() - 0.5) * 50;
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
+            sandAttempts++; // Add this line
+            if (sandAttempts > 50) break; // Add this line to prevent browser freezing
         } while (
-            checkOverlap(x, z, r, waterHazards) ||
+            checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) || // Update this line to add a 2-unit green safety buffer
-            (z > -15 && Math.abs(x) < 15) // Update this line to give the Tee Box a massive clearing
+            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) ||
+            (z > -15 && Math.abs(x) < 15)
         );
+
+        if (sandAttempts > 50) continue; // Add this line to skip placement if no space was found
 
         let currentSandGroundY = physics.getGroundHeight(x, z);
 
