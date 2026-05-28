@@ -169,7 +169,7 @@ function generateHazards() {
     sandTraps = [];
     waterHazards = [];
 
-    const numWater = Math.floor(Math.random() * 3); // 0 to 2
+    const numWater = 1 + Math.floor(Math.random() * 2);
     const numSand = Math.floor(Math.random() * 3);  // 0 to 2
 
     const checkOverlap = (x, z, r, list, padding = 0) => {
@@ -206,19 +206,20 @@ function generateHazards() {
             currentWaterGroundY += 0.035;
         }
 
-        // Update this block to add polygonOffset rules to the material
+        // Update this block to enhance your water visuals
         const waterMesh = new THREE.Mesh(
-            new THREE.CircleGeometry(r, 32),
+            new THREE.CircleGeometry(r, 64), // Update this line to 64 to add extra wave resolution
             new THREE.MeshStandardMaterial({
-                color: 0x1d70b8,
-                roughness: 0.1,
-                polygonOffset: true,         // Add this line
-                polygonOffsetFactor: -1,     // Add this line
-                polygonOffsetUnits: -4       // Add this line
+                color: 0x0066cc,             // Update this line for a rich deep lake blue
+                roughness: 0.03,             // Update this line to make the water highly glossy
+                metalness: 0.15,             // Add this line to capture nice sky reflections
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -4
             })
         );
         waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(x, currentWaterGroundY + 0.045, z); // Update this line to lift water above the curves
+        waterMesh.position.set(x, currentWaterGroundY + 0.11, z);
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
     }
@@ -829,6 +830,22 @@ function animate() {
                 clubSwipeElement.className = '';
             }
         }
+    }
+
+    if (waterHazards && waterHazards.length > 0) {
+        const time = performance.now() * 0.0025; // Controls the general speed of the current flow
+        waterHazards.forEach(mesh => {
+            const posAttr = mesh.geometry.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const u = posAttr.getX(i);
+                const v = posAttr.getY(i);
+                // Computes complex overlapping sine and cosine waves for organic ripple variations
+                const waveHeight = Math.sin(u * 0.35 + time) * 0.05 + Math.cos(v * 0.35 + time * 1.3) * 0.04;
+                posAttr.setZ(i, waveHeight);
+            }
+            posAttr.needsUpdate = true; // Forces the GPU to reload the fresh wave coordinates
+            mesh.geometry.computeVertexNormals(); // Recalculates lighting highlights so reflections move with waves
+        });
     }
 
     updateWindArrowDisplay();
