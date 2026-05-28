@@ -1033,7 +1033,7 @@ function init() {
 
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
-    input = new InputHandler((power, angle) => {
+    input = new InputHandler((power, angle, spin, loft) => {
 
         tracerPoints = [];
 
@@ -1060,7 +1060,7 @@ function init() {
             finalPower *= 2.4;
         }
 
-        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen);
+        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
 
 
 

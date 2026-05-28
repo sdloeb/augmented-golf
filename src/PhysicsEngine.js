@@ -120,7 +120,7 @@ export class PhysicsEngine {
         }
     }
 
-    applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false) {
+    applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false, spin = 0, loft = 0.042) {
         const speedScale = 0.020;
         const totalPower = power * speedScale;
 
@@ -137,14 +137,25 @@ export class PhysicsEngine {
             this.velocity.y = 0;
             this.velocity.x *= 0.5;
             this.velocity.z *= 0.5;
+            this.spinForce = null;
         } else {
-            // Lowered from 0.045 to 0.024 to make the vertical launch arc significantly flatter
-            this.velocity.y = power * 0.042;
+            // Update this entire else block: calculates low-piercing woods vs high-popping wedges
+            this.velocity.y = power * loft;
 
-            // Compensate horizontal velocity to make up for the reduced airborne time,
-            // preserving the total travel distance of the clubs.
-            this.velocity.x *= 1.61;
-            this.velocity.z *= 1.61;
+            const horizontalAdjustment = 1.0 / (loft * 18.0);
+            this.velocity.x *= horizontalAdjustment;
+            this.velocity.z *= horizontalAdjustment;
+
+            // Update this entire block below to add a hand wobble deadzone and lower the curve sensitivity
+            let dampenedSpin = spin;
+            if (Math.abs(dampenedSpin) < 30) {
+                dampenedSpin = 0; // Add this line: completely ignores slight 15-pixel hand drifting
+            } else {
+                dampenedSpin = Math.sign(dampenedSpin) * (Math.abs(dampenedSpin) - 30); // Add this line: subtracts threshold for smooth scaling
+            }
+
+            // Update this line: changed multiplier from 0.003 to 0.0005 for a much softer side curve
+            this.spinForce = new THREE.Vector3(cameraRight.x * dampenedSpin * 0.00012, 0, cameraRight.z * dampenedSpin * 0.00012);
         }
         this.isPutting = isPutting;
 
@@ -200,6 +211,10 @@ export class PhysicsEngine {
         // 1. AIRBORNE PHYSICS 
         if (isAirborne) {
             this.velocity.y -= this.gravity * timeScale;
+            if (this.spinForce && !this.isPutting) {
+                this.velocity.x += this.spinForce.x * timeScale;
+                this.velocity.z += this.spinForce.z * timeScale;
+            }
 
             if (!this.isPutting) {
                 this.velocity.x += this.wind.x * timeScale;

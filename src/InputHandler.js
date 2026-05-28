@@ -1,15 +1,15 @@
 const CLUBS = [
-    { name: 'Driver', maxYards: 325, isGreen: false },
-    { name: '3 Wood', maxYards: 250, isGreen: false },
-    { name: '5 Wood', maxYards: 225, isGreen: false },
-    { name: 'Hybrid', maxYards: 200, isGreen: false },
-    { name: '5 Iron', maxYards: 190, isGreen: false },
-    { name: '6 Iron', maxYards: 180, isGreen: false },
-    { name: '7 Iron', maxYards: 170, isGreen: false },
-    { name: '8 Iron', maxYards: 160, isGreen: false },
-    { name: '9 Iron', maxYards: 150, isGreen: false },
-    { name: 'PW Iron', maxYards: 140, isGreen: false },
-    { name: 'SW Iron', maxYards: 120, isGreen: false }
+    { name: 'Driver', maxYards: 325, isGreen: false, loft: 0.035 },
+    { name: '3 Wood', maxYards: 250, isGreen: false, loft: 0.038 },
+    { name: '5 Wood', maxYards: 225, isGreen: false, loft: 0.041 },
+    { name: 'Hybrid', maxYards: 200, isGreen: false, loft: 0.042 },
+    { name: '5 Iron', maxYards: 190, isGreen: false, loft: 0.044 },
+    { name: '6 Iron', maxYards: 180, isGreen: false, loft: 0.046 },
+    { name: '7 Iron', maxYards: 170, isGreen: false, loft: 0.048 },
+    { name: '8 Iron', maxYards: 160, isGreen: false, loft: 0.050 },
+    { name: '9 Iron', maxYards: 150, isGreen: false, loft: 0.052 },
+    { name: 'PW Iron', maxYards: 140, isGreen: false, loft: 0.054 },
+    { name: 'SW Iron', maxYards: 120, isGreen: false, loft: 0.056 }
 ];
 
 
@@ -89,6 +89,7 @@ export class InputHandler {
         this.startX = touch.clientX;
         this.startY = touch.clientY;
         this.maxPullY = touch.clientY;
+        this.pullbackDriftX = 0;
 
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
@@ -131,6 +132,7 @@ export class InputHandler {
 
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
+                this.forwardStartTime = performance.now();
             }
         }
         else if (this.state === 'FORWARD') {
@@ -155,6 +157,7 @@ export class InputHandler {
         this.startX = e.clientX;
         this.startY = e.clientY;
         this.maxPullY = e.clientY;
+        this.pullbackDriftX = 0;
 
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
@@ -179,10 +182,15 @@ export class InputHandler {
                 this.maxPullY = currentY;
             }
 
+            const currentDrift = currentX - this.startX;
+            if (Math.abs(currentDrift) > Math.abs(this.pullbackDriftX || 0)) {
+                this.pullbackDriftX = currentDrift;
+            }
+
             const targetPullDistance = this.maxPullY - this.startY;
             const maxPullPixels = 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
-                       this.pullRatio = pullRatio;
+            this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = `${pullRatio * 160}px`;
@@ -199,6 +207,7 @@ export class InputHandler {
 
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
+                this.forwardStartTime = performance.now();
             }
         }
 
@@ -225,42 +234,52 @@ export class InputHandler {
 
 
         const club = this.getClubInfo();
+
+        if (!club.isGreen) {
+            const forwardDuration = performance.now() - (this.forwardStartTime || performance.now());
+            let speedMultiplier = 1.0;
+            if (forwardDuration > 130) {
+                speedMultiplier = Math.max(0.4, 1.0 - (forwardDuration - 130) * 0.0025);
+            }
+            finalPower *= speedMultiplier;
+        }
+
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
 
             if (club.name === 'Driver') {
-                finalPower *= 0.90;
+                finalPower *= .99;
             }
             else if (club.name === '3 Wood') {
-                finalPower *= 1.1;
+                finalPower *= 1.13;
             }
             else if (club.name === '5 Wood') {
-                finalPower *= 1.05;
+                finalPower *= 1.17;
             }
             else if (club.name === 'Hybrid') {
-                finalPower *= 1.15; // Adjust to tune Hybrid distance separately
+                finalPower *= 1.27; // Adjust to tune Hybrid distance separately
             }
             else if (club.name === '5 Iron') {
-                finalPower *= 1.15; // Adjust to tune 5 Iron distance separately
+                finalPower *= 1.29; // Adjust to tune 5 Iron distance separately
             }
             else if (club.name === '6 Iron') {
-                finalPower *= 1.15; // Adjust to tune 6 Iron distance separately
+                finalPower *= 1.34; // Adjust to tune 6 Iron distance separately
             }
             else if (club.name === '7 Iron') {
-                finalPower *= 1.15; // Adjust to tune 7 Iron distance separately
+                finalPower *= 1.39; // Adjust to tune 7 Iron distance separately
             }
             else if (club.name === '8 Iron') {
-                finalPower *= 1.15; // Adjust to tune 8 Iron distance separately
+                finalPower *= 1.44; // Adjust to tune 8 Iron distance separately
             }
             else if (club.name === '9 Iron') {
-                finalPower *= 1.15; // Adjust to tune 9 Iron distance separately
+                finalPower *= 1.49; // Adjust to tune 9 Iron distance separately
             }
             else if (club.name === 'PW Iron') {
-                finalPower *= 1.15; // Adjust to tune Pitching Wedge distance separately
+                finalPower *= 1.53; // Adjust to tune Pitching Wedge distance separately
             }
             else if (club.name === 'SW Iron') {
-                finalPower *= 1.85; // Adjust to tune Sand Wedge distance separately
+                finalPower *= 1.63; // Adjust to tune Sand Wedge distance separately
             }
             else {
                 finalPower *= 1.0; // Safe catch-all fallback
@@ -305,7 +324,7 @@ export class InputHandler {
         const maxAngle = 35 * Math.PI / 180;
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
-        this.onLaunch(finalPower, horizontalAngle);
+        this.onLaunch(finalPower, horizontalAngle, -this.pullbackDriftX, club.loft || 0.042);
         this.chosenClubIndex = null;
         this.resetSwing();
     }
