@@ -37,6 +37,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    document.documentElement.style.setProperty('--club-scale', window.innerHeight / 1080);
 }
 
 function updateDistanceDisplay() {
@@ -1036,6 +1037,7 @@ function init() {
     input.holePositionRef = holePosition;
 
     window.addEventListener('resize', onWindowResize, false);
+    onWindowResize();
 
     // Add overhead view button click listener
     const overheadBtn = document.getElementById('overheadBtn');
