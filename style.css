@@ -204,54 +204,56 @@ html {
     box-shadow: inset -1px -1px 2px rgba(255, 255, 255, 0.2);
 }
 
-/* Top view style of an Iron (Irons, PW, SW) - Multi-Piece Forged Muscle-Back Design */
+/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
-    /* Main Chassis: Defines the polished chrome outer perimeter shell & muscle-back weight mass */
-    border-radius: 6px 34px 20px 12px;
+    /* Main Chassis: Defines the polished steel outer perimeter shell */
+    border-radius: 6px 34px 24px 16px;
     width: 130px;
-    height: 35px;
-    background: linear-gradient(to bottom, #ffffff 0%, #dcdfe1 18%, #b4b8bb 40%, #595d60 100%);
+    height: 62px;
+    /* Increased from 50px to provide an exceptionally tall back flange profile */
+    background:
+        /* Dramatically extended hitting face section to display a wide, highly-lofted grooved plane */
+        repeating-linear-gradient(to bottom, transparent, transparent 2.5px, rgba(0, 0, 0, 0.16) 2.5px, rgba(0, 0, 0, 0.16) 3.5px) top left / 100% 24px no-repeat,
+        /* Metallic slope transition leading down to an emphasized polished chrome topline highlight */
+        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 32%, #ffffff 36%, #b4b8bb 46%, #7f8284 100%);
     border: 1px solid #6c6f72;
     box-shadow:
-        0 10px 20px rgba(0, 0, 0, 0.45),
+        0 12px 24px rgba(0, 0, 0, 0.45),
         inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
-    /* Polished chrome topline reflection edge */
-    margin-bottom: 5px;
-    /* Unchanged: Keeps the club perfectly grounded behind the ball */
+    margin-bottom: -22px;
+    /* Adjusted to -22px to perfectly counteract the 62px height and keep alignment locked to the ball center */
     position: absolute;
 }
 
-/* 1. The Lofted Hitting Face Plate Insert: Creates a realistic curved hitting face profile */
+/* 1. Recessed Cavity Pocket: Anchored deep into the lower rear flange mass */
 #clubSwipe.iron::before {
     content: '';
     position: absolute;
-    /* Anchors below the thin chrome topline, leaving a distinct heavy muscle border on the rear and toe */
-    top: 5px;
+    /* Pushed lower to leave substantial vertical room for the highly slanted front face layout */
+    top: 29px;
     left: 14px;
-    width: 88px;
+    width: 98px;
     height: 26px;
-    /* Creates an organic curved face pocket that tapers smoothly toward the rounded toe */
-    border-radius: 2px 24px 10px 4px;
+    /* Slightly lengthened to balance the deeper perimeter border mass */
+    border-radius: 3px 16px 12px 4px;
     background:
-        /* Clean sand-blasted horizontal score grooves */
-        repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(0, 0, 0, 0.16) 3px, rgba(0, 0, 0, 0.16) 4px),
-        /* Satin steel finish contrasting against the polished mirror shell body */
-        linear-gradient(to right, #bcbfc2 0%, #ced2d5 40%, #d8dcde 100%);
-    border: 1px solid #94989b;
-    box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
-    /* Inset shadow accentuating face loft depth */
+        linear-gradient(135deg, #595d60 0%, #8c9093 50%, #414345 100%);
+    border: 2px solid #525557;
+    box-shadow:
+        inset 2px 3px 7px rgba(0, 0, 0, 0.8),
+        0 1px 1px rgba(255, 255, 255, 0.5);
     pointer-events: none;
 }
 
-/* 2. The Hosel Neck Adapter Offset: Completes the top-down iron profile on the left heel */
+/* 2. The Hosel Neck Adapter Offset: Lowered to center smoothly against the extended heel mass */
 #clubSwipe.iron::after {
     content: '';
     position: absolute;
     left: -7px;
-    top: 11px;
+    top: 25px;
+    /* Shifted down from 19px to align with the expanded 62px frame */
     width: 24px;
     height: 16px;
-    /* Cylindrical tube blending seamlessly into the heel of the primary clubhead blade */
     border-radius: 6px 0 0 6px;
     background: linear-gradient(to bottom, #ffffff, #9fa2a5 45%, #4b4e50 100%);
     border: 1px solid #6c6f72;
