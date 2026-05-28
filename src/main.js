@@ -322,7 +322,7 @@ function resetEntireGame(advanceHole = false) {
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
     // Assign Par properties against the distance requirements provided
-    const randomYards = 130 + Math.random() * (650 - 135);
+    const randomYards = 135 + Math.random() * (650 - 135);
 
     if (randomYards < 260) {
         currentPar = 3;
