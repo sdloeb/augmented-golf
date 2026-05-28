@@ -483,6 +483,10 @@ html {
         /* Slightly larger clickable buttons for mobile thumbs */
         font-size: 12px !important;
     }
+
+    #clubSwipe {
+        margin-left: -42px !important;
+    }
 }
 
 /* ==========================================================================
