@@ -2,7 +2,7 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
-let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds;
+let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
@@ -156,7 +156,7 @@ function generateNewWind() {
         text.innerText = `${windSpeed} mph`;
     }
 
-    const windScale = 0.000005;
+    const windScale = 0.000012;
     physics.wind.set(
         Math.sin(currentWindAngle) * windSpeed * windScale,
         0,
@@ -186,7 +186,8 @@ function generateHazards() {
         return list.some(mesh => {
             const dx = x - mesh.position.x;
             const dz = z - mesh.position.z;
-            return Math.sqrt(dx * dx + dz * dz) < (r + mesh.geometry.parameters.radius + padding);
+            const meshRadius = mesh.userData && mesh.userData.radius !== undefined ? mesh.userData.radius : (mesh.geometry.parameters.radius || 0); // Add this line
+            return Math.sqrt(dx * dx + dz * dz) < (r + meshRadius + padding);
         });
     };
 
@@ -256,9 +257,23 @@ function generateHazards() {
             })
         );
         shoreMesh.rotation.x = -Math.PI / 2;
-        shoreMesh.position.set(x, currentWaterGroundY + 0.16, z);
+        shoreMesh.position.set(x, currentWaterGroundY + 0.07, z);
         scene.add(shoreMesh);
-        waterShores.push(shoreMesh);
+        // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
+        const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 2.0, 64, 1, true); // Add this line
+        const wallMesh = new THREE.Mesh( // Add this line
+            wallGeo, // Add this line
+            new THREE.MeshStandardMaterial({ // Add this line
+                color: 0x655545, // Add this line
+                roughness: 0.95, // Add this line
+                metalness: 0.1, // Add this line
+                side: THREE.DoubleSide // Add this line
+            }) // Add this line
+        ); // Add this line
+
+        wallMesh.position.set(x, currentWaterGroundY + 0.07 - 1.0, z); // Add this line
+        scene.add(wallMesh); // Add this line
+        waterShores.push(wallMesh); // Add this line
 
     }
 
@@ -475,6 +490,7 @@ function resetEntireGame(advanceHole = false) {
             // Locks a flat, uniform deep buffer inside the track and offsets the fade to the outer rough
             if (targetMesh === floor) {
                 if (worldZ >= greenCenterZ && worldZ <= 8) {
+<<<<<<< HEAD
                     let zFade = 1.0;
                     const fadeWindow = 4.0;
 
@@ -489,9 +505,28 @@ function resetEntireGame(advanceHole = false) {
                         // FIXED: Adjusted to -0.06 to create a solid sub-surface buffer zone 
                         // that keeps the rough mesh safely beneath the fairway on steep hills.
                         calculatedHeight -= 0.06 * zFade;
+=======
+                    let zFade = 1.0; // Add this line
+                    const fadeWindow = 4.0; // Add this line (creates a smooth 4-unit blend at the ends)
+
+                    if (worldZ - greenCenterZ < fadeWindow) { // Add this line
+                        zFade = (worldZ - greenCenterZ) / fadeWindow; // Add this line
+                    } else if (8 - worldZ < fadeWindow) { // Add this line
+                        zFade = (8 - worldZ) / fadeWindow; // Add this line
+                    } // Add this line
+
+                    const absX = Math.abs(worldX);
+                    if (absX <= 9.0) {
+                        // Solid, unyielding clearance across the entire fairway width
+                        calculatedHeight -= 0.75 * zFade; // Change this line
+>>>>>>> 40c6044774baec45d02530b735d223ab2066306f
                     } else if (absX <= 12.0) {
                         const sideFade = (12.0 - absX) / 3.0;
+<<<<<<< HEAD
                         calculatedHeight -= 0.06 * sideFade * zFade;
+=======
+                        calculatedHeight -= 0.75 * sideFade * zFade; // Change this line
+>>>>>>> 40c6044774baec45d02530b735d223ab2066306f
                     }
                 }
             }
@@ -586,7 +621,11 @@ function resetEntireGame(advanceHole = false) {
         teeBox.visible = true;
     }
 
-    ball.position.set(teeBoxX, 0.25, 10);
+    ball.position.set(teeBoxX, 0.37, 10); // Modify this line (elevated slightly to sit exactly on top of the tee)
+    if (golfTee) { // Add this line
+        golfTee.position.set(teeBoxX, 0.06, 10); // Add this line (moves the tee under the randomized ball position)
+        golfTee.visible = true; // Add this line (makes tee appear for the initial drive)
+    } // Add this line
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
@@ -801,8 +840,17 @@ function animate() {
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
                 cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
             }
-            ballTargetScale = 0.5;
-            if (teeBox) teeBox.visible = false;
+
+
+
+
+
+            // Dynamically scale up the ball when off the tee box to visually match the iron overlay sizing
+            if (teeBox && !teeBox.visible && !onGreen) {
+                ballTargetScale = 1.45; // Add this line (Change 1.45 to make it bigger or smaller)
+            } else {
+                ballTargetScale = 1.0;  // Add this line (Keeps original size on the tee and green)
+            }
 
             generateNewWind();
             updateDistanceDisplay();
@@ -828,7 +876,13 @@ function animate() {
 
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
-            ballTargetScale = 1.0;
+
+            // Dynamically scale up the ball when off the tee box to visually match the iron overlay sizing
+            if (teeBox && !teeBox.visible && !onGreen) { // Add this line
+                ballTargetScale = 1.45; // Add this line (Change 1.45 to make it bigger or smaller)
+            } else { // Add this line
+                ballTargetScale = 1.0;  // Add this line (Keeps original size on the tee and green)
+            }
         }
     }
 
@@ -911,11 +965,20 @@ function animate() {
             for (let i = 0; i < posAttr.count; i++) {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
+
+                // Calculate distance from lake center to flatten waves near the shore boundary
+                const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
+                const lakeRadius = mesh.userData.radius || 5; // Add this line
+                // Smoothly fade waves down over the outer 1.5 units of the lake profile
+                const waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5)); // Add this line
+
                 // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
                 const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
                 const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
                 const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
-                const waveHeight = (wave1 + wave2 + wave3) + 0.07;
+
+                // Dampen the waves and smoothly transition base level flush with the 0.07 shore height rim
+                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade); // Modify this line
 
                 posAttr.setZ(i, waveHeight);
             }
@@ -1000,12 +1063,31 @@ function init() {
 
 
 
-    // 6.1. Add Tee Box Mat
-    const teeGeo = new THREE.BoxGeometry(1.5, 0.02, 2.5);
-    const teeMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 }); // Dark brown/wood mat
+    // 6.1. Add Tee Box Mat (Grassy short turf area with red tee markers)
+    const teeGeo = new THREE.BoxGeometry(5.5, 0.01, 3.5); // Modify this line (wider low grass boundary)
+    const teeMat = new THREE.MeshStandardMaterial({ color: 0x3cb371, roughness: 0.5 }); // Modify this line (distinct short golf grass)
     teeBox = new THREE.Mesh(teeGeo, teeMat);
-    teeBox.position.set(0, 0.01, 10); // Placed slightly above the main floor to prevent flickering
+    teeBox.position.set(0, 0.01, 10);
     scene.add(teeBox);
+
+    // Add Left and Right Tee Markers as children of teeBox so they randomize together seamlessly
+    const markerGeo = new THREE.SphereGeometry(0.3, 16, 16); // Add this line
+    const markerMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.6 }); // Add this line (classic red markers)
+
+    const leftMarker = new THREE.Mesh(markerGeo, markerMat); // Add this line
+    leftMarker.position.set(-2.4, 0.08, 0); // Add this line (placed on the left rim)
+    teeBox.add(leftMarker); // Add this line
+
+    const rightMarker = new THREE.Mesh(markerGeo, markerMat); // Add this line
+    rightMarker.position.set(2.4, 0.08, 0); // Add this line (placed on the right rim)
+    teeBox.add(rightMarker); // Add this line
+
+    // Add the physical plastic Golf Tee asset
+    const teeCylinderGeo = new THREE.CylinderGeometry(0.015, 0.005, 0.12, 8); // Add this line
+    const teeCylinderMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }); // Add this line
+    golfTee = new THREE.Mesh(teeCylinderGeo, teeCylinderMat); // Add this line
+    golfTee.position.set(0, 0.06, 10); // Add this line
+    scene.add(golfTee); // Add this line
 
     // 6.5. Add the Putting Green, Flagstick, and Red Flag
     // FIXED: Changed to solid RingGeometry (0 inner radius) to unlock actual high-density concentric vertex rings
@@ -1088,7 +1170,7 @@ function init() {
         if (isOnGreen) {
             // Multiply to fine-tune putting physics:
             // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 2.4;
+            finalPower *= 1.0;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);

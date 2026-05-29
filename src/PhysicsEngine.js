@@ -85,8 +85,8 @@ export class PhysicsEngine {
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
         // Base undulating small mounds and dips (mostly flat, natural ripples)
-        const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0)); // Update this line
-        const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0)); // Update this line
+        const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
+        const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
 
         // Occasional larger feature (big hill or drop-off)
@@ -94,11 +94,12 @@ export class PhysicsEngine {
             const dxBig = x - this.bigFeatureX;
             const dzBig = z - this.bigFeatureZ;
             const distBigSq = dxBig * dxBig + dzBig * dzBig;
-            const bigInfluence = Math.exp(-distBigSq / 900); // Spread across the course width
-            height += (this.bigFeatureScale || 0) * 2.5 * bigInfluence;
+            const bigInfluence = Math.exp(-distBigSq / 2500); // Spread across the course width
+            height += (this.bigFeatureScale || 0) * 1.8 * bigInfluence; // Change this line
         }
 
-        return Math.max(0.001, height * teeFade);
+        let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6)); // Add this line
+        return Math.max(0.001, height * teeFade * xFade); // Change this line
     }
 
     // NEW: Unified ground height method that blends course and green transitions seamlessly
@@ -107,17 +108,40 @@ export class PhysicsEngine {
         const gZ = z - this.greenCenterZ;
         const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
 
+        let baseHeight = 0; // Add this line
         if (distFromGreen < 12.0) {
-            return this.getGreenHeight(x, z);
+            baseHeight = this.getGreenHeight(x, z); // Add this line
         } else {
             const courseHeight = this.getCourseHeight(x, z);
             if (distFromGreen < 16.0) {
                 // Between 12 and 16 units out, blend smoothly from 0 to course height
                 const blend = (distFromGreen - 12.0) / 4.0;
-                return courseHeight * blend;
+                baseHeight = courseHeight * blend; // Add this line
+            } else {
+                baseHeight = courseHeight; // Add this line
             }
-            return courseHeight;
         }
+
+        // Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
+        this.waterHazards.forEach(water => { // Add this line
+            const dxW = x - water.position.x; // Add this line
+            const dzW = z - water.position.z; // Add this line
+            const distToWater = Math.sqrt(dxW * dxW + dzW * dzW); // Add this line
+            const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5; // Add this line
+            const centerLakeHeight = water.position.y - 0.06; // Add this line
+
+            if (distToWater < lakeRadius + 0.6) { // Add this line
+                baseHeight = centerLakeHeight; // Add this line
+                if (distToWater < lakeRadius - 0.4) { // Add this line
+                    baseHeight -= 1.2; // Add this line
+                } // Add this line
+            } else if (distToWater < lakeRadius + 2.5) { // Add this line
+                const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9; // Add this line
+                baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, blendFactor); // Add this line
+            } // Add this line
+        }); // Add this line
+
+        return baseHeight; // Add this line
     }
 
     applyImpulse(power, mouseAngle, cameraForward, cameraRight, isPutting = false, spin = 0, loft = 0.042) {
@@ -291,7 +315,7 @@ export class PhysicsEngine {
                 // FIXED: Reads from userData.radius instead of geometry parameters because of PlaneGeometry conversion
                 const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
 
-                if (Math.sqrt(dx * dx + dz * dz) < lakeRadius) {
+                if (Math.sqrt(dx * dx + dz * dz) < lakeRadius - 0.15) {
                     this.velocity.set(0, 0, 0);
                     this.isMoving = false;
                     if (this.sounds) this.sounds.play('water');
