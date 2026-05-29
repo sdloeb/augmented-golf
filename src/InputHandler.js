@@ -324,15 +324,13 @@ export class InputHandler {
                 }
 
                 // 2. Check if on the Green
-                const gX = this.ballRef.position.x - this.holePositionRef.x;
-                const gZ = this.ballRef.position.z - this.holePositionRef.z;
-                const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
+                const onGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
 
                 // 3. Apply Penalties
                 if (inSand) {
                     finalPower *= 0.50; // Lose 50% power in sand bunker
                 } else if (!onGreen && Math.abs(this.ballRef.position.x) >= 9.0) {
-                    finalPower *= 0.90; // Lose 10% power in the rough (outside fairway width 18)
+                    finalPower *= 0.85; // Lose 10% power in the rough (outside fairway width 18)
                 }
             }
         }

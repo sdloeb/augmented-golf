@@ -168,9 +168,9 @@ function generateHazards() {
     sandTraps.forEach(mesh => scene.remove(mesh));
     waterHazards.forEach(mesh => scene.remove(mesh));
     waterShores.forEach(mesh => scene.remove(mesh));
-    sandTraps = [];
-    waterHazards = [];
-    waterShores = [];
+    sandTraps.length = 0;
+    waterHazards.length = 0;
+    waterShores.length = 0;
 
     // NEW: Clear physics engine hazard arrays immediately so that getGroundHeight queries 
     // inside this generation loop reflect clean terrain without old hole artifacts.
