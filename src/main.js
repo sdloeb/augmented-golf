@@ -795,8 +795,13 @@ function animate() {
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
                 cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
             }
-            ballTargetScale = 0.5;
-            if (teeBox) teeBox.visible = false;
+
+            // Dynamically scale up the ball when off the tee box to visually match the iron overlay sizing
+            if (teeBox && !teeBox.visible && !onGreen) {
+                ballTargetScale = 1.45; // Add this line (Change 1.45 to make it bigger or smaller)
+            } else {
+                ballTargetScale = 1.0;  // Add this line (Keeps original size on the tee and green)
+            }
 
             generateNewWind();
             updateDistanceDisplay();
@@ -822,7 +827,12 @@ function animate() {
 
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
-            ballTargetScale = 1.0;
+            // Dynamically scale up the ball when off the tee box to visually match the iron overlay sizing
+            if (teeBox && !teeBox.visible && !onGreen) {
+                ballTargetScale = 1.45; // Add this line (Change 1.45 to make it bigger or smaller)
+            } else {
+                ballTargetScale = 1.0;  // Add this line (Keeps original size on the tee and green)
+            }
         }
     }
 

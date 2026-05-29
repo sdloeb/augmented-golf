@@ -169,39 +169,65 @@ html {
 
 /* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
 #clubSwipe.wood {
-    /* Aerodynamic pear-shaped shell curve optimizing structural toe/heel transitions */
-    border-radius: 38px 85px 60px 44px;
+    /* Reshaped width and height to give the crown a deep, bulbous driver silhouette */
+    width: 130px;
+    /* Modify this line */
+    height: 85px;
+    /* Modify this line */
+
+    /* Re-oriented pear-shaped curve: flatter at the top face, deeply rounded bulbous crown at the bottom-right */
+    border-radius: 20px 40px 75px 45px;
+    /* Modify this line */
+
     background:
-        /* Clean pearlescent sweet-spot alignment tracker graphic */
-        radial-gradient(circle at 22px 35px, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 3.5px),
-        /* Specular sunburst gloss reflection across the curved aerodynamic crown */
-        linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 55%),
-        /* Deep multi-tone carbon composite dark graphite body weave coloring */
-        radial-gradient(circle at 35% 50%, #2c2e30 0%, #161719 55%, #08090a 100%);
-    border: 1px solid #1c1d1e;
-    /* Satin silver titanium striking face plate wrapped over the leading edge */
-    border-left: 4px solid #63676a;
+        /* Sweet-spot alignment dot centered horizontally near the front hitting face */
+        radial-gradient(circle at 65px 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
+        /* Modify this line */
+        /* Aerodynamic crown gloss reflection tracing the front top edge curve */
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%),
+        /* Modify this line */
+        /* Deep multi-tone carbon composite dark graphite body weave coloring centered low */
+        radial-gradient(circle at 50% 65%, #323538 0%, #1a1c1e 60%, #0a0b0c 100%);
+    /* Modify this line */
+
+    border: 1px solid #141516;
+
+    /* Striking face plate moved to the TOP edge facing directly into the ball */
+    border-top: 4px solid #7a7e82;
+    /* Replace border-left with border-top */
+
     box-shadow:
-        0 10px 22px rgba(0, 0, 0, 0.55),
-        inset -6px -2px 16px rgba(0, 0, 0, 0.85),
-        inset 2px 0 3px rgba(255, 255, 255, 0.25);
-    /* Internal leading edge face highlight reflection */
+        0 12px 24px rgba(0, 0, 0, 0.6),
+        inset 0 -8px 16px rgba(0, 0, 0, 0.85),
+        inset 0 2px 3px rgba(255, 255, 255, 0.2);
+
+    /* Offset counter-adjustment to keep our new 85px club height perfectly centered behind the ball */
+    margin-bottom: -15px;
+    /* Add this line */
 }
 
 /* Authentic rear chassis stability perimeter weight cartridge trim */
 #clubSwipe.wood::before {
     content: '';
     position: absolute;
-    right: 5px;
-    top: 11px;
-    width: 32px;
-    height: 48px;
-    /* Mimics structural tungsten weight ports along the back trailing rim */
-    border-radius: 8px 45px 45px 8px;
-    background: linear-gradient(to right, transparent, #3c3f42, #8b8e91 75%, #1b1c1d);
-    opacity: 0.65;
+    /* Repositioned horizontally along the bottom trailing edge rim of the club */
+    bottom: 6px;
+    /* Modify this line */
+    left: 20px;
+    /* Modify this line */
+    width: 90px;
+    /* Modify this line */
+    height: 18px;
+    /* Modify this line */
+
+    /* Mimics structural tungsten weight ports wrapping smoothly around the back rim */
+    border-radius: 6px 6px 40px 30px;
+    /* Modify this line */
+    background: linear-gradient(to bottom, transparent, #3c3f42, #8b8e91 75%, #1b1c1d);
+    /* Modify this line */
+    opacity: 0.75;
     pointer-events: none;
-    box-shadow: inset -1px -1px 2px rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
 }
 
 /* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
