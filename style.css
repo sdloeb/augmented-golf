@@ -289,33 +289,52 @@ html {
 }
 
 /* Top view style of a premium milled blade putter - compact and detailed */
+/* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
-    background: linear-gradient(to bottom, #efefef 0%, #d5d5d5 25%, #b0b0b0 75%, #888888 100%);
-    border-radius: 3px 10px 10px 3px;
-    /* Weighted, curved bumpers on the rear back cavity */
-    width: 110px;
-    /* Decreased from 150px to make it realistically smaller */
-    height: 26px;
-    /* Sleeker blade height profile down from 40px */
-    border: 1px solid #7f8c8d;
-    border-left: 5px solid #222222;
-    /* High-contrast dark face plate insert on the striking edge */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    margin-bottom: 44px;
-    /* Adjusted offset: 70px base wood height minus 26px putter height keeps it centered */
+    border-radius: 4px 4px 6px 6px;
+    width: 155px;
+    /* Scaled up from 124px */
+    height: 40px;
+    /* Scaled up from 32px */
+    border: 1px solid #5a5d5f;
+    background:
+        /* 1. Polished silver topline on the Left Shoulder bumper (Scaled to 28px wide) */
+        linear-gradient(#ffffff, #ffffff) left top / 28px 5px no-repeat,
+        /* 2. Polished silver topline on the Right Shoulder bumper (Scaled to 28px wide) */
+        linear-gradient(#ffffff, #ffffff) right top / 28px 5px no-repeat,
+        /* 3. Indented face plate topline across the Center (Recessed to 6px down, 99px wide) */
+        linear-gradient(#ffffff, #ffffff) center top 6px / 99px 4px no-repeat,
+        /* 4. Dark drop-shadow cavity wall defining the top center indentation step depth */
+        linear-gradient(#3c3e3f, #3c3e3f) center top / 99px 6px no-repeat,
+        /* 5. Main silver steel body finish across the chassis base */
+        linear-gradient(to bottom, #cbd0d3, #a2a6a8);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+    margin-bottom: 30px;
+    /* Adjusted down from 38px to offset the taller 40px height, keeping alignment locked to the ball equator */
+    position: absolute;
 }
 
-/* Crisp vertical alignment sight line etched into the center cavity of the putter head */
-#clubSwipe.putter::after {
+/* 1. Open Tray Cutout (Scaled up symmetrically to fit inside the new 28px outer weight bumpers) */
+#clubSwipe.putter::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 50%;
-    width: 2px;
-    height: 100%;
-    background-color: #111111;
-    transform: translateX(-50%);
-    opacity: 0.75;
+    top: 14px;
+    /* Scaled up from 11px */
+    bottom: 2px;
+    left: 28px;
+    /* Scaled up from 22px to match the wider left weight shoulder */
+    right: 28px;
+    /* Scaled up from 22px to match the wider right weight shoulder */
+    border-radius: 1px;
+    border: 1px solid #414344;
+    border-bottom: none;
+    /* Keeps the back tray tray layout completely open at the rear */
+    background:
+        /* Clean center alignment mark etched onto the tray floor */
+        linear-gradient(to right, transparent calc(50% - 1.5px), #111111 calc(50% - 1.5px), #111111 calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+        linear-gradient(to bottom, #444749, #838689);
+    box-shadow: inset 0px 4px 6px rgba(0, 0, 0, 0.75);
+    pointer-events: none;
 }
 
 /* Arc motion simulating a golf swing through the ball location */
@@ -369,6 +388,10 @@ html {
     transform: rotate(30deg) scale(1.7) !important;
     opacity: 0 !important;
     transition: opacity 0.25s ease, bottom 0.25s ease, left 0.25s ease, transform 0.25s ease;
+}
+
+#clubSwipe.putter.idle-stance {
+    left: 46.2% !important;
 }
 
 /* ==========================================================================

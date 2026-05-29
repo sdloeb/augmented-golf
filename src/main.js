@@ -261,6 +261,7 @@ function generateHazards() {
         // FIXED: Lowered from +0.07 to +0.015 to securely bind the shore ring down to the grass without floating disc artifacts
         shoreMesh.position.set(x, currentWaterGroundY + 0.015, z);
         scene.add(shoreMesh);
+        waterShores.push(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
         const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 2.0, 64, 1, true); // Add this line
         const wallMesh = new THREE.Mesh( // Add this line
@@ -870,7 +871,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= (2.5 / 5.5) * 1.0;
+            finalBallTargetScale *= (2.5 / 5.5) * 0.8;
         }
     }
 
