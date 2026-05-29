@@ -172,6 +172,13 @@ function generateHazards() {
     waterHazards = [];
     waterShores = [];
 
+    // NEW: Clear physics engine hazard arrays immediately so that getGroundHeight queries 
+    // inside this generation loop reflect clean terrain without old hole artifacts.
+    if (physics) {
+        physics.sandTraps = [];
+        physics.waterHazards = [];
+    }
+
     const numWater = 1 + Math.floor(Math.random() * 2);
     const numSand = Math.floor(Math.random() * 3);  // 0 to 2
 
@@ -380,6 +387,10 @@ function resetEntireGame(advanceHole = false) {
         physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterZ);
     }
 
+    // NEW: Generate hazards here so that the course deformation function below can read 
+    // the newly placed water positions and dig perfectly synchronized trenches!
+    generateHazards();
+
     // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
     const specificPinCupY = physics.getGreenHeight(holePosition.x, holePosition.z);
 
@@ -431,7 +442,7 @@ function resetEntireGame(advanceHole = false) {
                 const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                 const lakeRadius = water.userData.radius || 5;
 
-                // FIXED: Read the level baseline ground height of this specific lake center point
+                // Read the level baseline ground height of this specific lake center point
                 const centerLakeHeight = water.position.y - 0.06;
 
                 // 0.6 matches the outer radius extension of your shore ring (r + 0.6)
@@ -440,7 +451,7 @@ function resetEntireGame(advanceHole = false) {
                     calculatedHeight = centerLakeHeight;
 
                     // 2. Drop the center down to form the water basin
-                    if (distToWater < lakeRadius) {
+                    if (distToWater < lakeRadius - 0.4) {
                         calculatedHeight -= 1.2;
                     }
                 } else if (distToWater < lakeRadius + 2.5) {
@@ -455,35 +466,41 @@ function resetEntireGame(advanceHole = false) {
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
             // 1. Smooth Green Concealment Push-Down (applies to BOTH fairway and floor meshes)
-            // Increased to 0.45 and stretched to a 3-unit window to safely cushion the dense circular green edge
+            // Confining the push-down strictly inside the 12-unit green radius to prevent z-fighting.
             if (distToGreen < 12.0) {
                 calculatedHeight -= 0.45;
-            } else if (distToGreen < 15.0) {
-                const greenFade = (15.0 - distToGreen) / 3.0;
-                calculatedHeight -= 0.45 * greenFade;
             }
 
             // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
             // Locks a flat, uniform deep buffer inside the track and offsets the fade to the outer rough
             if (targetMesh === floor) {
                 if (worldZ >= greenCenterZ && worldZ <= 8) {
+                    let zFade = 1.0;
+                    const fadeWindow = 4.0;
+
+                    if (worldZ - greenCenterZ < fadeWindow) {
+                        zFade = (worldZ - greenCenterZ) / fadeWindow;
+                    } else if (8 - worldZ < fadeWindow) {
+                        zFade = (8 - worldZ) / fadeWindow;
+                    }
+
                     const absX = Math.abs(worldX);
                     if (absX <= 9.0) {
-                        // Solid, unyielding clearance across the entire fairway width
-                        calculatedHeight -= 0.75; // Increased from 0.35 to completely submerge the rough floor mesh
+                        // FIXED: Adjusted to -0.06 to create a solid sub-surface buffer zone 
+                        // that keeps the rough mesh safely beneath the fairway on steep hills.
+                        calculatedHeight -= 0.06 * zFade;
                     } else if (absX <= 12.0) {
-                        // Smoothly taper the push-down OUTSIDE the fairway lanes (from 9.0 to 12.0)
-                        // Keeps the edge fully buried by 0.75 units without leaving gaps in the outer turf
                         const sideFade = (12.0 - absX) / 3.0;
-                        calculatedHeight -= 0.75 * sideFade; // Increased from 0.35 to match the new depth
+                        calculatedHeight -= 0.06 * sideFade * zFade;
                     }
                 }
             }
 
             // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
-            // Adds a small vertical safety cushion to counteract vertex interpolation discrepancies on steep mounds
+            // FIXED: Raised to +0.06. Combined with the floor's -0.06, this creates a clean 0.12 unit 
+            // total vertical separation layer, completely stopping pokethrough while looking like real grass height variations.
             if (targetMesh === fairway) {
-                calculatedHeight += 0.03;
+                calculatedHeight += 0.06;
             }
 
             posAttr.setZ(i, calculatedHeight);
@@ -648,7 +665,6 @@ function resetEntireGame(advanceHole = false) {
         sceneryObjects.push(sceneryGroup);
     }
 
-    generateHazards();
     generateNewWind();
     updateDistanceDisplay();
 }
@@ -933,7 +949,7 @@ function init() {
     scene.add(new THREE.AmbientLight(0x666666));
 
     // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(60, 800, 40, 300);
+    const floorGeo = new THREE.PlaneGeometry(60, 800, 60, 800);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -953,7 +969,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(18, 1, 15, 100);
+    const fairwayGeo = new THREE.PlaneGeometry(18, 1, 18, 200);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
