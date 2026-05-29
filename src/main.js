@@ -156,7 +156,7 @@ function generateNewWind() {
         text.innerText = `${windSpeed} mph`;
     }
 
-    const windScale = 0.000005;
+    const windScale = 0.000012;
     physics.wind.set(
         Math.sin(currentWindAngle) * windSpeed * windScale,
         0,
@@ -1072,7 +1072,7 @@ function init() {
         if (isOnGreen) {
             // Multiply to fine-tune putting physics:
             // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 2.4;
+            finalPower *= 1.0;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
