@@ -232,7 +232,14 @@ export class PhysicsEngine {
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
         const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
-        const timeScale = isAirborne ? 0.6 : 1.0;
+        let timeScale = isAirborne ? 0.6 : 1.0;
+
+        // FIXED: Slows down the visual travel speed of the putt while preserving distance perfectly
+        const puttSpeedFactor = 0.45; // Tweak this value! Lower (e.g. 0.35) = slower travel, Higher (e.g. 0.6) = faster travel.
+        if (!isAirborne && this.isPutting) {
+            timeScale *= puttSpeedFactor;
+            currentFriction = 1.0 - puttSpeedFactor * (1.0 - currentFriction);
+        }
 
         // 1. AIRBORNE PHYSICS 
         if (isAirborne) {
@@ -293,10 +300,15 @@ export class PhysicsEngine {
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
+            // FIXED: Scales the step acceleration down to ensure the breaking curve remains structurally identical
+            if (this.isPutting) {
+                this.slopeX *= puttSpeedFactor;
+                this.slopeZ *= puttSpeedFactor;
+            }
+
             // Change this section below:
             this.velocity.x += this.slopeX;
             this.velocity.z += this.slopeZ;
-
 
         }
 
