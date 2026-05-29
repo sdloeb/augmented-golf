@@ -252,7 +252,21 @@ function generateHazards() {
         shoreMesh.rotation.x = -Math.PI / 2;
         shoreMesh.position.set(x, currentWaterGroundY + 0.07, z);
         scene.add(shoreMesh);
-        waterShores.push(shoreMesh);
+        // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
+        const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 2.0, 64, 1, true); // Add this line
+        const wallMesh = new THREE.Mesh( // Add this line
+            wallGeo, // Add this line
+            new THREE.MeshStandardMaterial({ // Add this line
+                color: 0x655545, // Add this line
+                roughness: 0.95, // Add this line
+                metalness: 0.1, // Add this line
+                side: THREE.DoubleSide // Add this line
+            }) // Add this line
+        ); // Add this line
+
+        wallMesh.position.set(x, currentWaterGroundY + 0.07 - 1.0, z); // Add this line
+        scene.add(wallMesh); // Add this line
+        waterShores.push(wallMesh); // Add this line
 
     }
 
@@ -915,11 +929,20 @@ function animate() {
             for (let i = 0; i < posAttr.count; i++) {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
+
+                // Calculate distance from lake center to flatten waves near the shore boundary
+                const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
+                const lakeRadius = mesh.userData.radius || 5; // Add this line
+                // Smoothly fade waves down over the outer 1.5 units of the lake profile
+                const waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5)); // Add this line
+
                 // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
                 const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
                 const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
                 const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
-                const waveHeight = (wave1 + wave2 + wave3) + 0.07;
+
+                // Dampen the waves and smoothly transition base level flush with the 0.07 shore height rim
+                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade); // Modify this line
 
                 posAttr.setZ(i, waveHeight);
             }
