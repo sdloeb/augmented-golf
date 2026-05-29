@@ -375,7 +375,7 @@ html {
     bottom: 24% !important;
     left: 47% !important;
     right: auto !important;
-    transform: rotate(0deg) scale(1.2) !important;
+    transform: rotate(0deg) scale(1.4) !important;
     opacity: 1 !important;
     transition: opacity 0.2s ease, bottom 0.2s ease, left 0.2s ease, transform 0.2s ease;
 }
@@ -392,6 +392,8 @@ html {
 
 #clubSwipe.putter.idle-stance {
     left: 46.2% !important;
+    bottom: 9.5% !important;
+    /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
 }
 
 /* ==========================================================================
@@ -592,14 +594,16 @@ html {
     }
 
     35% {
-        bottom: 24%;
+        bottom: 9.5%;
+        /* FIXED: Smooth contact right at the ball's base position */
         left: calc(50% - 68px);
         transform: rotate(0deg) scale(1.2);
         opacity: 1;
     }
 
     100% {
-        bottom: 32%;
+        bottom: 17.5%;
+        /* FIXED: Adjusted follow-through path proportionally */
         left: calc(50% - 85px);
         transform: rotate(-15deg) scale(1.1);
         opacity: 0;
@@ -637,17 +641,17 @@ html {
     }
 
     35% {
-        bottom: 24%;
-        /* Unchanged: Safely preserves your exact centered ball address contact alignment */
-        left: 47%;
+        bottom: 9.5%;
+        /* FIXED: Smooth contact right at the ball's base position */
         /* Unchanged: Hits through the perfect horizontal center of the ball */
+        left: 47%;
         transform: rotate(0deg) scale(1.2);
         opacity: 1;
     }
 
     100% {
-        bottom: 32%;
-        /* Extended follow-through height to balance out the long backswing line */
+        bottom: 17.5%;
+        /* FIXED: Adjusted follow-through path proportionally */
         left: 43%;
         transform: rotate(-15deg) scale(1.1);
         opacity: 0;

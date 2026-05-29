@@ -795,9 +795,9 @@ function animate() {
         // -------------------------------------------------------------------
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-        const camDist = onGreen ? 2.5 : 5.5;      // Zooms in close on the green
-        const camHeight = onGreen ? 0.82 : 1.8;    // Lowers camera proportionally to keep the same view angle
-        const lookDist = onGreen ? 5.45 : 12.0;
+        const camDist = onGreen ? 1.6 : 5.5;      // FIXED: Moved closer to stretch foreground depth perspective
+        const camHeight = onGreen ? 1.1 : 1.8;    // FIXED: Raised higher to look down and prevent squashed horizons
+        const lookDist = onGreen ? 4.0 : 12.0;
         if (wasMoving && !isSinking) {
             isOverheadActive = false;
             const dirX = holePosition.x - ball.position.x;
@@ -914,13 +914,13 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 24 - (22 * ratio); // Smoothly moves from 24% address down to 2% screen edge
+                        const currentBottom = 9.5 - (7.5 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
                         const currentLeft = 47 + (6 * ratio);   // Curves outward from 47% center to 53% backswing pocket
                         const currentRotate = 20 * ratio;       // Smoothly hinges face open up to 20 degrees
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${1.2 - 0.2 * ratio})`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${1.4 - 0.2 * ratio})`, 'important');
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
@@ -1234,9 +1234,9 @@ function init() {
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-                const camDist = checkOnGreen ? 2.5 : 5.5;
-                const camHeight = checkOnGreen ? 0.82 : 1.8;
-                const lookDist = checkOnGreen ? 5.45 : 12.0;
+                const camDist = checkOnGreen ? 1.6 : 5.5;      // FIXED: Matches your new close green zoom depth
+                const camHeight = checkOnGreen ? 1.1 : 1.8;    // FIXED: Matches your new down-angle vantage height
+                const lookDist = checkOnGreen ? 4.0 : 12.0;
 
                 const backX = -(dirX / length) * camDist;
                 const backZ = -(dirZ / length) * camDist;
