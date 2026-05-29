@@ -710,7 +710,7 @@ function animate() {
 
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
-        if (distanceToHole < 0.35 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
+        if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
 
             // FIXED: Raised speed threshold from 0.07 to 0.14 so true putts sink cleanly 

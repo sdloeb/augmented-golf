@@ -90,6 +90,7 @@ export class InputHandler {
         this.startY = touch.clientY;
         this.maxPullY = touch.clientY;
         this.pullbackDriftX = 0;
+        this.pullbackAtMaxX = touch.clientX;
 
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
@@ -112,6 +113,7 @@ export class InputHandler {
         if (this.state === 'PULLBACK') {
             if (currentY > this.maxPullY) {
                 this.maxPullY = currentY;
+                this.pullbackAtMaxX = currentX;
             }
 
             const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
@@ -171,6 +173,7 @@ export class InputHandler {
         this.startY = e.clientY;
         this.maxPullY = e.clientY;
         this.pullbackDriftX = 0;
+        this.pullbackAtMaxX = e.clientX;
 
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
@@ -194,6 +197,7 @@ export class InputHandler {
             const club = this.getClubInfo();
             if (currentY > this.maxPullY) {
                 this.maxPullY = currentY;
+                this.pullbackAtMaxX = currentX;
             }
 
             const currentDrift = currentX - this.startX;
@@ -343,7 +347,7 @@ export class InputHandler {
 
 
 
-        const horizontalDeviation = endX - this.startX;
+        const horizontalDeviation = endX - (this.pullbackAtMaxX !== undefined ? this.pullbackAtMaxX : this.startX);
         let horizontalAngle = horizontalDeviation * 0.005;
         // Clamp the angle to prevent extreme sideways or backward shots (max ~35 degrees)
         const maxAngle = 35 * Math.PI / 180;
