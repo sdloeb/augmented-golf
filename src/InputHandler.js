@@ -57,7 +57,7 @@ export class InputHandler {
     getClubInfo() {
         const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
         if (isOnGreen) {
-            return { name: 'Putter', maxYards: 40, isGreen: true };
+            return { name: 'Putter', maxYards: 80, isGreen: true };
         }
 
         // If player explicitly manually selected a club option, return that one
@@ -94,7 +94,7 @@ export class InputHandler {
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
 
-        const club = this.getClubInfo();
+        const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
         if (club.isGreen) {
             this.gaugeLabel.innerText = `${club.name}: 0 ft`;
         } else {
@@ -114,8 +114,9 @@ export class InputHandler {
                 this.maxPullY = currentY;
             }
 
+            const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = 180;
+            const maxPullPixels = club.isGreen ? 360 : 180; // <-- UPDATE THIS TO USE THE TALLER BAR
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
@@ -132,9 +133,10 @@ export class InputHandler {
                 shotModifier = " (Slice)";
             }
 
-            const club = this.getClubInfo();
+
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 40);
+                // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
+                const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
@@ -189,6 +191,7 @@ export class InputHandler {
         const currentY = e.clientY;
 
         if (this.state === 'PULLBACK') {
+            const club = this.getClubInfo();
             if (currentY > this.maxPullY) {
                 this.maxPullY = currentY;
             }
@@ -199,12 +202,12 @@ export class InputHandler {
             }
 
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = 180;
+            const maxPullPixels = club.isGreen ? 360 : 180; // <-- FIX THE ASSIGNMENT HERE
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
-            this.gaugeLabel.style.top = `${pullRatio * 160}px`;
+            this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
             // Calculate screen positions to check side-of-screen pullbacks
             const screenCenter = window.innerWidth / 2;
@@ -218,13 +221,11 @@ export class InputHandler {
             }
 
             // DYNAMIC SWING GAUGE SCALING
-            const club = this.getClubInfo();
+
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 40);
+                // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
+                const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
-            } else {
-                const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds${shotModifier}`;
             }
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
@@ -246,15 +247,15 @@ export class InputHandler {
     }
 
     executeLaunch(endX, endY) {
-        const targetPullDistance = Math.min(180, this.maxPullY - this.startY);
+        const club = this.getClubInfo(); // <--- MOVED TO THE TOP LINE
+
+        const targetPullDistance = Math.min(club.isGreen ? 360 : 180, this.maxPullY - this.startY);
         const actualForwardDistance = this.maxPullY - endY;
 
         const powerMultiplier = Math.min(1.0, actualForwardDistance / targetPullDistance);
         const basePower = targetPullDistance * 0.05;
         let finalPower = basePower * powerMultiplier;
 
-
-        const club = this.getClubInfo();
 
         if (!club.isGreen) {
             const forwardDuration = performance.now() - (this.forwardStartTime || performance.now());
