@@ -222,10 +222,15 @@ export class InputHandler {
 
             // DYNAMIC SWING GAUGE SCALING
 
+            // DYNAMIC SWING GAUGE SCALING
+
             if (club.isGreen) {
                 // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
                 const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
+            } else {
+                const yards = Math.round(pullRatio * club.maxYards);
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds${shotModifier}`;
             }
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';

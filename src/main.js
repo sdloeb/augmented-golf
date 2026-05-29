@@ -816,11 +816,14 @@ function animate() {
 
 
 
-            // Dynamically scale up the ball when off the tee box to visually match the iron overlay sizing
-            if (teeBox && !teeBox.visible && !onGreen) {
-                ballTargetScale = 1.45; // Add this line (Change 1.45 to make it bigger or smaller)
+            // 3-OPTION BALL SCALING ENGINE
+            const currentClub = input ? input.getClubInfo().name : '';
+            if (teeBox && teeBox.visible) {
+                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
+            } else if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 1.0;  // Add this line (Keeps original size on the tee and green)
+                ballTargetScale = 0.75; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -848,11 +851,14 @@ function animate() {
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
 
-            // Dynamically scale up the ball when off the tee box to visually match the iron overlay sizing
-            if (teeBox && !teeBox.visible && !onGreen) { // Add this line
-                ballTargetScale = 1.45; // Add this line (Change 1.45 to make it bigger or smaller)
-            } else { // Add this line
-                ballTargetScale = 1.0;  // Add this line (Keeps original size on the tee and green)
+            // 3-OPTION BALL SCALING ENGINE
+            const currentClub = input ? input.getClubInfo().name : '';
+            if (teeBox && teeBox.visible) {
+                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
+            } else if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
+            } else {
+                ballTargetScale = 0.75; // OPTION 3: Size when out in the Fairway or Rough
             }
         }
     }
@@ -1118,7 +1124,7 @@ function init() {
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle, spin, loft) => {
-
+        if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
         tracerPoints.push(ball.position.clone());  //to anchor the tracer exactly at the ball's starting position
