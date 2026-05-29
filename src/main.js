@@ -179,7 +179,8 @@ function generateHazards() {
         return list.some(mesh => {
             const dx = x - mesh.position.x;
             const dz = z - mesh.position.z;
-            return Math.sqrt(dx * dx + dz * dz) < (r + mesh.geometry.parameters.radius + padding);
+            const meshRadius = mesh.userData && mesh.userData.radius !== undefined ? mesh.userData.radius : (mesh.geometry.parameters.radius || 0); // Add this line
+            return Math.sqrt(dx * dx + dz * dz) < (r + meshRadius + padding);
         });
     };
 
@@ -249,7 +250,7 @@ function generateHazards() {
             })
         );
         shoreMesh.rotation.x = -Math.PI / 2;
-        shoreMesh.position.set(x, currentWaterGroundY + 0.16, z);
+        shoreMesh.position.set(x, currentWaterGroundY + 0.07, z);
         scene.add(shoreMesh);
         waterShores.push(shoreMesh);
 
@@ -440,7 +441,7 @@ function resetEntireGame(advanceHole = false) {
                     calculatedHeight = centerLakeHeight;
 
                     // 2. Drop the center down to form the water basin
-                    if (distToWater < lakeRadius) {
+                    if (distToWater < lakeRadius - 0.4) {
                         calculatedHeight -= 1.2;
                     }
                 } else if (distToWater < lakeRadius + 2.5) {
