@@ -22,6 +22,10 @@ let wasMoving = false;
 let overheadTimeout = null;
 let isOverheadActive = false;
 
+// NEW CAMERA FLIGHT TRACKERS
+let shotStartTime = 0;
+let isLongShot = false;
+
 let ballTargetScale = 1.0;
 
 let strokeCount = 0;
@@ -770,10 +774,20 @@ function animate() {
     // 3. DYNAMIC CAMERA CONTROLLER
 
 
+    // 3. DYNAMIC CAMERA CONTROLLER
+
+
 
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
+            shotStartTime = performance.now(); // Record launch timestamp
+
+            // Calculate initial distance to the hole pin in true game yards
+            const dxHole = ball.position.x - holePosition.x;
+            const dzHole = ball.position.z - holePosition.z;
+            const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
+            isLongShot = initialYards > 100; // Track if shot is over 100 yards
         }
 
         updateDistanceDisplay();
@@ -783,16 +797,27 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        // Calculate the horizontal distance the ball has traveled from the Tee Box (0, 10)
         const dx = ball.position.x - 0;
         const dz = ball.position.z - 10;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
-        // Starts at 1.0 at the tee box, and gets smaller the further away it travels.
-        // Change 0.006 to make it shrink faster or slower over distance.
-        // Math.max(0.4, ...) ensures it doesn't get smaller than 40% of its original size while in flight.
         ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         // -------------------------------------------------------------------
+
+        // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
+        if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+            const dirX = holePosition.x - ball.position.x;
+            const dirZ = holePosition.z - ball.position.z;
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+
+            // Target coordinates 5.5 units horizontally behind the ball's moving flight path
+            const backX = -(dirX / length) * 5.5;
+            const backZ = -(dirZ / length) * 5.5;
+
+            // Smoothly tracks target positioning vectors forward through 3D space
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+        }
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
         const camDist = onGreen ? 1.6 : 5.5;      // FIXED: Moved closer to stretch foreground depth perspective
@@ -866,12 +891,18 @@ function animate() {
     const ballGreenX = ball.position.x - 0;
     const ballGreenZ = ball.position.z - greenCenterZ;
     const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
-    const activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;  //(Slower on the green)
 
-    camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Change this line
-    currentLookAt.lerp(cameraLookAt, activeCameraSpeed); // Change this line
+    // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
+    let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
+
+    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        activeCameraSpeed = 0.005;
+    }
+
+    camera.position.lerp(cameraTargetPos, activeCameraSpeed);
+    currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
-
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
     if (!physics.isMoving) {
