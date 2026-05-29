@@ -243,7 +243,8 @@ function generateHazards() {
             })
         );
         waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(x, currentWaterGroundY + 0.06, z);
+        // FIXED: Lowered from +0.06 to +0.01 to snap the water surface flush against the terrain hills
+        waterMesh.position.set(x, currentWaterGroundY + 0.01, z);
         waterMesh.userData = { radius: r };
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
@@ -257,7 +258,8 @@ function generateHazards() {
             })
         );
         shoreMesh.rotation.x = -Math.PI / 2;
-        shoreMesh.position.set(x, currentWaterGroundY + 0.07, z);
+        // FIXED: Lowered from +0.07 to +0.015 to securely bind the shore ring down to the grass without floating disc artifacts
+        shoreMesh.position.set(x, currentWaterGroundY + 0.015, z);
         scene.add(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
         const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 2.0, 64, 1, true); // Add this line
@@ -271,7 +273,8 @@ function generateHazards() {
             }) // Add this line
         ); // Add this line
 
-        wallMesh.position.set(x, currentWaterGroundY + 0.07 - 1.0, z); // Add this line
+        // FIXED: Shifted down to match the new 0.015 shore reference line perfectly
+        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 1.0, z); // Add this line
         scene.add(wallMesh); // Add this line
         waterShores.push(wallMesh); // Add this line
 
@@ -449,30 +452,18 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * scaleX + targetMesh.position.x;
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
+            // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
+            // NEW: Scan if this vertex falls inside any active water hazard perimeter shelf
+            let insideWaterZone = false;
             waterHazards.forEach(water => {
                 const dxW = worldX - water.position.x;
                 const dzW = worldZ - water.position.z;
                 const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                 const lakeRadius = water.userData.radius || 5;
-
-                // Read the level baseline ground height of this specific lake center point
-                const centerLakeHeight = water.position.y - 0.06;
-
-                // 0.6 matches the outer radius extension of your shore ring (r + 0.6)
                 if (distToWater < lakeRadius + 0.6) {
-                    // 1. Flatten the terrain mesh completely to form a level shelf for the shore ring
-                    calculatedHeight = centerLakeHeight;
-
-                    // 2. Drop the center down to form the water basin
-                    if (distToWater < lakeRadius - 0.4) {
-                        calculatedHeight -= 1.2;
-                    }
-                } else if (distToWater < lakeRadius + 2.5) {
-                    // 3. Smoothly blend the flat shore shelf back out into the undulating course hills over a 1.9 unit window
-                    const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9;
-                    calculatedHeight = THREE.MathUtils.lerp(centerLakeHeight, calculatedHeight, blendFactor);
+                    insideWaterZone = true;
                 }
             });
 
@@ -486,36 +477,35 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight -= 0.45;
             }
 
-            // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
-            // Locks a flat, uniform deep buffer inside the track and offsets the fade to the outer rough
-            if (targetMesh === floor) {
-                if (worldZ >= greenCenterZ && worldZ <= 8) {
-                    let zFade = 1.0;
-                    const fadeWindow = 4.0;
+            // FIXED: Wrap fairway and floor offsets in a conditional block. If the vertex is inside 
+            // a water hazard zone, we skip relative offsets to keep both meshes perfectly stitched and flush.
+            if (!insideWaterZone) {
+                // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
+                if (targetMesh === floor) {
+                    if (worldZ >= greenCenterZ && worldZ <= 8) {
+                        let zFade = 1.0;
+                        const fadeWindow = 4.0;
 
-                    if (worldZ - greenCenterZ < fadeWindow) {
-                        zFade = (worldZ - greenCenterZ) / fadeWindow;
-                    } else if (8 - worldZ < fadeWindow) {
-                        zFade = (8 - worldZ) / fadeWindow;
-                    }
+                        if (worldZ - greenCenterZ < fadeWindow) {
+                            zFade = (worldZ - greenCenterZ) / fadeWindow;
+                        } else if (8 - worldZ < fadeWindow) {
+                            zFade = (8 - worldZ) / fadeWindow;
+                        }
 
-                    const absX = Math.abs(worldX);
-                    if (absX <= 9.0) {
-                        // FIXED: Adjusted to -0.06 to create a solid sub-surface buffer zone 
-                        // that keeps the rough mesh safely beneath the fairway on steep hills.
-                        calculatedHeight -= 0.06 * zFade;
-                    } else if (absX <= 12.0) {
-                        const sideFade = (12.0 - absX) / 3.0;
-                        calculatedHeight -= 0.06 * sideFade * zFade;
+                        const absX = Math.abs(worldX);
+                        if (absX <= 9.0) {
+                            calculatedHeight -= 0.06 * zFade;
+                        } else if (absX <= 12.0) {
+                            const sideFade = (12.0 - absX) / 3.0;
+                            calculatedHeight -= 0.06 * sideFade * zFade;
+                        }
                     }
                 }
-            }
 
-            // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
-            // FIXED: Raised to +0.06. Combined with the floor's -0.06, this creates a clean 0.12 unit 
-            // total vertical separation layer, completely stopping pokethrough while looking like real grass height variations.
-            if (targetMesh === fairway) {
-                calculatedHeight += 0.06;
+                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                if (targetMesh === fairway) {
+                    calculatedHeight += 0.06;
+                }
             }
 
             posAttr.setZ(i, calculatedHeight);

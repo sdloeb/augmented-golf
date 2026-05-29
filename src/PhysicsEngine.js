@@ -128,7 +128,8 @@ export class PhysicsEngine {
             const dzW = z - water.position.z; // Add this line
             const distToWater = Math.sqrt(dxW * dxW + dzW * dzW); // Add this line
             const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5; // Add this line
-            const centerLakeHeight = water.position.y - 0.06; // Add this line
+            // FIXED: Lowered offset from 0.06 to 0.01 to match the clean, compressed visual floating height
+            const centerLakeHeight = water.position.y - 0.01; // Add this line
 
             if (distToWater < lakeRadius + 0.6) { // Add this line
                 baseHeight = centerLakeHeight; // Add this line
