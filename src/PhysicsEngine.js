@@ -85,8 +85,8 @@ export class PhysicsEngine {
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
         // Base undulating small mounds and dips (mostly flat, natural ripples)
-        const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0)); // Update this line
-        const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0)); // Update this line
+        const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
+        const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
 
         // Occasional larger feature (big hill or drop-off)
@@ -94,11 +94,12 @@ export class PhysicsEngine {
             const dxBig = x - this.bigFeatureX;
             const dzBig = z - this.bigFeatureZ;
             const distBigSq = dxBig * dxBig + dzBig * dzBig;
-            const bigInfluence = Math.exp(-distBigSq / 900); // Spread across the course width
-            height += (this.bigFeatureScale || 0) * 2.5 * bigInfluence;
+            const bigInfluence = Math.exp(-distBigSq / 2500); // Spread across the course width
+            height += (this.bigFeatureScale || 0) * 1.8 * bigInfluence; // Change this line
         }
 
-        return Math.max(0.001, height * teeFade);
+        let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6)); // Add this line
+        return Math.max(0.001, height * teeFade * xFade); // Change this line
     }
 
     // NEW: Unified ground height method that blends course and green transitions seamlessly
@@ -291,7 +292,7 @@ export class PhysicsEngine {
                 // FIXED: Reads from userData.radius instead of geometry parameters because of PlaneGeometry conversion
                 const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
 
-                if (Math.sqrt(dx * dx + dz * dz) < lakeRadius) {
+                if (Math.sqrt(dx * dx + dz * dz) < lakeRadius - 0.15) {
                     this.velocity.set(0, 0, 0);
                     this.isMoving = false;
                     if (this.sounds) this.sounds.play('water');

@@ -468,15 +468,24 @@ function resetEntireGame(advanceHole = false) {
             // Locks a flat, uniform deep buffer inside the track and offsets the fade to the outer rough
             if (targetMesh === floor) {
                 if (worldZ >= greenCenterZ && worldZ <= 8) {
+                    let zFade = 1.0; // Add this line
+                    const fadeWindow = 4.0; // Add this line (creates a smooth 4-unit blend at the ends)
+
+                    if (worldZ - greenCenterZ < fadeWindow) { // Add this line
+                        zFade = (worldZ - greenCenterZ) / fadeWindow; // Add this line
+                    } else if (8 - worldZ < fadeWindow) { // Add this line
+                        zFade = (8 - worldZ) / fadeWindow; // Add this line
+                    } // Add this line
+
                     const absX = Math.abs(worldX);
                     if (absX <= 9.0) {
                         // Solid, unyielding clearance across the entire fairway width
-                        calculatedHeight -= 0.75; // Increased from 0.35 to completely submerge the rough floor mesh
+                        calculatedHeight -= 0.75 * zFade; // Change this line
                     } else if (absX <= 12.0) {
                         // Smoothly taper the push-down OUTSIDE the fairway lanes (from 9.0 to 12.0)
                         // Keeps the edge fully buried by 0.75 units without leaving gaps in the outer turf
                         const sideFade = (12.0 - absX) / 3.0;
-                        calculatedHeight -= 0.75 * sideFade; // Increased from 0.35 to match the new depth
+                        calculatedHeight -= 0.75 * sideFade * zFade; // Change this line
                     }
                 }
             }
