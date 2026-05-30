@@ -823,7 +823,7 @@ function animate() {
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
         const camDist = onGreen ? 1.6 : 5.5;      // FIXED: Moved closer to stretch foreground depth perspective
-        const camHeight = onGreen ? 1.1 : 1.8;    // FIXED: Raised higher to look down and prevent squashed horizons
+        const camHeight = onGreen ? 0.5 : 1.8;    // Change this line: Lowers putting view down to turf level
         const lookDist = onGreen ? 4.0 : 12.0;
         if (wasMoving && !isSinking) {
             isOverheadActive = false;
@@ -947,13 +947,13 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 9.5 - (7.5 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
-                        const currentLeft = 47 + (6 * ratio);   // Curves outward from 47% center to 53% backswing pocket
-                        const currentRotate = 20 * ratio;       // Smoothly hinges face open up to 20 degrees
+                        const currentBottom = 25.0 - (7.5 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
+                        const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
+                        const currentRotate = 0;    // Change this line: No rotation for a clean square face back
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${1.4 - 0.2 * ratio})`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Change this line: Maintains consistent scaling
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
@@ -1250,7 +1250,14 @@ function init() {
         const club = input.getClubInfo();
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
-            clubSwipe.className = ''; // Clear out previous animation or styling classes
+            // Capture the exact position where the pullback stopped for the putter
+            if (club.name === 'Putter') {
+                const ratio = input.pullRatio || 0; // Add this line
+                const currentBottom = 25.0 - (21.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
+                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%'); // Change this line
+            }
+
+            clubSwipe.className = '';
 
             // Assign the style type based on the active club selection
             if (club.name === 'Putter') {
@@ -1270,7 +1277,7 @@ function init() {
             clubSwipe.style.transform = '';
 
             // NEW: Scales timeout to match the active club (1000ms for slow putts, 350ms for swift swings)
-            const swingDuration = club.name === 'Putter' ? 1000 : 350;
+            const swingDuration = club.name === 'Putter' ? 400 : 350;
             setTimeout(() => {
                 clubSwipe.classList.remove('swipe-animation');
             }, swingDuration);
