@@ -4,6 +4,8 @@ import { SoundManager } from './SoundManager.js';
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor;
+let clubLandingRing;
+let clubLandingBeacon;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 
@@ -995,6 +997,34 @@ function animate() {
         });
     }
 
+    // Update Club Landing Ring visibility and positions dynamically in Overhead mode
+    if (clubLandingRing) { // Add this line
+        if (isOverheadActive && physics && !physics.isMoving && !isSinking) { // Add this line
+            const club = input ? input.getClubInfo() : null; // Add this line
+            if (club && !club.isGreen) { // Add this line
+                const ringDist = club.maxYards / 2.76923; // Add this line
+                const dirX = holePosition.x - ball.position.x; // Add this line
+                const dirZ = holePosition.z - ball.position.z; // Add this line
+                const targetLength = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
+                const normX = dirX / targetLength; // Add this line
+                const normZ = dirZ / targetLength; // Add this line
+                const ringX = ball.position.x + normX * ringDist;
+                const ringZ = ball.position.z + normZ * ringDist;
+                const ringY = physics.getGroundHeight(ringX, ringZ) + 0.25; // Change this line
+                clubLandingRing.position.set(ringX, ringY, ringZ);
+                clubLandingRing.visible = true; // Add this line
+                clubLandingBeacon.position.set(ringX, ringY + 75, ringZ); // Add this line
+                clubLandingBeacon.visible = true;
+            } else { // Add this line
+                clubLandingRing.visible = false; // Add this line
+                clubLandingBeacon.visible = false;
+            } // Add this line
+        } else { // Add this line
+            clubLandingRing.visible = false; // Add this line
+            clubLandingBeacon.visible = false;
+        } // Add this line
+    } // Add this line
+
     updateWindArrowDisplay();
 
     renderer.render(scene, camera);
@@ -1142,7 +1172,22 @@ function init() {
     const holeCupMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
     holeCup = new THREE.Mesh(holeCupGeo, holeCupMat);
     holeCup.position.set(0, 0.03, -55);
-    scene.add(holeCup);
+
+
+    // 6.6. Add Club Landing Destination Ring for Overhead View
+    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32); // Add this line
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 }); // Change this line
+    clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
+    clubLandingRing.rotation.x = -Math.PI / 2; // Add this line
+    clubLandingRing.visible = false; // Add this line
+    scene.add(clubLandingRing); // Add this line
+
+    // 6.7. Add Vertical Light Beacon for Overhead View
+    const beaconGeo = new THREE.CylinderGeometry(0.15, 0.15, 150, 16); // Add this line
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.4 }); // Add this line
+    clubLandingBeacon = new THREE.Mesh(beaconGeo, beaconMat); // Add this line
+    clubLandingBeacon.visible = false; // Add this line
+    scene.add(clubLandingBeacon); // Add this line
 
     // 7. Initialize Modules
 
