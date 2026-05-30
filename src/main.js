@@ -1253,7 +1253,7 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0; // Add this line
-                const currentBottom = 25.0 - (21.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
+                const currentBottom = 25.0 - (7.5 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%'); // Change this line
             }
 

@@ -633,7 +633,7 @@ html {
 /* 2. Slows the forward acceleration down into a highly deliberate, professional tempo */
 #clubSwipe.putter.swipe-animation {
     /* CHANGED: Increased from 0.6s to 1.0s to give you a very smooth, gentle forward swing speed */
-    animation: putterSwipeAnim 1.0s linear forwards;
+    animation: putterSwipeAnim 0.4s linear forwards;
 }
 
 @keyframes putterSwipeAnim {
@@ -647,7 +647,7 @@ html {
     }
 
     35% {
-        bottom: 9.5%;
+        bottom: 25.0%;
         /* FIXED: Smooth contact right at the ball's base position */
         /* Unchanged: Hits through the perfect horizontal center of the ball */
         left: 45.5%;
@@ -657,7 +657,7 @@ html {
     }
 
     100% {
-        bottom: 17.5%;
+        bottom: 33.0%;
         /* FIXED: Adjusted follow-through path proportionally */
         left: 45.5%;
         /* Change this line */
