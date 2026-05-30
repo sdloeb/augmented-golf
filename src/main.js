@@ -1010,7 +1010,23 @@ function animate() {
                 const normZ = dirZ / targetLength; // Add this line
                 const ringX = ball.position.x + normX * ringDist;
                 const ringZ = ball.position.z + normZ * ringDist;
-                const ringY = physics.getGroundHeight(ringX, ringZ) + 0.25; // Change this line
+
+                let baseGroundY = physics.getGroundHeight(ringX, ringZ);
+
+                // Prevent the ring from sinking into water hazard trenches
+                if (physics.waterHazards) { // Add this line
+                    physics.waterHazards.forEach(water => { // Add this line
+                        const dxW = ringX - water.position.x; // Add this line
+                        const dzW = ringZ - water.position.z; // Add this line
+                        const distToWater = Math.sqrt(dxW * dxW + dzW * dzW); // Add this line
+                        const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5; // Add this line
+                        if (distToWater < lakeRadius + 0.6) { // Add this line
+                            baseGroundY = Math.max(baseGroundY, water.position.y); // Add this line
+                        } // Add this line
+                    }); // Add this line
+                } // Add this line
+
+                const ringY = baseGroundY + 0.25; // Change this line
                 clubLandingRing.position.set(ringX, ringY, ringZ);
                 clubLandingRing.visible = true; // Add this line
                 clubLandingBeacon.position.set(ringX, ringY + 75, ringZ); // Add this line
@@ -1168,26 +1184,26 @@ function init() {
     flag.position.set(0.4, 2.75, -55);
     scene.add(flag);
 
-    const holeCupGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.01, 32);
-    const holeCupMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    holeCup = new THREE.Mesh(holeCupGeo, holeCupMat);
-    holeCup.position.set(0, 0.03, -55);
-
+    const holeCupGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.01, 32); // Check/Restore this line
+    const holeCupMat = new THREE.MeshBasicMaterial({ color: 0x111111 }); // Check/Restore this line
+    holeCup = new THREE.Mesh(holeCupGeo, holeCupMat); // Check/Restore this line
+    holeCup.position.set(0, 0.03, -55); // Check/Restore this line
+    scene.add(holeCup); // Check/Restore this line
 
     // 6.6. Add Club Landing Destination Ring for Overhead View
-    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32); // Add this line
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 }); // Change this line
+    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
-    clubLandingRing.rotation.x = -Math.PI / 2; // Add this line
-    clubLandingRing.visible = false; // Add this line
-    scene.add(clubLandingRing); // Add this line
+    clubLandingRing.rotation.x = -Math.PI / 2;
+    clubLandingRing.visible = false;
+    scene.add(clubLandingRing);
 
     // 6.7. Add Vertical Light Beacon for Overhead View
-    const beaconGeo = new THREE.CylinderGeometry(0.15, 0.15, 150, 16); // Add this line
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.4 }); // Add this line
-    clubLandingBeacon = new THREE.Mesh(beaconGeo, beaconMat); // Add this line
-    clubLandingBeacon.visible = false; // Add this line
-    scene.add(clubLandingBeacon); // Add this line
+    const beaconGeo = new THREE.CylinderGeometry(0.15, 0.15, 150, 16);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.4 });
+    clubLandingBeacon = new THREE.Mesh(beaconGeo, beaconMat);
+    clubLandingBeacon.visible = false;
+    scene.add(clubLandingBeacon);
 
     // 7. Initialize Modules
 
