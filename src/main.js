@@ -1334,7 +1334,7 @@ function init() {
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
                 const camDist = checkOnGreen ? 1.6 : 5.5;      // FIXED: Matches your new close green zoom depth
-                const camHeight = checkOnGreen ? 1.1 : 1.8;    // FIXED: Matches your new down-angle vantage height
+                const camHeight = checkOnGreen ? 0.5 : 1.8;    // FIXED: Matches your new down-angle vantage height
                 const lookDist = checkOnGreen ? 4.0 : 12.0;
 
                 const backX = -(dirX / length) * camDist;
