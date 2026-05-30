@@ -850,7 +850,7 @@ function animate() {
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 0.75; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -885,7 +885,7 @@ function animate() {
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 0.75; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
             }
         }
     }
