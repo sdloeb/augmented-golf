@@ -852,7 +852,7 @@ function animate() {
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1166,7 +1166,39 @@ function init() {
 
     // 6. Add Golf Ball Mesh
     const ballGeo = new THREE.SphereGeometry(0.25, 32, 32);
-    const ballMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+    // High-visibility procedural dimple generator
+    const ballCanvas = document.createElement('canvas'); // Add this line
+    ballCanvas.width = 512; ballCanvas.height = 256; // Add this line
+    const ballCtx = ballCanvas.getContext('2d'); // Add this line
+    ballCtx.fillStyle = '#ffffff'; ballCtx.fillRect(0, 0, 512, 256); // Add this line
+
+    // Draw distinct, high-contrast dimple pockets that pop from a distance
+    for (let y = 16; y < 256; y += 32) { // Add this line
+        let offset = (Math.floor(y / 32) % 2 === 0) ? 16 : 0; // Add this line
+        for (let x = offset; x < 512; x += 32) { // Add this line
+            let grad = ballCtx.createRadialGradient(x, y, 0, x, y, 14); // Add this line
+            grad.addColorStop(0, '#555555'); // Deep charcoal shadow to prevent distant washing out // Add this line
+            grad.addColorStop(0.6, '#cccccc'); // Smooth inner incline wall shadow // Add this line
+            grad.addColorStop(0.85, '#ffffff'); // Outer flat surface transition // Add this line
+            grad.addColorStop(1, '#ffffff'); // Add this line
+            ballCtx.fillStyle = grad; // Add this line
+            ballCtx.beginPath(); ballCtx.arc(x, y, 14, 0, Math.PI * 2); ballCtx.fill(); // Add this line
+        } // Add this line
+    } // Add this line
+    const ballTexture = new THREE.CanvasTexture(ballCanvas); // Add this line
+    ballTexture.wrapS = THREE.RepeatWrapping; // Add this line
+    ballTexture.wrapT = THREE.RepeatWrapping; // Add this line
+    ballTexture.repeat.set(5, 3); // Lower repeat setting makes individual dimples larger and clear from afar // Add this line
+
+    const ballMat = new THREE.MeshStandardMaterial({ // Change this line
+        color: 0xffffff, // Add this line
+        roughness: 0.15, // Smooth glossy coating // Add this line
+        metalness: 0.0, // Add this line
+        map: ballTexture, // Bakes the crisp shadows onto the ball skin // Add this line
+        bumpMap: ballTexture, // Distorts lighting over the craters // Add this line
+        bumpScale: 0.04 // Elevated bump depth to let 3D light catch the dimple rims // Add this line
+    }); // Change this line
     ball = new THREE.Mesh(ballGeo, ballMat);
     ball.position.set(0, 0.25, 10);
     scene.add(ball);
