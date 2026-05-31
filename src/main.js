@@ -693,6 +693,12 @@ function animate() {
     // FIXED: Re-added the frame tick runner so the ball can actually move through space!
     if (physics && !isSinking) {
         physics.update();
+
+        // Rotate the dimpled texture based on the ball's rolling speed and direction
+        if (physics.isMoving && physics.isPutting) { // Add this line
+            ball.rotation.x += physics.velocity.z / 0.25; // Rotates forward/backward relative to Z speed // Add this line
+            ball.rotation.z -= physics.velocity.x / 0.25; // Rotates left/right relative to X speed // Add this line
+        } // Add this line
     }
 
     // FIXED: Re-added your Out of Bounds course boundary tracking check
