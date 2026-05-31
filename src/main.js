@@ -23,6 +23,7 @@ let currentLookAt = new THREE.Vector3(0, 0, -50);
 let wasMoving = false;
 let overheadTimeout = null;
 let isOverheadActive = false;
+let previewProgress = 0;
 
 // NEW CAMERA FLIGHT TRACKERS
 let shotStartTime = 0;
@@ -902,6 +903,65 @@ function animate() {
         activeCameraSpeed = 0.005;
     }
 
+    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        activeCameraSpeed = 0.005;
+    }
+
+    // Hole preview path fly-through logic
+    if (isOverheadActive) { // Add this line
+        previewProgress += 0.002; // Add this line (Controls fly-through speed. Increase to go faster, decrease to go slower)
+        if (previewProgress > 1) previewProgress = 1; // Add this line
+        // Add this line
+        const dirX = holePosition.x - ball.position.x; // Add this line
+        const dirZ = holePosition.z - ball.position.z; // Add this line
+        const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
+        // Add this line
+        // Starting camera position high above the ball structure // Add this line
+        const startCamX = ball.position.x - (dirX / length) * 6.5; // Add this line
+        const startCamZ = ball.position.z - (dirZ / length) * 6.5; // Add this line
+        const startCamY = physics.getGroundHeight(ball.position.x, ball.position.z) + 7.5; // Add this line
+        // Add this line
+        // Target destination high above the pin flag cup // Add this line
+        const endCamX = holePosition.x - (dirX / length) * 4.0; // Add this line
+        const endCamZ = holePosition.z - (dirZ / length) * 4.0; // Add this line
+        const endCamY = physics.getGroundHeight(holePosition.x, holePosition.z) + 6.0; // Add this line
+        // Add this line
+        // Smoothly glide horizontal parameters along the path // Add this line
+        const currentX = THREE.MathUtils.lerp(startCamX, endCamX, previewProgress); // Add this line
+        const currentZ = THREE.MathUtils.lerp(startCamZ, endCamZ, previewProgress); // Add this line
+        // Add this line
+        // Add a gentle height arc over the course + a ground clearance safety check // Add this line
+        const localGroundY = physics.getGroundHeight(currentX, currentZ); // Add this line
+        const heightArc = Math.sin(previewProgress * Math.PI) * 6.0; // Add this line
+        const currentY = THREE.MathUtils.lerp(startCamY, endCamY, previewProgress) + heightArc; // Add this line
+        // Add this line
+        // Smoothly point the camera lens down the fairway toward the hole // Add this line
+        const lookProgress = Math.min(1, previewProgress + 0.15); // Add this line
+        const currentLookX = THREE.MathUtils.lerp(ball.position.x, holePosition.x, lookProgress); // Add this line
+        const currentLookZ = THREE.MathUtils.lerp(ball.position.z, holePosition.z, lookProgress); // Add this line
+        const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ); // Add this line
+        // Add this line
+        cameraTargetPos.set(currentX, Math.max(localGroundY + 3.0, currentY), currentZ);
+        cameraLookAt.set(currentLookX, lookGroundY + 0.5, currentLookZ);
+        activeCameraSpeed = 0.08;
+
+        // Automatically snap back to normal behind the ball once progress finishes
+        if (previewProgress >= 1) { // Add this line
+            isOverheadActive = false; // Add this line
+            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS; // Add this line
+            const camDist = onGreen ? 1.6 : 5.5; // Add this line
+            const camHeight = onGreen ? 0.5 : 1.8; // Add this line
+            const lookDist = onGreen ? 4.0 : 12.0; // Add this line
+            const pDirX = holePosition.x - ball.position.x; // Add this line
+            const pDirZ = holePosition.z - ball.position.z; // Add this line
+            const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
+            cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
+            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
+            activeCameraSpeed = 0.05; // Add this line
+        } // Add this line
+    }
+
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
@@ -1216,6 +1276,7 @@ function init() {
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle, spin, loft) => {
+        isOverheadActive = false; // Add this line
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
@@ -1319,6 +1380,7 @@ function init() {
             if (!isOverheadActive) {
                 // TOGGLE ON: Go up to the 20-foot elevated view
                 isOverheadActive = true;
+                previewProgress = 0; // Add this line
 
                 const backX = -(dirX / length) * 6.5;
                 const backZ = -(dirZ / length) * 6.5;
