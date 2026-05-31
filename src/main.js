@@ -887,16 +887,27 @@ function animate() {
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
 
             // 3-OPTION BALL SCALING ENGINE
+            // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 1.0;
             } else {
-                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.2
             }
+        } // <-- This brace closes the swinging check
+
+        // 2. NEW: Scales the ball while it is sitting completely still at rest
+        const restingClub = input ? input.getClubInfo().name : '';
+        if (teeBox && teeBox.visible) {
+            ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
+        } else if (onGreen || restingClub === 'Putter') {
+            ballTargetScale = 1.0;
+        } else {
+            ballTargetScale = 1.2;
         }
-    }
+    } // <-- This brace closes the entire "ball is not moving" section
 
     const ballGreenX = ball.position.x - 0;
     const ballGreenZ = ball.position.z - greenCenterZ;
