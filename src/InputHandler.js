@@ -83,6 +83,7 @@ export class InputHandler {
 
     onTouchStart(e) {
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
+        if (this.isOverheadActive) return;
         const touch = e.touches[0];
         this.isSwinging = true;
         this.state = 'PULLBACK';
@@ -166,6 +167,7 @@ export class InputHandler {
     onMouseDown(e) {
         if (e.button !== 0) return;
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return
+        if (this.isOverheadActive) return;
 
         this.isSwinging = true;
         this.state = 'PULLBACK';

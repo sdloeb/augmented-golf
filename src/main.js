@@ -688,6 +688,7 @@ function resetEntireGame(advanceHole = false) {
 
 function animate() {
     requestAnimationFrame(animate);
+    if (input) input.isOverheadActive = isOverheadActive;
 
     // FIXED: Re-added the frame tick runner so the ball can actually move through space!
     if (physics && !isSinking) {
