@@ -1137,7 +1137,7 @@ function animate() {
             const backX = -(dirX / length) * camDist; // CHANGED
             const backZ = -(dirZ / length) * camDist; // CHANGED
 
-            ameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
 
             // 3-OPTION BALL SCALING ENGINE
@@ -1244,18 +1244,21 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        // 1. Smoothly scale camera distance based on total putt length
-        const dynamicDist = Math.max(1.6, Math.min(4.2, len * 0.7 + 0.8)); // Add this line
+        const rigidCamDist = 3.2;
+        const rigidCamHeight = 1.1;
 
-        // 2. Position the camera at a crisp, stable height directly behind the ball
-        cameraTargetPos.set(ball.position.x - dirX * dynamicDist, ball.position.y + 0.55, ball.position.z - dirZ * dynamicDist); // Add this line
+        cameraTargetPos.set(
+            ball.position.x - dirX * rigidCamDist,
+            ball.position.y + rigidCamHeight,
+            ball.position.z - dirZ * rigidCamDist
+        );
 
-        // 3. NEW FIXED-PITCH: Calculate look target directly from the camera position to freeze screen tracking
+        // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
-            cameraTargetPos.x + dirX * 5.0,
-            cameraTargetPos.y + 0.45, // Change this line: Fixed upward pitch angle completely locks the ball down to the blade at ALL distances
-            cameraTargetPos.z + dirZ * 5.0
-        ); // Add this line
+            ball.position.x + dirX * 4.0,
+            ball.position.y + 1.20,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
+            ball.position.z + dirZ * 4.0
+        ); // Change this line
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
@@ -1266,7 +1269,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= (2.5 / 5.5) * 0.8;
+            finalBallTargetScale *= (2.5 / 5.5) * 1.5;
         }
     }
 
@@ -1642,7 +1645,7 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0; // Add this line
-                const currentBottom = 15.5 - (6.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
+                const currentBottom = 13.5 - (5.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%'); // Change this line
             }
 
