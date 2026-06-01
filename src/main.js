@@ -708,7 +708,7 @@ function resetEntireGame(advanceHole = false) {
 
         let generateAsTree = Math.random() < 0.6; // 60% Trees, 40% Bushes configuration ratio
         if (generateAsTree) {
-            let randomScale = 1.4 + Math.random() * 1.2;
+            let randomScale = 2.5 + Math.random() * 1.2;
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
@@ -776,8 +776,17 @@ function animate() {
             physics.isStuckInBush = false; // Add this line
             strokeCount++; // Add this line
             document.getElementById('strokeText').innerText = strokeCount; // Add this line
-            alert("One stroke penalty! 🍃 Your ball got stuck in a bush and was moved out to safety."); // Add this line
-            ball.visible = true;
+
+            // Give the browser 30ms to fully render the frame with the ball hidden inside the bush
+            setTimeout(() => { // Add this line
+                alert("One stroke penalty! 🍃 Your ball got stuck in a bush."); // Change this line
+
+                // Reposition the ball to safety and make it visible again after clicking OK
+                ball.position.x = physics.bushResetX; // Add this line
+                ball.position.z = physics.bushResetZ; // Add this line
+                ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25; // Add this line
+                ball.visible = true; // Add this line
+            }, 30); // Add this line
         }
     }
 

@@ -385,12 +385,13 @@ export class PhysicsEngine {
                     this.isMoving = false;
                     this.isStuckInBush = true;
 
-                    // Move the ball safely outside the bush boundary along its exit normal vector
+                    /// Trapped inside: stop ball completely, raise penalty flag, and vanish inside the foliage
+                    this.ball.visible = false; // Change this line: Hide it directly inside the bush mass
+
+                    // Calculate the safe position outside the bush to be used after the alert is dismissed
                     let angle = Math.atan2(dz, dx);
-                    this.ball.position.x = obs.x + (obs.radius + 1.8) * Math.cos(angle); // Change this line
-                    this.ball.position.z = obs.z + (obs.radius + 1.8) * Math.sin(angle); // Change this line
-                    this.ball.position.y = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.25;
-                    this.ball.visible = false; // Add this line: Hides the ball instantly inside the bush
+                    this.bushResetX = obs.x + (obs.radius + 1.8) * Math.cos(angle); // Change this line
+                    this.bushResetZ = obs.z + (obs.radius + 1.8) * Math.sin(angle); // Change this line
                     break;
                 } else {
                     // High speed entry: Continuous drag friction so powerful shots can survive and exit the bush radius
