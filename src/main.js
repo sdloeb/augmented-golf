@@ -708,7 +708,7 @@ function resetEntireGame(advanceHole = false) {
 
         let generateAsTree = Math.random() < 0.6; // 60% Trees, 40% Bushes configuration ratio
         if (generateAsTree) {
-            let randomScale = 0.7 + Math.random() * 0.6;
+            let randomScale = 1.4 + Math.random() * 1.2;
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
@@ -734,7 +734,7 @@ function resetEntireGame(advanceHole = false) {
                 totalHeight: calculatedTrunkH + calculatedFoliageH
             });
         } else {
-            let randomBushRad = 0.4 + Math.random() * 0.5;
+            let randomBushRad = 0.6 + Math.random() * 1.0;
             let bushGeo = new THREE.SphereGeometry(randomBushRad, 8, 8);
             let customBushMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.8 });
             let bushMesh = new THREE.Mesh(bushGeo, customBushMat);
@@ -771,20 +771,14 @@ function animate() {
             ball.rotation.z -= physics.velocity.x / 0.25; // Rotates left/right relative to X speed // Add this line
         } // Add this line
 
-
         // --- NEW: INTERCEPT BUSH TRAP PENALTIES ---
         if (physics && physics.isStuckInBush) {
             physics.isStuckInBush = false; // Add this line
             strokeCount++; // Add this line
             document.getElementById('strokeText').innerText = strokeCount; // Add this line
             alert("One stroke penalty! 🍃 Your ball got stuck in a bush and was moved out to safety."); // Add this line
+            ball.visible = true;
         }
-
-        // Rotate the dimpled texture based on the ball's rolling speed and direction
-        if (physics.isMoving && physics.isPutting) { // Add this line
-            ball.rotation.x += physics.velocity.z / 0.25; // Rotates forward/backward relative to Z speed // Add this line
-            ball.rotation.z -= physics.velocity.x / 0.25; // Rotates left/right relative to X speed // Add this line
-        } // Add this line
     }
 
     // FIXED: Re-added your Out of Bounds course boundary tracking check

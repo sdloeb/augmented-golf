@@ -376,7 +376,8 @@ export class PhysicsEngine {
             let distance = Math.sqrt(dx * dx + dz * dz);
 
             // --- BUSH MECHANICS ---
-            if (obs.type === 'bush' && distance < obs.radius) {
+            let bushGroundY = this.getGroundHeight(obs.x, obs.z); // Add this line
+            if (obs.type === 'bush' && distance < (obs.radius + 0.25) && this.ball.position.y <= (bushGroundY + obs.radius + 0.25)) { // Change this line
                 let speed = this.velocity.length();
                 if (speed < 0.25) {
                     // Trapped inside: stop ball completely and raise penalty flag
@@ -386,21 +387,22 @@ export class PhysicsEngine {
 
                     // Move the ball safely outside the bush boundary along its exit normal vector
                     let angle = Math.atan2(dz, dx);
-                    this.ball.position.x = obs.x + (obs.radius + 0.4) * Math.cos(angle);
-                    this.ball.position.z = obs.z + (obs.radius + 0.4) * Math.sin(angle);
+                    this.ball.position.x = obs.x + (obs.radius + 1.8) * Math.cos(angle); // Change this line
+                    this.ball.position.z = obs.z + (obs.radius + 1.8) * Math.sin(angle); // Change this line
                     this.ball.position.y = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.25;
+                    this.ball.visible = false; // Add this line: Hides the ball instantly inside the bush
                     break;
                 } else {
-                    // High speed entry: Punches through but drops 50% horizontal velocity to heavy drag friction
-                    this.velocity.x *= 0.5;
-                    this.velocity.z *= 0.5;
+                    // High speed entry: Continuous drag friction so powerful shots can survive and exit the bush radius
+                    this.velocity.x *= 0.92; // Change this line
+                    this.velocity.z *= 0.92; // Change this line
                 }
             }
 
             // --- TREE MECHANICS ---
             if (obs.type === 'tree') {
                 // 1. Lower Trunk Height Zone Collision Check
-                if (this.ball.position.y <= obs.trunkHeight && distance < obs.trunkRadius) {
+                if (this.ball.position.y <= obs.trunkHeight && distance < (obs.trunkRadius + 0.25)) { // Change this line: Added ball radius cushion
                     let alpha = Math.atan2(this.velocity.z, this.velocity.x);
                     let faceAngle = Math.atan2(-this.velocity.z, -this.velocity.x);
                     let beta = Math.atan2(dz, dx);
@@ -424,12 +426,18 @@ export class PhysicsEngine {
                         this.velocity.x = Math.cos(deflection) * speed;
                         this.velocity.z = Math.sin(deflection) * speed;
                     }
+
+                    // Prevent sticky multi-frame trunk vibrations by snapping ball coordinates clear of the boundary
+                    let pushAngle = Math.atan2(dz, dx); // Add this line
+                    this.ball.position.x = obs.x + (obs.trunkRadius + 0.26) * Math.cos(pushAngle); // Add this line
+                    this.ball.position.z = obs.z + (obs.trunkRadius + 0.26) * Math.sin(pushAngle); // Add this line
+
                     if (this.sounds) this.sounds.play('bounce');
                     break;
                 }
 
                 // 2. Upper Leaves & Canopy Height Zone Collision Check
-                if (this.ball.position.y > obs.trunkHeight && this.ball.position.y <= obs.totalHeight && distance < obs.foliageRadius) {
+                if (this.ball.position.y > obs.trunkHeight && this.ball.position.y <= obs.totalHeight && distance < (obs.foliageRadius + 0.25)) { // Change this line: Added ball radius cushion
                     let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
                     let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
 
@@ -481,7 +489,7 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        if (this.velocity.length() < 0.01) {
+        if (this.velocity.length() < 0.01 && this.ball.position.y <= groundY) { // Change this line
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;
