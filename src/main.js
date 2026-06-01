@@ -682,6 +682,77 @@ function resetEntireGame(advanceHole = false) {
         sceneryObjects.push(sceneryGroup);
     }
 
+    // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
+    if (physics) physics.obstacles = [];
+
+    for (let i = 0; i < 30; i++) {
+        let sampleX = (Math.random() - 0.5) * 50;
+        let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
+
+        // 100-Yard Safe Zone Check from both Tee box and Hole Pin (100 yards = ~36.11 metric units)
+        let distanceToTee = Math.sqrt((sampleX - teeBoxX) * (sampleX - teeBoxX) + (sampleZ - 10) * (sampleZ - 10));
+        let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
+        if (distanceToTee < 36.11 || distanceToHole < 36.11) {
+            continue;
+        }
+
+        // Evaluate Course Boundaries: Fairway width is defined inside (-9.0 to 9.0)
+        let insideFairwayLane = Math.abs(sampleX) <= 9.0;
+        if (insideFairwayLane && Math.random() > 0.05) {
+            continue; // Enforce the rare 5% spawn chance condition if coordinates land on the fairway
+        }
+
+        const sceneryGroup = new THREE.Group();
+        const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
+        sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
+
+        let generateAsTree = Math.random() < 0.6; // 60% Trees, 40% Bushes configuration ratio
+        if (generateAsTree) {
+            let randomScale = 0.7 + Math.random() * 0.6;
+            let calculatedTrunkRad = 0.25 * randomScale;
+            let calculatedTrunkH = 1.4 * randomScale;
+            let calculatedFoliageRad = 1.1 * randomScale;
+            let calculatedFoliageH = 2.4 * randomScale;
+
+            let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
+            let trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
+            trunkMesh.position.y = calculatedTrunkH / 2;
+            sceneryGroup.add(trunkMesh);
+
+            let leavesGeo = new THREE.ConeGeometry(calculatedFoliageRad, calculatedFoliageH, 8);
+            let leavesMesh = new THREE.Mesh(leavesGeo, foliageMat);
+            leavesMesh.position.y = calculatedTrunkH + (calculatedFoliageH / 2);
+            sceneryGroup.add(leavesMesh);
+
+            physics.obstacles.push({
+                type: 'tree',
+                x: sampleX,
+                z: sampleZ,
+                trunkRadius: calculatedTrunkRad,
+                trunkHeight: calculatedTrunkH,
+                foliageRadius: calculatedFoliageRad,
+                totalHeight: calculatedTrunkH + calculatedFoliageH
+            });
+        } else {
+            let randomBushRad = 0.4 + Math.random() * 0.5;
+            let bushGeo = new THREE.SphereGeometry(randomBushRad, 8, 8);
+            let customBushMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.8 });
+            let bushMesh = new THREE.Mesh(bushGeo, customBushMat);
+            bushMesh.position.y = randomBushRad * 0.2;
+            sceneryGroup.add(bushMesh);
+
+            physics.obstacles.push({
+                type: 'bush',
+                x: sampleX,
+                z: sampleZ,
+                radius: randomBushRad
+            });
+        }
+
+        scene.add(sceneryGroup);
+        sceneryObjects.push(sceneryGroup);
+    }
+
     generateNewWind();
     updateDistanceDisplay();
 }
@@ -693,6 +764,21 @@ function animate() {
     // FIXED: Re-added the frame tick runner so the ball can actually move through space!
     if (physics && !isSinking) {
         physics.update();
+
+        // Rotate the dimpled texture based on the ball's rolling speed and direction
+        if (physics.isMoving && physics.isPutting) { // Add this line
+            ball.rotation.x += physics.velocity.z / 0.25; // Rotates forward/backward relative to Z speed // Add this line
+            ball.rotation.z -= physics.velocity.x / 0.25; // Rotates left/right relative to X speed // Add this line
+        } // Add this line
+
+
+        // --- NEW: INTERCEPT BUSH TRAP PENALTIES ---
+        if (physics && physics.isStuckInBush) {
+            physics.isStuckInBush = false; // Add this line
+            strokeCount++; // Add this line
+            document.getElementById('strokeText').innerText = strokeCount; // Add this line
+            alert("One stroke penalty! 🍃 Your ball got stuck in a bush and was moved out to safety."); // Add this line
+        }
 
         // Rotate the dimpled texture based on the ball's rolling speed and direction
         if (physics.isMoving && physics.isPutting) { // Add this line

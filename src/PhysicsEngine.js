@@ -18,6 +18,8 @@ export class PhysicsEngine {
         this.backZone = { rx: 0, rz: 0 };
         this.midZone = { rx: 0, rz: 0 };
         this.frontZone = { rx: 0, rz: 0 };
+        this.obstacles = []; // Add this line
+        this.isStuckInBush = false;
     }
 
     // NEW: Receives the shuffled configurations from the map setup
@@ -32,6 +34,55 @@ export class PhysicsEngine {
         this.courseSeedZ1 = Math.random() * 50; // Add this line
         this.courseSeedX2 = Math.random() * 50; // Add this line
         this.courseSeedZ2 = Math.random() * 50; // Add this line
+
+        this.obstacles = []; // Add this line to store the trees and bushes
+
+        // Add this block to handle the random spawning rules
+        this.generateObstacles = function (teeX, teeZ, holeX, holeZ, courseWidth, courseDepth) {
+            const YARDS_TO_UNITS = 1; // Change 1 to match your game's coordinate scale if 1 unit != 1 yard
+            const safeZoneLimit = 100 * YARDS_TO_UNITS;
+            const totalObstaclesToSpawn = 50; // Adjust this number for more or fewer objects on the course
+
+            for (let i = 0; i < totalObstaclesToSpawn; i++) {
+                let sampleX = Math.random() * courseWidth;
+                let sampleZ = Math.random() * courseDepth;
+
+                // 100-Yard Safe Zone Guard
+                let distToTee = Math.hypot(sampleX - teeX, sampleZ - teeZ);
+                let distToHole = Math.hypot(sampleX - holeX, sampleZ - holeZ);
+                if (distToTee < safeZoneLimit || distToHole < safeZoneLimit) {
+                    continue; // Skip this spawn if it's too close to Tee or Hole
+                }
+
+                // Get the terrain type at these coordinates
+                let terrainType = this.getTerrainType(sampleX, sampleZ);
+                let fairwayRoll = Math.random();
+
+                // Spawn conditions: 100% in rough, 5% of the time in fairway
+                if (terrainType === 'rough' || (terrainType === 'fairway' && fairwayRoll <= 0.05)) {
+                    let isTree = Math.random() > 0.4; // 60% chance tree, 40% chance bush
+
+                    if (isTree) {
+                        this.obstacles.push({
+                            type: 'tree',
+                            x: sampleX,
+                            z: sampleZ,
+                            trunkRadius: 1.0 + Math.random() * 1.5,
+                            trunkHeight: 8 + Math.random() * 4,
+                            foliageRadius: 4.0 + Math.random() * 3.0,
+                            totalHeight: 25 + Math.random() * 15
+                        });
+                    } else {
+                        this.obstacles.push({
+                            type: 'bush',
+                            x: sampleX,
+                            z: sampleZ,
+                            radius: 3.0 + Math.random() * 3.5
+                        });
+                    }
+                }
+            }
+        };
 
         // Occasional big feature toggle (60% chance of a major hill or drop-off)
         this.hasBigFeature = Math.random() > 0.4; // Add this line
@@ -316,6 +367,86 @@ export class PhysicsEngine {
         this.ball.position.x += this.velocity.x * timeScale;
         this.ball.position.y += this.velocity.y * timeScale;
         this.ball.position.z += this.velocity.z * timeScale;
+
+        // --- NEW: INTERACTIVE OBSTACLES PHYSICS ENGINE ---
+        for (let i = 0; i < this.obstacles.length; i++) {
+            let obs = this.obstacles[i];
+            let dx = this.ball.position.x - obs.x;
+            let dz = this.ball.position.z - obs.z;
+            let distance = Math.sqrt(dx * dx + dz * dz);
+
+            // --- BUSH MECHANICS ---
+            if (obs.type === 'bush' && distance < obs.radius) {
+                let speed = this.velocity.length();
+                if (speed < 0.25) {
+                    // Trapped inside: stop ball completely and raise penalty flag
+                    this.velocity.set(0, 0, 0);
+                    this.isMoving = false;
+                    this.isStuckInBush = true;
+
+                    // Move the ball safely outside the bush boundary along its exit normal vector
+                    let angle = Math.atan2(dz, dx);
+                    this.ball.position.x = obs.x + (obs.radius + 0.4) * Math.cos(angle);
+                    this.ball.position.z = obs.z + (obs.radius + 0.4) * Math.sin(angle);
+                    this.ball.position.y = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.25;
+                    break;
+                } else {
+                    // High speed entry: Punches through but drops 50% horizontal velocity to heavy drag friction
+                    this.velocity.x *= 0.5;
+                    this.velocity.z *= 0.5;
+                }
+            }
+
+            // --- TREE MECHANICS ---
+            if (obs.type === 'tree') {
+                // 1. Lower Trunk Height Zone Collision Check
+                if (this.ball.position.y <= obs.trunkHeight && distance < obs.trunkRadius) {
+                    let alpha = Math.atan2(this.velocity.z, this.velocity.x);
+                    let faceAngle = Math.atan2(-this.velocity.z, -this.velocity.x);
+                    let beta = Math.atan2(dz, dx);
+                    let diff = beta - faceAngle;
+                    diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // Normalize radian offset bounds to (-PI, PI)
+
+                    if (Math.abs(diff) < 0.35) {
+                        // Dead Center hitting zone: Ricochet directly backwards 
+                        this.velocity.x = -this.velocity.x * 0.7;
+                        this.velocity.z = -this.velocity.z * 0.7;
+                    } else if (diff >= 0.35) {
+                        // Right Side hitting zone: Deflect vector outward towards the right side
+                        let deflection = alpha + Math.PI - 0.7;
+                        let speed = this.velocity.length() * 0.6;
+                        this.velocity.x = Math.cos(deflection) * speed;
+                        this.velocity.z = Math.sin(deflection) * speed;
+                    } else {
+                        // Left Side hitting zone: Deflect vector outward towards the left side
+                        let deflection = alpha + Math.PI + 0.7;
+                        let speed = this.velocity.length() * 0.6;
+                        this.velocity.x = Math.cos(deflection) * speed;
+                        this.velocity.z = Math.sin(deflection) * speed;
+                    }
+                    if (this.sounds) this.sounds.play('bounce');
+                    break;
+                }
+
+                // 2. Upper Leaves & Canopy Height Zone Collision Check
+                if (this.ball.position.y > obs.trunkHeight && this.ball.position.y <= obs.totalHeight && distance < obs.foliageRadius) {
+                    let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
+                    let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
+
+                    if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
+                        // Top 5% Clip Zone: Pass through clean but encounter a 25% overhead slowdown
+                        this.velocity.x *= 0.75;
+                        this.velocity.z *= 0.75;
+                    } else {
+                        // Heavy Canopy Core Zone: Strip forward momentum completely and let gravity drop it straight down
+                        this.velocity.x = 0;
+                        this.velocity.z = 0;
+                        if (this.velocity.y > 0) this.velocity.y = 0;
+                    }
+                    break;
+                }
+            }
+        }
 
         // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= groundY) {
