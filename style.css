@@ -392,7 +392,7 @@ html {
 
 #clubSwipe.putter.idle-stance {
     left: 45% !important;
-    bottom: 25.0% !important;
+    bottom: 13.5% !important;
     /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
 }
 
@@ -555,36 +555,6 @@ html {
     }
 }
 
-/* New mobile-specific swing tracking keyframes centered on the ball coordinate */
-@keyframes clubSwipeAnimMobile {
-    0% {
-        bottom: -100px;
-        left: calc(50% - 40px);
-        right: auto;
-        transform: rotate(30deg) scale(1.7);
-        opacity: 0;
-    }
-
-    15% {
-        opacity: 1;
-    }
-
-    35% {
-        bottom: 24%;
-        left: calc(50% - 68px);
-        right: auto;
-        transform: rotate(0deg) scale(1.2);
-    }
-
-    100% {
-        bottom: 45%;
-        left: calc(50% - 100px);
-        right: auto;
-        transform: rotate(-40deg) scale(0.5);
-        opacity: 0;
-    }
-}
-
 @keyframes putterSwipeAnimMobile {
     0% {
         bottom: 4%;
@@ -596,8 +566,8 @@ html {
     }
 
     35% {
-        bottom: 25%;
-        /* FIXED: Smooth contact right at the ball's base position */
+        bottom: 13.5%;
+        /* Change this line: Lowered contact line from 25% */
         left: calc(50% - 68px);
         /* Change this line */
         transform: rotate(0deg) scale(1.4);
@@ -606,8 +576,8 @@ html {
     }
 
     100% {
-        bottom: 33%;
-        /* FIXED: Adjusted follow-through path proportionally */
+        bottom: 19.0%;
+        /* Change this line: Lowered follow-through from 33% */
         left: calc(50% - 68px);
         /* Change this line */
         transform: rotate(0deg) scale(1.4);
@@ -647,7 +617,7 @@ html {
     }
 
     35% {
-        bottom: 25.0%;
+        bottom: 13.5%;
         /* FIXED: Smooth contact right at the ball's base position */
         /* Unchanged: Hits through the perfect horizontal center of the ball */
         left: 45.5%;
@@ -657,7 +627,7 @@ html {
     }
 
     100% {
-        bottom: 33.0%;
+        bottom: 19.0%;
         /* FIXED: Adjusted follow-through path proportionally */
         left: 45.5%;
         /* Change this line */

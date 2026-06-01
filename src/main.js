@@ -1084,9 +1084,9 @@ function animate() {
         }
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-        const camDist = onGreen ? 1.6 : 5.5;      // FIXED: Moved closer to stretch foreground depth perspective
-        const camHeight = onGreen ? 0.5 : 1.8;    // Change this line: Lowers putting view down to turf level
-        const lookDist = onGreen ? 4.0 : 12.0;
+        const camDist = onGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
+        const camHeight = onGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
+        const lookDist = onGreen ? 6.0 : 12.0;
         if (wasMoving && !isSinking) {
             isOverheadActive = false;
             const dirX = holePosition.x - ball.position.x;
@@ -1098,7 +1098,7 @@ function animate() {
 
             if (!isOverheadActive) {
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
-                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
+                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist); // Change this line: Added vertical look-at offset for putting green contours
             }
 
 
@@ -1137,8 +1137,8 @@ function animate() {
             const backX = -(dirX / length) * camDist; // CHANGED
             const backZ = -(dirZ / length) * camDist; // CHANGED
 
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
-            cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // CHANGED
+            ameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
+            cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
 
             // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
@@ -1222,9 +1222,9 @@ function animate() {
         if (previewProgress >= 1) { // Add this line
             isOverheadActive = false; // Add this line
             const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS; // Add this line
-            const camDist = onGreen ? 1.6 : 5.5; // Add this line
-            const camHeight = onGreen ? 0.5 : 1.8; // Add this line
-            const lookDist = onGreen ? 4.0 : 12.0; // Add this line
+            const camDist = onGreen ? 2.5 : 5.5; // Change this line: Pulled back from 1.6
+            const camHeight = onGreen ? 1.0 : 1.8; // Change this line: Elevated from 0.5
+            const lookDist = onGreen ? 6.0 : 12.0;
             const pDirX = holePosition.x - ball.position.x; // Add this line
             const pDirZ = holePosition.z - ball.position.z; // Add this line
             const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
@@ -1232,6 +1232,30 @@ function animate() {
             cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
             activeCameraSpeed = 0.05; // Add this line
         } // Add this line
+    }
+
+    // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
+    const checkX = ball.position.x;
+    const checkZ = ball.position.z - greenCenterZ;
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && !physics.isMoving) {
+        const dX = holePosition.x - ball.position.x;
+        const dZ = holePosition.z - ball.position.z;
+        const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
+        const dirX = dX / len;
+        const dirZ = dZ / len;
+
+        // 1. Smoothly scale camera distance based on total putt length
+        const dynamicDist = Math.max(1.6, Math.min(4.2, len * 0.7 + 0.8)); // Add this line
+
+        // 2. Position the camera at a crisp, stable height directly behind the ball
+        cameraTargetPos.set(ball.position.x - dirX * dynamicDist, ball.position.y + 0.55, ball.position.z - dirZ * dynamicDist); // Add this line
+
+        // 3. NEW FIXED-PITCH: Calculate look target directly from the camera position to freeze screen tracking
+        cameraLookAt.set(
+            cameraTargetPos.x + dirX * 5.0,
+            cameraTargetPos.y + 0.45, // Change this line: Fixed upward pitch angle completely locks the ball down to the blade at ALL distances
+            cameraTargetPos.z + dirZ * 5.0
+        ); // Add this line
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
@@ -1279,7 +1303,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 25.0 - (7.5 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
+                        const currentBottom = 13.5 - (5.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
                         const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
                         const currentRotate = 0;    // Change this line: No rotation for a clean square face back
 
@@ -1618,7 +1642,7 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0; // Add this line
-                const currentBottom = 25.0 - (7.5 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
+                const currentBottom = 15.5 - (6.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%'); // Change this line
             }
 
@@ -1699,16 +1723,16 @@ function init() {
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-                const camDist = checkOnGreen ? 1.6 : 5.5;      // FIXED: Matches your new close green zoom depth
-                const camHeight = checkOnGreen ? 0.5 : 1.8;    // FIXED: Matches your new down-angle vantage height
-                const lookDist = checkOnGreen ? 4.0 : 12.0;
+                const camDist = checkOnGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
+                const camHeight = checkOnGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
+                const lookDist = checkOnGreen ? 6.0 : 12.0;
 
                 const backX = -(dirX / length) * camDist;
                 const backZ = -(dirZ / length) * camDist;
 
                 // CORRECTED: Smoothly transitions the camera back to your active zoom/horizon offsets
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ);
-                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist);
+                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (checkOnGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
             }
         });
     }
