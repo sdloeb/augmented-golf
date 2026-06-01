@@ -708,33 +708,164 @@ function resetEntireGame(advanceHole = false) {
 
         let generateAsTree = Math.random() < 0.6; // 60% Trees, 40% Bushes configuration ratio
         if (generateAsTree) {
-            let randomScale = 2.5 + Math.random() * 1.2;
+            let randomScale = 4.5 + Math.random() * 1.3;
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
-            let calculatedFoliageH = 2.4 * randomScale;
 
+            // Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
+            let treeVersion = Math.floor(Math.random() * 3);
+
+            // Core trunk base used by all tree archetypes
             let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
             let trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
             trunkMesh.position.y = calculatedTrunkH / 2;
             sceneryGroup.add(trunkMesh);
 
-            let leavesGeo = new THREE.ConeGeometry(calculatedFoliageRad, calculatedFoliageH, 8);
-            let leavesMesh = new THREE.Mesh(leavesGeo, foliageMat);
-            leavesMesh.position.y = calculatedTrunkH + (calculatedFoliageH / 2);
-            sceneryGroup.add(leavesMesh);
+            let finalizedFoliageRadius = calculatedFoliageRad * 0.9;
+            let finalizedTotalHeight = calculatedTrunkH + (calculatedFoliageRad * 1.4);
 
+            // ==========================================
+            // VERSION 0: CLASSIC WIDE OAK TREE (BALANCED CANOPY)
+            // ==========================================
+            if (treeVersion === 0) {
+                // Left structural accent branch
+                let branchGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
+                let branchL = new THREE.Mesh(branchGeoL, trunkMat);
+                branchL.position.set(-calculatedFoliageRad * 0.2, calculatedTrunkH * 0.8, 0);
+                branchL.rotation.z = 0.6; // Angle out left
+                sceneryGroup.add(branchL);
+
+                // Right structural accent branch
+                let branchGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
+                let branchR = new THREE.Mesh(branchGeoR, trunkMat);
+                branchR.position.set(calculatedFoliageRad * 0.2, calculatedTrunkH * 0.8, 0);
+                branchR.rotation.z = -0.6; // Angle out right
+                sceneryGroup.add(branchR);
+
+                // Left twig extending deep into the left foliage puff
+                let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.8, 8);
+                let twigL = new THREE.Mesh(twigGeoL, trunkMat);
+                twigL.position.set(-calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.3, 0.1);
+                twigL.rotation.z = 0.8;
+                sceneryGroup.add(twigL);
+
+                // Right twig extending deep into the right foliage puff
+                let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.8, 8);
+                let twigR = new THREE.Mesh(twigGeoR, trunkMat);
+                twigR.position.set(calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.3, 0.1);
+                twigR.rotation.z = -0.8;
+                sceneryGroup.add(twigR);
+
+                // Overlapping full foliage puffs
+                let positions = [
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.7, 0, 0.7],          // Center Crown
+                    [-calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.55], // Left Flank
+                    [calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.55],  // Right Flank
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.5, -calculatedFoliageRad * 0.4, 0.45], // Rear
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.5, calculatedFoliageRad * 0.4, 0.45]   // Foreground
+                ];
+
+                positions.forEach(p => {
+                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
+                    let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    sceneryGroup.add(leafMesh);
+                });
+            }
+
+            // ==========================================
+            // VERSION 1: TALL FORK TREE (Y-SPLIT CANOPY)
+            // ==========================================
+            else if (treeVersion === 1) {
+                // Left main split fork extension limb
+                let forkGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.7, 8);
+                let forkL = new THREE.Mesh(forkGeoL, trunkMat);
+                forkL.position.set(-calculatedFoliageRad * 0.25, calculatedTrunkH + calculatedTrunkH * 0.2, 0);
+                forkL.rotation.z = 0.35;
+                sceneryGroup.add(forkL);
+
+                // Right main split fork extension limb
+                let forkGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.7, 8);
+                let forkR = new THREE.Mesh(forkGeoR, trunkMat);
+                forkR.position.set(calculatedFoliageRad * 0.25, calculatedTrunkH + calculatedTrunkH * 0.2, 0);
+                forkR.rotation.z = -0.35;
+                sceneryGroup.add(forkR);
+
+                // Center fork branch sticking up through the middle canopy gap
+                let forkCenterGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.9, 8);
+                let forkCenter = new THREE.Mesh(forkCenterGeo, trunkMat);
+                forkCenter.position.set(0, calculatedTrunkH + calculatedTrunkH * 0.4, 0.1);
+                forkCenter.rotation.x = 0.2; // Leans slightly forward to look natural
+                sceneryGroup.add(forkCenter);
+
+                // Twin high separated leaf cloud systems sitting on top of the fork limbs
+                let positions = [
+                    [-calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedTrunkH * 0.5, 0, 0.6], // Left Crown
+                    [calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedTrunkH * 0.5, 0, 0.6],  // Right Crown
+                    [0, calculatedTrunkH + calculatedTrunkH * 0.7, 0, 0.45]                           // Bridging puff
+                ];
+
+                positions.forEach(p => {
+                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
+                    let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    sceneryGroup.add(leafMesh);
+                });
+
+                finalizedFoliageRadius = calculatedFoliageRad * 1.1; // Expands check for wider fork
+                finalizedTotalHeight = calculatedTrunkH + (calculatedTrunkH * 0.5) + (calculatedFoliageRad * 0.6); // Adjusts total elevation check
+            }
+
+            // ==========================================
+            // VERSION 2: ASYMMETRIC BENT TREE (WINDSWEPT CANOPY)
+            // ==========================================
+            else {
+                // Massive horizontal crooked side limb reaching out far right
+                let heavyLimbGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.3, calculatedTrunkRad * 0.5, calculatedTrunkH * 0.8, 8);
+                let heavyLimb = new THREE.Mesh(heavyLimbGeo, trunkMat);
+                heavyLimb.position.set(calculatedFoliageRad * 0.4, calculatedTrunkH * 0.9, 0);
+                heavyLimb.rotation.z = -1.1; // Heavy lean angle
+                sceneryGroup.add(heavyLimb);
+
+                // Offshoot twig reaching upwards into the main right foliage puff
+                let leanTwigGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.12, calculatedTrunkRad * 0.25, calculatedFoliageRad * 0.7, 8);
+                let leanTwig = new THREE.Mesh(leanTwigGeo, trunkMat);
+                leanTwig.position.set(calculatedFoliageRad * 0.6, calculatedTrunkH * 1.2, 0.1);
+                leanTwig.rotation.z = -0.4; // Points straighter up into the leaves
+                sceneryGroup.add(leanTwig);
+
+                // Foliage cloud layout heavily prioritized over the stretching limb side
+                let positions = [
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.6, 0, 0.55],         // Center Top
+                    [calculatedFoliageRad * 0.7, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.65], // Massive Right Flank Puff
+                    [calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.5, -calculatedFoliageRad * 0.3, 0.45],
+                    [calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.5, calculatedFoliageRad * 0.3, 0.45]
+                ];
+
+                positions.forEach(p => {
+                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
+                    let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    sceneryGroup.add(leafMesh);
+                });
+
+                finalizedFoliageRadius = calculatedFoliageRad * 1.2; // Wider footprint due to heavy leaning limb
+            }
+
+            // Push the customized boundary data values down to the collision tracker matrix cleanly
             physics.obstacles.push({
                 type: 'tree',
                 x: sampleX,
                 z: sampleZ,
                 trunkRadius: calculatedTrunkRad,
                 trunkHeight: calculatedTrunkH,
-                foliageRadius: calculatedFoliageRad,
-                totalHeight: calculatedTrunkH + calculatedFoliageH
+                foliageRadius: finalizedFoliageRadius,
+                totalHeight: finalizedTotalHeight
             });
+
         } else {
-            let randomBushRad = 0.6 + Math.random() * 1.0;
+            let randomBushRad = 0.7 + Math.random() * 1.2;
             let bushGeo = new THREE.SphereGeometry(randomBushRad, 8, 8);
             let customBushMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.8 });
             let bushMesh = new THREE.Mesh(bushGeo, customBushMat);
@@ -770,7 +901,6 @@ function animate() {
             ball.rotation.x += physics.velocity.z / 0.25; // Rotates forward/backward relative to Z speed // Add this line
             ball.rotation.z -= physics.velocity.x / 0.25; // Rotates left/right relative to X speed // Add this line
         } // Add this line
-
         // --- NEW: INTERCEPT BUSH TRAP PENALTIES ---
         if (physics && physics.isStuckInBush) {
             physics.isStuckInBush = false; // Add this line
@@ -786,6 +916,17 @@ function animate() {
                 ball.position.z = physics.bushResetZ; // Add this line
                 ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25; // Add this line
                 ball.visible = true; // Add this line
+
+                // Snap the camera directly behind the ball's new safe position so the club aligns perfectly
+                const dirX = holePosition.x - ball.position.x; // Add this line
+                const dirZ = holePosition.z - ball.position.z; // Add this line
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
+                const backX = -(dirX / length) * 5.5; // Add this line
+                const backZ = -(dirZ / length) * 5.5; // Add this line
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ); // Add this line
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
+
+                updateDistanceDisplay(); // Add this line: Refresh distance metrics and club list capacity options instantly
             }, 30); // Add this line
         }
     }
