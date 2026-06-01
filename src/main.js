@@ -689,17 +689,41 @@ function resetEntireGame(advanceHole = false) {
         let sampleX = (Math.random() - 0.5) * 50;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
 
-        // 100-Yard Safe Zone Check from both Tee box and Hole Pin (100 yards = ~36.11 metric units)
+        // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
         let distanceToTee = Math.sqrt((sampleX - teeBoxX) * (sampleX - teeBoxX) + (sampleZ - 10) * (sampleZ - 10));
         let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
-        if (distanceToTee < 36.11 || distanceToHole < 36.11) {
+        if (distanceToTee < 9.03 || distanceToHole < 9.03) {
             continue;
         }
 
+        // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
+        let distanceToGreenCenter = Math.sqrt((sampleX - 0) * (sampleX - 0) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Add this line
+        if (distanceToGreenCenter < 15.0) { // Add this line
+            continue; // Add this line
+        } // Add this line
+
+        // Prevent spawning inside sand traps (+1.0 unit buffer padding)
+        let insideSandTrap = sandTraps.some(sandMesh => { // Add this line
+            let dxS = sampleX - sandMesh.position.x; // Add this line
+            let dzS = sampleZ - sandMesh.position.z; // Add this line
+            let sandRadius = sandMesh.geometry.parameters.radius || 0; // Add this line
+            return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0); // Add this line
+        }); // Add this line
+        if (insideSandTrap) continue; // Add this line
+
+        // Prevent spawning inside water hazards (+1.5 unit buffer padding)
+        let insideWaterHazard = waterHazards.some(waterMesh => {
+            let dxW = sampleX - waterMesh.position.x;
+            let dzW = sampleZ - waterMesh.position.z;
+            let waterRadius = waterMesh.userData.radius || 0;
+            return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
+        });
+        if (insideWaterHazard) continue;
+
         // Evaluate Course Boundaries: Fairway width is defined inside (-9.0 to 9.0)
         let insideFairwayLane = Math.abs(sampleX) <= 9.0;
-        if (insideFairwayLane && Math.random() > 0.05) {
-            continue; // Enforce the rare 5% spawn chance condition if coordinates land on the fairway
+        if (insideFairwayLane) { // Change this line: Always skip if the coordinates fall on the fairway
+            continue;
         }
 
         const sceneryGroup = new THREE.Group();
@@ -708,7 +732,7 @@ function resetEntireGame(advanceHole = false) {
 
         let generateAsTree = Math.random() < 0.6; // 60% Trees, 40% Bushes configuration ratio
         if (generateAsTree) {
-            let randomScale = 4.5 + Math.random() * 1.3;
+            let randomScale = 3.5 + Math.random() * 1.3;
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
