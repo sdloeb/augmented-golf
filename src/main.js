@@ -1110,9 +1110,9 @@ function animate() {
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 1.00;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.5;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1146,9 +1146,9 @@ function animate() {
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.45;
+                ballTargetScale = 1.00;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;
+                ballTargetScale = 0.5;
             } else {
                 ballTargetScale = 1.2
             }
@@ -1157,9 +1157,9 @@ function animate() {
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 1.0;
+            ballTargetScale = 0.5;
         } else {
             ballTargetScale = 1.2;
         }
