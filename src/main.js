@@ -1246,8 +1246,9 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const rigidCamDist = 5.5;
-        const rigidCamHeight = 1.35;
+        const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
+        const rigidCamDist = isPortrait ? 7.5 : 5.5; // Modify this line: Pulls back further on mobile for true deep green perspective
+        const rigidCamHeight = isPortrait ? 1.5 : 1.35; // Modify this line: Gives real depth perception on mobile screens
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1256,11 +1257,12 @@ function animate() {
         );
 
         // ABSOLUTE GAZE LOCK
+        const verticalTilt = isPortrait ? 2.35 : 1.45; // Modify this line: High tilt on mobile portrait explicitly forces the ball lower down your screen screen
         cameraLookAt.set(
-            ball.position.x + dirX * 5.5,
-            ball.position.y + 1.45,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
-            ball.position.z + dirZ * 5.5
-        ); // Change this line
+            ball.position.x + dirX * rigidCamDist, // Modify this line
+            ball.position.y + verticalTilt,  // Modify this line
+            ball.position.z + dirZ * rigidCamDist // Modify this line
+        );
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
@@ -1270,8 +1272,9 @@ function animate() {
     let finalBallTargetScale = ballTargetScale;
     if (!physics.isMoving) {
         if (isCamOnGreen) {
+            const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= 1.12; // Modify this line: Counteracts camera distance to keep ball size identical on screen
+            finalBallTargetScale *= isPortrait ? 1.55 : 1.12; // Modify this line: Keeps ball sizing uniform on both devices
         }
     }
 
@@ -1296,11 +1299,14 @@ function animate() {
                 }
 
                 // Switch utility classes matching the interactive InputHandler tracking states
+                const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
+                const putterBaseBottom = isPortrait ? 22.0 : 13.5; // Add this line: Calibrated baseline positions for both layouts
+
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
                     // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = '';
-                    clubSwipeElement.style.left = '';
+                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : ''; // Modify this line
+                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '45.5%' : ''; // Modify this line
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
@@ -1308,7 +1314,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 13.5 - (5.0 * ratio); // Modify this line: Starts seamlessly at 17.5% and pulls down to 10.5%
+                        const currentBottom = putterBaseBottom - (6.0 * ratio); // Modify this line: Smoothly pulls back from the correct baseline
                         const currentLeft = 45.5;   // Keep this line
                         const currentRotate = 0;    // Keep this line
 
@@ -1321,7 +1327,7 @@ function animate() {
                         clubSwipeElement.style.left = '';
                         clubSwipeElement.style.transform = '';
                     }
-                } // Add this line: Securely closes out your PULLBACK condition block cleanly
+                } // Keep this line
 
             } else {
                 // Clear all classes to hide the club entirely when the ball is in motion

@@ -565,7 +565,7 @@ html {
 
 @keyframes putterSwipeAnimMobile {
     0% {
-        bottom: 4%;
+        bottom: 16%;
         left: calc(50% - 68px);
         /* Change this line */
         transform: rotate(0deg) scale(1.4);
@@ -574,7 +574,7 @@ html {
     }
 
     35% {
-        bottom: 3.5%;
+        bottom: 22.0%;
         /* Change this line: Lowered from 13.5% to match our new address line */
         /* Change this line: Lowered contact line from 25% */
         left: calc(50% - 68px);
@@ -585,7 +585,7 @@ html {
     }
 
     100% {
-        bottom: 9.0%;
+        bottom: 28.0%;
         /* Change this line: Lowered from 19.0% to keep the follow-through path proportional */
         /* Change this line: Lowered follow-through from 33% */
         left: calc(50% - 68px);
