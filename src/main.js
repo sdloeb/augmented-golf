@@ -1748,22 +1748,34 @@ function init() {
     updateDistanceDisplay();
     resetEntireGame();
 
-    // 1. Blocks iOS multi-finger pinch-to-zoom shortcuts
-    window.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-    window.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
-    window.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false }); // Add this line
+    // 1. SAFARI GESTURE INTERRUPTER: Constantly forcing manual overrides crashes Safari's zooming logic
+    document.addEventListener('gesturestart', (e) => {
+        e.preventDefault();
+        document.body.style.zoom = 0.99;
+    }, { passive: false });
+
+    document.addEventListener('gesturechange', (e) => {
+        e.preventDefault();
+        document.body.style.zoom = 0.99;
+    }, { passive: false });
+
+    document.addEventListener('gestureend', (e) => {
+        e.preventDefault();
+        document.body.style.zoom = 1.0;
+    }, { passive: false });
 
     // 2. STOPS MULTI-TOUCH CODES: Chokes 2-finger contact before iOS can scale the view
-    document.addEventListener('touchstart', (e) => { // Add this line
-        if (e.touches.length > 1) { // Add this line
-            e.preventDefault(); // Add this line: Denies multi-finger browser resizing instantly
-        } // Add this line
-    }, { passive: false }); // Add this line
+    document.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }, { passive: false });
 
     // 3. Blocks background page sliding, dragging, and monitors unexpected scale shifts
     document.addEventListener('touchmove', (e) => {
-        if (e.touches.length > 1 || (e.scale && e.scale !== 1)) { // Modify this line: Catch scale variants
-            e.preventDefault(); // Add this line
+        if (e.touches.length > 1 || (e.scale && e.scale !== 1)) {
+            e.preventDefault();
         } else if (!e.target.closest('.club-option') && !e.target.closest('#overheadBtn')) {
             e.preventDefault();
         }
