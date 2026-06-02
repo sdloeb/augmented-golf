@@ -42,9 +42,9 @@ const GREEN_RADIUS = 12.0;
 // --- UTILITY FUNCTIONS ---
 
 function onWindowResize() {
-    const aspect = window.innerWidth / window.innerHeight; // Add this line
+    const aspect = window.innerWidth / window.innerHeight;
     camera.aspect = aspect; // Change this line
-    camera.fov = aspect < 1 ? 72 : 65; // Add this line: Expands view for mobile portrait mode
+    camera.fov = aspect < 1 ? 72 : 65;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.documentElement.style.setProperty('--club-scale', window.innerHeight / 1080);
@@ -210,7 +210,7 @@ function generateHazards() {
             x = (Math.random() - 0.5) * 50;
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
             waterAttempts++; // Add this line
-            if (waterAttempts > 50) break; // Add this line to prevent browser freezing
+            if (waterAttempts > 50) break;
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
@@ -218,7 +218,7 @@ function generateHazards() {
             (z > -15 && Math.abs(x) < 15)
         );
 
-        if (waterAttempts > 50) continue; // Add this line to skip placement if no space was found
+        if (waterAttempts > 50) continue;
 
         let currentWaterGroundY = physics.getGroundHeight(x, z);
 
@@ -277,27 +277,27 @@ function generateHazards() {
             wallGeo, // Add this line
             new THREE.MeshStandardMaterial({ // Add this line
                 color: 0x655545, // Add this line
-                roughness: 0.95, // Add this line
-                metalness: 0.1, // Add this line
-                side: THREE.DoubleSide // Add this line
-            }) // Add this line
-        ); // Add this line
+                roughness: 0.95,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            })
+        );
 
         // FIXED: Shifted down to match the new 0.015 shore reference line perfectly
-        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 1.0, z); // Add this line
-        scene.add(wallMesh); // Add this line
-        waterShores.push(wallMesh); // Add this line
+        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 1.0, z);
+        scene.add(wallMesh);
+        waterShores.push(wallMesh);
 
     }
 
     for (let i = 0; i < numSand; i++) {
         let x, z, r = 4.5 + Math.random() * 2.5;
-        let sandAttempts = 0; // Add this line
+        let sandAttempts = 0;
         do {
             x = (Math.random() - 0.5) * 50;
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
-            sandAttempts++; // Add this line
-            if (sandAttempts > 50) break; // Add this line to prevent browser freezing
+            sandAttempts++;
+            if (sandAttempts > 50) break;
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
@@ -305,7 +305,7 @@ function generateHazards() {
             (z > -15 && Math.abs(x) < 15)
         );
 
-        if (sandAttempts > 50) continue; // Add this line to skip placement if no space was found
+        if (sandAttempts > 50) continue;
 
         let currentSandGroundY = physics.getGroundHeight(x, z);
 
@@ -602,7 +602,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     ball.position.set(teeBoxX, 0.37, 10); // Modify this line (elevated slightly to sit exactly on top of the tee)
-    if (golfTee) { // Add this line
+    if (golfTee) {
         golfTee.position.set(teeBoxX, 0.06, 10); // Add this line (moves the tee under the randomized ball position)
         golfTee.visible = true; // Add this line (makes tee appear for the initial drive)
     } // Add this line
@@ -1747,6 +1747,9 @@ function init() {
     generateNewWind();
     updateDistanceDisplay();
     resetEntireGame();
+    // Prevent iOS Safari native multi-finger pinch-to-zoom scaling
+    window.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    window.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
     animate();
 }
 

@@ -10,6 +10,13 @@ html {
     background: url('https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1920&q=80') no-repeat center center;
     background-size: cover;
     font-family: Arial, sans-serif;
+    touch-action: none;
+    /* Add this line: Stops all native browser panning & zooming */
+    user-select: none;
+    /* Add this line: Disables accidental text selections */
+    -webkit-user-select: none;
+    /* Add this line: Core iOS Safari selection override */
+    -webkit-touch-callout: none;
 }
 
 #gameCanvas {
