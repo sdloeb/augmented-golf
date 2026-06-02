@@ -1751,15 +1751,25 @@ function init() {
     // 1. Blocks iOS multi-finger pinch-to-zoom shortcuts
     window.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
     window.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+    window.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false }); // Add this line
 
-    // 2. Blocks background page sliding, dragging, and rubber-band bounce frames
+    // 2. STOPS MULTI-TOUCH CODES: Chokes 2-finger contact before iOS can scale the view
+    document.addEventListener('touchstart', (e) => { // Add this line
+        if (e.touches.length > 1) { // Add this line
+            e.preventDefault(); // Add this line: Denies multi-finger browser resizing instantly
+        } // Add this line
+    }, { passive: false }); // Add this line
+
+    // 3. Blocks background page sliding, dragging, and monitors unexpected scale shifts
     document.addEventListener('touchmove', (e) => {
-        if (!e.target.closest('.club-option') && !e.target.closest('#overheadBtn')) {
+        if (e.touches.length > 1 || (e.scale && e.scale !== 1)) { // Modify this line: Catch scale variants
+            e.preventDefault(); // Add this line
+        } else if (!e.target.closest('.club-option') && !e.target.closest('#overheadBtn')) {
             e.preventDefault();
         }
     }, { passive: false });
 
-    // 3. Blocks accidental double-tap native page zooms
+    // 4. Blocks accidental double-tap native page zooms
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
         const now = performance.now();
