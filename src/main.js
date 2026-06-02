@@ -1246,17 +1246,17 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        // Enforce realistic telephoto depth perception for putting on both desktop and mobile
-        if (camera.fov !== 35) {
-            camera.fov = 35;
+        // Enforce a uniform 60-degree lens to prevent perspective warping at different distances
+        if (camera.fov !== 70) {
+            camera.fov = 70;
             camera.updateProjectionMatrix();
         }
 
-        // Unified coordinates positioning the ball identically on all screen aspect ratios
-        const rigidCamDist = 4.8;
-        const rigidCamHeight = 1.15;
+        // Calibrated camera offsets for perfect depth and alignment
+        const rigidCamDist = 1.95;    // Moved closer to accommodate the wider 70 FOV lens depth stretch
+        const rigidCamHeight = 1.12;
         const lookAheadDist = 6.0;
-        const lookUpOffset = 0.75;
+        const lookUpOffset = 0.46;
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1269,6 +1269,9 @@ function animate() {
             ball.position.y + lookUpOffset,
             ball.position.z + dirZ * lookAheadDist
         );
+
+        // Forces the camera to lock instantly to the targets, completely eliminating lag and side-drifting
+        activeCameraSpeed = 1.0;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
@@ -1281,13 +1284,13 @@ function animate() {
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
+
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
     if (!physics.isMoving) {
         if (isCamOnGreen) {
-            const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-            // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= isPortrait ? 0.52 : 0.52; // Modify this line: Keeps ball sizing uniform on both devices
+            // Sets a stable size multiplier that looks normal at 5, 10, or 20 feet
+            finalBallTargetScale *= 1.15;
         }
     }
 
