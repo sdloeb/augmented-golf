@@ -1246,8 +1246,8 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const rigidCamDist = 6.5;
-        const rigidCamHeight = 1.6;
+        const rigidCamDist = 5.5;
+        const rigidCamHeight = 1.35;
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1257,9 +1257,9 @@ function animate() {
 
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
-            ball.position.x + dirX * 6.5,
-            ball.position.y + 1.12,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
-            ball.position.z + dirZ * 6.5
+            ball.position.x + dirX * 5.5,
+            ball.position.y + 1.45,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
+            ball.position.z + dirZ * 5.5
         ); // Change this line
     }
 
@@ -1271,7 +1271,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= 1.32; // Modify this line: Counteracts camera distance to keep ball size identical on screen
+            finalBallTargetScale *= 1.12; // Modify this line: Counteracts camera distance to keep ball size identical on screen
         }
     }
 
@@ -1308,7 +1308,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 17.5 - (7.0 * ratio); // Modify this line: Starts seamlessly at 17.5% and pulls down to 10.5%
+                        const currentBottom = 13.5 - (5.0 * ratio); // Modify this line: Starts seamlessly at 17.5% and pulls down to 10.5%
                         const currentLeft = 45.5;   // Keep this line
                         const currentRotate = 0;    // Keep this line
 
