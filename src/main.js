@@ -1308,7 +1308,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 11.5 - (6.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
+                        const currentBottom = 13.5 - (6.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
                         const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
                         const currentRotate = 0;    // Change this line: No rotation for a clean square face back
 

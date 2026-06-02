@@ -399,8 +399,8 @@ html {
 }
 
 #clubSwipe.putter.idle-stance {
-    left: 45% !important;
-    bottom: 11.5% !important;
+    left: 45.5% !important;
+    bottom: 13.5% !important;
     /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
 }
 
