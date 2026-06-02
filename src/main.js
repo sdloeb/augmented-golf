@@ -1246,8 +1246,8 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const rigidCamDist = 1.8;
-        const rigidCamHeight = 1.6;
+        const rigidCamDist = 3.2;
+        const rigidCamHeight = 1.8;
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1257,9 +1257,9 @@ function animate() {
 
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
-            ball.position.x + dirX * 4.0,
-            ball.position.y - 0.12,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
-            ball.position.z + dirZ * 4.0
+            ball.position.x + dirX * 3.5,
+            ball.position.y + 0.26,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
+            ball.position.z + dirZ * 3.5
         ); // Change this line
     }
 
@@ -1271,7 +1271,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= 0.47;
+            finalBallTargetScale *= 0.835; // Modify this line: Counteracts camera distance to keep ball size identical on screen
         }
     }
 
