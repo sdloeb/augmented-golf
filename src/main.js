@@ -1246,7 +1246,7 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const rigidCamDist = 3.2;
+        const rigidCamDist = 5.2;
         const rigidCamHeight = 1.8;
 
         cameraTargetPos.set(
@@ -1257,9 +1257,9 @@ function animate() {
 
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
-            ball.position.x + dirX * 3.5,
-            ball.position.y + 0.26,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
-            ball.position.z + dirZ * 3.5
+            ball.position.x + dirX * 5.2,
+            ball.position.y + 0.332,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
+            ball.position.z + dirZ * 5.2
         ); // Change this line
     }
 
@@ -1271,7 +1271,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= 0.835; // Modify this line: Counteracts camera distance to keep ball size identical on screen
+            finalBallTargetScale *= 1.074; // Modify this line: Counteracts camera distance to keep ball size identical on screen
         }
     }
 
@@ -1308,7 +1308,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 13.5 - (5.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
+                        const currentBottom = 11.5 - (6.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
                         const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
                         const currentRotate = 0;    // Change this line: No rotation for a clean square face back
 
