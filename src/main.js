@@ -1072,11 +1072,10 @@ function animate() {
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.5; // Locks the moving ball size to perfectly match its resting green size
+            ballTargetScale = 0.38; // Locks the moving ball size to perfectly match its resting green size
         } else {
             ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         }
-        // -------------------------------------------------------------------
 
         // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
         if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
@@ -1118,11 +1117,11 @@ function animate() {
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.00;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.38;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1154,11 +1153,11 @@ function animate() {
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.00;
+                ballTargetScale = 0.55;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;
+                ballTargetScale = 0.38;
             } else {
-                ballTargetScale = 1.2
+                ballTargetScale = 0.55;
             }
         } // <-- This brace closes the swinging check
 
@@ -1167,7 +1166,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 1.0;
+            ballTargetScale = 0.38;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1236,7 +1235,7 @@ function animate() {
             const camHeight = onGreen ? 1.0 : 1.8; // Change this line: Elevated from 0.5
             const lookDist = onGreen ? 6.0 : 12.0;
             const pDirX = holePosition.x - ball.position.x; // Add this line
-            const pDirZ = holePosition.z - ball.position.z; // Add this line
+            const pDirZ = holePosition.z - pDirZ; // Add this line
             const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
             cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
             cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
@@ -1247,23 +1246,24 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x;
     const checkZ = ball.position.z - greenCenterZ;
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive) {
+    // Gated with physics variables so fairway shots fly and land normally, but putts keep tracking smoothly
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && (!physics.isMoving || physics.isPutting)) {
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
         const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        // Enforce a uniform 60-degree lens to work beautifully with low-angle ground perspective
-        if (camera.fov !== 60) {
-            camera.fov = 60;
+        // Enforce a uniform 50-degree lens to eliminate wide-angle warping and display true ground depth
+        if (camera.fov !== 50) {
+            camera.fov = 50;
             camera.updateProjectionMatrix();
         }
 
-        const rigidCamDist = 1.3;     // Brought close behind the ball to stretch out the green distance behind it
-        const rigidCamHeight = 0.55;   // Dropped low to the grass for a realistic look down the putting line
+        const rigidCamDist = 3.6;     // Backed away to elongate ground perspective and make distances look realistic
+        const rigidCamHeight = 1.2;    // Set at a natural eye level angle looking down the green
         const lookAheadDist = 6.0;
-        const lookUpOffset = 0.18;    // Calibrated tilt to keep the ball sitting perfectly on top of the putter lip
+        const lookUpOffset = 0.22;    // Calibrated angle to lock the ball flush right on top of the putter rim
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1294,11 +1294,9 @@ function animate() {
 
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
-    if (!physics.isMoving) {
-        if (isCamOnGreen) {
-            // Sets a stable size multiplier that looks normal at 5, 10, or 20 feet
-            finalBallTargetScale *= 0.15;
-        }
+    if (isCamOnGreen) {
+        // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
+        finalBallTargetScale *= 1.0;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
