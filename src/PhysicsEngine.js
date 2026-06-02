@@ -412,18 +412,18 @@ export class PhysicsEngine {
 
                     if (Math.abs(diff) < 0.35) {
                         // Dead Center hitting zone: Ricochet directly backwards 
-                        this.velocity.x = -this.velocity.x * 0.7;
-                        this.velocity.z = -this.velocity.z * 0.7;
+                        this.velocity.x = -this.velocity.x * 0.3;
+                        this.velocity.z = -this.velocity.z * 0.3;
                     } else if (diff >= 0.35) {
                         // Right Side hitting zone: Deflect vector outward towards the right side
                         let deflection = alpha + Math.PI - 0.7;
-                        let speed = this.velocity.length() * 0.6;
+                        let speed = this.velocity.length() * 0.35;
                         this.velocity.x = Math.cos(deflection) * speed;
                         this.velocity.z = Math.sin(deflection) * speed;
                     } else {
                         // Left Side hitting zone: Deflect vector outward towards the left side
                         let deflection = alpha + Math.PI + 0.7;
-                        let speed = this.velocity.length() * 0.6;
+                        let speed = this.velocity.length() * 0.35;
                         this.velocity.x = Math.cos(deflection) * speed;
                         this.velocity.z = Math.sin(deflection) * speed;
                     }
