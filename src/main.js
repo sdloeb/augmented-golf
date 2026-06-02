@@ -1308,20 +1308,21 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = 13.5 - (6.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
-                        const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
-                        const currentRotate = 0;    // Change this line: No rotation for a clean square face back
+                        const currentBottom = 17.5 - (7.0 * ratio); // Modify this line: Starts seamlessly at 17.5% and pulls down to 10.5%
+                        const currentLeft = 45.5;   // Keep this line
+                        const currentRotate = 0;    // Keep this line
 
-                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
-                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Change this line: Maintains consistent scaling
+                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important'); // Keep this line
+                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important'); // Keep this line
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Keep this line
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
                         clubSwipeElement.style.left = '';
                         clubSwipeElement.style.transform = '';
                     }
-                }
+                } // Add this line: Securely closes out your PULLBACK condition block cleanly
+
             } else {
                 // Clear all classes to hide the club entirely when the ball is in motion
                 clubSwipeElement.className = '';
