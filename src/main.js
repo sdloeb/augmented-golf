@@ -749,7 +749,7 @@ function resetEntireGame(advanceHole = false) {
             sceneryGroup.add(trunkMesh);
 
             let finalizedFoliageRadius = calculatedFoliageRad * 0.9;
-            let finalizedTotalHeight = calculatedTrunkH + (finalizedFoliageRadius * 1.4);
+            let finalizedTotalHeight = calculatedTrunkH + (calculatedFoliageRad * 1.4);
 
             // ==========================================
             // VERSION 0: CLASSIC WIDE OAK TREE (BALANCED CANOPY)
@@ -758,42 +758,42 @@ function resetEntireGame(advanceHole = false) {
                 // Left structural accent branch
                 let branchGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
                 let branchL = new THREE.Mesh(branchGeoL, trunkMat);
-                branchL.position.set(-finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
+                branchL.position.set(-calculatedFoliageRad * 0.2, calculatedTrunkH * 0.8, 0);
                 branchL.rotation.z = 0.6; // Angle out left
                 sceneryGroup.add(branchL);
 
                 // Right structural accent branch
                 let branchGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
                 let branchR = new THREE.Mesh(branchGeoR, trunkMat);
-                branchR.position.set(finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
+                branchR.position.set(calculatedFoliageRad * 0.2, calculatedTrunkH * 0.8, 0);
                 branchR.rotation.z = -0.6; // Angle out right
                 sceneryGroup.add(branchR);
 
                 // Left twig extending deep into the left foliage puff
-                let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
+                let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.8, 8);
                 let twigL = new THREE.Mesh(twigGeoL, trunkMat);
-                twigL.position.set(-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
+                twigL.position.set(-calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.3, 0.1);
                 twigL.rotation.z = 0.8;
                 sceneryGroup.add(twigL);
 
                 // Right twig extending deep into the right foliage puff
-                let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
+                let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.8, 8);
                 let twigR = new THREE.Mesh(twigGeoR, trunkMat);
-                twigR.position.set(finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
+                twigR.position.set(calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.3, 0.1);
                 twigR.rotation.z = -0.8;
                 sceneryGroup.add(twigR);
 
                 // Overlapping full foliage puffs
                 let positions = [
-                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],          // Center Crown
-                    [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55], // Left Flank
-                    [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],  // Right Flank
-                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45], // Rear
-                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]   // Foreground
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.7, 0, 0.7],          // Center Crown
+                    [-calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.55], // Left Flank
+                    [calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.55],  // Right Flank
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.5, -calculatedFoliageRad * 0.4, 0.45], // Rear
+                    [0, calculatedTrunkH + calculatedFoliageRad * 0.5, calculatedFoliageRad * 0.4, 0.45]   // Foreground
                 ];
 
                 positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 8, 8);
+                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
                     let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                     leafMesh.position.set(p[0], p[1], p[2]);
                     sceneryGroup.add(leafMesh);
@@ -1067,15 +1067,8 @@ function animate() {
         const dz = ball.position.z - 10;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
-        const checkX = ball.position.x;
-        const checkZ = ball.position.z - greenCenterZ;
-        const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
-
-        if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.36; // Locks the moving ball size to perfectly match its resting green size
-        } else {
-            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
-        }
+        ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+        // -------------------------------------------------------------------
 
         // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
         if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
@@ -1117,11 +1110,11 @@ function animate() {
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.36;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1153,20 +1146,20 @@ function animate() {
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.55;
+                ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.36;
+                ballTargetScale = 1.0;
             } else {
-                ballTargetScale = 0.55;
+                ballTargetScale = 1.2
             }
         } // <-- This brace closes the swinging check
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.36;
+            ballTargetScale = 1.0;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1235,7 +1228,7 @@ function animate() {
             const camHeight = onGreen ? 1.0 : 1.8; // Change this line: Elevated from 0.5
             const lookDist = onGreen ? 6.0 : 12.0;
             const pDirX = holePosition.x - ball.position.x; // Add this line
-            const pDirZ = holePosition.z - ball.position.z; // Fixed recursive naming loop bug from original file
+            const pDirZ = holePosition.z - ball.position.z; // Add this line
             const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
             cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
             cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
@@ -1246,38 +1239,15 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x;
     const checkZ = ball.position.z - greenCenterZ;
-    // Gated with physics variables so fairway shots fly and land normally, but putts keep tracking smoothly
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && (!physics.isMoving || physics.isPutting)) {
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && !physics.isMoving) {
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
         const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
-        const aspect = window.innerWidth / window.innerHeight;
-        let targetFov, rigidCamDist, rigidCamHeight, lookUpOffset;
-
-        if (aspect < 1) {
-            // PORTRAIT MOBILE SCHEMA: Wider lens opens the vertical projection fields to prevent extreme squashing
-            targetFov = 65;          
-            rigidCamDist = 2.2;      
-            rigidCamHeight = 1.1;    
-            lookUpOffset = -0.40;    // Negative angle tilt forces foreground assets upward, above the putter line
-        } else {
-            // LANDSCAPE DESKTOP SCHEMA: Narrower lens naturally extends the depth lines to stretch distance fields vertically
-            targetFov = 40;          
-            rigidCamDist = 3.5;      // Backs camera away from the ball to elongate the putting field realistically
-            rigidCamHeight = 1.2;    // Natural standing viewer pitch looking down the line
-            lookUpOffset = -0.40;    // Custom downward tilt locks the ball right on top of the putter blade rim
-        }
-
-        if (camera.fov !== targetFov) {
-            camera.fov = targetFov;
-            camera.updateProjectionMatrix();
-        }
-
-        const lookAheadDist = 6.0;
+        const rigidCamDist = 1.8;
+        const rigidCamHeight = 1.6;
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1285,32 +1255,24 @@ function animate() {
             ball.position.z - dirZ * rigidCamDist
         );
 
+        // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
-            ball.position.x + dirX * lookAheadDist,
-            ball.position.y + lookUpOffset,
-            ball.position.z + dirZ * lookAheadDist
-        );
-
-        // Forces the camera to lock instantly to prevent any floating lag or side-drifting
-        activeCameraSpeed = 1.0;
-    } else {
-        // Restore standard non-putting field of view dynamically
-        const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
-        if (camera.fov !== defaultFov) {
-            camera.fov = defaultFov;
-            camera.updateProjectionMatrix();
-        }
+            ball.position.x + dirX * 4.0,
+            ball.position.y - 0.12,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
+            ball.position.z + dirZ * 4.0
+        ); // Change this line
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
-
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
-    if (isCamOnGreen) {
-        // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
-        finalBallTargetScale *= 1.0;
+    if (!physics.isMoving) {
+        if (isCamOnGreen) {
+            // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
+            finalBallTargetScale *= 0.47;
+        }
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -1333,15 +1295,12 @@ function animate() {
                     clubTypeClass = 'wood';
                 }
 
-                // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
-                const putterBaseBottom = 19.5;
-                const putterCenteredLeft = 'calc(50% - 77.5px)';
-
+                // Switch utility classes matching the interactive InputHandler tracking states
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
                     // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
-                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
+                    clubSwipeElement.style.bottom = '';
+                    clubSwipeElement.style.left = '';
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
@@ -1349,21 +1308,20 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = putterBaseBottom - (6.0 * ratio);
-                        const currentLeft = putterCenteredLeft;
-                        const currentRotate = 0;
+                        const currentBottom = 13.5 - (5.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
+                        const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
+                        const currentRotate = 0;    // Change this line: No rotation for a clean square face back
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
-                        clubSwipeElement.style.setProperty('left', currentLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important');
+                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Change this line: Maintains consistent scaling
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
                         clubSwipeElement.style.left = '';
                         clubSwipeElement.style.transform = '';
                     }
-                } // Keep this line
-
+                }
             } else {
                 // Clear all classes to hide the club entirely when the ball is in motion
                 clubSwipeElement.className = '';
@@ -1479,7 +1437,7 @@ function init() {
     const rCtx = rCanvas.getContext('2d');
     rCtx.fillStyle = '#a5a5a5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
     for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
-        rCtx.fillStyle = Math.random > 0.5 ? '#ffffff' : '#686868';
+        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#686868';
         rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
     }
     const roughTexture = new THREE.CanvasTexture(rCanvas);
@@ -1690,9 +1648,9 @@ function init() {
         if (clubSwipe) {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
-                const ratio = input.pullRatio || 0;
-                const currentBottom = 19.5 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
-                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
+                const ratio = input.pullRatio || 0; // Add this line
+                const currentBottom = 13.5 - (5.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
+                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%'); // Change this line
             }
 
             clubSwipe.className = '';
