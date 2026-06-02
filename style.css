@@ -399,9 +399,9 @@ html {
 }
 
 #clubSwipe.putter.idle-stance {
-    left: 45.5% !important;
-    bottom: 13.5% !important;
-    /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
+    left: calc(50% - 77.5px) !important;
+    bottom: 19.5% !important;
+    /* FIXED: Centers horizontally and anchors cleanly against the realistic camera baseline */
 }
 
 /* ==========================================================================
@@ -547,11 +547,11 @@ html {
 
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
-        left: calc(50% - 68px) !important;
+        left: calc(50% - 77.5px) !important;
     }
 
     #clubSwipe.pullback-stance {
-        left: calc(50% - 52px) !important;
+        left: calc(50% - 77.5px) !important;
     }
 
     #clubSwipe.swipe-animation {
@@ -565,33 +565,23 @@ html {
 
 @keyframes putterSwipeAnimMobile {
     0% {
-        bottom: 16%;
-        left: calc(50% - 68px);
-        /* Change this line */
+        bottom: var(--putter-start-bottom, 19.5%);
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
-        /* Change this line */
         opacity: 1;
     }
 
     35% {
-        bottom: 22.0%;
-        /* Change this line: Lowered from 13.5% to match our new address line */
-        /* Change this line: Lowered contact line from 25% */
-        left: calc(50% - 68px);
-        /* Change this line */
+        bottom: 19.5%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
-        /* Change this line */
         opacity: 1;
     }
 
     100% {
-        bottom: 28.0%;
-        /* Change this line: Lowered from 19.0% to keep the follow-through path proportional */
-        /* Change this line: Lowered follow-through from 33% */
-        left: calc(50% - 68px);
-        /* Change this line */
+        bottom: 25.0%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
-        /* Change this line */
         opacity: 0;
     }
 }
@@ -618,42 +608,23 @@ html {
 
 @keyframes putterSwipeAnim {
     0% {
-        bottom: var(--putter-start-bottom, 4%);
-        /* Matches the deep pullback edge position */
-        left: 45.5%;
-        /* Change this line */
+        bottom: var(--putter-start-bottom, 19.5%);
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     35% {
-        bottom: 13.5%;
-        /* FIXED: Smooth contact right at the ball's base position */
-        /* Unchanged: Hits through the perfect horizontal center of the ball */
-        left: 45.5%;
-        /* Change this line */
+        bottom: 19.5%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     100% {
-        bottom: 19.0%;
-        /* FIXED: Adjusted follow-through path proportionally */
-        left: 45.5%;
-        /* Change this line */
+        bottom: 25.0%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 0;
-        /* Smoothly clears from screen view upon completing follow-through stroke */
-    }
-}
-
-/* ==========================================================================
-   LAPTOP AND SMALL SCREEN RESPONSIVE CLUB SCALING
-   ========================================================================== */
-/* Update this line to isolate laptops and increase zoom size */
-@media (max-height: 850px) and (min-width: 769px) {
-    #clubSwipe {
-        zoom: 1.2;
-        /* Update this line to make it slightly larger on laptops */
     }
 }

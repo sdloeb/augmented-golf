@@ -1246,9 +1246,17 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-        const rigidCamDist = isPortrait ? 7.5 : 5.5; // Modify this line: Pulls back further on mobile for true deep green perspective
-        const rigidCamHeight = isPortrait ? 1.5 : 1.35; // Modify this line: Gives real depth perception on mobile screens
+        // Enforce realistic telephoto depth perception for putting on both desktop and mobile
+        if (camera.fov !== 35) {
+            camera.fov = 35;
+            camera.updateProjectionMatrix();
+        }
+
+        // Unified coordinates positioning the ball identically on all screen aspect ratios
+        const rigidCamDist = 4.8;
+        const rigidCamHeight = 1.15;
+        const lookAheadDist = 6.0;
+        const lookUpOffset = 0.75;
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1256,13 +1264,18 @@ function animate() {
             ball.position.z - dirZ * rigidCamDist
         );
 
-        // ABSOLUTE GAZE LOCK
-        const verticalTilt = isPortrait ? 2.35 : 1.45; // Modify this line: High tilt on mobile portrait explicitly forces the ball lower down your screen screen
         cameraLookAt.set(
-            ball.position.x + dirX * rigidCamDist, // Modify this line
-            ball.position.y + verticalTilt,  // Modify this line
-            ball.position.z + dirZ * rigidCamDist // Modify this line
+            ball.position.x + dirX * lookAheadDist,
+            ball.position.y + lookUpOffset,
+            ball.position.z + dirZ * lookAheadDist
         );
+    } else {
+        // Restore standard non-putting field of view dynamically
+        const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
+        if (camera.fov !== defaultFov) {
+            camera.fov = defaultFov;
+            camera.updateProjectionMatrix();
+        }
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
@@ -1298,15 +1311,15 @@ function animate() {
                     clubTypeClass = 'wood';
                 }
 
-                // Switch utility classes matching the interactive InputHandler tracking states
-                const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-                const putterBaseBottom = isPortrait ? 22.0 : 13.5; // Add this line: Calibrated baseline positions for both layouts
+                // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
+                const putterBaseBottom = 19.5;
+                const putterCenteredLeft = 'calc(50% - 77.5px)';
 
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
                     // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : ''; // Modify this line
-                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '45.5%' : ''; // Modify this line
+                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
+                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
@@ -1314,13 +1327,13 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = putterBaseBottom - (6.0 * ratio); // Modify this line: Smoothly pulls back from the correct baseline
-                        const currentLeft = 45.5;   // Keep this line
-                        const currentRotate = 0;    // Keep this line
+                        const currentBottom = putterBaseBottom - (6.0 * ratio);
+                        const currentLeft = putterCenteredLeft;
+                        const currentRotate = 0;
 
-                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important'); // Keep this line
-                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important'); // Keep this line
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Keep this line
+                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
+                        clubSwipeElement.style.setProperty('left', currentLeft, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important');
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
@@ -1655,9 +1668,9 @@ function init() {
         if (clubSwipe) {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
-                const ratio = input.pullRatio || 0; // Add this line
-                const currentBottom = 13.5 - (5.0 * ratio); // Add this line: Symmetrically mirrors your exact pullback depth math
-                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%'); // Change this line
+                const ratio = input.pullRatio || 0;
+                const currentBottom = 19.5 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
+                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
             }
 
             clubSwipe.className = '';
