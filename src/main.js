@@ -1287,7 +1287,7 @@ function animate() {
         if (isCamOnGreen) {
             const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= isPortrait ? 1.55 : 1.12; // Modify this line: Keeps ball sizing uniform on both devices
+            finalBallTargetScale *= isPortrait ? 0.52 : 0.52; // Modify this line: Keeps ball sizing uniform on both devices
         }
     }
 
