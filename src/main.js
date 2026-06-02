@@ -1067,7 +1067,15 @@ function animate() {
         const dz = ball.position.z - 10;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
-        ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+        const checkX = ball.position.x;
+        const checkZ = ball.position.z - greenCenterZ;
+        const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
+
+        if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
+            ballTargetScale = 0.5; // Locks the moving ball size to perfectly match its resting green size
+        } else {
+            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+        }
         // -------------------------------------------------------------------
 
         // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
@@ -1112,7 +1120,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.00;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.5;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1148,7 +1156,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.00;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.5;
+                ballTargetScale = 1.0;
             } else {
                 ballTargetScale = 1.2
             }
@@ -1159,7 +1167,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.5;
+            ballTargetScale = 1.0;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1239,24 +1247,23 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x;
     const checkZ = ball.position.z - greenCenterZ;
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && !physics.isMoving) {
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive) {
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
         const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        // Enforce a uniform 60-degree lens to prevent perspective warping at different distances
-        if (camera.fov !== 70) {
-            camera.fov = 70;
+        // Enforce a uniform 60-degree lens to work beautifully with low-angle ground perspective
+        if (camera.fov !== 60) {
+            camera.fov = 60;
             camera.updateProjectionMatrix();
         }
 
-        // Calibrated camera offsets for perfect depth and alignment
-        const rigidCamDist = 1.95;    // Moved closer to accommodate the wider 70 FOV lens depth stretch
-        const rigidCamHeight = 1.12;
+        const rigidCamDist = 1.3;     // Brought close behind the ball to stretch out the green distance behind it
+        const rigidCamHeight = 0.55;   // Dropped low to the grass for a realistic look down the putting line
         const lookAheadDist = 6.0;
-        const lookUpOffset = 0.46;
+        const lookUpOffset = 0.18;    // Calibrated tilt to keep the ball sitting perfectly on top of the putter lip
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1270,7 +1277,7 @@ function animate() {
             ball.position.z + dirZ * lookAheadDist
         );
 
-        // Forces the camera to lock instantly to the targets, completely eliminating lag and side-drifting
+        // Forces the camera to lock instantly to prevent any floating lag or side-drifting
         activeCameraSpeed = 1.0;
     } else {
         // Restore standard non-putting field of view dynamically
@@ -1290,7 +1297,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Sets a stable size multiplier that looks normal at 5, 10, or 20 feet
-            finalBallTargetScale *= 1.15;
+            finalBallTargetScale *= 0.15;
         }
     }
 
