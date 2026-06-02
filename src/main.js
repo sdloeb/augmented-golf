@@ -1747,9 +1747,28 @@ function init() {
     generateNewWind();
     updateDistanceDisplay();
     resetEntireGame();
-    // Prevent iOS Safari native multi-finger pinch-to-zoom scaling
+
+    // 1. Blocks iOS multi-finger pinch-to-zoom shortcuts
     window.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
     window.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+
+    // 2. Blocks background page sliding, dragging, and rubber-band bounce frames
+    document.addEventListener('touchmove', (e) => {
+        if (!e.target.closest('.club-option') && !e.target.closest('#overheadBtn')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    // 3. Blocks accidental double-tap native page zooms
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+        const now = performance.now();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+
     animate();
 }
 

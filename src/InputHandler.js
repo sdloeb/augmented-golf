@@ -107,6 +107,7 @@ export class InputHandler {
 
     onTouchMove(e) {
         if (!this.isSwinging) return;
+        e.preventDefault();
         const touch = e.touches[0];
         const currentX = touch.clientX;
         const currentY = touch.clientY;
