@@ -749,7 +749,7 @@ function resetEntireGame(advanceHole = false) {
             sceneryGroup.add(trunkMesh);
 
             let finalizedFoliageRadius = calculatedFoliageRad * 0.9;
-            let finalizedTotalHeight = calculatedTrunkH + (calculatedFoliageRad * 1.4);
+            let finalizedTotalHeight = calculatedTrunkH + (finalizedFoliageRadius * 1.4);
 
             // ==========================================
             // VERSION 0: CLASSIC WIDE OAK TREE (BALANCED CANOPY)
@@ -758,42 +758,42 @@ function resetEntireGame(advanceHole = false) {
                 // Left structural accent branch
                 let branchGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
                 let branchL = new THREE.Mesh(branchGeoL, trunkMat);
-                branchL.position.set(-calculatedFoliageRad * 0.2, calculatedTrunkH * 0.8, 0);
+                branchL.position.set(-finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
                 branchL.rotation.z = 0.6; // Angle out left
                 sceneryGroup.add(branchL);
 
                 // Right structural accent branch
                 let branchGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
                 let branchR = new THREE.Mesh(branchGeoR, trunkMat);
-                branchR.position.set(calculatedFoliageRad * 0.2, calculatedTrunkH * 0.8, 0);
+                branchR.position.set(finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
                 branchR.rotation.z = -0.6; // Angle out right
                 sceneryGroup.add(branchR);
 
                 // Left twig extending deep into the left foliage puff
-                let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.8, 8);
+                let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
                 let twigL = new THREE.Mesh(twigGeoL, trunkMat);
-                twigL.position.set(-calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.3, 0.1);
+                twigL.position.set(-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
                 twigL.rotation.z = 0.8;
                 sceneryGroup.add(twigL);
 
                 // Right twig extending deep into the right foliage puff
-                let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.8, 8);
+                let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
                 let twigR = new THREE.Mesh(twigGeoR, trunkMat);
-                twigR.position.set(calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.3, 0.1);
+                twigR.position.set(finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
                 twigR.rotation.z = -0.8;
                 sceneryGroup.add(twigR);
 
                 // Overlapping full foliage puffs
                 let positions = [
-                    [0, calculatedTrunkH + calculatedFoliageRad * 0.7, 0, 0.7],          // Center Crown
-                    [-calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.55], // Left Flank
-                    [calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.55],  // Right Flank
-                    [0, calculatedTrunkH + calculatedFoliageRad * 0.5, -calculatedFoliageRad * 0.4, 0.45], // Rear
-                    [0, calculatedTrunkH + calculatedFoliageRad * 0.5, calculatedFoliageRad * 0.4, 0.45]   // Foreground
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],          // Center Crown
+                    [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55], // Left Flank
+                    [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],  // Right Flank
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45], // Rear
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]   // Foreground
                 ];
 
                 positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
+                    let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 8, 8);
                     let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                     leafMesh.position.set(p[0], p[1], p[2]);
                     sceneryGroup.add(leafMesh);
@@ -1072,7 +1072,7 @@ function animate() {
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.38; // Locks the moving ball size to perfectly match its resting green size
+            ballTargetScale = 0.36; // Locks the moving ball size to perfectly match its resting green size
         } else {
             ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         }
@@ -1119,7 +1119,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.38;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.36;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1155,7 +1155,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.55;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.38;
+                ballTargetScale = 0.36;
             } else {
                 ballTargetScale = 0.55;
             }
@@ -1166,7 +1166,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.38;
+            ballTargetScale = 0.36;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1235,7 +1235,7 @@ function animate() {
             const camHeight = onGreen ? 1.0 : 1.8; // Change this line: Elevated from 0.5
             const lookDist = onGreen ? 6.0 : 12.0;
             const pDirX = holePosition.x - ball.position.x; // Add this line
-            const pDirZ = holePosition.z - pDirZ; // Add this line
+            const pDirZ = holePosition.z - ball.position.z; // Fixed recursive naming loop bug from original file
             const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
             cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
             cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
@@ -1254,16 +1254,30 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        // Enforce a uniform 50-degree lens to eliminate wide-angle warping and display true ground depth
-        if (camera.fov !== 50) {
-            camera.fov = 50;
+        // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
+        const aspect = window.innerWidth / window.innerHeight;
+        let targetFov, rigidCamDist, rigidCamHeight, lookUpOffset;
+
+        if (aspect < 1) {
+            // PORTRAIT MOBILE SCHEMA: Wider lens opens the vertical projection fields to prevent extreme squashing
+            targetFov = 65;          
+            rigidCamDist = 2.2;      
+            rigidCamHeight = 1.1;    
+            lookUpOffset = -0.40;    // Negative angle tilt forces foreground assets upward, above the putter line
+        } else {
+            // LANDSCAPE DESKTOP SCHEMA: Narrower lens naturally extends the depth lines to stretch distance fields vertically
+            targetFov = 40;          
+            rigidCamDist = 3.5;      // Backs camera away from the ball to elongate the putting field realistically
+            rigidCamHeight = 1.2;    // Natural standing viewer pitch looking down the line
+            lookUpOffset = -0.40;    // Custom downward tilt locks the ball right on top of the putter blade rim
+        }
+
+        if (camera.fov !== targetFov) {
+            camera.fov = targetFov;
             camera.updateProjectionMatrix();
         }
 
-        const rigidCamDist = 3.6;     // Backed away to elongate ground perspective and make distances look realistic
-        const rigidCamHeight = 1.2;    // Set at a natural eye level angle looking down the green
         const lookAheadDist = 6.0;
-        const lookUpOffset = 0.22;    // Calibrated angle to lock the ball flush right on top of the putter rim
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1465,7 +1479,7 @@ function init() {
     const rCtx = rCanvas.getContext('2d');
     rCtx.fillStyle = '#a5a5a5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
     for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
-        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#686868';
+        rCtx.fillStyle = Math.random > 0.5 ? '#ffffff' : '#686868';
         rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
     }
     const roughTexture = new THREE.CanvasTexture(rCanvas);
