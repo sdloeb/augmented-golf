@@ -42,7 +42,9 @@ const GREEN_RADIUS = 12.0;
 // --- UTILITY FUNCTIONS ---
 
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const aspect = window.innerWidth / window.innerHeight; // Add this line
+    camera.aspect = aspect; // Change this line
+    camera.fov = aspect < 1 ? 72 : 65; // Add this line: Expands view for mobile portrait mode
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.documentElement.style.setProperty('--club-scale', window.innerHeight / 1080);
@@ -1244,8 +1246,8 @@ function animate() {
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const rigidCamDist = 3.2;
-        const rigidCamHeight = 1.1;
+        const rigidCamDist = 1.8;
+        const rigidCamHeight = 1.6;
 
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
@@ -1256,7 +1258,7 @@ function animate() {
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
             ball.position.x + dirX * 4.0,
-            ball.position.y + 1.20,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
+            ball.position.y - 0.12,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
             ball.position.z + dirZ * 4.0
         ); // Change this line
     }
@@ -1269,7 +1271,7 @@ function animate() {
     if (!physics.isMoving) {
         if (isCamOnGreen) {
             // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= (2.5 / 5.5) * 1.5;
+            finalBallTargetScale *= 0.47;
         }
     }
 
@@ -1410,7 +1412,9 @@ function init() {
     scene = new THREE.Scene();
 
     // 2. Setup Camera View
-    camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const currentAspect = window.innerWidth / window.innerHeight; // Add this line
+    const startingFov = currentAspect < 1 ? 72 : 65; // Add this line: 72 for tall mobile screens, 65 for wide desktop screens
+    camera = new THREE.PerspectiveCamera(startingFov, currentAspect, 0.1, 1000); // Change this line
     camera.position.set(0, 2, 14);
     camera.lookAt(0, 0, -50);
 

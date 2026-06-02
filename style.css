@@ -392,7 +392,7 @@ html {
 
 #clubSwipe.putter.idle-stance {
     left: 45% !important;
-    bottom: 13.5% !important;
+    bottom: 3.5% !important;
     /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
 }
 
@@ -566,7 +566,8 @@ html {
     }
 
     35% {
-        bottom: 13.5%;
+        bottom: 3.5%;
+        /* Change this line: Lowered from 13.5% to match our new address line */
         /* Change this line: Lowered contact line from 25% */
         left: calc(50% - 68px);
         /* Change this line */
@@ -576,7 +577,8 @@ html {
     }
 
     100% {
-        bottom: 19.0%;
+        bottom: 9.0%;
+        /* Change this line: Lowered from 19.0% to keep the follow-through path proportional */
         /* Change this line: Lowered follow-through from 33% */
         left: calc(50% - 68px);
         /* Change this line */
