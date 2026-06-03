@@ -2,6 +2,8 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
+const MOBILE_PUTTING_BALL_SIZE = 0.35;
+
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor;
 let clubLandingRing;
@@ -1277,24 +1279,27 @@ function animate() {
 
 
 
-    // NEW: Precise ball scaling on the green using state variables instead of FOV strict equality
+    // NEW: Precise ball scaling using our top configuration variable and position checks
     let finalBallTargetScale = ballTargetScale;
     const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-    if (isOnGreen && !isOverheadActive) {
+    // Check if putting or sitting on the green using active state maps
+    const checkX = ball.position.x;
+    const checkZ = ball.position.z - greenCenterZ;
+    const ballIsCurrentlyOnGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
+
+    if (ballIsCurrentlyOnGreen && !isOverheadActive) {
         if (isPortrait) {
-            // DIRECT MOBILE PUTTING BALL SIZE CONTROL:
-            // Adjust this single number directly to change the size instantly on mobile!
-            // (e.g., 0.35, 0.55, 0.85, etc.)
-            finalBallTargetScale = 0.35;
+            // Reads directly from the variable you set at the top of the file
+            finalBallTargetScale = MOBILE_PUTTING_BALL_SIZE;
         } else {
-            // Desktop putting scale adjustment
+            // Desktop standard putting multiplier adjustment
             finalBallTargetScale = ballTargetScale * 1.78;
         }
     }
 
-    // Force an instant transition factor (1.0) on the green so changes take effect immediately
-    const scaleLerpFactor = (isOnGreen && !isOverheadActive) ? 1.0 : 0.05;
+    // Snap size instantly (1.0 factor) on the green so updates are visible without transition lag
+    const scaleLerpFactor = (ballIsCurrentlyOnGreen && !isOverheadActive) ? 1.0 : 0.05;
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, scaleLerpFactor);
     ball.scale.set(currentScale, currentScale, currentScale);
 
