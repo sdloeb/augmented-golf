@@ -2,21 +2,17 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
+
 // --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
 const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     ('ontouchstart' in window) ||
     (navigator.maxTouchPoints > 0);
 
-const PUTTING_SCALES = {
-    // 🛠️ CHANGING THESE NUMBERS NOW DIRECTLY SETS THE PUTTING BALL SIZE:
-    mobileBallScale: 10.11,   // Perfect calibrated size for mobile touch screens
-    desktopBallScale: 0.20,  // Isolated baseline size for desktop mouse users
+// 🛠️ EDIT THESE BASE SIZES DIRECTLY RIGHT HERE:
+const MOBILE_PUTTING_BALL_SIZE = 0.12;   // Adjust this number to scale the mobile ball size up or down smoothly
+const DESKTOP_PUTTING_BALL_SIZE = 0.20;  // Isolated baseline scale kept completely separate for desktop players
 
-    get puttingBallScale() {
-        // Tracks actual mobile hardware type so Landscape vs Portrait rotation doesn't break the size scaling
-        return isMobileDevice ? this.mobileBallScale : this.desktopBallScale;
-    }
-};
+const puttingBallScale = isMobileDevice ? MOBILE_PUTTING_BALL_SIZE : DESKTOP_PUTTING_BALL_SIZE;
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 
@@ -1149,10 +1145,15 @@ function animate() {
         if (input && input.isSwinging) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+
+            // FIX: Explicitly calculate local pullback camera offsets to prevent out-of-scope ReferenceErrors
+            const backX = -(dirX / length) * camDist;
+            const backZ = -(dirZ / length) * camDist;
 
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
+
 
             // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
@@ -1289,15 +1290,24 @@ function animate() {
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
 
-
-
-
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
-    // CONFIRMED: Multiplier overrides removed so the values you type at the top map correctly on screen.
+    let finalBallTargetScale = ballTargetScale;
+    if (camera.fov === 92) {
+        const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-    // CHANGED: Lerps the ball scale smoothly based on the target scale set by the game state
-    const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
+        // Isolates lens amplification adjustments so your mobile values translate 1:1 on screen
+        if (isMobileDevice) {
+            finalBallTargetScale *= 1.0;
+        } else {
+            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+        }
+    }
+
+    // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
+
+    // --- DYNAMIC CLUB STANCE STATE MACHINE ---
 
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
