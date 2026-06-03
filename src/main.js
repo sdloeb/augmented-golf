@@ -8,9 +8,12 @@ const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0);
 
 const PUTTING_SCALES = {
+    // 1. CHANGE YOUR BASE SIZES DIRECTLY HERE:
+    mobileBallScale: 0.25,   // Change this to scale mobile up or down safely
+    desktopBallScale: 0.20,  // Completely isolated baseline for desktop players
+
     get puttingBallScale() {
-        // Tracks actual mobile hardware type so Landscape vs Portrait rotation doesn't break the size scaling
-        return isMobileDevice ? 0.25 : 0.20;
+        return isMobileDevice ? this.mobileBallScale : this.desktopBallScale;
     }
 };
 
@@ -1291,14 +1294,10 @@ function animate() {
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-        // Uses the true device environment profile to keep settings decoupled from screen orientation
-        if (isMobileDevice) {
-            // Mobile screens maintain a clean 1.0 multiplier so your top 0.45 variable maps perfectly 1:1
-            finalBallTargetScale *= 1.0;
-        } else {
-            // Desktop keeps your projection calibration values working cleanly based on monitor aspect ratios
-            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
-        }
+        // Applies uniform camera lens projection multipliers to both devices.
+        // This ensures the values you type at the top scale correctly on screen.
+        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
