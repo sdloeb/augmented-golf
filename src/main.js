@@ -2,21 +2,7 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
-
-// --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
-const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
-    ('ontouchstart' in window) ||
-    (navigator.maxTouchPoints > 0);
-
-// 🛠️ EDIT THESE BASE SIZES DIRECTLY RIGHT HERE:
-const MOBILE_PUTTING_BALL_SIZE = 1.0;   // Adjust this number to scale the mobile ball size up or down smoothly
-const DESKTOP_PUTTING_BALL_SIZE = 0.20;  // Isolated baseline scale kept completely separate for desktop players
-
-const puttingBallScale = isMobileDevice ? MOBILE_PUTTING_BALL_SIZE : DESKTOP_PUTTING_BALL_SIZE;
-
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
-
-
 let green, pin, flag, holeCup, fairway, floor;
 let clubLandingRing;
 let clubLandingBeacon;
@@ -1071,7 +1057,7 @@ function animate() {
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         if (physics.isPutting) {
-            ballTargetScale = PUTTING_SCALES.puttingBallScale;
+            ballTargetScale = 0.24;
         } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
@@ -1120,12 +1106,12 @@ function animate() {
 
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
-            if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
-            } else if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.95;
+            if (teeBox && teeBox.visible) {
+                ballTargetScale = 1.05;  // OPTION 1: Size when on the Tee Box
+            } else if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = 0.24;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 0.9;
+                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1145,36 +1131,34 @@ function animate() {
         if (input && input.isSwinging) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            // FIX: Explicitly calculate local pullback camera offsets to prevent out-of-scope ReferenceErrors
-            const backX = -(dirX / length) * camDist;
-            const backZ = -(dirZ / length) * camDist;
+            const backX = -(dirX / length) * camDist; // CHANGED
+            const backZ = -(dirZ / length) * camDist; // CHANGED
 
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
 
-
             // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
-            if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
-            } else if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.95;
+            if (teeBox && teeBox.visible) {
+                ballTargetScale = 1.05;
+            } else if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = 0.24;
             } else {
-                ballTargetScale = 0.9;
+                ballTargetScale = 1.0;
             }
         } // <-- This brace closes the swinging check
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
-        if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
-        } else if (teeBox && teeBox.visible) {
-            ballTargetScale = 0.95;
+        if (teeBox && teeBox.visible) {
+            ballTargetScale = 1.05;  // Keeps it big on the tee box automatically!
+        } else if (onGreen || restingClub === 'Putter') {
+            ballTargetScale = 0.24;
         } else {
-            ballTargetScale = 0.9;
+            ballTargetScale = 1.0;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
@@ -1290,24 +1274,20 @@ function animate() {
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
 
+
+
+
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
-    if (camera.fov === 92) {
+    if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
-
-        // Isolates lens amplification adjustments so your mobile values translate 1:1 on screen
-        if (isMobileDevice) {
-            finalBallTargetScale *= 1.0;
-        } else {
-            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
-        }
+        // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
+        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
-
-    // --- DYNAMIC CLUB STANCE STATE MACHINE ---
 
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
