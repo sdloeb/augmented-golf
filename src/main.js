@@ -8,7 +8,7 @@ const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 
 const PUTTING_SCALES = {
     // 1. DOCK YOUR BALANCED VALUES DIRECTLY HERE:
-    mobileBallScale: 0.25,   // Change this value to scale the ball on mobile/tablet screens only
+    mobileBallScale: 0.05,   // Change this value to scale the ball on mobile/tablet screens only
     desktopBallScale: 0.20,  // Completely isolated baseline size for desktop mouse users
 
     get puttingBallScale() {
