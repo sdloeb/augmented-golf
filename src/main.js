@@ -2,8 +2,6 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
-const MOBILE_PUTTING_BALL_SIZE = 0.35;
-
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor;
 let clubLandingRing;
@@ -1059,7 +1057,7 @@ function animate() {
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         if (physics.isPutting) {
-            ballTargetScale = 0.24;
+            ballTargetScale = 0.27;
         } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
@@ -1109,11 +1107,11 @@ function animate() {
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.05;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.24;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.27;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1145,22 +1143,22 @@ function animate() {
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.05;
+                ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.24;
+                ballTargetScale = 0.27;
             } else {
-                ballTargetScale = 1.0;
+                ballTargetScale = 1.2;
             }
         } // <-- This brace closes the swinging check
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.05;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.24;
+            ballTargetScale = 0.27;
         } else {
-            ballTargetScale = 1.0;
+            ballTargetScale = 1.2;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
@@ -1265,7 +1263,7 @@ function animate() {
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
             ball.position.x + dirX * 4.0,
-            ball.position.y + 1.30,
+            ball.position.y + 1.10,
             ball.position.z + dirZ * 4.0
         );
     } else {
@@ -1279,28 +1277,16 @@ function animate() {
 
 
 
-    // NEW: Precise ball scaling using our top configuration variable and position checks
+    // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
-    const isPortrait = window.innerWidth / window.innerHeight < 1;
-
-    // Check if putting or sitting on the green using active state maps
-    const checkX = ball.position.x;
-    const checkZ = ball.position.z - greenCenterZ;
-    const ballIsCurrentlyOnGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
-
-    if (ballIsCurrentlyOnGreen && !isOverheadActive) {
-        if (isPortrait) {
-            // Reads directly from the variable you set at the top of the file
-            finalBallTargetScale = MOBILE_PUTTING_BALL_SIZE;
-        } else {
-            // Desktop standard putting multiplier adjustment
-            finalBallTargetScale = ballTargetScale * 1.78;
-        }
+    if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
+        const isPortrait = window.innerWidth / window.innerHeight < 1;
+        // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
+        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
     }
 
-    // Snap size instantly (1.0 factor) on the green so updates are visible without transition lag
-    const scaleLerpFactor = (ballIsCurrentlyOnGreen && !isOverheadActive) ? 1.0 : 0.05;
-    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, scaleLerpFactor);
+    // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
 
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
@@ -1321,13 +1307,13 @@ function animate() {
 
                 // Switch utility classes matching the interactive InputHandler tracking states
                 const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-                const putterBaseBottom = isPortrait ? 22.0 : 3.5; // Add this line: Calibrated baseline positions for both layouts
+                const putterBaseBottom = isPortrait ? 22.0 : 13.5; // Add this line: Calibrated baseline positions for both layouts
 
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
                     // Clean out dynamic inline properties when resting at address
                     clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : ''; // Modify this line
-                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '46.0%' : ''; // Modify this line
+                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '45.5%' : ''; // Modify this line
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
@@ -1336,7 +1322,7 @@ function animate() {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
                         const currentBottom = putterBaseBottom - (6.0 * ratio); // Modify this line: Smoothly pulls back from the correct baseline
-                        const currentLeft = 46.0;   // Keep this line
+                        const currentLeft = 45.5;   // Keep this line
                         const currentRotate = 0;    // Keep this line
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important'); // Keep this line
