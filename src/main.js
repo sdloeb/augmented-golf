@@ -1281,8 +1281,15 @@ function animate() {
     let finalBallTargetScale = ballTargetScale;
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
-        // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+        if (isPortrait) {
+            // DIRECT MOBILE PUTTING BALL SIZE CONTROL:
+            // Adjust this single number up or down to perfectly size the ball on mobile while putting!
+            // (0.59 matches your original default calculation: 0.24 * 2.45)
+            finalBallTargetScale = 0.35;
+        } else {
+            // Desktop standard putting multiplier factor
+            finalBallTargetScale *= 1.78;
+        }
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
