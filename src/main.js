@@ -8,7 +8,7 @@ const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0);
 
 const PUTTING_SCALES = {
-    puttingBallScale: isMobile ? 0.32 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
+    puttingBallScale: isMobile ? 0.45 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
