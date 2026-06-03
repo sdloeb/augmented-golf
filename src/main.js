@@ -1277,23 +1277,25 @@ function animate() {
 
 
 
-    // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
+    // NEW: Precise ball scaling on the green using state variables instead of FOV strict equality
     let finalBallTargetScale = ballTargetScale;
-    if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
-        const isPortrait = window.innerWidth / window.innerHeight < 1;
+    const isPortrait = window.innerWidth / window.innerHeight < 1;
+
+    if (isOnGreen && !isOverheadActive) {
         if (isPortrait) {
             // DIRECT MOBILE PUTTING BALL SIZE CONTROL:
-            // Adjust this single number up or down to perfectly size the ball on mobile while putting!
-            // (0.59 matches your original default calculation: 0.24 * 2.45)
+            // Adjust this single number directly to change the size instantly on mobile!
+            // (e.g., 0.35, 0.55, 0.85, etc.)
             finalBallTargetScale = 0.35;
         } else {
-            // Desktop standard putting multiplier factor
-            finalBallTargetScale *= 1.78;
+            // Desktop putting scale adjustment
+            finalBallTargetScale = ballTargetScale * 1.78;
         }
     }
 
-    // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
-    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
+    // Force an instant transition factor (1.0) on the green so changes take effect immediately
+    const scaleLerpFactor = (isOnGreen && !isOverheadActive) ? 1.0 : 0.05;
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, scaleLerpFactor);
     ball.scale.set(currentScale, currentScale, currentScale);
 
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
