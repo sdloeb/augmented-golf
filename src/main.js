@@ -1310,7 +1310,7 @@ function animate() {
     let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
         // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
-        finalBallTargetScale *= 0.55;
+        finalBallTargetScale *= 0.65;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
