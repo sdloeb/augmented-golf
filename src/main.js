@@ -1,5 +1,3 @@
-
-
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
@@ -10,9 +8,13 @@ const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0);
 
 const PUTTING_SCALES = {
+    // 🛠️ CHANGING THESE NUMBERS NOW DIRECTLY SETS THE PUTTING BALL SIZE:
+    mobileBallScale: 0.11,   // Perfect calibrated size for mobile touch screens
+    desktopBallScale: 0.20,  // Isolated baseline size for desktop mouse users
+
     get puttingBallScale() {
         // Tracks actual mobile hardware type so Landscape vs Portrait rotation doesn't break the size scaling
-        return isMobileDevice ? 0.25 : 0.20;
+        return isMobileDevice ? this.mobileBallScale : this.desktopBallScale;
     }
 };
 
@@ -1290,18 +1292,11 @@ function animate() {
 
 
 
- // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
-    let finalBallTargetScale = ballTargetScale;
-    if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
-        const isPortrait = window.innerWidth / window.innerHeight < 1;
+    // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
+    // CONFIRMED: Multiplier overrides removed so the values you type at the top map correctly on screen.
 
-        // Applies standard camera projection multipliers to both devices.
-        // This stops the ball from ballooning out of control under close-up zoom.
-        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
-    }
-
-    // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
-    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
+    // CHANGED: Lerps the ball scale smoothly based on the target scale set by the game state
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, ballTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
 
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
