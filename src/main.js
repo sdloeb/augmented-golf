@@ -18,7 +18,7 @@ const PUTTING_SCALES = {
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 
-let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
+
 let green, pin, flag, holeCup, fairway, floor;
 let clubLandingRing;
 let clubLandingBeacon;
