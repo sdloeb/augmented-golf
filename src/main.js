@@ -1037,13 +1037,6 @@ function animate() {
         }
     }
 
-    // 3. DYNAMIC CAMERA CONTROLLER
-
-
-    // 3. DYNAMIC CAMERA CONTROLLER
-
-
-
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
@@ -1063,8 +1056,9 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        if (physics.isPutting) { // Add this line
-            ballTargetScale = 0.40;
+        if (physics.isPutting) {
+            ballTargetScale = 0.27;
+        } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
             const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
@@ -1115,7 +1109,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.27;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1151,9 +1145,9 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.40;
+                ballTargetScale = 0.27;
             } else {
-                ballTargetScale = 1.2
+                ballTargetScale = 1.2;
             }
         } // <-- This brace closes the swinging check
 
@@ -1162,7 +1156,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.40;
+            ballTargetScale = 0.27;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1234,7 +1228,7 @@ function animate() {
             const pDirZ = holePosition.z - ball.position.z; // Add this line
             const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
             cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
-            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
+            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // Add this line
             activeCameraSpeed = 0.05; // Add this line
         } // Add this line
     }
@@ -1245,10 +1239,10 @@ function animate() {
     const aspect = window.innerWidth / window.innerHeight;
     const defaultFov = aspect < 1 ? 72 : 65;
 
-    const isOnGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS; // Add this line
-    const isPutterActive = input && input.getClubInfo().name === 'Putter'; // Add this line
+    const isOnGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
+    const isPutterActive = input && input.getClubInfo().name === 'Putter';
 
-    if (isOnGreen && !isOverheadActive && (isPutterActive || physics.isPutting)) { // Modify this line
+    if (isOnGreen && !isOverheadActive && (isPutterActive || physics.isPutting)) {
         if (camera.fov !== 92) { camera.fov = 92; camera.updateProjectionMatrix(); }
 
         const dX = holePosition.x - ball.position.x;
@@ -1260,7 +1254,6 @@ function animate() {
         const rigidCamDist = 1.8;
         const rigidCamHeight = 1.6;
 
-        // Modify this section: Removed the !physics.isMoving check so the camera follows the ball continuously during the putt
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
             ball.position.y + rigidCamHeight,
@@ -1270,7 +1263,7 @@ function animate() {
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
             ball.position.x + dirX * 4.0,
-            ball.position.y + 0.38,
+            ball.position.y + 1.10,
             ball.position.z + dirZ * 4.0
         );
     } else {
@@ -1509,7 +1502,7 @@ function init() {
             ballCtx.beginPath(); ballCtx.arc(x, y, 14, 0, Math.PI * 2); ballCtx.fill(); // Add this line
         } // Add this line
     } // Add this line
-    const ballTexture = new THREE.CanvasTexture(ballCanvas); // Add this line
+    const ballTexture = THREE.CanvasTexture ? new THREE.CanvasTexture(ballCanvas) : new THREE.Texture(ballCanvas); // Add this line
     ballTexture.wrapS = THREE.RepeatWrapping; // Add this line
     ballTexture.wrapT = THREE.RepeatWrapping; // Add this line
     ballTexture.repeat.set(5, 3); // Lower repeat setting makes individual dimples larger and clear from afar // Add this line
