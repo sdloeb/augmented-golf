@@ -9,7 +9,7 @@ const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0);
 
 // 🛠️ EDIT THESE BASE SIZES DIRECTLY RIGHT HERE:
-const MOBILE_PUTTING_BALL_SIZE = 0.12;   // Adjust this number to scale the mobile ball size up or down smoothly
+const MOBILE_PUTTING_BALL_SIZE = 1.0;   // Adjust this number to scale the mobile ball size up or down smoothly
 const DESKTOP_PUTTING_BALL_SIZE = 0.20;  // Isolated baseline scale kept completely separate for desktop players
 
 const puttingBallScale = isMobileDevice ? MOBILE_PUTTING_BALL_SIZE : DESKTOP_PUTTING_BALL_SIZE;
