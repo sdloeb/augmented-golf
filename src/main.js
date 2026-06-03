@@ -3,12 +3,18 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
 // --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
-const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+let isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     ('ontouchstart' in window) ||
     (navigator.maxTouchPoints > 0);
 
+// 🛠️ TESTING TOGGLE: Change this to true to force mobile views on your computer!
+const FORCE_MOBILE_TESTING = true;
+if (FORCE_MOBILE_TESTING) {
+    isMobile = true;
+}
+
 const PUTTING_SCALES = {
-    puttingBallScale: isMobile ? 0.45 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
+    puttingBallScale: isMobile ? 0.45 : 0.20
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
