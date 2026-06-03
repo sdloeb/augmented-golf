@@ -1037,6 +1037,13 @@ function animate() {
         }
     }
 
+    // 3. DYNAMIC CAMERA CONTROLLER
+
+
+    // 3. DYNAMIC CAMERA CONTROLLER
+
+
+
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
@@ -1056,30 +1063,26 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        if (physics.isPutting) {
-            ballTargetScale = 0.2;
-        } else {
-            const dx = ball.position.x - 0;
-            const dz = ball.position.z - 10;
-            const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
+        const dx = ball.position.x - 0;
+        const dz = ball.position.z - 10;
+        const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
-            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
-            // -------------------------------------------------------------------
+        ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+        // -------------------------------------------------------------------
 
-            // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
-            if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-                const dirX = holePosition.x - ball.position.x;
-                const dirZ = holePosition.z - ball.position.z;
-                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+        // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
+        if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+            const dirX = holePosition.x - ball.position.x;
+            const dirZ = holePosition.z - ball.position.z;
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-                // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-                const backX = -(dirX / length) * 5.5;
-                const backZ = -(dirZ / length) * 5.5;
+            // Target coordinates 5.5 units horizontally behind the ball's moving flight path
+            const backX = -(dirX / length) * 5.5;
+            const backZ = -(dirZ / length) * 5.5;
 
-                // Smoothly tracks target positioning vectors forward through 3D space
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
-            }
+            // Smoothly tracks target positioning vectors forward through 3D space
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
         }
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
@@ -1109,7 +1112,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.2;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 1.0;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1145,9 +1148,9 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.2;
+                ballTargetScale = 1.0;
             } else {
-                ballTargetScale = 1.2;
+                ballTargetScale = 1.2
             }
         } // <-- This brace closes the swinging check
 
@@ -1156,7 +1159,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.2;
+            ballTargetScale = 1.0;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1228,7 +1231,7 @@ function animate() {
             const pDirZ = holePosition.z - ball.position.z; // Add this line
             const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
             cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
-            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (dirZ / length) * lookDist); // Add this line
+            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
             activeCameraSpeed = 0.05; // Add this line
         } // Add this line
     }
@@ -1236,15 +1239,7 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x;
     const checkZ = ball.position.z - greenCenterZ;
-    const aspect = window.innerWidth / window.innerHeight;
-    const defaultFov = aspect < 1 ? 72 : 65;
-
-    const isOnGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
-    const isPutterActive = input && input.getClubInfo().name === 'Putter';
-
-    if (isOnGreen && !isOverheadActive && (isPutterActive || physics.isPutting)) {
-        if (camera.fov !== 92) { camera.fov = 92; camera.updateProjectionMatrix(); }
-
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && !physics.isMoving) {
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
         const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
@@ -1263,26 +1258,21 @@ function animate() {
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
             ball.position.x + dirX * 4.0,
-            ball.position.y + 1.10,
+            ball.position.y - 0.12,  // Change this line: Raised from 0.18 to 1.45 to tilt the camera up and force the ball down
             ball.position.z + dirZ * 4.0
-        );
-    } else {
-        if (camera.fov !== defaultFov) { camera.fov = defaultFov; camera.updateProjectionMatrix(); }
+        ); // Change this line
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
-
-
-
-
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
-    if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
-        const isPortrait = window.innerWidth / window.innerHeight < 1;
-        // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+    if (!physics.isMoving) {
+        if (isCamOnGreen) {
+            // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
+            finalBallTargetScale *= 0.47;
+        }
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -1306,14 +1296,11 @@ function animate() {
                 }
 
                 // Switch utility classes matching the interactive InputHandler tracking states
-                const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-                const putterBaseBottom = isPortrait ? 22.0 : 13.5; // Add this line: Calibrated baseline positions for both layouts
-
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
                     // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : ''; // Modify this line
-                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '45.5%' : ''; // Modify this line
+                    clubSwipeElement.style.bottom = '';
+                    clubSwipeElement.style.left = '';
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
@@ -1321,21 +1308,20 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = putterBaseBottom - (6.0 * ratio); // Modify this line: Smoothly pulls back from the correct baseline
-                        const currentLeft = 45.5;   // Keep this line
-                        const currentRotate = 0;    // Keep this line
+                        const currentBottom = 13.5 - (5.0 * ratio); // FIXED: Starts perfectly at 9.5% and transitions down to 2%
+                        const currentLeft = 45.5;   // Change this line: Kept constant for a perfectly straight line back
+                        const currentRotate = 0;    // Change this line: No rotation for a clean square face back
 
-                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important'); // Keep this line
-                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important'); // Keep this line
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Keep this line
+                        clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
+                        clubSwipeElement.style.setProperty('left', `${currentLeft}%`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important'); // Change this line: Maintains consistent scaling
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
                         clubSwipeElement.style.left = '';
                         clubSwipeElement.style.transform = '';
                     }
-                } // Keep this line
-
+                }
             } else {
                 // Clear all classes to hide the club entirely when the ball is in motion
                 clubSwipeElement.className = '';
@@ -1502,7 +1488,7 @@ function init() {
             ballCtx.beginPath(); ballCtx.arc(x, y, 14, 0, Math.PI * 2); ballCtx.fill(); // Add this line
         } // Add this line
     } // Add this line
-    const ballTexture = THREE.CanvasTexture ? new THREE.CanvasTexture(ballCanvas) : new THREE.Texture(ballCanvas); // Add this line
+    const ballTexture = new THREE.CanvasTexture(ballCanvas); // Add this line
     ballTexture.wrapS = THREE.RepeatWrapping; // Add this line
     ballTexture.wrapT = THREE.RepeatWrapping; // Add this line
     ballTexture.repeat.set(5, 3); // Lower repeat setting makes individual dimples larger and clear from afar // Add this line
