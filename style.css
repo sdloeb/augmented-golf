@@ -238,23 +238,25 @@ html {
     box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
 }
 
-/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
     /* Main Chassis: Defines the polished steel outer perimeter shell */
     border-radius: 6px 34px 24px 16px;
     width: 130px;
-    height: 62px;
+    height: 48px;
+    /* Change this line: Drastically narrows the profile so it doesn't extend so far back */
     /* Increased from 50px to provide an exceptionally tall back flange profile */
     background:
         /* Dramatically extended hitting face section to display a wide, highly-lofted grooved plane */
         repeating-linear-gradient(to bottom, transparent, transparent 2.5px, rgba(0, 0, 0, 0.16) 2.5px, rgba(0, 0, 0, 0.16) 3.5px) top left / 100% 24px no-repeat,
         /* Metallic slope transition leading down to an emphasized polished chrome topline highlight */
-        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 32%, #ffffff 36%, #b4b8bb 46%, #7f8284 100%);
+        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 18%, #ffffff 22%, #b4b8bb 32%, #7f8284 100%);
+    /* Change this line: Compresses the reflection to mimic a narrow, vertical mid-iron back wall */
     border: 1px solid #6c6f72;
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.45),
         inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
-    margin-bottom: -22px;
+    margin-bottom: -5px;
+    /* Change this line: Offsets the new 48px height so the clubface centers perfectly against the ball equator */
     /* Adjusted to -22px to perfectly counteract the 62px height and keep alignment locked to the ball center */
     position: absolute;
 }
@@ -363,7 +365,7 @@ html {
 
     35% {
         bottom: 24%;
-        left: 47%;
+        left: 46.3%;
         /* Shifted right from 38% to align beautifully with the center of the ball */
         right: auto;
         transform: rotate(0deg) scale(1.2);
@@ -381,7 +383,7 @@ html {
 /* NEW: Club resting right behind the ball at address */
 #clubSwipe.idle-stance {
     bottom: 24% !important;
-    left: 47% !important;
+    left: 46.3% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.4) !important;
     opacity: 1 !important;

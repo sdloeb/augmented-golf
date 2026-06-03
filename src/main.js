@@ -1107,11 +1107,11 @@ function animate() {
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 1.05;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 0.24;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1143,22 +1143,22 @@ function animate() {
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.45;
+                ballTargetScale = 1.05;
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 0.24;
             } else {
-                ballTargetScale = 1.2;
+                ballTargetScale = 1.0;
             }
         } // <-- This brace closes the swinging check
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 1.05;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
             ballTargetScale = 0.24;
         } else {
-            ballTargetScale = 1.2;
+            ballTargetScale = 1.0;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
@@ -1307,7 +1307,7 @@ function animate() {
 
                 // Switch utility classes matching the interactive InputHandler tracking states
                 const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-                const putterBaseBottom = isPortrait ? 22.0 : 13.5; // Add this line: Calibrated baseline positions for both layouts
+                const putterBaseBottom = isPortrait ? 22.0 : 3.5; // Add this line: Calibrated baseline positions for both layouts
 
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
