@@ -8,7 +8,7 @@ const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0);
 
 const PUTTING_SCALES = {
-    puttingBallScale: isMobile ? 0.45 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
+    puttingBallScale: isMobile ? 0.25 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -1113,14 +1113,14 @@ function animate() {
 
 
 
-          // 3-OPTION BALL SCALING ENGINE
+            // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
             } else if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.95;  
+                ballTargetScale = 0.95;
             } else {
-                ballTargetScale = 0.9; 
+                ballTargetScale = 0.9;
             }
 
             generateNewWind();
@@ -1145,7 +1145,7 @@ function animate() {
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
 
-      // 3-OPTION BALL SCALING ENGINE
+            // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (onGreen || currentClub === 'Putter') {
@@ -1157,12 +1157,12 @@ function animate() {
             }
         } // <-- This brace closes the swinging check
 
-       // 2. NEW: Scales the ball while it is sitting completely still at rest
+        // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (onGreen || restingClub === 'Putter') {
             ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
         } else if (teeBox && teeBox.visible) {
-            ballTargetScale = 0.95;  
+            ballTargetScale = 0.95;
         } else {
             ballTargetScale = 0.9;
         }
