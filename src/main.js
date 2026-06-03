@@ -1057,7 +1057,7 @@ function animate() {
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         if (physics.isPutting) {
-            ballTargetScale = 0.27;
+            ballTargetScale = 0.24;
         } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
@@ -1109,7 +1109,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.27;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.24;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1145,7 +1145,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.27;
+                ballTargetScale = 0.24;
             } else {
                 ballTargetScale = 1.2;
             }
@@ -1156,7 +1156,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.27;
+            ballTargetScale = 0.24;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1263,7 +1263,7 @@ function animate() {
         // ABSOLUTE GAZE LOCK
         cameraLookAt.set(
             ball.position.x + dirX * 4.0,
-            ball.position.y + 1.10,
+            ball.position.y + 1.30,
             ball.position.z + dirZ * 4.0
         );
     } else {
@@ -1313,7 +1313,7 @@ function animate() {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
                     // Clean out dynamic inline properties when resting at address
                     clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : ''; // Modify this line
-                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '45.5%' : ''; // Modify this line
+                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? '46.0%' : ''; // Modify this line
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
@@ -1322,7 +1322,7 @@ function animate() {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
                         const currentBottom = putterBaseBottom - (6.0 * ratio); // Modify this line: Smoothly pulls back from the correct baseline
-                        const currentLeft = 45.5;   // Keep this line
+                        const currentLeft = 46.0;   // Keep this line
                         const currentRotate = 0;    // Keep this line
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important'); // Keep this line

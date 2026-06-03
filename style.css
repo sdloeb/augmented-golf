@@ -300,9 +300,9 @@ html {
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
     border-radius: 4px 4px 6px 6px;
-    width: 155px;
+    width: 125px;
     /* Scaled up from 124px */
-    height: 40px;
+    height: 32px;
     /* Scaled up from 32px */
     border: 1px solid #5a5d5f;
     background:
@@ -399,7 +399,7 @@ html {
 }
 
 #clubSwipe.putter.idle-stance {
-    left: 45% !important;
+    left: 46.0% !important;
     bottom: 3.5% !important;
     /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
 }
@@ -561,7 +561,16 @@ html {
     #clubSwipe.putter.swipe-animation {
         animation: putterSwipeAnimMobile 0.4s linear forwards !important;
     }
+
+    /* Isolated mobile putter size parameters */
+    #clubSwipe.putter {
+        width: 124px !important;
+        /* Add this line - adjusts mobile width */
+        height: 32px !important;
+        /* Add this line - adjusts mobile height */
+    }
 }
+
 
 @keyframes putterSwipeAnimMobile {
     0% {
@@ -620,7 +629,7 @@ html {
     0% {
         bottom: var(--putter-start-bottom, 4%);
         /* Matches the deep pullback edge position */
-        left: 45.5%;
+        left: 46.0%;
         /* Change this line */
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
@@ -630,7 +639,7 @@ html {
         bottom: 13.5%;
         /* FIXED: Smooth contact right at the ball's base position */
         /* Unchanged: Hits through the perfect horizontal center of the ball */
-        left: 45.5%;
+        left: 46.0%;
         /* Change this line */
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
@@ -639,7 +648,7 @@ html {
     100% {
         bottom: 19.0%;
         /* FIXED: Adjusted follow-through path proportionally */
-        left: 45.5%;
+        left: 46.0%;
         /* Change this line */
         transform: rotate(0deg) scale(1.4);
         opacity: 0;
