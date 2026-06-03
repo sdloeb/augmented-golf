@@ -1113,14 +1113,14 @@ function animate() {
 
 
 
-            // 3-OPTION BALL SCALING ENGINE
+          // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
-            if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.95;  // OPTION 1: Size when on the Tee Box
-            } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = PUTTING_SCALES.puttingBallScale;  // OPTION 2: Size when on the Green or using the Putter
+            if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
+            } else if (teeBox && teeBox.visible) {
+                ballTargetScale = 0.95;  
             } else {
-                ballTargetScale = 0.9; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 0.9; 
             }
 
             generateNewWind();
@@ -1145,27 +1145,26 @@ function animate() {
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
 
-            // 3-OPTION BALL SCALING ENGINE
+      // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
-            if (teeBox && teeBox.visible) {
+            if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
+            } else if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.95;
-            } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = PUTTING_SCALES.puttingBallScale;
             } else {
                 ballTargetScale = 0.9;
             }
         } // <-- This brace closes the swinging check
 
-        // 2. NEW: Scales the ball while it is sitting completely still at rest
+       // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
-        if (teeBox && teeBox.visible) {
-            ballTargetScale = 0.95;  // Keeps it big on the tee box automatically!
-        } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = PUTTING_SCALES.puttingBallScale;
+        if (onGreen || restingClub === 'Putter') {
+            ballTargetScale = PUTTING_SCALES.puttingBallScale;  // PUTTING ENGINE TAKES ULTIMATE PRIORITY
+        } else if (teeBox && teeBox.visible) {
+            ballTargetScale = 0.95;  
         } else {
             ballTargetScale = 0.9;
-
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
