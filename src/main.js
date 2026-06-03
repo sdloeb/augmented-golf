@@ -7,7 +7,7 @@ const PUTTING_SCALES = {
     get puttingBallScale() {
         // Automatically isolates configurations by tracking if screen view layout is portrait/mobile vs widescreen desktop
         const isMobileLayout = window.innerWidth / window.innerHeight < 1;
-        return isMobileLayout ? 0.45 : 0.20;
+        return isMobileLayout ? 0.35 : 0.20;
     }
 };
 
