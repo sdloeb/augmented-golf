@@ -2,6 +2,15 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
+// --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+    ('ontouchstart' in window) ||
+    (navigator.maxTouchPoints > 0);
+
+const PUTTING_SCALES = {
+    puttingBallScale: isMobile ? 0.32 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
+};
+
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor;
 let clubLandingRing;
@@ -1057,7 +1066,7 @@ function animate() {
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         if (physics.isPutting) {
-            ballTargetScale = 0.10;
+            ballTargetScale = PUTTING_SCALES.puttingBallScale;
         } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
@@ -1109,7 +1118,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.95;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.10;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = PUTTING_SCALES.puttingBallScale;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 0.9; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1133,9 +1142,6 @@ function animate() {
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            const backX = -(dirX / length) * camDist; // CHANGED
-            const backZ = -(dirZ / length) * camDist; // CHANGED
-
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
             cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
 
@@ -1145,7 +1151,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.95;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.10;
+                ballTargetScale = PUTTING_SCALES.puttingBallScale;
             } else {
                 ballTargetScale = 0.9;
             }
@@ -1156,7 +1162,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 0.95;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.10;
+            ballTargetScale = PUTTING_SCALES.puttingBallScale;
         } else {
             ballTargetScale = 0.9;
         }
