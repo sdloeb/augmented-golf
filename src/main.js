@@ -9,7 +9,7 @@ const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
 
 const PUTTING_SCALES = {
     // 🛠️ CHANGING THESE NUMBERS NOW DIRECTLY SETS THE PUTTING BALL SIZE:
-    mobileBallScale: 2.11,   // Perfect calibrated size for mobile touch screens
+    mobileBallScale: 10.11,   // Perfect calibrated size for mobile touch screens
     desktopBallScale: 0.20,  // Isolated baseline size for desktop mouse users
 
     get puttingBallScale() {
