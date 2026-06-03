@@ -8,7 +8,7 @@ const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 0);
 
 const PUTTING_SCALES = {
-    puttingBallScale: isMobile ? 0.25 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
+    puttingBallScale: isMobile ? 0.45 : 0.20 // 0.16 target scale for touch mobile screens, 0.10 for precise desktop views
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -1287,8 +1287,15 @@ function animate() {
     let finalBallTargetScale = ballTargetScale;
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
-        // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+
+        // Separates camera view compensation layout rules for mobile vs desktop
+        if (isMobile) {
+            // Mobile uses a 1.0 baseline so your top PUTTING_SCALES variable matches perfectly 1:1
+            finalBallTargetScale *= 1.0;
+        } else {
+            // Keeps your original desktop projection calibration locked exactly as it was
+            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+        }
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
