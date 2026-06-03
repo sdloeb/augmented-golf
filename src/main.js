@@ -3,18 +3,12 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
 // --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
-let isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
-    ('ontouchstart' in window) ||
-    (navigator.maxTouchPoints > 0);
-
-// 🛠️ TESTING TOGGLE: Change this to true to force mobile views on your computer!
-const FORCE_MOBILE_TESTING = true;
-if (FORCE_MOBILE_TESTING) {
-    isMobile = true;
-}
-
 const PUTTING_SCALES = {
-    puttingBallScale: isMobile ? 0.45 : 0.20
+    get puttingBallScale() {
+        // Automatically isolates configurations by tracking if screen view layout is portrait/mobile vs widescreen desktop
+        const isMobileLayout = window.innerWidth / window.innerHeight < 1;
+        return isMobileLayout ? 0.45 : 0.20;
+    }
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -1294,13 +1288,13 @@ function animate() {
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-        // Separates camera view compensation layout rules for mobile vs desktop
-        if (isMobile) {
-            // Mobile uses a 1.0 baseline so your top PUTTING_SCALES variable matches perfectly 1:1
+        // Separates camera view compensation layout rules for mobile screens vs widescreen desktop displays
+        if (isPortrait) {
+            // Mobile portrait uses a clean 1.0 baseline so your top variable matches perfectly 1:1 without bloating
             finalBallTargetScale *= 1.0;
         } else {
             // Keeps your original desktop projection calibration locked exactly as it was
-            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+            finalBallTargetScale *= 1.78;
         }
     }
 
