@@ -2,18 +2,17 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
-// --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
-const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
-    ('ontouchstart' in window) ||
-    (navigator.maxTouchPoints > 0);
+/// --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
+// Uses the modern pointer precision standard to detect mobile/tablet touchscreens vs precise desktop mice
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
 
 const PUTTING_SCALES = {
-    // 1. CHANGE YOUR BASE SIZES DIRECTLY HERE:
-    mobileBallScale: 1.25,   // Change this to scale mobile up or down safely
-    desktopBallScale: 0.20,  // Completely isolated baseline for desktop players
+    // 1. DOCK YOUR BALANCED VALUES DIRECTLY HERE:
+    mobileBallScale: 0.25,   // Change this value to scale the ball on mobile/tablet screens only
+    desktopBallScale: 0.20,  // Completely isolated baseline size for desktop mouse users
 
     get puttingBallScale() {
-        return isMobileDevice ? this.mobileBallScale : this.desktopBallScale;
+        return isTouchDevice ? this.mobileBallScale : this.desktopBallScale;
     }
 };
 
@@ -1294,10 +1293,13 @@ function animate() {
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-        // Applies uniform camera lens projection multipliers to both devices.
-        // This ensures the values you type at the top scale correctly on screen.
-        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
-
+        if (isTouchDevice) {
+            // Touch screens bypass desktop projection multipliers so your mobileBallScale variable maps perfectly 1:1
+            finalBallTargetScale *= 1.0;
+        } else {
+            // Desktop keeps your projection calibration values working cleanly based on monitor aspect ratios
+            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
+        }
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
