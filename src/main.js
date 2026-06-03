@@ -10,7 +10,7 @@ const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
 const PUTTING_SCALES = {
     get puttingBallScale() {
         // Tracks actual mobile hardware type so Landscape vs Portrait rotation doesn't break the size scaling
-        return isMobileDevice ? 0.45 : 0.20;
+        return isMobileDevice ? 0.25 : 0.20;
     }
 };
 
