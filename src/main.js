@@ -1072,7 +1072,7 @@ function animate() {
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.25; // Locks the moving ball size to perfectly match its resting green size
+            ballTargetScale = 0.45; // Locks the moving ball size to perfectly match its resting green size
         } else {
             ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         }
@@ -1119,7 +1119,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.25;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.45;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1155,7 +1155,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.55;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.25;
+                ballTargetScale = 0.45;
             } else {
                 ballTargetScale = 0.55;
             }
@@ -1166,7 +1166,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.25;
+            ballTargetScale = 0.45;
         } else {
             ballTargetScale = 1.2;
         }
