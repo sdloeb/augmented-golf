@@ -9,7 +9,7 @@ const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
 
 const PUTTING_SCALES = {
     // 1. CHANGE YOUR BASE SIZES DIRECTLY HERE:
-    mobileBallScale: 0.25,   // Change this to scale mobile up or down safely
+    mobileBallScale: 1.25,   // Change this to scale mobile up or down safely
     desktopBallScale: 0.20,  // Completely isolated baseline for desktop players
 
     get puttingBallScale() {
