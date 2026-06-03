@@ -1,20 +1,22 @@
+
+
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
-/// --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
-// Uses the modern pointer precision standard to detect mobile/tablet touchscreens vs precise desktop mice
-const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+// --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
+const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+    ('ontouchstart' in window) ||
+    (navigator.maxTouchPoints > 0);
 
 const PUTTING_SCALES = {
-    // 1. DOCK YOUR BALANCED VALUES DIRECTLY HERE:
-    mobileBallScale: 0.05,   // Change this value to scale the ball on mobile/tablet screens only
-    desktopBallScale: 0.20,  // Completely isolated baseline size for desktop mouse users
-
     get puttingBallScale() {
-        return isTouchDevice ? this.mobileBallScale : this.desktopBallScale;
+        // Tracks actual mobile hardware type so Landscape vs Portrait rotation doesn't break the size scaling
+        return isMobileDevice ? 0.25 : 0.20;
     }
 };
+
+let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor;
@@ -1288,18 +1290,14 @@ function animate() {
 
 
 
-    // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
+ // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-        if (isTouchDevice) {
-            // Touch screens bypass desktop projection multipliers so your mobileBallScale variable maps perfectly 1:1
-            finalBallTargetScale *= 1.0;
-        } else {
-            // Desktop keeps your projection calibration values working cleanly based on monitor aspect ratios
-            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
-        }
+        // Applies standard camera projection multipliers to both devices.
+        // This stops the ball from ballooning out of control under close-up zoom.
+        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
