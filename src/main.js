@@ -3,11 +3,14 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
 // --- MOBILE VS DESKTOP DEVICE SEPARATION SETUP ---
+const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+    ('ontouchstart' in window) ||
+    (navigator.maxTouchPoints > 0);
+
 const PUTTING_SCALES = {
     get puttingBallScale() {
-        // Automatically isolates configurations by tracking if screen view layout is portrait/mobile vs widescreen desktop
-        const isMobileLayout = window.innerWidth / window.innerHeight < 1;
-        return isMobileLayout ? 1.50 : 0.20;
+        // Tracks actual mobile hardware type so Landscape vs Portrait rotation doesn't break the size scaling
+        return isMobileDevice ? 0.45 : 0.20;
     }
 };
 
@@ -1288,13 +1291,13 @@ function animate() {
     if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
         const isPortrait = window.innerWidth / window.innerHeight < 1;
 
-        // Separates camera view compensation layout rules for mobile screens vs widescreen desktop displays
-        if (isPortrait) {
-            // Mobile portrait uses a clean 1.0 baseline so your top variable matches perfectly 1:1 without bloating
+        // Uses the true device environment profile to keep settings decoupled from screen orientation
+        if (isMobileDevice) {
+            // Mobile screens maintain a clean 1.0 multiplier so your top 0.45 variable maps perfectly 1:1
             finalBallTargetScale *= 1.0;
         } else {
-            // Keeps your original desktop projection calibration locked exactly as it was
-            finalBallTargetScale *= 1.78;
+            // Desktop keeps your projection calibration values working cleanly based on monitor aspect ratios
+            finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
         }
     }
 
