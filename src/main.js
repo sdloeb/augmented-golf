@@ -1063,26 +1063,29 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        const dx = ball.position.x - 0;
-        const dz = ball.position.z - 10;
-        const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
+        if (physics.isPutting) { // Add this line
+            ballTargetScale = 0.40;
+            const dx = ball.position.x - 0;
+            const dz = ball.position.z - 10;
+            const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
-        ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
-        // -------------------------------------------------------------------
+            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+            // -------------------------------------------------------------------
 
-        // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
-        if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
+            if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+                const dirX = holePosition.x - ball.position.x;
+                const dirZ = holePosition.z - ball.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-            // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-            const backX = -(dirX / length) * 5.5;
-            const backZ = -(dirZ / length) * 5.5;
+                // Target coordinates 5.5 units horizontally behind the ball's moving flight path
+                const backX = -(dirX / length) * 5.5;
+                const backZ = -(dirZ / length) * 5.5;
 
-            // Smoothly tracks target positioning vectors forward through 3D space
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+                // Smoothly tracks target positioning vectors forward through 3D space
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+            }
         }
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
@@ -1148,7 +1151,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 1.0;
+                ballTargetScale = 0.40;
             } else {
                 ballTargetScale = 1.2
             }
@@ -1159,7 +1162,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 1.0;
+            ballTargetScale = 0.40;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1239,17 +1242,25 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x;
     const checkZ = ball.position.z - greenCenterZ;
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && !physics.isMoving) {
+    const aspect = window.innerWidth / window.innerHeight;
+    const defaultFov = aspect < 1 ? 72 : 65;
+
+    const isOnGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS; // Add this line
+    const isPutterActive = input && input.getClubInfo().name === 'Putter'; // Add this line
+
+    if (isOnGreen && !isOverheadActive && (isPutterActive || physics.isPutting)) { // Modify this line
+        if (camera.fov !== 92) { camera.fov = 92; camera.updateProjectionMatrix(); }
+
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
         const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
         const dirX = dX / len;
         const dirZ = dZ / len;
 
-        const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-        const rigidCamDist = isPortrait ? 7.5 : 5.5; // Modify this line: Pulls back further on mobile for true deep green perspective
-        const rigidCamHeight = isPortrait ? 1.5 : 1.35; // Modify this line: Gives real depth perception on mobile screens
+        const rigidCamDist = 1.8;
+        const rigidCamHeight = 1.6;
 
+        // Modify this section: Removed the !physics.isMoving check so the camera follows the ball continuously during the putt
         cameraTargetPos.set(
             ball.position.x - dirX * rigidCamDist,
             ball.position.y + rigidCamHeight,
@@ -1257,25 +1268,28 @@ function animate() {
         );
 
         // ABSOLUTE GAZE LOCK
-        const verticalTilt = isPortrait ? 2.35 : 1.45; // Modify this line: High tilt on mobile portrait explicitly forces the ball lower down your screen screen
         cameraLookAt.set(
-            ball.position.x + dirX * rigidCamDist, // Modify this line
-            ball.position.y + verticalTilt,  // Modify this line
-            ball.position.z + dirZ * rigidCamDist // Modify this line
+            ball.position.x + dirX * 4.0,
+            ball.position.y + 0.38,
+            ball.position.z + dirZ * 4.0
         );
+    } else {
+        if (camera.fov !== defaultFov) { camera.fov = defaultFov; camera.updateProjectionMatrix(); }
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
+
+
+
+
     // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
-    if (!physics.isMoving) {
-        if (isCamOnGreen) {
-            const isPortrait = window.innerWidth / window.innerHeight < 1; // Add this line
-            // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
-            finalBallTargetScale *= isPortrait ? 1.55 : 1.12; // Modify this line: Keeps ball sizing uniform on both devices
-        }
+    if (camera.fov === 92) { // Modify this line: Changed from isCamOnGreen to camera.fov === 92
+        const isPortrait = window.innerWidth / window.innerHeight < 1;
+        // Multiplies the target size by the inverse camera zoom ratio to keep its screen size perfectly normal
+        finalBallTargetScale *= isPortrait ? 2.45 : 1.78;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
