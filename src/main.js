@@ -1057,7 +1057,7 @@ function animate() {
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         if (physics.isPutting) {
-            ballTargetScale = 0.27;
+            ballTargetScale = 0.2;
         } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
@@ -1109,7 +1109,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.27;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.2;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 1.2; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1145,7 +1145,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 1.45;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.27;
+                ballTargetScale = 0.2;
             } else {
                 ballTargetScale = 1.2;
             }
@@ -1156,7 +1156,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.45;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.27;
+            ballTargetScale = 0.2;
         } else {
             ballTargetScale = 1.2;
         }
