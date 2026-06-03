@@ -1057,7 +1057,7 @@ function animate() {
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         if (physics.isPutting) {
-            ballTargetScale = 0.24;
+            ballTargetScale = 0.20;
         } else {
             const dx = ball.position.x - 0;
             const dz = ball.position.z - 10;
@@ -1107,11 +1107,11 @@ function animate() {
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.05;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 0.95;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.24;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.20;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 1.0; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 0.9; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1143,22 +1143,22 @@ function animate() {
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 1.05;
+                ballTargetScale = 0.95;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.24;
+                ballTargetScale = 0.20;
             } else {
-                ballTargetScale = 1.0;
+                ballTargetScale = 0.9;
             }
         } // <-- This brace closes the swinging check
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.05;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 0.95;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.24;
+            ballTargetScale = 0.20;
         } else {
-            ballTargetScale = 1.0;
+            ballTargetScale = 0.9;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
