@@ -238,25 +238,23 @@ html {
     box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
 }
 
+/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
     /* Main Chassis: Defines the polished steel outer perimeter shell */
     border-radius: 6px 34px 24px 16px;
     width: 130px;
-    height: 48px;
-    /* Change this line: Drastically narrows the profile so it doesn't extend so far back */
+    height: 62px;
     /* Increased from 50px to provide an exceptionally tall back flange profile */
     background:
         /* Dramatically extended hitting face section to display a wide, highly-lofted grooved plane */
         repeating-linear-gradient(to bottom, transparent, transparent 2.5px, rgba(0, 0, 0, 0.16) 2.5px, rgba(0, 0, 0, 0.16) 3.5px) top left / 100% 24px no-repeat,
         /* Metallic slope transition leading down to an emphasized polished chrome topline highlight */
-        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 18%, #ffffff 22%, #b4b8bb 32%, #7f8284 100%);
-    /* Change this line: Compresses the reflection to mimic a narrow, vertical mid-iron back wall */
+        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 32%, #ffffff 36%, #b4b8bb 46%, #7f8284 100%);
     border: 1px solid #6c6f72;
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.45),
         inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
-    margin-bottom: -5px;
-    /* Change this line: Offsets the new 48px height so the clubface centers perfectly against the ball equator */
+    margin-bottom: -22px;
     /* Adjusted to -22px to perfectly counteract the 62px height and keep alignment locked to the ball center */
     position: absolute;
 }
@@ -302,9 +300,9 @@ html {
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
     border-radius: 4px 4px 6px 6px;
-    width: 125px;
+    width: 155px;
     /* Scaled up from 124px */
-    height: 32px;
+    height: 40px;
     /* Scaled up from 32px */
     border: 1px solid #5a5d5f;
     background:
@@ -365,7 +363,7 @@ html {
 
     35% {
         bottom: 24%;
-        left: 46.3%;
+        left: 47%;
         /* Shifted right from 38% to align beautifully with the center of the ball */
         right: auto;
         transform: rotate(0deg) scale(1.2);
@@ -383,7 +381,7 @@ html {
 /* NEW: Club resting right behind the ball at address */
 #clubSwipe.idle-stance {
     bottom: 24% !important;
-    left: 46.3% !important;
+    left: 47% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.4) !important;
     opacity: 1 !important;
@@ -401,9 +399,9 @@ html {
 }
 
 #clubSwipe.putter.idle-stance {
-    left: 46.0% !important;
-    bottom: 3.5% !important;
-    /* FIXED: Lowers the face cleanly behind the ball's new lower screen baseline */
+    left: calc(50% - 77.5px) !important;
+    bottom: 19.5% !important;
+    /* FIXED: Centers horizontally and anchors cleanly against the realistic camera baseline */
 }
 
 /* ==========================================================================
@@ -549,11 +547,11 @@ html {
 
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
-        left: calc(50% - 68px) !important;
+        left: calc(50% - 77.5px) !important;
     }
 
     #clubSwipe.pullback-stance {
-        left: calc(50% - 52px) !important;
+        left: calc(50% - 77.5px) !important;
     }
 
     #clubSwipe.swipe-animation {
@@ -563,46 +561,27 @@ html {
     #clubSwipe.putter.swipe-animation {
         animation: putterSwipeAnimMobile 0.4s linear forwards !important;
     }
-
-    /* Isolated mobile putter size parameters */
-    #clubSwipe.putter {
-        width: 124px !important;
-        /* Add this line - adjusts mobile width */
-        height: 32px !important;
-        /* Add this line - adjusts mobile height */
-    }
 }
-
 
 @keyframes putterSwipeAnimMobile {
     0% {
-        bottom: 4%;
-        left: calc(50% - 68px);
-        /* Change this line */
+        bottom: var(--putter-start-bottom, 19.5%);
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
-        /* Change this line */
         opacity: 1;
     }
 
     35% {
-        bottom: 3.5%;
-        /* Change this line: Lowered from 13.5% to match our new address line */
-        /* Change this line: Lowered contact line from 25% */
-        left: calc(50% - 68px);
-        /* Change this line */
+        bottom: 19.5%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
-        /* Change this line */
         opacity: 1;
     }
 
     100% {
-        bottom: 9.0%;
-        /* Change this line: Lowered from 19.0% to keep the follow-through path proportional */
-        /* Change this line: Lowered follow-through from 33% */
-        left: calc(50% - 68px);
-        /* Change this line */
+        bottom: 25.0%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
-        /* Change this line */
         opacity: 0;
     }
 }
@@ -629,42 +608,23 @@ html {
 
 @keyframes putterSwipeAnim {
     0% {
-        bottom: var(--putter-start-bottom, 4%);
-        /* Matches the deep pullback edge position */
-        left: 46.0%;
-        /* Change this line */
+        bottom: var(--putter-start-bottom, 19.5%);
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     35% {
-        bottom: 13.5%;
-        /* FIXED: Smooth contact right at the ball's base position */
-        /* Unchanged: Hits through the perfect horizontal center of the ball */
-        left: 46.0%;
-        /* Change this line */
+        bottom: 19.5%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     100% {
-        bottom: 19.0%;
-        /* FIXED: Adjusted follow-through path proportionally */
-        left: 46.0%;
-        /* Change this line */
+        bottom: 25.0%;
+        left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 0;
-        /* Smoothly clears from screen view upon completing follow-through stroke */
-    }
-}
-
-/* ==========================================================================
-   LAPTOP AND SMALL SCREEN RESPONSIVE CLUB SCALING
-   ========================================================================== */
-/* Update this line to isolate laptops and increase zoom size */
-@media (max-height: 850px) and (min-width: 769px) {
-    #clubSwipe {
-        zoom: 1.2;
-        /* Update this line to make it slightly larger on laptops */
     }
 }
