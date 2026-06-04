@@ -41,7 +41,8 @@ export class InputHandler {
 
     getDefaultClubIndex() {
         const currentYards = this.getDistance ? this.getDistance() : 0;
-        if (currentYards >= 250) return 0;  // Driver
+        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false; // Add this line
+        if (currentYards >= 250) return isOnTee ? 0 : 1;
         if (currentYards >= 225) return 1;  // 3 Wood
         if (currentYards >= 200) return 2;  // 5 Wood
         if (currentYards >= 190) return 3;  // Hybrid
@@ -60,8 +61,11 @@ export class InputHandler {
             return { name: 'Putter', maxYards: 80, isGreen: true };
         }
 
+        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false; // Add this line
+
         // If player explicitly manually selected a club option, return that one
         if (this.chosenClubIndex !== null && this.chosenClubIndex !== undefined) {
+            if (this.chosenClubIndex === 0 && !isOnTee) return CLUBS[1]; // Add this line: Safe fallback override to 3 Wood
             return CLUBS[this.chosenClubIndex];
         }
 

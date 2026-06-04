@@ -114,15 +114,17 @@ function updateDistanceDisplay() {
         leftBtn.className = 'club-option';
         leftBtn.innerText = '◀';
 
-        // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === 0) {
+        // Disable the arrow if we are already holding the longest club allowed (Driver at index 0 or 3 Wood at index 1 off tee)
+        const minClubIdx = (teeBox && teeBox.visible) ? 0 : 1; // Add this line
+        if (currentIdx <= minClubIdx) { // Change this line
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx > 0) {
+            const minIdx = (teeBox && teeBox.visible) ? 0 : 1; // Add this line
+            if (cIdx > minIdx) { // Change this line
                 input.chosenClubIndex = cIdx - 1;
                 updateDistanceDisplay(); // Refresh UI layout positions instantly
             }
@@ -1706,6 +1708,7 @@ function init() {
     input.ballRef = ball;
     input.sandTrapsRef = sandTraps;
     input.holePositionRef = holePosition;
+    input.teeBoxRef = teeBox;
 
     window.addEventListener('resize', onWindowResize, false);
     onWindowResize();
