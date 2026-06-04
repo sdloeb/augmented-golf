@@ -1056,30 +1056,31 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        if (physics.isPutting) {
-            ballTargetScale = 0.24;
-        } else {
-            const dx = ball.position.x - 0;
-            const dz = ball.position.z - 10;
-            const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
+        const ballCheckX = ball.position.x; // Add this line
+        const ballCheckZ = ball.position.z - greenCenterZ; // Add this line
+        const ballOnGreen = Math.sqrt(ballCheckX * ballCheckX + ballCheckZ * ballCheckZ) < GREEN_RADIUS; // Add this line
 
-            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
-            // -------------------------------------------------------------------
+        if (physics.isPutting || ballOnGreen) { // Change this line
+            ballTargetScale = 0.24; // Change this line
+        } else { // Change this line
+            ballTargetScale = 1.0; // Change this line
+        } // Change this line
+        // -------------------------------------------------------------------
 
-            // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
-            if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-                const dirX = holePosition.x - ball.position.x;
-                const dirZ = holePosition.z - ball.position.z;
-                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+        // AUTOMATIC CHASE CAMERA FOR ALL SHOTS WHEN MOVING
+        if ((!isLongShot || (performance.now() - shotStartTime > 2000)) && !isOverheadActive) {
+            const dirX = holePosition.x - ball.position.x;
+            const dirZ = holePosition.z - ball.position.z;
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-                // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-                const backX = -(dirX / length) * 5.5;
-                const backZ = -(dirZ / length) * 5.5;
+            // Target coordinates pulled back further horizontally behind the ball's moving flight path
+            const backX = -(dirX / length) * 12.0;
+            const backZ = -(dirZ / length) * 12.0;
 
-                // Smoothly tracks target positioning vectors forward through 3D space
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
-            }
+            // Smoothly tracks target positioning vectors forward through 3D space with extra vertical clearance
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 3.5, ball.position.z + backZ);
+            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+
         }
     } else {
         const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
@@ -1169,18 +1170,13 @@ function animate() {
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
     let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
 
-    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
-    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.005;
-    }
-
-    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
-    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.005;
+    // 2. ISOLATED CHASE SPEED: Smoothly follow the ball trajectory and bounces
+    if (physics.isMoving && (!isLongShot || (performance.now() - shotStartTime > 2000)) && !isOverheadActive) {
+        activeCameraSpeed = isCamOnGreen ? 0.12 : 0.04; // Change this line
     }
 
     // Hole preview path fly-through logic
-    if (isOverheadActive) { // Add this line
+    if (isOverheadActive) {
         previewProgress += 0.002; // Add this line (Controls fly-through speed. Increase to go faster, decrease to go slower)
         if (previewProgress > 1) previewProgress = 1; // Add this line
         // Add this line
