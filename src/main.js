@@ -114,17 +114,15 @@ function updateDistanceDisplay() {
         leftBtn.className = 'club-option';
         leftBtn.innerText = '◀';
 
-        // Disable the arrow if we are already holding the longest club allowed (Driver at index 0 or 3 Wood at index 1 off tee)
-        const minClubIdx = (teeBox && teeBox.visible) ? 0 : 1; // Add this line
-        if (currentIdx <= minClubIdx) { // Change this line
+        // Disable the arrow if we are already holding the longest club (Driver at index 0)
+        if (currentIdx === 0) {
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            const minIdx = (teeBox && teeBox.visible) ? 0 : 1; // Add this line
-            if (cIdx > minIdx) { // Change this line
+            if (cIdx > 0) {
                 input.chosenClubIndex = cIdx - 1;
                 updateDistanceDisplay(); // Refresh UI layout positions instantly
             }
@@ -1065,16 +1063,6 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        const ballCheckX = ball.position.x; // Add this line
-        const ballCheckZ = ball.position.z - greenCenterZ; // Add this line
-        const ballOnGreen = Math.sqrt(ballCheckX * ballCheckX + ballCheckZ * ballCheckZ) < GREEN_RADIUS; // Add this line
-
-        if (physics.isPutting || ballOnGreen) { // Change this line
-            ballTargetScale = 0.24; // Change this line
-        } else { // Change this line
-            ballTargetScale = 1.0; // Change this line
-        } // Change this line
-        // -------------------------------------------------------------------
         const dx = ball.position.x - 0;
         const dz = ball.position.z - 10;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
@@ -1084,32 +1072,20 @@ function animate() {
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.45; // Locks the moving ball size to perfectly match its resting green size
+            ballTargetScale = 0.25; // Locks the moving ball size to perfectly match its resting green size
         } else {
             ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         }
 
-        // AUTOMATIC CHASE CAMERA FOR ALL SHOTS WHEN MOVING
-        if ((!isLongShot || (performance.now() - shotStartTime > 2000)) && !isOverheadActive) {
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
         // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
         if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-            // Target coordinates pulled back further horizontally behind the ball's moving flight path
-            const backX = -(dirX / length) * 12.0;
-            const backZ = -(dirZ / length) * 12.0;
             // Target coordinates 5.5 units horizontally behind the ball's moving flight path
             const backX = -(dirX / length) * 5.5;
             const backZ = -(dirZ / length) * 5.5;
-
-            // Smoothly tracks target positioning vectors forward through 3D space with extra vertical clearance
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 3.5, ball.position.z + backZ);
-            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
 
             // Smoothly tracks target positioning vectors forward through 3D space
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
@@ -1143,7 +1119,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.45;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.25;  // OPTION 2: Size when on the Green or using the Putter
             } else {
                 ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
             }
@@ -1179,7 +1155,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.55;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.45;
+                ballTargetScale = 0.25;
             } else {
                 ballTargetScale = 0.55;
             }
@@ -1190,7 +1166,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.45;
+            ballTargetScale = 0.25;
         } else {
             ballTargetScale = 1.2;
         }
@@ -1203,13 +1179,18 @@ function animate() {
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
     let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
 
-    // 2. ISOLATED CHASE SPEED: Smoothly follow the ball trajectory and bounces
-    if (physics.isMoving && (!isLongShot || (performance.now() - shotStartTime > 2000)) && !isOverheadActive) {
-        activeCameraSpeed = isCamOnGreen ? 0.12 : 0.04; // Change this line
+    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        activeCameraSpeed = 0.005;
+    }
+
+    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        activeCameraSpeed = 0.005;
     }
 
     // Hole preview path fly-through logic
-    if (isOverheadActive) {
+    if (isOverheadActive) { // Add this line
         previewProgress += 0.002; // Add this line (Controls fly-through speed. Increase to go faster, decrease to go slower)
         if (previewProgress > 1) previewProgress = 1; // Add this line
         // Add this line
@@ -1329,7 +1310,7 @@ function animate() {
     let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
         // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
-        finalBallTargetScale *= 1.0;
+        finalBallTargetScale *= 1.80;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -1757,7 +1738,6 @@ function init() {
     input.ballRef = ball;
     input.sandTrapsRef = sandTraps;
     input.holePositionRef = holePosition;
-    input.teeBoxRef = teeBox;
 
     window.addEventListener('resize', onWindowResize, false);
     onWindowResize();
