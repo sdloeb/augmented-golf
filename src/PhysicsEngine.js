@@ -128,6 +128,24 @@ export class PhysicsEngine {
         return Math.max(0.001, combinedHeight * smoothFade);
     } // Find this closing bracket of getGreenHeight
 
+    // Add this method: Calculates distance from any coordinate to our curved spline path
+    getDistanceToSpline(x, z) {
+        if (!this.fairwayPoints || this.fairwayPoints.length === 0) {
+            return Math.abs(x); // Fallback to straight line if path isn't loaded yet
+        }
+        let minDist = Infinity;
+        for (let i = 0; i < this.fairwayPoints.length; i++) {
+            const p = this.fairwayPoints[i];
+            const dx = x - p.x;
+            const dz = z - p.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+        }
+        return minDist;
+    }
+
     // NEW: Analytical height function for fairway and rough contours
     getCourseHeight(x, z) {
         const dxTee = x - 0;

@@ -314,7 +314,17 @@ function generateHazards() {
             currentSandGroundY += 0.035;
         }
 
-        const sandMesh = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ color: 0xe0ca9b, roughness: 0.9 }));
+        // UPDATED MATERIAL: Keeps your exact geometry/artwork but adds polygon offsets to overlay properly
+        const sandMesh = new THREE.Mesh(
+            new THREE.CircleGeometry(r, 32),
+            new THREE.MeshStandardMaterial({
+                color: 0xe0ca9b,
+                roughness: 0.9,
+                polygonOffset: true,         // Tells the GPU to pull this layer slightly forward
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -2
+            })
+        );
         sandMesh.rotation.x = -Math.PI / 2;
         sandMesh.position.set(x, currentSandGroundY + 0.007, z);
         scene.add(sandMesh);
@@ -477,49 +487,63 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
-            const gX = worldX;
+            // NEW: Scan if this vertex falls inside any active sand trap perimeter
+            let insideSandZone = false;
+            let targetSandY = 0;
+            sandTraps.forEach(sand => {
+                const dxS = worldX - sand.position.x;
+                const dzS = worldZ - sand.position.z;
+                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
+                const sandRadius = sand.geometry.parameters.radius || 5;
+                if (distToSand < sandRadius + 0.2) { // 0.2 buffer keeps mesh edges stitched neatly
+                    insideSandZone = true;
+                    targetSandY = sand.position.y - 0.02; // Keeps the grass bed 0.02 units underneath the flat disc
+                }
+            });
+
+            const gX = worldX - (green ? green.position.x : 0);
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // 1. Smooth Green Concealment Push-Down (applies to BOTH fairway and floor meshes)
-            // Confining the push-down strictly inside the 12-unit green radius to prevent z-fighting.
-            if (distToGreen < 12.0) {
+            if (distToGreen < 14.0) {
                 calculatedHeight -= 0.45;
             }
 
             // FIXED: Wrap fairway and floor offsets in a conditional block. If the vertex is inside 
             // a water hazard zone, we skip relative offsets to keep both meshes perfectly stitched and flush.
             if (!insideWaterZone) {
+                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
+
                 // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
                 if (targetMesh === floor) {
-                    if (worldZ >= greenCenterZ && worldZ <= 8) {
-                        let zFade = 1.0;
-                        const fadeWindow = 4.0;
-
-                        if (worldZ - greenCenterZ < fadeWindow) {
-                            zFade = (worldZ - greenCenterZ) / fadeWindow;
-                        } else if (8 - worldZ < fadeWindow) {
-                            zFade = (8 - worldZ) / fadeWindow;
-                        }
-
-                        const absX = Math.abs(worldX);
-                        if (absX <= 9.0) {
-                            calculatedHeight -= 0.06 * zFade;
-                        } else if (absX <= 12.0) {
-                            const sideFade = (12.0 - absX) / 3.0;
-                            calculatedHeight -= 0.06 * sideFade * zFade;
-                        }
+                    if (distanceToPath <= 9.0) {
+                        calculatedHeight -= 0.02;
                     }
                 }
 
                 // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    calculatedHeight += 0.06;
+                    if (distanceToPath <= 9.0) {
+                        calculatedHeight += 0.06;
+                    } else {
+                        calculatedHeight = -10.0;
+                    }
                 }
             }
 
+            // =========================================================================
+            // ADDED BACK: This is the critical block that was missing and cut off!
+            // =========================================================================
+            // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
+            if (insideSandZone) {
+                calculatedHeight = targetSandY;
+            }
+
+            // Write the finalized calculated height to the current vertex
             posAttr.setZ(i, calculatedHeight);
-        }
+        } // Closes the for loop
+
+        // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
         targetMesh.geometry.computeVertexNormals();
     };
