@@ -1651,20 +1651,32 @@ function init() {
     flag.position.set(0.4, 2.75, -55);
     scene.add(flag);
 
-    holeCup = new THREE.Group(); // Change this line: Swapped mesh to a group container
+    holeCup = new THREE.Group();
 
     const whiteRimGeo = new THREE.RingGeometry(0.17, 0.20, 32);
-    const whiteRimMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }); // Change this line: Crisp unlit white with double-side rendering
+    const whiteRimMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+        polygonOffset: true,         // Add this line: Forces the white rim to stay on top of the grass mesh
+        polygonOffsetFactor: -3,     // Add this line
+        polygonOffsetUnits: -6       // Add this line
+    }); // Change this line
     const whiteRim = new THREE.Mesh(whiteRimGeo, whiteRimMat);
     whiteRim.rotation.x = -Math.PI / 2;
     whiteRim.position.y = 0.002;
     holeCup.add(whiteRim);
 
     const darkCupGeo = new THREE.CircleGeometry(0.17, 32);
-    const darkCupMat = new THREE.MeshBasicMaterial({ color: 0x151515, side: THREE.DoubleSide }); // Change this line: Added double-sided rendering
+    const darkCupMat = new THREE.MeshBasicMaterial({
+        color: 0x151515,
+        side: THREE.DoubleSide,
+        polygonOffset: true,         // Add this line: Forces the dark core to override the bulging grass fragments
+        polygonOffsetFactor: -2,     // Add this line: Layered slightly underneath the white rim face
+        polygonOffsetUnits: -4       // Add this line
+    }); // Change this line
     const darkCup = new THREE.Mesh(darkCupGeo, darkCupMat);
     darkCup.rotation.x = -Math.PI / 2;
-    darkCup.position.y = -0.002; // Change this line: Less deep to keep it flawlessly above the sub-mesh layer
+    darkCup.position.y = 0.001; // Change this line: Adjusted upward to sit safely above the grass layer
     holeCup.add(darkCup);
 
     holeCup.position.set(0, 0.03, -55); // Keep this line
