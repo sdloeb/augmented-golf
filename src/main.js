@@ -1091,7 +1091,7 @@ function animate() {
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
             ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
         } else {
-            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
+            ballTargetScale = Math.max(0.80, 1.0 - (distanceTraveled * 0.006));
         }
 
         // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
@@ -1138,7 +1138,7 @@ function animate() {
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 0.40;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 0.80; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1174,7 +1174,7 @@ function animate() {
             } else if (onGreen || currentClub === 'Putter') {
                 ballTargetScale = 0.40;
             } else {
-                ballTargetScale = 0.55;
+                ballTargetScale = 0.80;
             }
         } // <-- This brace closes the swinging check
 
@@ -1185,7 +1185,7 @@ function animate() {
         } else if (onGreen || restingClub === 'Putter') {
             ballTargetScale = 0.40;
         } else {
-            ballTargetScale = 1.2;
+            ballTargetScale = 0.80;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
