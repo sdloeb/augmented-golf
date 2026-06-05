@@ -3,7 +3,7 @@ import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
-let green, pin, flag, holeCup, fairway, floor;
+let green, pin, flag, holeCup, fairway, floor, greenFringe;
 let clubLandingRing;
 let clubLandingBeacon;
 let ballTracer, tracerPoints = [];
@@ -393,6 +393,10 @@ function resetEntireGame(advanceHole = false) {
         greenGrid.position.x = 0;
         greenGrid.position.z = greenCenterZ;
     }
+    if (greenFringe) { // Add this line
+        greenFringe.position.x = 0; // Add this line
+        greenFringe.position.z = greenCenterZ; // Add this line
+    } // Add this line
 
     // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
     const horizontalOptions = [0.0, 0.05, -0.05];
@@ -454,6 +458,7 @@ function resetEntireGame(advanceHole = false) {
             let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
             if (targetMesh === green) calculatedHeight += 0.02;
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
+            if (targetMesh === greenFringe) calculatedHeight += 0.018;
             posAttr.setZ(i, calculatedHeight);
         }
         posAttr.needsUpdate = true;
@@ -494,7 +499,7 @@ function resetEntireGame(advanceHole = false) {
 
             // 1. Smooth Green Concealment Push-Down (applies to BOTH fairway and floor meshes)
             // Confining the push-down strictly inside the 12-unit green radius to prevent z-fighting.
-            if (distToGreen < 12.0) {
+            if (distToGreen < 14.0) {
                 calculatedHeight -= 0.45;
             }
 
@@ -538,6 +543,7 @@ function resetEntireGame(advanceHole = false) {
     // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
     deformVisualGreenMesh(green);
     deformVisualGreenMesh(greenGrid);
+    deformVisualGreenMesh(greenFringe);
 
     // Extract local physics engine height maps to draw custom contour arrows across the surface grid
     if (gridCanvas && gridTexture) {
@@ -1619,6 +1625,19 @@ function init() {
     greenGrid.rotation.x = -Math.PI / 2;
     greenGrid.position.set(0, 0.021, -55);
     scene.add(greenGrid);
+
+    const fringeGeo = new THREE.RingGeometry(GREEN_RADIUS, GREEN_RADIUS + 1.0, 64, 16); // Add this line: 2-unit wide ring collar around edge
+    const fringeMat = new THREE.MeshStandardMaterial({
+        color: 0x1b7a3a,
+        roughness: 0.85,
+        polygonOffset: true,         // Add this line: Directs the GPU to render this layer on top of overlapping meshes
+        polygonOffsetFactor: -1,     // Add this line
+        polygonOffsetUnits: -4       // Add this line
+    });
+    greenFringe = new THREE.Mesh(fringeGeo, fringeMat); // Add this line
+    greenFringe.rotation.x = -Math.PI / 2; // Add this line
+    greenFringe.position.set(0, 0.018, -55); // Add this line
+    scene.add(greenFringe); // Add this line
 
     const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 3, 8);
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
