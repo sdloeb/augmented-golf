@@ -15,6 +15,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let currentHoleNumber = 1;
 let currentPar = 4;
+let currentWindSpeed = 0;
 
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
@@ -158,6 +159,7 @@ function updateDistanceDisplay() {
 function generateNewWind() {
     const maxWindSpeed = 21;
     const windSpeed = Math.floor(Math.random() * maxWindSpeed);
+    currentWindSpeed = windSpeed;
     currentWindAngle = Math.random() * Math.PI * 2; // Save globally
 
     const text = document.getElementById('windText');
@@ -1461,6 +1463,21 @@ function animate() {
         } // Add this line
     } // Add this line
 
+    // Animate the red flag rippling dynamically with wind speed
+    if (flag && flag.geometry.attributes.position) { // Add this line
+        const flagTime = performance.now() * 0.004; // Add this line
+        const flagPos = flag.geometry.attributes.position; // Add this line
+        for (let i = 0; i < flagPos.count; i++) { // Add this line
+            const u = flagPos.getX(i); // Add this line
+            const anchorWeight = (u + 0.4) / 0.8; // Add this line: 0 at left edge (pinned to pole), 1 at right flapping edge
+            // Speed and wave amplitude increase exponentially based on currentWindSpeed values
+            const wave = Math.sin(u * 8.0 - flagTime * (2.0 + currentWindSpeed * 0.4)) * 0.04 * (0.15 + currentWindSpeed * 0.08) * anchorWeight; // Add this line
+            flagPos.setZ(i, wave); // Add this line
+        } // Add this line
+        flagPos.needsUpdate = true; // Add this line
+        flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
+    } // Add this line
+
     updateWindArrowDisplay();
 
     renderer.render(scene, camera);
@@ -1645,7 +1662,7 @@ function init() {
     pin.position.set(0, 1.5, -55);
     scene.add(pin);
 
-    const flagGeo = new THREE.PlaneGeometry(0.8, 0.5);
+    const flagGeo = new THREE.PlaneGeometry(0.8, 0.5, 10, 10);
     const flagMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
     flag = new THREE.Mesh(flagGeo, flagMat);
     flag.position.set(0.4, 2.75, -55);
