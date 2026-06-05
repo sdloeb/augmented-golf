@@ -570,25 +570,15 @@ function resetEntireGame(advanceHole = false) {
             // FIXED: Wrap fairway and floor offsets in a conditional block. If the vertex is inside 
             // a water hazard zone, we skip relative offsets to keep both meshes perfectly stitched and flush.
             if (!insideWaterZone) {
+                // FIXED: Restored this critical declaration line to clear your ReferenceError blank screen crash!
+                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
+
                 // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
+                // UPDATED: Swapped out old straight Z constraints for the dynamic spline path tracking
+                // to cleanly handle our new 90-degree sideways dogleg modifications
                 if (targetMesh === floor) {
-                    if (worldZ >= greenCenterZ && worldZ <= 8) {
-                        let zFade = 1.0;
-                        const fadeWindow = 4.0;
-
-                        if (worldZ - greenCenterZ < fadeWindow) {
-                            zFade = (worldZ - greenCenterZ) / fadeWindow;
-                        } else if (8 - worldZ < fadeWindow) {
-                            zFade = (8 - worldZ) / fadeWindow;
-                        }
-
-                        const absX = Math.abs(worldX);
-                        if (absX <= 9.0) {
-                            calculatedHeight -= 0.06 * zFade;
-                        } else if (absX <= 12.0) {
-                            const sideFade = (12.0 - absX) / 3.0;
-                            calculatedHeight -= 0.06 * sideFade * zFade;
-                        }
+                    if (distanceToPath <= 9.0) {
+                        calculatedHeight -= 0.02; // Smooth micro-shave prevents flickering overlapping faces
                     }
                 }
 
@@ -602,9 +592,6 @@ function resetEntireGame(advanceHole = false) {
                 }
             }
 
-            // =========================================================================
-            // ADDED BACK: This is the critical block that was missing and cut off!
-            // =========================================================================
             // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
             if (insideSandZone) {
                 calculatedHeight = targetSandY;
