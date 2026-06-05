@@ -60,7 +60,7 @@ function updateDistanceDisplay() {
 
     if (distanceText && unitText) {
         if (gameDistance < GREEN_RADIUS) {
-            const feet = Math.round(gameDistance * 3.00);
+            const feet = Math.round(gameDistance * 1.00);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
@@ -1072,9 +1072,9 @@ function animate() {
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.15; // Locks the moving ball size to perfectly match its resting green size
+            ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
         } else {
-            ballTargetScale = Math.max(0.4, 0.90 - (distanceTraveled * 0.006));
+            ballTargetScale = Math.max(0.4, 1.0 - (distanceTraveled * 0.006));
         }
 
         // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
@@ -1119,9 +1119,9 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.15;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.40;  // OPTION 2: Size when on the Green or using the Putter
             } else {
-                ballTargetScale = 0.90; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 0.32; // OPTION 3: Size when out in the Fairway or Rough
             }
 
             generateNewWind();
@@ -1155,9 +1155,9 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.55;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.15;
+                ballTargetScale = 0.40;
             } else {
-                ballTargetScale = 0.90;
+                ballTargetScale = 0.55;
             }
         } // <-- This brace closes the swinging check
 
@@ -1166,9 +1166,9 @@ function animate() {
         if (teeBox && teeBox.visible) {
             ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.15;
+            ballTargetScale = 0.40;
         } else {
-            ballTargetScale = 0.90;
+            ballTargetScale = 1.2;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
@@ -1310,7 +1310,7 @@ function animate() {
     let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
         // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
-        finalBallTargetScale *= 1.80;
+        finalBallTargetScale *= 0.85;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -1334,7 +1334,7 @@ function animate() {
                 }
 
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
-                const putterBaseBottom = 19.5;
+                const putterBaseBottom = 21.8;
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
 
                 if (input.state === 'IDLE') {
@@ -1677,7 +1677,7 @@ function init() {
         if (isOnGreen) {
             // Multiply to fine-tune putting physics:
             // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 1.0;
+            finalPower *= 2.4;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
@@ -1691,7 +1691,7 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
-                const currentBottom = 19.5 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
+                const currentBottom = 21.8 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
             }
 
@@ -1738,6 +1738,7 @@ function init() {
     input.ballRef = ball;
     input.sandTrapsRef = sandTraps;
     input.holePositionRef = holePosition;
+    input.teeBoxRef = teeBox;
 
     window.addEventListener('resize', onWindowResize, false);
     onWindowResize();
