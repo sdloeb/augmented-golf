@@ -12,21 +12,24 @@ export class PhysicsEngine {
         this.hitWater = false;
         this.isPutting = false;
         this.holePosition = new THREE.Vector3(0, 0.25, -55);
+        this.greenCenterX = 0;
         this.greenCenterZ = -55;
         this.slopeX = 0;
         this.slopeZ = 0;
         this.backZone = { rx: 0, rz: 0 };
         this.midZone = { rx: 0, rz: 0 };
         this.frontZone = { rx: 0, rz: 0 };
-        this.obstacles = []; // Add this line
+        this.obstacles = [];
         this.isStuckInBush = false;
+        this.fairwayPoints = [];
     }
 
     // NEW: Receives the shuffled configurations from the map setup
-    setGreenContours(back, mid, front, centerZ) {
+    setGreenContours(back, mid, front, centerX, centerZ) {
         this.backZone = back;
         this.midZone = mid;
         this.frontZone = front;
+        this.greenCenterX = centerX;
         this.greenCenterZ = centerZ;
 
         // Randomize fairway/rough course contours for the new hole
@@ -94,7 +97,7 @@ export class PhysicsEngine {
     // Analytical height function that calculates 3D elevations anywhere on the green
     getGreenHeight(x, z) {
         const dz = z - this.greenCenterZ;
-        const dx = x;
+        const dx = x - this.greenCenterX;
         const distanceSq = dx * dx + dz * dz;
 
         // Out of bounds safety fallback
@@ -173,7 +176,7 @@ export class PhysicsEngine {
 
     // NEW: Unified ground height method that blends course and green transitions seamlessly
     getGroundHeight(x, z) {
-        const gX = x;
+        const gX = x - this.greenCenterX;
         const gZ = z - this.greenCenterZ;
         const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
 
@@ -270,7 +273,7 @@ export class PhysicsEngine {
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
         const groundY = 0.25 + greenHeightOffset;
 
-        const gX = this.ball.position.x - 0;
+        const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
         const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
 
@@ -290,10 +293,8 @@ export class PhysicsEngine {
             currentBounceHeight = 0.12;
             currentBounceForwardLoss = 0.30;
         }
-        else if (!onGreen && Math.abs(this.ball.position.x) >= 9.0) {
+        else if (!onGreen && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0) { // Change this line
             currentFriction = 0.92;
-            currentBounceHeight = 0.12;
-            currentBounceForwardLoss = 0.45;
         }
         if (this.isPutting) {
             currentFriction = 0.99; // Add this block (Balances distance perfectly for half-speed roll)
