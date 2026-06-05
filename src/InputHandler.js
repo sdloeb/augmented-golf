@@ -346,8 +346,8 @@ export class InputHandler {
                 // 3. Apply Penalties
                 if (inSand) {
                     finalPower *= 0.50; // Lose 50% power in sand bunker
-                } else if (!onGreen && Math.abs(this.ballRef.position.x) >= 9.0) {
-                    finalPower *= 0.85; // Lose 10% power in the rough (outside fairway width 18)
+                } else if (!onGreen && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Change this line
+                    finalPower *= 0.85; // Lose 15% power in the rough
                 }
             }
         }
