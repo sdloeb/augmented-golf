@@ -425,7 +425,18 @@ function resetEntireGame(advanceHole = false) {
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
     if (pin) pin.position.set(holePosition.x, 1.5 + specificPinCupY, holePosition.z);
     if (flag) flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
-    if (holeCup) holeCup.position.set(holePosition.x, 0.04 + specificPinCupY, holePosition.z);
+    if (holeCup) { // Change this line
+        const cupDelta = 0.1; // Add this line: Resolution boundary for sampling local slopes
+        const cL = physics.getGreenHeight(holePosition.x - cupDelta, holePosition.z); // Add this line
+        const cR = physics.getGreenHeight(holePosition.x + cupDelta, holePosition.z); // Add this line
+        const cB = physics.getGreenHeight(holePosition.x, holePosition.z - cupDelta); // Add this line
+        const cF = physics.getGreenHeight(holePosition.x, holePosition.z + cupDelta); // Add this line
+        const cupSlopeX = (cL - cR) / (2 * cupDelta); // Add this line
+        const cupSlopeZ = (cB - cF) / (2 * cupDelta); // Add this line
+
+        holeCup.position.set(holePosition.x, 0.042 + specificPinCupY, holePosition.z); // Change this line
+        holeCup.rotation.set(Math.atan2(cupSlopeZ, 1), 0, -Math.atan2(cupSlopeX, 1)); // Add this line: Slopes cup flush to terrain
+    } // Change this line
 
     // Deform the visual green mesh geometries to create real 3D ridges and valleys
     const deformVisualGreenMesh = (targetMesh) => {
@@ -1621,11 +1632,24 @@ function init() {
     flag.position.set(0.4, 2.75, -55);
     scene.add(flag);
 
-    const holeCupGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.01, 32); // Check/Restore this line
-    const holeCupMat = new THREE.MeshBasicMaterial({ color: 0x111111 }); // Check/Restore this line
-    holeCup = new THREE.Mesh(holeCupGeo, holeCupMat); // Check/Restore this line
-    holeCup.position.set(0, 0.03, -55); // Check/Restore this line
-    scene.add(holeCup); // Check/Restore this line
+    holeCup = new THREE.Group(); // Change this line: Swapped mesh to a group container
+
+    const whiteRimGeo = new THREE.RingGeometry(0.17, 0.20, 32);
+    const whiteRimMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }); // Change this line: Crisp unlit white with double-side rendering
+    const whiteRim = new THREE.Mesh(whiteRimGeo, whiteRimMat);
+    whiteRim.rotation.x = -Math.PI / 2;
+    whiteRim.position.y = 0.002;
+    holeCup.add(whiteRim);
+
+    const darkCupGeo = new THREE.CircleGeometry(0.17, 32);
+    const darkCupMat = new THREE.MeshBasicMaterial({ color: 0x151515, side: THREE.DoubleSide }); // Change this line: Added double-sided rendering
+    const darkCup = new THREE.Mesh(darkCupGeo, darkCupMat);
+    darkCup.rotation.x = -Math.PI / 2;
+    darkCup.position.y = -0.002; // Change this line: Less deep to keep it flawlessly above the sub-mesh layer
+    holeCup.add(darkCup);
+
+    holeCup.position.set(0, 0.03, -55); // Keep this line
+    scene.add(holeCup); // Keep this line
 
     // 6.6. Add Club Landing Destination Ring for Overhead View
     const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
