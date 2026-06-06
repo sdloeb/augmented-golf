@@ -28,7 +28,25 @@ const HOLES_CONFIG = {
             new THREE.Vector3(20, 0, -110),
             new THREE.Vector3(0, 0, -170)
         ]
-    }
+    },
+    4: { // Sharp 90-Degree Dogleg Right Hole
+        par: 4,
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -45),
+            new THREE.Vector3(30, 0, -45),
+            new THREE.Vector3(60, 0, -45)
+        ]
+    }, // Add this block
+    5: { // Sharp 90-Degree Dogleg Left Hole
+        par: 4,
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -45),
+            new THREE.Vector3(-30, 0, -45),
+            new THREE.Vector3(-60, 0, -45)
+        ]
+    } // Add this block
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -716,13 +734,23 @@ function resetEntireGame(advanceHole = false) {
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 });
 
     // Generate 35 pieces of random scenery scattered along the edges
-    for (let i = 0; i < 35; i++) {
-        const side = Math.random() > 0.5 ? 1 : -1;
-        const x = side * (31 + Math.random() * 15);
-        const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
+    for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
+        const x = (Math.random() - 0.5) * 160; // Modify this line: spans wide enough to cover doglegs
+        const z = 15 - Math.random() * (25 + Math.abs(holePosition.z)); // Keep this line
 
-        const sceneryGroup = new THREE.Group();
-        const courseHeight = physics.getGroundHeight(x, z);
+        // Prevent background houses/trees from landing on the fairways
+        if (physics && physics.getDistanceToSpline(x, z) < 18.0) { // Add this line
+            continue; // Add this line
+        } // Add this line
+
+        // Prevent background houses/trees from landing on the green
+        const distToHole = Math.sqrt((x - holePosition.x) * (x - holePosition.x) + (z - holePosition.z) * (z - holePosition.z)); // Add this line
+        if (distToHole < 22.0) { // Add this line
+            continue; // Add this line
+        } // Add this line
+
+        const sceneryGroup = new THREE.Group(); // Keep this line
+        const courseHeight = physics.getGroundHeight(x, z); // Keep this line
         sceneryGroup.position.set(x, courseHeight, z);
 
         if (Math.random() > 0.4) {
@@ -763,8 +791,8 @@ function resetEntireGame(advanceHole = false) {
     // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
     if (physics) physics.obstacles = [];
 
-    for (let i = 0; i < 30; i++) {
-        let sampleX = (Math.random() - 0.5) * 50;
+    for (let i = 0; i < 45; i++) {
+        let sampleX = (Math.random() - 0.5) * 160;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
 
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
@@ -775,10 +803,10 @@ function resetEntireGame(advanceHole = false) {
         }
 
         // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
-        let distanceToGreenCenter = Math.sqrt((sampleX - 0) * (sampleX - 0) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Add this line
-        if (distanceToGreenCenter < 15.0) { // Add this line
-            continue; // Add this line
-        } // Add this line
+        let distanceToGreenCenter = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Modify this line
+        if (distanceToGreenCenter < 15.0) { // Keep this line
+            continue; // Keep this line
+        } // Keep this line
 
         // Prevent spawning inside sand traps (+1.0 unit buffer padding)
         let insideSandTrap = sandTraps.some(sandMesh => { // Add this line
