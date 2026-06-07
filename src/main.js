@@ -418,22 +418,77 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-    let holeConfig = HOLES_CONFIG[currentHoleNumber];
+    let holeConfig = null;
 
     // Fallback Generator: Create random doglegs if players exceed the configured preset list
     if (!holeConfig) {
-        const randomTargetZ = -100 - Math.random() * 80;
-        const randomElbowX = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 25);
-        holeConfig = {
-            par: Math.random() > 0.5 ? 4 : 5,
-            waypoints: [
-                new THREE.Vector3(0, 0, 10),
-                new THREE.Vector3(randomElbowX * 0.3, 0, randomTargetZ * 0.4),
-                new THREE.Vector3(randomElbowX, 0, randomTargetZ * 0.7),
-                new THREE.Vector3(randomElbowX * 0.8, 0, randomTargetZ)
-            ]
-        };
+        // Add this block: 60% chance of a straight fairway hole, 40% chance of a dogleg/S-curve
+        if (Math.random() < 0.6) {
+            const straightZ = -80 - Math.random() * 40; // Generates a realistic variable target depth
+            holeConfig = {
+                par: straightZ < -110 ? 5 : 4, // Sets Par 5 for extra-long straight holes
+                waypoints: [
+                    new THREE.Vector3(0, 0, 10),
+                    new THREE.Vector3(0, 0, straightZ)
+                ]
+            };
+        } else { // Add this line: Wraps your dogleg generation logic
+            const archetype = Math.floor(Math.random() * 3); // 0 = Smooth Dogleg, 1 = Sharp 90 Dogleg, 2 = S-Curve
+            const sideDir = Math.random() > 0.5 ? 1 : -1;    // 1 = Right, -1 = Left orientation
+
+            if (archetype === 0) {
+                // Procedural Smooth Dogleg (Par 4)
+                const elbowZ = -45 - Math.random() * 10;
+                const elbowX = sideDir * (45 + Math.random() * 10);
+                const greenZ = elbowZ - 45 - Math.random() * 10;
+                const greenX = elbowX + sideDir * (25 + Math.random() * 10);
+
+                holeConfig = {
+                    par: 4,
+                    waypoints: [
+                        new THREE.Vector3(0, 0, 10),
+                        new THREE.Vector3(elbowX * 0.2, 0, elbowZ * 0.5),
+                        new THREE.Vector3(elbowX, 0, elbowZ),
+                        new THREE.Vector3(greenX, 0, greenZ)
+                    ]
+                };
+            } else if (archetype === 1) {
+                // Procedural Sharp 90-Degree Dogleg (Par 4)
+                const turnZ = -80 - Math.random() * 10;
+                const elbowX = sideDir * (45 + Math.random() * 5);
+                const greenX = sideDir * (85 + Math.random() * 5);
+
+                holeConfig = {
+                    par: 4,
+                    waypoints: [
+                        new THREE.Vector3(0, 0, 10),
+                        new THREE.Vector3(0, 0, turnZ),
+                        new THREE.Vector3(elbowX, 0, turnZ),
+                        new THREE.Vector3(greenX, 0, turnZ)
+                    ]
+                };
+            } else {
+                // Procedural Long S-Curve Double Dogleg (Par 5)
+                const z1 = -45 - Math.random() * 10;
+                const z2 = -105 - Math.random() * 10;
+                const z3 = -165 - Math.random() * 15;
+                const x1 = sideDir * (15 + Math.random() * 10);
+                const x2 = -sideDir * (15 + Math.random() * 10);
+
+                holeConfig = {
+                    par: 5,
+                    waypoints: [
+                        new THREE.Vector3(0, 0, 10),
+                        new THREE.Vector3(x1, 0, z1),
+                        new THREE.Vector3(x2, 0, z2),
+                        new THREE.Vector3(0, 0, z3)
+                    ]
+                };
+            }
+        } // Add this line: Closes the 40% probability else-statement block
     }
+
+    currentPar = holeConfig.par; // Find this line directly underneath to make sure your brackets line up perfectly
 
     currentPar = holeConfig.par;
 
