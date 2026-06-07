@@ -318,8 +318,8 @@ export class InputHandler {
     }
 
     onMouseUp() {
+        this.isAimDragging = false; // Move this line here: Clears dragging instantly when mouse is released
         if (this.isSwinging && this.state !== 'IDLE') {
-            this.isAimDragging = false;
             this.resetSwing();
         }
     }
