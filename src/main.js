@@ -751,6 +751,10 @@ function resetEntireGame(advanceHole = false) {
     if (teeBox) {
         teeBox.position.set(teeBoxX, 0.01, 10);
         teeBox.visible = true;
+
+        // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
+        const firstTarget = holeConfig.waypoints[1];
+        teeBox.lookAt(new THREE.Vector3(firstTarget.x, 0.01, firstTarget.z));
     }
 
     ball.position.set(teeBoxX, 0.37, 10); // Modify this line (elevated slightly to sit exactly on top of the tee)
@@ -766,9 +770,10 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
 
-    // Calculate the precise target-line vector between the randomized tee and pin positions
-    const startDirX = holePosition.x - teeBoxX;
-    const startDirZ = holePosition.z - 10;
+    // Calculate the precise target-line vector between the randomized tee and the first fairway waypoint
+    const firstTarget = holeConfig.waypoints[1]; // Add this line
+    const startDirX = firstTarget.x - teeBoxX;    // Modify this line: Points camera down the initial straightaway
+    const startDirZ = firstTarget.z - 10;          // Modify this line: Points camera down the initial straightaway
     const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ);
 
     // Position the camera exactly 5.5 units backward along the true ball-to-hole line of sight
