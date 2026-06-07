@@ -15,9 +15,9 @@ const HOLES_CONFIG = {
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(5, 0, -35),
-            new THREE.Vector3(30, 0, -65),
-            new THREE.Vector3(45, 0, -100)
+            new THREE.Vector3(10, 0, -50),   // Modify this coordinate
+            new THREE.Vector3(50, 0, -100),  // Modify this coordinate
+            new THREE.Vector3(80, 0, -130)   // Modify this coordinate (Greens out of 1-shot range)
         ]
     },
     3: { // Long S-Curve Double Dogleg Hole
@@ -33,18 +33,18 @@ const HOLES_CONFIG = {
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -45),
-            new THREE.Vector3(30, 0, -45),
-            new THREE.Vector3(60, 0, -45)
+            new THREE.Vector3(0, 0, -85),   // Modify this line: Drives straight down further
+            new THREE.Vector3(45, 0, -85),  // Modify this line: Extends elbow outward
+            new THREE.Vector3(85, 0, -85)   // Modify this line: Safe Par 4 distance (~355 yards away)
         ]
     }, // Add this block
     5: { // Sharp 90-Degree Dogleg Left Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -45),
-            new THREE.Vector3(-30, 0, -45),
-            new THREE.Vector3(-60, 0, -45)
+            new THREE.Vector3(0, 0, -85),   // Modify this line
+            new THREE.Vector3(-45, 0, -85), // Modify this line
+            new THREE.Vector3(-85, 0, -85)  // Modify this line
         ]
     } // Add this block
 };
@@ -251,19 +251,21 @@ function generateHazards() {
 
     // Use a safe fallback if green hasn't initialized yet
     const targetGreenZ = green ? green.position.z : -55;
+    const targetGreenX = green ? green.position.x : 0;
 
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 7.0 + Math.random() * 4.5;
         let waterAttempts = 0; // Add this line
         do {
-            x = (Math.random() - 0.5) * 50;
+            x = (Math.random() - 0.5) * 160; // Modify this line: Spans wide enough for doglegs
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
             waterAttempts++; // Add this line
             if (waterAttempts > 50) break;
         } while (
             checkOverlap(x, z, r, waterHazards) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) ||
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 4.0) || // Modify this line: Checks true green center + extra safety buffer
+            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 2.0)) || // Add this line: Keeps water completely clear of the curving fairway
             (z > -15 && Math.abs(x) < 15)
         );
 
@@ -343,14 +345,15 @@ function generateHazards() {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
         do {
-            x = (Math.random() - 0.5) * 50;
+            x = (Math.random() - 0.5) * 160; // Modify this line: Spans wide enough for doglegs
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
             sandAttempts++;
             if (sandAttempts > 50) break;
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) ||
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 3.0) || // Modify this line: Checks true green center
+            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 1.5)) || // Add this line: Keeps sand traps completely clear of the curving fairway
             (z > -15 && Math.abs(x) < 15)
         );
 
@@ -735,7 +738,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        const x = (Math.random() - 0.5) * 160; // Modify this line: spans wide enough to cover doglegs
+        const x = (Math.random() - 0.5) * 220; // Modify this line: spans wide enough to cover doglegs
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z)); // Keep this line
 
         // Prevent background houses/trees from landing on the fairways
@@ -792,7 +795,7 @@ function resetEntireGame(advanceHole = false) {
     if (physics) physics.obstacles = [];
 
     for (let i = 0; i < 45; i++) {
-        let sampleX = (Math.random() - 0.5) * 160;
+        let sampleX = (Math.random() - 0.5) * 220;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
 
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
@@ -803,7 +806,7 @@ function resetEntireGame(advanceHole = false) {
         }
 
         // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
-        let distanceToGreenCenter = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Modify this line
+        let distanceToGreenCenter = Math.sqrt((sampleX - greenEndpoint.x) * (sampleX - greenEndpoint.x) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Modify this line: Swapped to greenEndpoint.x
         if (distanceToGreenCenter < 15.0) { // Keep this line
             continue; // Keep this line
         } // Keep this line
