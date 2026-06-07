@@ -1352,57 +1352,101 @@ function animate() {
     }
 
     // Hole preview path fly-through logic
-    if (isOverheadActive) { // Add this line
-        previewProgress += 0.002; // Add this line (Controls fly-through speed. Increase to go faster, decrease to go slower)
-        if (previewProgress > 1) previewProgress = 1; // Add this line
-        // Add this line
-        const dirX = holePosition.x - ball.position.x; // Add this line
-        const dirZ = holePosition.z - ball.position.z; // Add this line
-        const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
-        // Add this line
-        // Starting camera position high above the ball structure // Add this line
-        const startCamX = ball.position.x - (dirX / length) * 6.5; // Add this line
-        const startCamZ = ball.position.z - (dirZ / length) * 6.5; // Add this line
-        const startCamY = physics.getGroundHeight(ball.position.x, ball.position.z) + 7.5; // Add this line
-        // Add this line
-        // Target destination high above the pin flag cup // Add this line
-        const endCamX = holePosition.x - (dirX / length) * 4.0; // Add this line
-        const endCamZ = holePosition.z - (dirZ / length) * 4.0; // Add this line
-        const endCamY = physics.getGroundHeight(holePosition.x, holePosition.z) + 6.0; // Add this line
-        // Add this line
-        // Smoothly glide horizontal parameters along the path // Add this line
-        const currentX = THREE.MathUtils.lerp(startCamX, endCamX, previewProgress); // Add this line
-        const currentZ = THREE.MathUtils.lerp(startCamZ, endCamZ, previewProgress); // Add this line
-        // Add this line
-        // Add a gentle height arc over the course + a ground clearance safety check // Add this line
-        const localGroundY = physics.getGroundHeight(currentX, currentZ); // Add this line
-        const heightArc = Math.sin(previewProgress * Math.PI) * 6.0; // Add this line
-        const currentY = THREE.MathUtils.lerp(startCamY, endCamY, previewProgress) + heightArc; // Add this line
-        // Add this line
-        // Smoothly point the camera lens down the fairway toward the hole // Add this line
-        const lookProgress = Math.min(1, previewProgress + 0.15); // Add this line
-        const currentLookX = THREE.MathUtils.lerp(ball.position.x, holePosition.x, lookProgress); // Add this line
-        const currentLookZ = THREE.MathUtils.lerp(ball.position.z, holePosition.z, lookProgress); // Add this line
-        const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ); // Add this line
-        // Add this line
+    if (isOverheadActive) {
+        previewProgress += 0.002;
+        if (previewProgress > 1) previewProgress = 1;
+
+        // Calculate the base alignment heading vector matching the player's current aim
+        let baseTargetX = holePosition.x;
+        let baseTargetZ = holePosition.z;
+        if (teeBox && teeBox.visible && currentHoleConfig) {
+            const firstLeg = currentHoleConfig.waypoints[1];
+            if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+        }
+        const dX = baseTargetX - ball.position.x;
+        const dZ = baseTargetZ - ball.position.z;
+        let angle = Math.atan2(dX, dZ);
+        if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+        const aimDirX = Math.sin(angle);
+        const aimDirZ = Math.cos(angle);
+        const targetDist = Math.sqrt(dX * dX + dZ * dZ);
+
+        // Projected target point straight down the custom aim line
+        const targetX = ball.position.x + aimDirX * targetDist;
+        const targetZ = ball.position.z + aimDirZ * targetDist;
+
+        // Stage 1: Starting positions pulled back to 14 units behind the ball so you can see the aim point clearly
+        const startCamX = ball.position.x - aimDirX * 14.0;
+        const startCamZ = ball.position.z - aimDirZ * 14.0;
+        const startCamY = physics.getGroundHeight(ball.position.x, ball.position.z) + 6.5;
+
+        // Stage 2: Middle point at your custom landing zone/elbow
+        const midCamX = targetX;
+        const midCamZ = targetZ;
+        const midCamY = physics.getGroundHeight(targetX, targetZ) + 11.0;
+
+        // Stage 3: Final destination safely overlooking the actual green hole cup
+        const holeDirX = holePosition.x - targetX;
+        const holeDirZ = holePosition.z - targetZ;
+        const holeLen = Math.sqrt(holeDirX * holeDirX + holeDirZ * holeDirZ) || 1;
+        const endCamX = holePosition.x - (holeDirX / holeLen) * 5.0;
+        const endCamZ = holePosition.z - (holeDirZ / holeLen) * 5.0;
+        const endCamY = physics.getGroundHeight(holePosition.x, holePosition.z) + 6.0;
+
+        let currentX, currentZ, currentY;
+        let currentLookX, currentLookZ;
+
+        // Split the flight progress into a clean two-part cinematic path sequence
+        if (previewProgress < 0.5) {
+            // PART 1: Fly from Tee Box to your custom Aim Point
+            const t = previewProgress * 2; // Scales local segment progress from 0 to 1
+            currentX = THREE.MathUtils.lerp(startCamX, midCamX, t);
+            currentZ = THREE.MathUtils.lerp(startCamZ, midCamZ, t);
+
+            const heightArc = Math.sin(t * Math.PI) * 4.0;
+            currentY = THREE.MathUtils.lerp(startCamY, midCamY, t) + heightArc;
+
+            // Modify these lines: Forces the camera lens to look out ahead along the aim line instead of down at its feet
+            currentLookX = currentX + aimDirX * 15.0; // Modify this line
+            currentLookZ = currentZ + aimDirZ * 15.0; // Modify this line
+        } else {
+            // PART 2: Fly from your custom Aim Point around the corner directly to the Green
+            const t = (previewProgress - 0.5) * 2; // Scales local segment progress from 0 to 1
+            currentX = THREE.MathUtils.lerp(midCamX, endCamX, t);
+            currentZ = THREE.MathUtils.lerp(midCamZ, endCamZ, t);
+
+            const heightArc = Math.sin(t * Math.PI) * 4.0;
+            currentY = THREE.MathUtils.lerp(midCamY, endCamY, t) + heightArc;
+
+            // Modify these lines: Seamlessly pivots the view from the extended aim line straight over to face the green pin flag
+            const lookStartX = midCamX + aimDirX * 15.0; // Add this line
+            const lookStartZ = midCamZ + aimDirZ * 15.0; // Add this line
+            currentLookX = THREE.MathUtils.lerp(lookStartX, holePosition.x, t); // Modify this line
+            currentLookZ = THREE.MathUtils.lerp(lookStartZ, holePosition.z, t); // Modify this line
+
+        }
+
+        const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ);
+        const localGroundY = physics.getGroundHeight(currentX, currentZ); // Restored this line: Safe height calculations on every tick
+
         cameraTargetPos.set(currentX, Math.max(localGroundY + 3.0, currentY), currentZ);
         cameraLookAt.set(currentLookX, lookGroundY + 0.5, currentLookZ);
         activeCameraSpeed = 0.08;
 
-        // Automatically snap back to normal behind the ball once progress finishes
-        if (previewProgress >= 1) { // Add this line
-            isOverheadActive = false; // Add this line
-            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS; // Add this line
-            const camDist = onGreen ? 2.5 : 5.5; // Change this line: Pulled back from 1.6
-            const camHeight = onGreen ? 1.0 : 1.8; // Change this line: Elevated from 0.5
+        // Automatically snap back behind the ball once the full camera flight completes
+        if (previewProgress >= 1) {
+            isOverheadActive = false;
+            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+            const camDist = onGreen ? 2.5 : 5.5;
+            const camHeight = onGreen ? 1.0 : 1.8;
             const lookDist = onGreen ? 6.0 : 12.0;
-            const pDirX = holePosition.x - ball.position.x; // Add this line
-            const pDirZ = holePosition.z - ball.position.z; // Fixed recursive naming loop bug from original file
-            const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
-            cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
-            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
-            activeCameraSpeed = 0.05; // Add this line
-        } // Add this line
+
+            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+            activeCameraSpeed = 0.05;
+        }
+
     }
 
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
@@ -1570,11 +1614,21 @@ function animate() {
             const club = input ? input.getClubInfo() : null; // Add this line
             if (club && !club.isGreen) { // Add this line
                 const ringDist = club.maxYards / 2.76923; // Add this line
-                const dirX = holePosition.x - ball.position.x; // Add this line
-                const dirZ = holePosition.z - ball.position.z; // Add this line
-                const targetLength = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
-                const normX = dirX / targetLength; // Add this line
-                const normZ = dirZ / targetLength; // Add this line
+
+                // Modify these lines: Calculates active aim angle to swing the yellow ring left or right
+                let baseTargetX = holePosition.x;
+                let baseTargetZ = holePosition.z;
+                if (teeBox && teeBox.visible && currentHoleConfig) {
+                    const firstLeg = currentHoleConfig.waypoints[1];
+                    if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+                }
+                const dX = baseTargetX - ball.position.x;
+                const dZ = baseTargetZ - ball.position.z;
+                let angle = Math.atan2(dX, dZ);
+                if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+                const normX = Math.sin(angle); // Modify this line
+                const normZ = Math.cos(angle); // Modify this line
                 const ringX = ball.position.x + normX * ringDist;
                 const ringZ = ball.position.z + normZ * ringDist;
 
@@ -1969,10 +2023,25 @@ function init() {
             e.stopPropagation();
             if (isSinking) return; // Ignore if ball is dropping in the cup
 
-            // Calculate direction vectors from ball to hole dynamically
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            // Calculate active direction vectors following the current custom aim track heading
+            let baseTargetX = holePosition.x;
+            let baseTargetZ = holePosition.z;
+            if (teeBox && teeBox.visible && currentHoleConfig) {
+                const firstLeg = currentHoleConfig.waypoints[1];
+                if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+            }
+            const dX = baseTargetX - ball.position.x;
+            const dZ = baseTargetZ - ball.position.z;
+            let angle = Math.atan2(dX, dZ);
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+            const aimDirX = Math.sin(angle);
+            const aimDirZ = Math.cos(angle);
+            const targetDist = Math.sqrt(dX * dX + dZ * dZ);
+
+            const dirX = aimDirX * targetDist;
+            const dirZ = aimDirZ * targetDist;
+            const length = targetDist || 1;
 
             if (!isOverheadActive) {
                 // TOGGLE ON: Go up to the 20-foot elevated view
@@ -1983,9 +2052,9 @@ function init() {
                 const backZ = -(dirZ / length) * 6.5;
                 const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
 
-                // RESTORED: Puts the camera back up high and focuses directly on the target hole pin map area
+                // Puts the camera back up high focused directly on the actual flag cup pin location
                 cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
-                cameraLookAt.copy(holePosition);
+                cameraLookAt.copy(holePosition); // Modify this line: Focuses directly on the hole pin right away when clicking static view
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
