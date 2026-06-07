@@ -1370,11 +1370,14 @@ function animate() {
 
         const aimDirX = Math.sin(angle);
         const aimDirZ = Math.cos(angle);
-        const targetDist = Math.sqrt(dX * dX + dZ * dZ);
+        
+        // CHANGED: Query your active club details to cap the flight trajectory right at the yellow target circle range
+        const club = input ? input.getClubInfo() : null;
+        const ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
 
-        // Projected target point straight down the custom aim line
-        const targetX = ball.position.x + aimDirX * targetDist;
-        const targetZ = ball.position.z + aimDirZ * targetDist;
+        // Projected target point straight down the custom aim line capped at your club ring distance
+        const targetX = ball.position.x + aimDirX * ringDist;
+        const targetZ = ball.position.z + aimDirZ * ringDist;
 
         // Stage 1: Starting positions pulled back to 14 units behind the ball so you can see the aim point clearly
         const startCamX = ball.position.x - aimDirX * 14.0;
@@ -1407,9 +1410,9 @@ function animate() {
             const heightArc = Math.sin(t * Math.PI) * 4.0;
             currentY = THREE.MathUtils.lerp(startCamY, midCamY, t) + heightArc;
 
-            // Modify these lines: Forces the camera lens to look out ahead along the aim line instead of down at its feet
-            currentLookX = currentX + aimDirX * 15.0; // Modify this line
-            currentLookZ = currentZ + aimDirZ * 15.0; // Modify this line
+            // CHANGED: Keeps the camera lens locked down facing directly toward the aim circle marker on the ground
+            currentLookX = targetX; 
+            currentLookZ = targetZ; 
         } else {
             // PART 2: Fly from your custom Aim Point around the corner directly to the Green
             const t = (previewProgress - 0.5) * 2; // Scales local segment progress from 0 to 1
@@ -1419,12 +1422,9 @@ function animate() {
             const heightArc = Math.sin(t * Math.PI) * 4.0;
             currentY = THREE.MathUtils.lerp(midCamY, endCamY, t) + heightArc;
 
-            // Modify these lines: Seamlessly pivots the view from the extended aim line straight over to face the green pin flag
-            const lookStartX = midCamX + aimDirX * 15.0; // Add this line
-            const lookStartZ = midCamZ + aimDirZ * 15.0; // Add this line
-            currentLookX = THREE.MathUtils.lerp(lookStartX, holePosition.x, t); // Modify this line
-            currentLookZ = THREE.MathUtils.lerp(lookStartZ, holePosition.z, t); // Modify this line
-
+            // CHANGED: Swivels the lens focus downward from your aim circle ring over to look directly down at the green cup hole pin
+            currentLookX = THREE.MathUtils.lerp(targetX, holePosition.x, t); 
+            currentLookZ = THREE.MathUtils.lerp(targetZ, holePosition.z, t); 
         }
 
         const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ);
@@ -1530,7 +1530,7 @@ function animate() {
     if (clubSwipeElement && input) {
         // Only modify stance classes if the forward swing animation isn't currently playing
         if (!clubSwipeElement.classList.contains('swipe-animation')) {
-            if (!physics.isMoving && !isSinking) {
+            if (!physics.isMoving && !isSinking && !isOverheadActive) {
                 const activeClub = input.getClubInfo();
 
                 // Establish base club layout shapes
@@ -2037,11 +2037,14 @@ function init() {
 
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
-            const targetDist = Math.sqrt(dX * dX + dZ * dZ);
 
-            const dirX = aimDirX * targetDist;
-            const dirZ = aimDirZ * targetDist;
-            const length = targetDist || 1;
+            // Add these lines: Fetch active club range dynamically to frame the camera over the selected aim circle
+            const club = input ? input.getClubInfo() : null;
+            const ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
+
+            const dirX = aimDirX * ringDist; // Modify this line: Scales horizontally to your aim ring
+            const dirZ = aimDirZ * ringDist; // Modify this line: Scales vertically to your aim ring
+            const length = ringDist || 1;    // Modify this line: Anchors the aspect framing ratio to match the club distance
 
             if (!isOverheadActive) {
                 // TOGGLE ON: Go up to the 20-foot elevated view
