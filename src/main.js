@@ -61,6 +61,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let currentHoleNumber = 1;
+let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
 
@@ -488,9 +489,8 @@ function resetEntireGame(advanceHole = false) {
         } // Add this line: Closes the 40% probability else-statement block
     }
 
-    currentPar = holeConfig.par; // Find this line directly underneath to make sure your brackets line up perfectly
-
-    currentPar = holeConfig.par;
+    currentHoleConfig = holeConfig; // Add this line: Stores procedural data globally
+    currentPar = holeConfig.par;    // Keep this single instance of the assignment
 
     // Update the Wood Placard Map Dashboard display readings
     const mapTitleElement = document.getElementById('holeMapTitle');
@@ -765,6 +765,7 @@ function resetEntireGame(advanceHole = false) {
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
+    if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
     isOverheadActive = false;
     ballTargetScale = 1.0;
@@ -1263,23 +1264,27 @@ function animate() {
         const camDist = onGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
         const camHeight = onGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
         const lookDist = onGreen ? 6.0 : 12.0;
-        if (wasMoving && !isSinking) {
-            isOverheadActive = false;
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            const backX = -(dirX / length) * camDist; // CHANGED
-            const backZ = -(dirZ / length) * camDist; // CHANGED
-
-            if (!isOverheadActive) {
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
-                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist); // Change this line: Added vertical look-at offset for putting green contours
+        if (!isOverheadActive) {
+            let baseTargetX = holePosition.x;
+            let baseTargetZ = holePosition.z;
+            if (teeBox && teeBox.visible && currentHoleConfig) { // Modify this line
+                const firstLeg = currentHoleConfig.waypoints[1]; // Modify this line
+                if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
             }
+            const dX = baseTargetX - ball.position.x;
+            const dZ = baseTargetZ - ball.position.z;
+            let angle = Math.atan2(dX, dZ);
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Adjusts camera base angle by dragging offset
 
+            const aimDirX = Math.sin(angle);
+            const aimDirZ = Math.cos(angle);
+            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+        }
 
-
-
+        if (wasMoving && !isSinking) {
+            isOverheadActive = false; // Keep this line
 
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
@@ -1306,16 +1311,6 @@ function animate() {
         }
 
         if (input && input.isSwinging) {
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
-
-            const backX = -(dirX / length) * camDist; // CHANGED
-            const backZ = -(dirZ / length) * camDist; // CHANGED
-
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
-            cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
-
             // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
@@ -1417,9 +1412,11 @@ function animate() {
     if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && (!physics.isMoving || physics.isPutting)) {
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
-        const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
-        const dirX = dX / len;
-        const dirZ = dZ / len;
+
+        let angle = Math.atan2(dX, dZ); // Modify this line
+        if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Add this line
+        const dirX = Math.sin(angle);  // Modify this line
+        const dirZ = Math.cos(angle);
 
         // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
         const aspect = window.innerWidth / window.innerHeight;
@@ -1874,7 +1871,8 @@ function init() {
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle, spin, loft) => {
-        isOverheadActive = false; // Add this line
+        isOverheadActive = false;
+        if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 

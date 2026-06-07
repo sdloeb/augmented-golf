@@ -165,7 +165,7 @@ html {
     right: -200px;
     width: 140px;
     height: 70px;
-    pointer-events: none;
+    pointer-events: auto;
     z-index: 5;
     opacity: 0;
 }

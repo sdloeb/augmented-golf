@@ -32,6 +32,12 @@ export class InputHandler {
         this.maxPullY = 0;
         this.chosenClubIndex = null;
 
+        this.isAimMode = false;         // Add this line
+        this.aimAngleOffset = 0;        // Add this line
+        this.lastClubTapTime = 0;       // Add this line
+        this.isAimDragging = false;     // Add this line
+        this.startAimX = 0;
+
         this.initEvents();
     }
 
@@ -83,11 +89,40 @@ export class InputHandler {
         window.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
         window.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
         window.addEventListener('touchend', () => this.onTouchEnd());
+
+        // Add this block: Tracks 1-second club double-taps to enter/exit camera aiming view
+        const clubEl = document.getElementById('clubSwipe');
+        if (clubEl) {
+            const handleClubTap = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const now = performance.now();
+                if (now - this.lastClubTapTime < 1000) {
+                    this.isAimMode = !this.isAimMode;
+                    this.isSwinging = false;
+                    this.state = 'IDLE';
+                    if (this.gauge) this.gauge.classList.add('hidden'); // Forces power gauge hidden immediately
+                    this.lastClubTapTime = 0;
+                } else {
+                    this.lastClubTapTime = now;
+                }
+            };
+            clubEl.addEventListener('click', handleClubTap);
+            clubEl.addEventListener('touchstart', handleClubTap, { passive: false });
+        }
     }
 
     onTouchStart(e) {
-        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
+        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn') || e.target.closest('#clubSwipe')) return; // Modify this line
         if (this.isOverheadActive) return;
+
+        // Add this block: Intercepts action to track horizontal camera aiming dragging instead of swinging
+        if (this.isAimMode) {
+            this.isAimDragging = true;
+            this.startAimX = e.touches[0].clientX;
+            return;
+        }
+
         const touch = e.touches[0];
         this.isSwinging = true;
         this.state = 'PULLBACK';
@@ -101,15 +136,25 @@ export class InputHandler {
         this.gaugeFill.style.height = '0%';
 
         const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
-        if (club.isGreen) {
-            this.gaugeLabel.innerText = `${club.name}: 0 ft`;
-        } else {
-            this.gaugeLabel.innerText = `${club.name}: 0 yds`;
-        }
-        this.gaugeLabel.style.top = '0px';
+        const targetPullDistance = this.maxPullY - this.startY;
+        const maxPullPixels = club.isGreen ? 360 : 180; // <-- UPDATE THIS TO USE THE TALLER BAR
+        const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+        this.pullRatio = pullRatio; // Add this line: Enables mobile putter tracking animations
+
+        this.gaugeFill.style.height = `${pullRatio * 100}%`;
     }
 
     onTouchMove(e) {
+        // Add this block: Calculates camera rotation steps based on live finger-dragging data
+        if (this.isAimMode && this.isAimDragging) {
+            e.preventDefault();
+            const currentX = e.touches[0].clientX;
+            const deltaX = currentX - this.startAimX;
+            this.aimAngleOffset += deltaX * 0.007; // Fine-tune this multiplier to adjust camera rotate speeds
+            this.startAimX = currentX;
+            return;
+        }
+
         if (!this.isSwinging) return;
         e.preventDefault();
         const touch = e.touches[0];
@@ -164,6 +209,7 @@ export class InputHandler {
     }
 
     onTouchEnd() {
+        this.isAimDragging = false; // Add this line
         if (this.isSwinging && this.state !== 'IDLE') {
             this.resetSwing();
         }
@@ -171,8 +217,14 @@ export class InputHandler {
 
     onMouseDown(e) {
         if (e.button !== 0) return;
-        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return
+        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn') || e.target.closest('#clubSwipe')) return; // Modify this line
         if (this.isOverheadActive) return;
+
+        if (this.isAimMode) {
+            this.isAimDragging = true;
+            this.startAimX = e.clientX;
+            return;
+        }
 
         this.isSwinging = true;
         this.state = 'PULLBACK';
@@ -195,6 +247,15 @@ export class InputHandler {
     }
 
     onMouseMove(e) {
+
+        if (this.isAimMode && this.isAimDragging) {
+            const currentX = e.clientX;
+            const deltaX = currentX - this.startAimX;
+            this.aimAngleOffset += deltaX * 0.007;
+            this.startAimX = currentX;
+            return;
+        }
+
         if (!this.isSwinging) return;
 
         const currentX = e.clientX;
@@ -258,6 +319,7 @@ export class InputHandler {
 
     onMouseUp() {
         if (this.isSwinging && this.state !== 'IDLE') {
+            this.isAimDragging = false;
             this.resetSwing();
         }
     }
