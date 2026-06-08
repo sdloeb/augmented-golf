@@ -704,24 +704,27 @@ function resetEntireGame(advanceHole = false) {
                 // UPDATED: Swapped out old straight Z constraints for the dynamic spline path tracking
                 // to cleanly handle our new 90-degree sideways dogleg modifications
                 if (targetMesh === floor) {
-                    if (distanceToPath <= 9.0) {
-                        calculatedHeight -= 0.02; // Smooth micro-shave prevents flickering overlapping faces
+                    if (distanceToPath <= 8.0) {
+                        calculatedHeight -= 0.04; // Modify this line: Shaves the rough down slightly under the fairway core
+                    } else if (distanceToPath <= 8.8) {
+                        const t = (distanceToPath - 8.0) / 0.8; // Add this line
+                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t); // Add this line: Smoothly brings rough back up to ground level
                     }
                 }
 
                 // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     if (worldZ > -8.0) {
-                        calculatedHeight = -10.0; // Add this line: Hides the fairway for the first 50 yards to create the rough carry
-                    } else if (insideSandZone) { // Modify this line: Changed from "if" to "else if"
-                        calculatedHeight = -10.0; // Add this line: Keeps the fairway completely hidden inside sand trap perimeters
+                        calculatedHeight = -10.0; // Hides the fairway for the first 50 yards to create the rough carry
+                    } else if (insideSandZone) {
+                        calculatedHeight = -10.0; // Keeps the fairway completely hidden inside sand trap perimeters
                     } else if (distanceToPath <= 8.0) {
                         calculatedHeight += 0.06;
-                    } else if (distanceToPath <= 10.0) {
-                        const t = (distanceToPath - 8.0) / 2.0;
-                        calculatedHeight += THREE.MathUtils.lerp(0.06, -2.0, t); // Modify this line: Slopes down to -2.0 to transition cleanly underground
+                    } else if (distanceToPath <= 8.8) { // Modify this line: Sharpens the outer border to a tight 8.8 limit
+                        const t = (distanceToPath - 8.0) / 0.8; // Modify this line: Tightly constrains the slope calculation to 0.8 units
+                        calculatedHeight += THREE.MathUtils.lerp(0.06, -1.2, t); // Modify this line: Dives the fairway sharply under the rough mesh
                     } else {
-                        calculatedHeight = -10.0; // Modify this line: Re-locks the rest of the mesh deep underground so it can't clip hazards
+                        calculatedHeight = -10.0; // Keep this line
                     }
                 }
             }
@@ -1363,6 +1366,7 @@ function animate() {
             generateNewWind();
             updateDistanceDisplay();
             wasMoving = false;
+            window.puttingCameraDelayStart = performance.now();
 
             // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
             tracerPoints = [];
@@ -1519,8 +1523,9 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
+    const puttingDelayPassed = !window.puttingCameraDelayStart || (performance.now() - window.puttingCameraDelayStart > 1500);
     // Gated with physics variables so fairway shots fly and land normally, but putts keep tracking smoothly
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && (!physics.isMoving || physics.isPutting)) {
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && ((!physics.isMoving && puttingDelayPassed) || physics.isPutting)) { // Modify this line
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
 
