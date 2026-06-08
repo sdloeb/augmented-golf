@@ -109,7 +109,7 @@ function updateDistanceDisplay() {
 
     if (distanceText && unitText) {
         if (gameDistance < GREEN_RADIUS) {
-            const feet = Math.round(gameDistance * 1.00);
+            const feet = Math.round(gameDistance * 1.50);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
@@ -1179,12 +1179,14 @@ function animate() {
         if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
 
-            // FIXED: Raised speed threshold from 0.07 to 0.14 so true putts sink cleanly 
-            // instead of automatically bouncing off the rim due to mound acceleration
-            if (ballSpeed > 0.14) {
-                physics.velocity.y = 0.04; // Pops the ball up into the air slightly
-                physics.velocity.x *= 0.85;
-                physics.velocity.z *= 0.85;
+            // FIXED: Realism Lip-out simulation. Deflects the ball horizontally around the rim instead of bouncing upward
+            if (ballSpeed > 0.14) { // Modify this block
+                const perpX = -dz / distanceToHole;
+                const perpZ = dx / distanceToHole;
+
+                // Centripetal sling wraps the ball around the lip edge based on velocity
+                physics.velocity.x = (physics.velocity.x * 0.3) + (perpX * ballSpeed * 0.6);
+                physics.velocity.z = (physics.velocity.z * 0.3) + (perpZ * ballSpeed * 0.6);
                 return;
             }
             isSinking = true;
@@ -1985,7 +1987,7 @@ function init() {
         if (isOnGreen) {
             // Multiply to fine-tune putting physics:
             // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 2.4;
+            finalPower *= 2.44;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
