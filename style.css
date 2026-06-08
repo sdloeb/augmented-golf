@@ -175,6 +175,14 @@ html {
     animation: clubSwipeAnim 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
+/* NEW: Automatically transforms the active club profile to be muted and completely slate-gray when aiming */
+#clubSwipe.aim-mode {
+    opacity: 0.25 !important;
+    /* Modify this line: Added !important to override the stance defaults */
+    filter: brightness(0.5) contrast(0.8) !important;
+    /* Modify this line: Forces a dark ghost-like silhouette */
+}
+
 /* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
 #clubSwipe.wood {
     /* Reshaped width and height to give the crown a deep, bulbous driver silhouette */

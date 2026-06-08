@@ -1447,7 +1447,7 @@ function animate() {
 
             cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
             cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
-            activeCameraSpeed = 0.05;
+            activeCameraSpeed = 0.02;
         }
 
     }
@@ -1547,6 +1547,7 @@ function animate() {
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
                 const putterBaseBottom = 21.8;
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
+                const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
@@ -1555,7 +1556,7 @@ function animate() {
                     clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
-                    clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
+                    clubSwipeElement.className = `pullback-stance ${clubTypeClass}${aimClass}`;
 
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
