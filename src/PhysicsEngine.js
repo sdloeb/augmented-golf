@@ -295,6 +295,8 @@ export class PhysicsEngine {
         }
         else if (!onGreen && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0) { // Change this line
             currentFriction = 0.92;
+            currentBounceHeight = 0.20;        // Add this line: Saps the bounce height so it doesn't bounce as much
+            currentBounceForwardLoss = 0.50;
         }
         if (this.isPutting) {
             currentFriction = 0.99; // Add this block (Balances distance perfectly for half-speed roll)
