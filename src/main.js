@@ -676,18 +676,23 @@ function resetEntireGame(advanceHole = false) {
 
                 // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    if (distanceToPath <= 9.0) {
+                    if (insideSandZone) {
+                        calculatedHeight = -10.0; // Add this line: Keeps the fairway completely hidden inside sand trap perimeters
+                    } else if (distanceToPath <= 8.0) {
                         calculatedHeight += 0.06;
+                    } else if (distanceToPath <= 10.0) {
+                        const t = (distanceToPath - 8.0) / 2.0;
+                        calculatedHeight += THREE.MathUtils.lerp(0.06, -2.0, t); // Modify this line: Slopes down to -2.0 to transition cleanly underground
                     } else {
-                        calculatedHeight = -10.0;
+                        calculatedHeight = -10.0; // Modify this line: Re-locks the rest of the mesh deep underground so it can't clip hazards
                     }
                 }
-            } else { // Add this block
+            } else {
                 // If we ARE inside a water hazard zone, make sure the fairway plane still hides itself
-                if (targetMesh === fairway) { // Add this line
-                    calculatedHeight = -10.0; // Add this line
-                } // Add this line
-            } // Add this line
+                if (targetMesh === fairway) {
+                    calculatedHeight = -10.0;
+                }
+            }
 
             // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
             if (insideSandZone && targetMesh === floor) { // Modify this line: Added && targetMesh === floor
@@ -1762,7 +1767,7 @@ function init() {
     fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4); // Dark stripe tint (Add this line)
     const fairwayTexture = new THREE.CanvasTexture(fCanvas);
     fairwayTexture.wrapS = THREE.RepeatWrapping;
-    fairwayTexture.repeat.set(4, 1);
+    fairwayTexture.repeat.set(55, 1);
 
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
