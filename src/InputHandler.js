@@ -94,10 +94,12 @@ export class InputHandler {
         const clubEl = document.getElementById('clubSwipe');
         if (clubEl) {
             const handleClubTap = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
+                // Delete e.stopPropagation() from here
+                // Delete e.preventDefault() from here
                 const now = performance.now();
                 if (now - this.lastClubTapTime < 1000) {
+                    e.stopPropagation(); // Add this line here: Only intercept when an official double tap happens
+                    e.preventDefault();  // Add this line here: Only intercept when an official double tap happens
                     this.isAimMode = !this.isAimMode;
                     this.isSwinging = false;
                     this.state = 'IDLE';
@@ -113,10 +115,9 @@ export class InputHandler {
     }
 
     onTouchStart(e) {
-        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn') || e.target.closest('#clubSwipe')) return; // Modify this line
+        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
         if (this.isOverheadActive) return;
 
-        // Add this block: Intercepts action to track horizontal camera aiming dragging instead of swinging
         if (this.isAimMode) {
             this.isAimDragging = true;
             this.startAimX = e.touches[0].clientX;
@@ -124,10 +125,21 @@ export class InputHandler {
         }
 
         const touch = e.touches[0];
-        this.isSwinging = true;
-        this.state = 'PULLBACK';
         this.startX = touch.clientX;
         this.startY = touch.clientY;
+
+        const touchedClub = e.target.closest('#clubSwipe');
+        if (touchedClub) {
+            // Delay touch swing activation until dragging starts
+            this.isSwingingFromClub = true;
+            this.isSwinging = false;
+            this.state = 'IDLE';
+            return;
+        }
+
+        this.isSwingingFromClub = false;
+        this.isSwinging = true;
+        this.state = 'PULLBACK';
         this.maxPullY = touch.clientY;
         this.pullbackDriftX = 0;
         this.pullbackAtMaxX = touch.clientX;
@@ -135,31 +147,52 @@ export class InputHandler {
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
 
-        const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
+        const club = this.getClubInfo();
         const targetPullDistance = this.maxPullY - this.startY;
-        const maxPullPixels = club.isGreen ? 360 : 180; // <-- UPDATE THIS TO USE THE TALLER BAR
+        const maxPullPixels = club.isGreen ? 360 : 180;
         const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
-        this.pullRatio = pullRatio; // Add this line: Enables mobile putter tracking animations
+        this.pullRatio = pullRatio;
 
-        this.gaugeFill.style.height = `${pullRatio * 100}%`;
+        this.gaugeFill.style.height = `${pullRatio * 100}%`; // Keep this line! Resets the color bar layout instantly
+
+        if (club.isGreen) {
+            this.gaugeLabel.innerText = `${club.name}: 0 ft`;
+        } else {
+            this.gaugeLabel.innerText = `${club.name}: 0 yds`;
+        }
+        this.gaugeLabel.style.top = '0px';
     }
 
     onTouchMove(e) {
-        // Add this block: Calculates camera rotation steps based on live finger-dragging data
         if (this.isAimMode && this.isAimDragging) {
             e.preventDefault();
             const currentX = e.touches[0].clientX;
             const deltaX = currentX - this.startAimX;
-            this.aimAngleOffset += deltaX * 0.007; // Fine-tune this multiplier to adjust camera rotate speeds
+            this.aimAngleOffset += deltaX * 0.007;
             this.startAimX = currentX;
             return;
         }
 
-        if (!this.isSwinging) return;
-        e.preventDefault();
         const touch = e.touches[0];
         const currentX = touch.clientX;
         const currentY = touch.clientY;
+
+        // Upgrade to an active mobile swing if finger drags down past 8px
+        if (this.isSwingingFromClub && !this.isSwinging) {
+            if (currentY > this.startY + 8) {
+                this.isSwinging = true;
+                this.state = 'PULLBACK';
+                this.maxPullY = this.startY;
+                this.pullbackDriftX = 0;
+                this.pullbackAtMaxX = touch.clientX;
+
+                this.gauge.classList.remove('hidden');
+                this.gaugeFill.style.height = '0%';
+            }
+        }
+
+        if (!this.isSwinging) return;
+        e.preventDefault();
 
         if (this.state === 'PULLBACK') {
             if (currentY > this.maxPullY) {
@@ -167,17 +200,17 @@ export class InputHandler {
                 this.pullbackAtMaxX = currentX;
             }
 
-            const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
+            const club = this.getClubInfo();
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = club.isGreen ? 360 : 180; // <-- UPDATE THIS TO USE THE TALLER BAR
+            const maxPullPixels = club.isGreen ? 360 : 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+            this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
-            this.gaugeLabel.style.top = `${pullRatio * 160}px`;
+            this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            // Calculate screen positions to check side-of-screen pullbacks
             const screenCenter = window.innerWidth / 2;
-            const ballPathWidth = 120; // 120px vertical center band for the ball path
+            const ballPathWidth = 120;
             let shotModifier = "";
 
             if (this.startX < screenCenter - ballPathWidth / 2) {
@@ -186,9 +219,7 @@ export class InputHandler {
                 shotModifier = " (Slice)";
             }
 
-
             if (club.isGreen) {
-                // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
                 const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
@@ -209,7 +240,8 @@ export class InputHandler {
     }
 
     onTouchEnd() {
-        this.isAimDragging = false; // Add this line
+        this.isAimDragging = false;
+        this.isSwingingFromClub = false;
         if (this.isSwinging && this.state !== 'IDLE') {
             this.resetSwing();
         }
@@ -217,7 +249,7 @@ export class InputHandler {
 
     onMouseDown(e) {
         if (e.button !== 0) return;
-        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn') || e.target.closest('#clubSwipe')) return; // Modify this line
+        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
         if (this.isOverheadActive) return;
 
         if (this.isAimMode) {
@@ -226,10 +258,21 @@ export class InputHandler {
             return;
         }
 
-        this.isSwinging = true;
-        this.state = 'PULLBACK';
         this.startX = e.clientX;
         this.startY = e.clientY;
+
+        const clickedClub = e.target.closest('#clubSwipe');
+        if (clickedClub) {
+            // Delay swing activation until an actual drag occurs
+            this.isSwingingFromClub = true;
+            this.isSwinging = false;
+            this.state = 'IDLE';
+            return;
+        }
+
+        this.isSwingingFromClub = false;
+        this.isSwinging = true;
+        this.state = 'PULLBACK';
         this.maxPullY = e.clientY;
         this.pullbackDriftX = 0;
         this.pullbackAtMaxX = e.clientX;
@@ -247,7 +290,6 @@ export class InputHandler {
     }
 
     onMouseMove(e) {
-
         if (this.isAimMode && this.isAimDragging) {
             const currentX = e.clientX;
             const deltaX = currentX - this.startAimX;
@@ -256,10 +298,24 @@ export class InputHandler {
             return;
         }
 
-        if (!this.isSwinging) return;
-
         const currentX = e.clientX;
         const currentY = e.clientY;
+
+        // Upgrade to an active swing only if dragging downward past the 8px threshold
+        if (this.isSwingingFromClub && !this.isSwinging) {
+            if (currentY > this.startY + 8) {
+                this.isSwinging = true;
+                this.state = 'PULLBACK';
+                this.maxPullY = this.startY;
+                this.pullbackDriftX = 0;
+                this.pullbackAtMaxX = e.clientX;
+
+                this.gauge.classList.remove('hidden');
+                this.gaugeFill.style.height = '0%';
+            }
+        }
+
+        if (!this.isSwinging) return;
 
         if (this.state === 'PULLBACK') {
             const club = this.getClubInfo();
@@ -274,16 +330,15 @@ export class InputHandler {
             }
 
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = club.isGreen ? 360 : 180; // <-- FIX THE ASSIGNMENT HERE
+            const maxPullPixels = club.isGreen ? 360 : 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            // Calculate screen positions to check side-of-screen pullbacks
             const screenCenter = window.innerWidth / 2;
-            const ballPathWidth = 120; // 120px vertical center band for the ball path
+            const ballPathWidth = 120;
             let shotModifier = "";
 
             if (this.startX < screenCenter - ballPathWidth / 2) {
@@ -292,12 +347,7 @@ export class InputHandler {
                 shotModifier = " (Slice)";
             }
 
-            // DYNAMIC SWING GAUGE SCALING
-
-            // DYNAMIC SWING GAUGE SCALING
-
             if (club.isGreen) {
-                // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
                 const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
@@ -318,7 +368,8 @@ export class InputHandler {
     }
 
     onMouseUp() {
-        this.isAimDragging = false; // Move this line here: Clears dragging instantly when mouse is released
+        this.isAimDragging = false;
+        this.isSwingingFromClub = false;
         if (this.isSwinging && this.state !== 'IDLE') {
             this.resetSwing();
         }
