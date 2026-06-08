@@ -1550,7 +1550,9 @@ function animate() {
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`; // Modify this line: Appended ${aimClass} to fix the idle mode visibility
+                    // Clean out dynamic inline properties when resting at address
+                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     // Clean out dynamic inline properties when resting at address
                     clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
