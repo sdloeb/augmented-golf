@@ -1276,7 +1276,8 @@ function animate() {
             const dxHole = ball.position.x - holePosition.x;
             const dzHole = ball.position.z - holePosition.z;
             const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-            isLongShot = initialYards > 100; // Track if shot is over 100 yards
+            isLongShot = initialYards > 30; // Track if shot is over 30 yards
+            window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
         }
 
         updateDistanceDisplay();
@@ -1300,8 +1301,7 @@ function animate() {
             ballTargetScale = Math.max(0.80, 1.0 - (distanceTraveled * 0.006));
         }
 
-        // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
-        if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        if (isLongShot && (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) { // Modify this line
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
