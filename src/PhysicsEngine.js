@@ -344,8 +344,7 @@ export class PhysicsEngine {
             }
 
             if (!this.isPutting) {
-                this.velocity.x += this.wind.x * timeScale;
-                this.velocity.z += this.wind.z * timeScale;
+
 
                 let bounceWindMultiplier = 1.0;
                 if (this.ball.position.y < groundY + 1.25) {
@@ -511,7 +510,8 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        if (this.velocity.length() < 0.01 && this.ball.position.y <= groundY) { // Change this line
+        const slopeForce = Math.hypot(this.slopeX || 0, this.slopeZ || 0);
+        if (this.velocity.length() < 0.01 && this.ball.position.y <= groundY && slopeForce < 0.002) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;

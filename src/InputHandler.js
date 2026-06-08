@@ -67,12 +67,11 @@ export class InputHandler {
             return { name: 'Putter', maxYards: 80, isGreen: true };
         }
 
-        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false; // Add this line
+        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
         // If player explicitly manually selected a club option, return that one
         if (this.chosenClubIndex !== null && this.chosenClubIndex !== undefined) {
-            if (this.chosenClubIndex === 0 && !isOnTee) return CLUBS[1]; // Add this line: Safe fallback override to 3 Wood
-            return CLUBS[this.chosenClubIndex];
+            return CLUBS[this.chosenClubIndex]; // Modify this line: Allow Driver off the deck for authentic high-risk play
         }
 
         // Default back to standard auto distance selection index
@@ -398,9 +397,10 @@ export class InputHandler {
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
+            const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
             if (club.name === 'Driver') {
-                finalPower *= 1.02;
+                finalPower *= isOnTee ? 1.02 : 0.90;
             }
             else if (club.name === '3 Wood') {
                 finalPower *= 1.13;
@@ -456,10 +456,16 @@ export class InputHandler {
                 // 2. Check if on the Green
                 const onGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
 
+                // Realism addition: Calculate if the ball is sitting on the clean green fringe collar (12 to 14 units out)
+                const gX = this.ballRef.position.x - (window.physicsEngine ? window.physicsEngine.greenCenterX : 0); // Add this line
+                const gZ = this.ballRef.position.z - (window.physicsEngine ? window.physicsEngine.greenCenterZ : -55); // Add this line
+                const distToGreenCenter = Math.hypot(gX, gZ); // Add this line
+                const isOnFringe = distToGreenCenter >= 12.0 && distToGreenCenter <= 14.0; // Add this line
+
                 // 3. Apply Penalties
                 if (inSand) {
                     finalPower *= 0.50; // Lose 50% power in sand bunker
-                } else if (!onGreen && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Change this line
+                } else if (!onGreen && !isOnFringe && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Modify this line: Exempt the clean fringe lie from the rough penalty
                     finalPower *= 0.85; // Lose 15% power in the rough
                 }
             }
