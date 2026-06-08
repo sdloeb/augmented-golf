@@ -704,11 +704,11 @@ function resetEntireGame(advanceHole = false) {
                 const cy = row * spacing + spacing / 2;
 
                 // Map canvas coordinates to world coordinates relative to the green center
-                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2);
+                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2) + greenEndpoint.x; // Modify this line: Added + greenEndpoint.x
                 const wz = (cy / 512 - 0.5) * (GREEN_RADIUS * 2) + greenCenterZ;
 
                 // Check if this point falls inside the circular green grass area
-                const distFromCenter = Math.sqrt(wx * wx + (wz - greenCenterZ) * (wz - greenCenterZ));
+                const distFromCenter = Math.sqrt((wx - greenEndpoint.x) * (wx - greenEndpoint.x) + (wz - greenCenterZ) * (wz - greenCenterZ)); // Modify this line: Subtracted greenEndpoint.x to keep circle check relative
                 if (distFromCenter < GREEN_RADIUS - 0.5) {
 
                     // Sample local neighbors to get the exact slope direction at this specific point
