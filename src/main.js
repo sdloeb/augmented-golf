@@ -1532,15 +1532,16 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
-    const puttingDelayPassed = !window.puttingCameraDelayStart || (performance.now() - window.puttingCameraDelayStart > 1500);
-    // Gated with physics variables so fairway shots fly and land normally, but putts keep tracking smoothly
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && ((!physics.isMoving && puttingDelayPassed) || physics.isPutting)) { // Modify this line
+
+    // FIXED: Removed the 1.5s delay countdown loop. Putting camera configurations now engage uniformly
+    // whenever the ball is resting or moving on the green surface with no double-camera cuts.
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive) {
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
 
-        let angle = Math.atan2(dX, dZ); // Modify this line
-        if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Add this line
-        const dirX = Math.sin(angle);  // Modify this line
+        let angle = Math.atan2(dX, dZ);
+        if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+        const dirX = Math.sin(angle);
         const dirZ = Math.cos(angle);
 
         // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
@@ -1548,17 +1549,15 @@ function animate() {
         let targetFov, rigidCamDist, rigidCamHeight, lookUpOffset;
 
         if (aspect < 1) {
-            // PORTRAIT MOBILE SCHEMA: Wider lens opens the vertical projection fields to prevent extreme squashing
             targetFov = 65;
             rigidCamDist = 2.2;
             rigidCamHeight = 1.1;
-            lookUpOffset = -0.40;    // Negative angle tilt forces foreground assets upward, above the putter line
+            lookUpOffset = -0.40;
         } else {
-            // LANDSCAPE DESKTOP SCHEMA: Narrower lens naturally extends the depth lines to stretch distance fields vertically
             targetFov = 40;
-            rigidCamDist = 3.5;      // Backs camera away from the ball to elongate the putting field realistically
-            rigidCamHeight = 1.2;    // Natural standing viewer pitch looking down the line
-            lookUpOffset = -0.40;    // Custom downward tilt locks the ball right on top of the putter blade rim
+            rigidCamDist = 3.5;
+            rigidCamHeight = 1.2;
+            lookUpOffset = -0.40;
         }
 
         if (camera.fov !== targetFov) {
@@ -1580,8 +1579,10 @@ function animate() {
             ball.position.z + dirZ * lookAheadDist
         );
 
-        // Forces the camera to lock instantly to prevent any floating lag or side-drifting
-        activeCameraSpeed = 1.0;
+        // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
+        // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
+        // Set to 0.08 when stationary so the camera glides gracefully into position at address.
+        activeCameraSpeed = physics.isMoving ? 0.04 : 0.08;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
