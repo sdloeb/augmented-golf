@@ -1906,8 +1906,9 @@ function init() {
 
     // 6.6. Add Club Landing Destination Ring for Overhead View
     const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: false });
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
+    clubLandingRing.renderOrder = 9999;
     clubLandingRing.rotation.x = -Math.PI / 2;
     clubLandingRing.visible = false;
     scene.add(clubLandingRing);
