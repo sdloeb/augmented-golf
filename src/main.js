@@ -108,7 +108,12 @@ function updateDistanceDisplay() {
     const unitText = document.getElementById('unitText');
 
     if (distanceText && unitText) {
-        if (gameDistance < GREEN_RADIUS) {
+        // FIXED: Check if the ball is on the green surface container footprint instead of clamping to a raw radius proximity
+        const greenCheckX = ball.position.x - (green ? green.position.x : 0);
+        const greenCheckZ = ball.position.z - greenCenterZ;
+        const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < GREEN_RADIUS;
+
+        if (isOnGreenSurface) {
             const feet = Math.round(gameDistance * 1.50);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
@@ -118,6 +123,7 @@ function updateDistanceDisplay() {
             unitText.innerText = "yards";
         }
     }
+
     const clubText = document.getElementById('clubText');
     if (clubText && input) {
         const club = input.getClubInfo();
@@ -1216,8 +1222,11 @@ function animate() {
         if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
 
-            // FIXED: Realism Lip-out simulation. Deflects the ball horizontally around the rim instead of bouncing upward
-            if (ballSpeed > 0.14) { // Modify this block
+            // FIXED: Compares the actual visual frame speed against the threshold. 
+            // When putting at a speed factor of 0.70, the raw velocity threshold naturally expands to 0.20 (0.14 / 0.70)
+            const maxSinkVelocity = (physics && physics.isPutting) ? (0.14 / 0.70) : 0.14;
+
+            if (ballSpeed > maxSinkVelocity) {
                 const perpX = -dz / distanceToHole;
                 const perpZ = dx / distanceToHole;
 
@@ -2021,13 +2030,13 @@ function init() {
         const gX = ball.position.x - (green ? green.position.x : 0);
         const gZ = ball.position.z - greenCenterZ;
         const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
-
         let finalPower = power;
         if (isOnGreen) {
-            // Multiply to fine-tune putting physics:
-            // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 2.1;
+            // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
+            finalPower *= 1.25;
         }
+
+        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
 

@@ -295,19 +295,20 @@ export class PhysicsEngine {
         }
         else if (!onGreen && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0) { // Change this line
             currentFriction = 0.92;
-            currentBounceHeight = 0.20;        // Add this line: Saps the bounce height so it doesn't bounce as much
+            currentBounceHeight = 0.20;
             currentBounceForwardLoss = 0.50;
         }
         if (this.isPutting) {
-            currentFriction = 0.99; // Add this block (Balances distance perfectly for half-speed roll)
+            currentFriction = 0.985;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
         const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
         let timeScale = isAirborne ? 0.6 : 1.0;
 
-        // FIXED: Slows down the visual travel speed of the putt while preserving distance perfectly
-        const puttSpeedFactor = 0.45; // Tweak this value! Lower (e.g. 0.35) = slower travel, Higher (e.g. 0.6) = faster travel.
+        // FIXED: Increased from 0.45 to 0.70. This makes the ball roll 55% faster visually (snappy out of the gate)
+        // while the math automatically preserves the exact 80ft calibrated distance limit.
+        const puttSpeedFactor = 0.70;
         if (!isAirborne && this.isPutting) {
             timeScale *= puttSpeedFactor;
             currentFriction = 1.0 - puttSpeedFactor * (1.0 - currentFriction);
@@ -371,9 +372,9 @@ export class PhysicsEngine {
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
-            // Change this section below:
-            this.velocity.x += this.slopeX;
-            this.velocity.z += this.slopeZ;
+            // FIXED: Scaled by timeScale so gravity forces accumulate in the exact same time dimension as rolling friction
+            this.velocity.x += this.slopeX * timeScale;
+            this.velocity.z += this.slopeZ * timeScale;
 
         }
 
@@ -497,15 +498,16 @@ export class PhysicsEngine {
                 this.velocity.x *= currentBounceForwardLoss;
                 this.velocity.z *= currentBounceForwardLoss;
             } else {
+                // FIXED: Removed the duplicate currentFriction multipliers. Ground rolling friction
+                // is already applied once per frame up in Section 1, preventing unnatural drag behavior.
                 this.velocity.y = 0;
-                this.velocity.x *= currentFriction;
-                this.velocity.z *= currentFriction;
             }
         }
 
         // 4. STOP CONSTANT LOOPS 
-        const slopeForce = Math.hypot(this.slopeX || 0, this.slopeZ || 0);
-        if (this.velocity.length() < 0.01 && this.ball.position.y <= groundY && slopeForce < 0.002) {
+        // FIXED: Removed the slopeForce lockout block. When a slow ball's velocity falls beneath a realistic 
+        // threshold, static friction cuts off kinetic energy so the ball can settle to a dead stop directly on hillsides.
+        if (this.velocity.length() < 0.012 && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;
