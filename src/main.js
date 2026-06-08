@@ -530,7 +530,17 @@ function resetEntireGame(advanceHole = false) {
         }
     }
 
-    currentHoleConfig = holeConfig; // Modify this line: Stores procedural data globally
+    currentHoleConfig = holeConfig; // 
+
+    const themeRoll = Math.random();
+    if (themeRoll < 0.25) {
+        currentHoleConfig.theme = 'open';    // Clean links-style course
+    } else if (themeRoll < 0.65) {
+        currentHoleConfig.theme = 'standard';// Balanced layout
+    } else {
+        currentHoleConfig.theme = 'forest';  // Heavily wooded tree-lined layout
+    }
+
     currentPar = holeConfig.par;    // Keep this single instance of the assignment
 
     // Update the Wood Placard Map Dashboard display readings
@@ -701,7 +711,9 @@ function resetEntireGame(advanceHole = false) {
 
                 // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    if (insideSandZone) {
+                    if (worldZ > -8.0) {
+                        calculatedHeight = -10.0; // Add this line: Hides the fairway for the first 50 yards to create the rough carry
+                    } else if (insideSandZone) { // Modify this line: Changed from "if" to "else if"
                         calculatedHeight = -10.0; // Add this line: Keeps the fairway completely hidden inside sand trap perimeters
                     } else if (distanceToPath <= 8.0) {
                         calculatedHeight += 0.06;
@@ -711,11 +723,6 @@ function resetEntireGame(advanceHole = false) {
                     } else {
                         calculatedHeight = -10.0; // Modify this line: Re-locks the rest of the mesh deep underground so it can't clip hazards
                     }
-                }
-            } else {
-                // If we ARE inside a water hazard zone, make sure the fairway plane still hides itself
-                if (targetMesh === fairway) {
-                    calculatedHeight = -10.0;
                 }
             }
 
@@ -800,7 +807,7 @@ function resetEntireGame(advanceHole = false) {
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
     if (teeBox) {
-        teeBox.position.set(teeBoxX, 0.01, 10);
+        teeBox.position.set(teeBoxX, physics.getGroundHeight(teeBoxX, 10) + 0.01, 10);
         teeBox.visible = true;
 
         // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
@@ -908,7 +915,9 @@ function resetEntireGame(advanceHole = false) {
     // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
     if (physics) physics.obstacles = [];
 
-    for (let i = 0; i < 45; i++) {
+    let obstacleAttempts = currentHoleConfig.theme === 'open' ? 12 : (currentHoleConfig.theme === 'forest' ? 145 : 45);
+
+    for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
 
