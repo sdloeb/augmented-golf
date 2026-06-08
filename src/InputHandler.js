@@ -32,6 +32,12 @@ export class InputHandler {
         this.maxPullY = 0;
         this.chosenClubIndex = null;
 
+        this.isAimMode = false;         // Add this line
+        this.aimAngleOffset = 0;        // Add this line
+        this.lastClubTapTime = 0;       // Add this line
+        this.isAimDragging = false;     // Add this line
+        this.startAimX = 0;
+
         this.initEvents();
     }
 
@@ -58,15 +64,14 @@ export class InputHandler {
     getClubInfo() {
         const isOnGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
         if (isOnGreen) {
-            return { name: 'Putter', maxYards: 80, isGreen: true };
+            return { name: 'Putter', maxYards: 50, isGreen: true };
         }
 
-        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false; // Add this line
+        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
         // If player explicitly manually selected a club option, return that one
         if (this.chosenClubIndex !== null && this.chosenClubIndex !== undefined) {
-            if (this.chosenClubIndex === 0 && !isOnTee) return CLUBS[1]; // Add this line: Safe fallback override to 3 Wood
-            return CLUBS[this.chosenClubIndex];
+            return CLUBS[this.chosenClubIndex]; // Modify this line: Allow Driver off the deck for authentic high-risk play
         }
 
         // Default back to standard auto distance selection index
@@ -83,16 +88,57 @@ export class InputHandler {
         window.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
         window.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
         window.addEventListener('touchend', () => this.onTouchEnd());
+
+        // Add this block: Tracks 1-second club double-taps to enter/exit camera aiming view
+        const clubEl = document.getElementById('clubSwipe');
+        if (clubEl) {
+            const handleClubTap = (e) => {
+                // Delete e.stopPropagation() from here
+                // Delete e.preventDefault() from here
+                const now = performance.now();
+                if (now - this.lastClubTapTime < 1000) {
+                    e.stopPropagation(); // Add this line here: Only intercept when an official double tap happens
+                    e.preventDefault();  // Add this line here: Only intercept when an official double tap happens
+                    this.isAimMode = !this.isAimMode;
+                    this.isSwinging = false;
+                    this.state = 'IDLE';
+                    if (this.gauge) this.gauge.classList.add('hidden'); // Forces power gauge hidden immediately
+                    this.lastClubTapTime = 0;
+                } else {
+                    this.lastClubTapTime = now;
+                }
+            };
+            clubEl.addEventListener('click', handleClubTap);
+            clubEl.addEventListener('touchstart', handleClubTap, { passive: false });
+        }
     }
 
     onTouchStart(e) {
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
         if (this.isOverheadActive) return;
+
+        if (this.isAimMode) {
+            this.isAimDragging = true;
+            this.startAimX = e.touches[0].clientX;
+            return;
+        }
+
         const touch = e.touches[0];
-        this.isSwinging = true;
-        this.state = 'PULLBACK';
         this.startX = touch.clientX;
         this.startY = touch.clientY;
+
+        const touchedClub = e.target.closest('#clubSwipe');
+        if (touchedClub) {
+            // Delay touch swing activation until dragging starts
+            this.isSwingingFromClub = true;
+            this.isSwinging = false;
+            this.state = 'IDLE';
+            return;
+        }
+
+        this.isSwingingFromClub = false;
+        this.isSwinging = true;
+        this.state = 'PULLBACK';
         this.maxPullY = touch.clientY;
         this.pullbackDriftX = 0;
         this.pullbackAtMaxX = touch.clientX;
@@ -100,9 +146,17 @@ export class InputHandler {
         this.gauge.classList.remove('hidden');
         this.gaugeFill.style.height = '0%';
 
-        const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
+        const club = this.getClubInfo();
+        const targetPullDistance = this.maxPullY - this.startY;
+        const maxPullPixels = club.isGreen ? 360 : 180;
+        const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+        this.pullRatio = pullRatio;
+
+        this.gaugeFill.style.height = `${pullRatio * 100}%`; // Keep this line! Resets the color bar layout instantly
+
         if (club.isGreen) {
-            this.gaugeLabel.innerText = `${club.name}: 0 ft`;
+            const feet = Math.round(pullRatio * 50); // Modify this line: Updates touch gauge text mapping to 50 ft max
+            this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
         } else {
             this.gaugeLabel.innerText = `${club.name}: 0 yds`;
         }
@@ -110,11 +164,35 @@ export class InputHandler {
     }
 
     onTouchMove(e) {
-        if (!this.isSwinging) return;
-        e.preventDefault();
+        if (this.isAimMode && this.isAimDragging) {
+            e.preventDefault();
+            const currentX = e.touches[0].clientX;
+            const deltaX = currentX - this.startAimX;
+            this.aimAngleOffset += deltaX * 0.007;
+            this.startAimX = currentX;
+            return;
+        }
+
         const touch = e.touches[0];
         const currentX = touch.clientX;
         const currentY = touch.clientY;
+
+        // Upgrade to an active mobile swing if finger drags down past 8px
+        if (this.isSwingingFromClub && !this.isSwinging) {
+            if (currentY > this.startY + 8) {
+                this.isSwinging = true;
+                this.state = 'PULLBACK';
+                this.maxPullY = this.startY;
+                this.pullbackDriftX = 0;
+                this.pullbackAtMaxX = touch.clientX;
+
+                this.gauge.classList.remove('hidden');
+                this.gaugeFill.style.height = '0%';
+            }
+        }
+
+        if (!this.isSwinging) return;
+        e.preventDefault();
 
         if (this.state === 'PULLBACK') {
             if (currentY > this.maxPullY) {
@@ -122,17 +200,17 @@ export class InputHandler {
                 this.pullbackAtMaxX = currentX;
             }
 
-            const club = this.getClubInfo(); // <-- ADD THIS LINE HERE
+            const club = this.getClubInfo();
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = club.isGreen ? 360 : 180; // <-- UPDATE THIS TO USE THE TALLER BAR
+            const maxPullPixels = club.isGreen ? 360 : 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+            this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
-            this.gaugeLabel.style.top = `${pullRatio * 160}px`;
+            this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            // Calculate screen positions to check side-of-screen pullbacks
             const screenCenter = window.innerWidth / 2;
-            const ballPathWidth = 120; // 120px vertical center band for the ball path
+            const ballPathWidth = 120;
             let shotModifier = "";
 
             if (this.startX < screenCenter - ballPathWidth / 2) {
@@ -141,10 +219,8 @@ export class InputHandler {
                 shotModifier = " (Slice)";
             }
 
-
             if (club.isGreen) {
-                // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
-                const feet = Math.round(pullRatio * 80);
+                const feet = Math.round(pullRatio * 50);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
@@ -164,6 +240,8 @@ export class InputHandler {
     }
 
     onTouchEnd() {
+        this.isAimDragging = false;
+        this.isSwingingFromClub = false;
         if (this.isSwinging && this.state !== 'IDLE') {
             this.resetSwing();
         }
@@ -171,13 +249,30 @@ export class InputHandler {
 
     onMouseDown(e) {
         if (e.button !== 0) return;
-        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return
+        if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
         if (this.isOverheadActive) return;
 
-        this.isSwinging = true;
-        this.state = 'PULLBACK';
+        if (this.isAimMode) {
+            this.isAimDragging = true;
+            this.startAimX = e.clientX;
+            return;
+        }
+
         this.startX = e.clientX;
         this.startY = e.clientY;
+
+        const clickedClub = e.target.closest('#clubSwipe');
+        if (clickedClub) {
+            // Delay swing activation until an actual drag occurs
+            this.isSwingingFromClub = true;
+            this.isSwinging = false;
+            this.state = 'IDLE';
+            return;
+        }
+
+        this.isSwingingFromClub = false;
+        this.isSwinging = true;
+        this.state = 'PULLBACK';
         this.maxPullY = e.clientY;
         this.pullbackDriftX = 0;
         this.pullbackAtMaxX = e.clientX;
@@ -195,10 +290,32 @@ export class InputHandler {
     }
 
     onMouseMove(e) {
-        if (!this.isSwinging) return;
+        if (this.isAimMode && this.isAimDragging) {
+            const currentX = e.clientX;
+            const deltaX = currentX - this.startAimX;
+            this.aimAngleOffset += deltaX * 0.007;
+            this.startAimX = currentX;
+            return;
+        }
 
         const currentX = e.clientX;
         const currentY = e.clientY;
+
+        // Upgrade to an active swing only if dragging downward past the 8px threshold
+        if (this.isSwingingFromClub && !this.isSwinging) {
+            if (currentY > this.startY + 8) {
+                this.isSwinging = true;
+                this.state = 'PULLBACK';
+                this.maxPullY = this.startY;
+                this.pullbackDriftX = 0;
+                this.pullbackAtMaxX = e.clientX;
+
+                this.gauge.classList.remove('hidden');
+                this.gaugeFill.style.height = '0%';
+            }
+        }
+
+        if (!this.isSwinging) return;
 
         if (this.state === 'PULLBACK') {
             const club = this.getClubInfo();
@@ -213,16 +330,15 @@ export class InputHandler {
             }
 
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = club.isGreen ? 360 : 180; // <-- FIX THE ASSIGNMENT HERE
+            const maxPullPixels = club.isGreen ? 360 : 180;
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            // Calculate screen positions to check side-of-screen pullbacks
             const screenCenter = window.innerWidth / 2;
-            const ballPathWidth = 120; // 120px vertical center band for the ball path
+            const ballPathWidth = 120;
             let shotModifier = "";
 
             if (this.startX < screenCenter - ballPathWidth / 2) {
@@ -231,12 +347,7 @@ export class InputHandler {
                 shotModifier = " (Slice)";
             }
 
-            // DYNAMIC SWING GAUGE SCALING
-
-            // DYNAMIC SWING GAUGE SCALING
-
             if (club.isGreen) {
-                // FIXED: Square the ratio to give short putts maximum precision, extending to 80ft max
                 const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
@@ -257,6 +368,8 @@ export class InputHandler {
     }
 
     onMouseUp() {
+        this.isAimDragging = false;
+        this.isSwingingFromClub = false;
         if (this.isSwinging && this.state !== 'IDLE') {
             this.resetSwing();
         }
@@ -285,9 +398,10 @@ export class InputHandler {
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
+            const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
             if (club.name === 'Driver') {
-                finalPower *= 1.02;
+                finalPower *= isOnTee ? 1.02 : 0.90;
             }
             else if (club.name === '3 Wood') {
                 finalPower *= 1.13;
@@ -343,10 +457,16 @@ export class InputHandler {
                 // 2. Check if on the Green
                 const onGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
 
+                // Realism addition: Calculate if the ball is sitting on the clean green fringe collar (12 to 14 units out)
+                const gX = this.ballRef.position.x - (window.physicsEngine ? window.physicsEngine.greenCenterX : 0); // Add this line
+                const gZ = this.ballRef.position.z - (window.physicsEngine ? window.physicsEngine.greenCenterZ : -55); // Add this line
+                const distToGreenCenter = Math.hypot(gX, gZ); // Add this line
+                const isOnFringe = distToGreenCenter >= 12.0 && distToGreenCenter <= 14.0; // Add this line
+
                 // 3. Apply Penalties
                 if (inSand) {
                     finalPower *= 0.50; // Lose 50% power in sand bunker
-                } else if (!onGreen && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Change this line
+                } else if (!onGreen && !isOnFringe && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Modify this line: Exempt the clean fringe lie from the rough penalty
                     finalPower *= 0.85; // Lose 15% power in the rough
                 }
             }

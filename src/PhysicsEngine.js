@@ -295,6 +295,8 @@ export class PhysicsEngine {
         }
         else if (!onGreen && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0) { // Change this line
             currentFriction = 0.92;
+            currentBounceHeight = 0.20;        // Add this line: Saps the bounce height so it doesn't bounce as much
+            currentBounceForwardLoss = 0.50;
         }
         if (this.isPutting) {
             currentFriction = 0.99; // Add this block (Balances distance perfectly for half-speed roll)
@@ -342,8 +344,7 @@ export class PhysicsEngine {
             }
 
             if (!this.isPutting) {
-                this.velocity.x += this.wind.x * timeScale;
-                this.velocity.z += this.wind.z * timeScale;
+
 
                 let bounceWindMultiplier = 1.0;
                 if (this.ball.position.y < groundY + 1.25) {
@@ -369,12 +370,6 @@ export class PhysicsEngine {
             // Calculates precise slope forces pulling the ball downhill based on local mesh angles
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
-
-            // FIXED: Scales the step acceleration down to ensure the breaking curve remains structurally identical
-            if (this.isPutting) {
-                this.slopeX *= puttSpeedFactor;
-                this.slopeZ *= puttSpeedFactor;
-            }
 
             // Change this section below:
             this.velocity.x += this.slopeX;
@@ -509,7 +504,8 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        if (this.velocity.length() < 0.01 && this.ball.position.y <= groundY) { // Change this line
+        const slopeForce = Math.hypot(this.slopeX || 0, this.slopeZ || 0);
+        if (this.velocity.length() < 0.01 && this.ball.position.y <= groundY && slopeForce < 0.002) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;

@@ -15,9 +15,9 @@ const HOLES_CONFIG = {
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(5, 0, -35),
-            new THREE.Vector3(30, 0, -65),
-            new THREE.Vector3(45, 0, -100)
+            new THREE.Vector3(10, 0, -50),   // Modify this coordinate
+            new THREE.Vector3(50, 0, -100),  // Modify this coordinate
+            new THREE.Vector3(80, 0, -130)   // Modify this coordinate (Greens out of 1-shot range)
         ]
     },
     3: { // Long S-Curve Double Dogleg Hole
@@ -28,7 +28,25 @@ const HOLES_CONFIG = {
             new THREE.Vector3(20, 0, -110),
             new THREE.Vector3(0, 0, -170)
         ]
-    }
+    },
+    4: { // Sharp 90-Degree Dogleg Right Hole
+        par: 4,
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -85),   // Modify this line: Drives straight down further
+            new THREE.Vector3(45, 0, -85),  // Modify this line: Extends elbow outward
+            new THREE.Vector3(85, 0, -85)   // Modify this line: Safe Par 4 distance (~355 yards away)
+        ]
+    }, // Add this block
+    5: { // Sharp 90-Degree Dogleg Left Hole
+        par: 4,
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -85),   // Modify this line
+            new THREE.Vector3(-45, 0, -85), // Modify this line
+            new THREE.Vector3(-85, 0, -85)  // Modify this line
+        ]
+    } // Add this block
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -43,6 +61,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let currentHoleNumber = 1;
+let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
 
@@ -90,7 +109,7 @@ function updateDistanceDisplay() {
 
     if (distanceText && unitText) {
         if (gameDistance < GREEN_RADIUS) {
-            const feet = Math.round(gameDistance * 1.00);
+            const feet = Math.round(gameDistance * 1.50);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
@@ -233,22 +252,23 @@ function generateHazards() {
 
     // Use a safe fallback if green hasn't initialized yet
     const targetGreenZ = green ? green.position.z : -55;
+    const targetGreenX = green ? green.position.x : 0;
 
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 7.0 + Math.random() * 4.5;
         let waterAttempts = 0; // Add this line
         do {
-            x = (Math.random() - 0.5) * 50;
+            x = (Math.random() - 0.5) * 160; // Modify this line: Spans wide enough for doglegs
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
             waterAttempts++; // Add this line
             if (waterAttempts > 50) break;
         } while (
-            checkOverlap(x, z, r, waterHazards) ||
+            checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) ||
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) || // Modify this line: Checks true green center
+            (physics && (physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5) || physics.getDistanceToSpline(x, z) > (9.0 + r + 2.0))) || // Modify this line: Set min distance to 0.5 and clamped max distance to 18.0
             (z > -15 && Math.abs(x) < 15)
         );
-
         if (waterAttempts > 50) continue;
 
         let currentWaterGroundY = physics.getGroundHeight(x, z);
@@ -325,18 +345,36 @@ function generateHazards() {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
         do {
-            x = (Math.random() - 0.5) * 50;
-            z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
+            // NEW APPROACH: Base coordinates directly on the fairway track or green center so they can never wander off
+            if (Math.random() > 0.3 && physics.fairwayPoints && physics.fairwayPoints.length > 0) {
+                // Pick a random track coordinate along the active fairway line
+                const basePt = physics.fairwayPoints[Math.floor(Math.random() * physics.fairwayPoints.length)];
+                const angle = Math.random() * Math.PI * 2;
+                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the fairway edge
+                const offsetDist = 9.0 + r + 0.5 + Math.random() * 4.0;
+
+                x = basePt.x + Math.cos(angle) * offsetDist;
+                z = basePt.z + Math.sin(angle) * offsetDist;
+            } else {
+                // Pick a random angle around the green
+                const angle = Math.random() * Math.PI * 2;
+                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the green edge
+                const offsetDist = 12.0 + r + 0.5 + Math.random() * 4.0;
+
+                x = targetGreenX + Math.cos(angle) * offsetDist;
+                z = targetGreenZ + Math.sin(angle) * offsetDist;
+            }
             sandAttempts++;
-            if (sandAttempts > 50) break;
+            if (sandAttempts > 100) break;
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt(x * x + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 2.0) ||
-            (z > -15 && Math.abs(x) < 15)
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) || // Keep clear of green surface
+            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) || // Keep clear of fairway short grass
+            (z > -15 && Math.abs(x) < 15) // Keep clear of the immediate tee box zone
         );
 
-        if (sandAttempts > 50) continue;
+        if (sandAttempts > 100) continue;
 
         let currentSandGroundY = physics.getGroundHeight(x, z);
 
@@ -397,24 +435,113 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-    let holeConfig = HOLES_CONFIG[currentHoleNumber];
+    let holeConfig = null;
 
-    // Fallback Generator: Create random doglegs if players exceed the configured preset list
+    // Championship Procedural Generator: Determines Par first, then maps realistic course segment distances
     if (!holeConfig) {
-        const randomTargetZ = -100 - Math.random() * 80;
-        const randomElbowX = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 25);
-        holeConfig = {
-            par: Math.random() > 0.5 ? 4 : 5,
-            waypoints: [
-                new THREE.Vector3(0, 0, 10),
-                new THREE.Vector3(randomElbowX * 0.3, 0, randomTargetZ * 0.4),
-                new THREE.Vector3(randomElbowX, 0, randomTargetZ * 0.7),
-                new THREE.Vector3(randomElbowX * 0.8, 0, randomTargetZ)
-            ]
-        };
+        const UNIT_YARDS = 2.76923; // Fixed spatial engine multiplier matching game scaling
+        const parRoll = Math.random();
+
+        if (parRoll < 0.20) {
+            // Archetype 1: Real Par 3 (140 to 220 yards)
+            const yards = 140 + Math.random() * 80;
+            const totalUnits = yards / UNIT_YARDS;
+
+            holeConfig = {
+                par: 3,
+                waypoints: [
+                    new THREE.Vector3(0, 0, 10),
+                    new THREE.Vector3(0, 0, 10 - totalUnits)
+                ]
+            };
+        }
+        else if (parRoll < 0.75) {
+            // Archetype 2: Real Par 4 (360 to 460 yards)
+            const isDogleg = Math.random() > 0.35; // 65% chance of a strategic dogleg layout
+
+            if (!isDogleg) {
+                // Straight Challenging Par 4
+                const yards = 360 + Math.random() * 100;
+                const totalUnits = yards / UNIT_YARDS;
+                holeConfig = {
+                    par: 4,
+                    waypoints: [
+                        new THREE.Vector3(0, 0, 10),
+                        new THREE.Vector3(0, 0, 10 - totalUnits)
+                    ]
+                };
+            } else {
+                // Dogleg Left or Right Par 4
+                const sideDir = Math.random() > 0.5 ? 1 : -1;
+                const driveYards = 240 + Math.random() * 40;    // 240-280 yard drive to landing zone
+                const approachYards = 120 + Math.random() * 40; // 120-160 yard secondary approach shot
+
+                const driveUnits = driveYards / UNIT_YARDS;
+                const approachUnits = approachYards / UNIT_YARDS;
+
+                // Calculate a realistic 35-degree dogleg break angle
+                const angle = (30 + Math.random() * 10) * Math.PI / 180;
+                const elbowZ = 10 - driveUnits;
+                const greenX = sideDir * (Math.sin(angle) * approachUnits);
+                const greenZ = elbowZ - (Math.cos(angle) * approachUnits);
+
+                holeConfig = {
+                    par: 4,
+                    waypoints: [
+                        new THREE.Vector3(0, 0, 10),
+                        new THREE.Vector3(0, 0, elbowZ), // Keeps initial drive line completely straight
+                        new THREE.Vector3(greenX, 0, greenZ)
+                    ]
+                };
+            }
+        }
+        else {
+            // Archetype 3: Real Par 5 (500 to 580 yards) - True 3-Shot Strategy Hole
+            const sideDir = Math.random() > 0.5 ? 1 : -1;
+            const driveYards = 250 + Math.random() * 30;    // 250-280 yard tee shot landing zone
+            const secondYards = 160 + Math.random() * 30;   // 160-190 yard layup area
+            const approachYards = 90 + Math.random() * 30;  // 90-120 yard wedge shot into the green
+
+            const driveUnits = driveYards / UNIT_YARDS;
+            const secondUnits = secondYards / UNIT_YARDS;
+            const approachUnits = approachYards / UNIT_YARDS;
+
+            const elbowZ1 = 10 - driveUnits;
+
+            // First turn out into the dogleg lane
+            const angle1 = (25 + Math.random() * 10) * Math.PI / 180;
+            const elbowX2 = sideDir * (Math.sin(angle1) * secondUnits);
+            const elbowZ2 = elbowZ1 - (Math.cos(angle1) * secondUnits);
+
+            // S-Curve turn back around the corner toward the green pin
+            const angle2 = (15 + Math.random() * 10) * Math.PI / 180;
+            const greenX = elbowX2 - sideDir * (Math.sin(angle2) * approachUnits);
+            const greenZ = elbowZ2 - (Math.cos(angle2) * approachUnits);
+
+            holeConfig = {
+                par: 5,
+                waypoints: [
+                    new THREE.Vector3(0, 0, 10),
+                    new THREE.Vector3(0, 0, elbowZ1),
+                    new THREE.Vector3(elbowX2, 0, elbowZ2),
+                    new THREE.Vector3(greenX, 0, greenZ)
+                ]
+            };
+        }
     }
 
-    currentPar = holeConfig.par;
+    currentHoleConfig = holeConfig; // 
+
+    const themeRoll = Math.random();
+    if (themeRoll < 0.25) {
+        currentHoleConfig.theme = 'open';    // Clean links-style course
+    } else if (themeRoll < 0.65) {
+        currentHoleConfig.theme = 'standard';// Balanced layout
+    } else {
+        currentHoleConfig.theme = 'forest';  // Heavily wooded tree-lined layout
+    }
+
+    currentPar = holeConfig.par;    // Keep this single instance of the assignment
 
     // Update the Wood Placard Map Dashboard display readings
     const mapTitleElement = document.getElementById('holeMapTitle');
@@ -577,23 +704,33 @@ function resetEntireGame(advanceHole = false) {
                 // UPDATED: Swapped out old straight Z constraints for the dynamic spline path tracking
                 // to cleanly handle our new 90-degree sideways dogleg modifications
                 if (targetMesh === floor) {
-                    if (distanceToPath <= 9.0) {
-                        calculatedHeight -= 0.02; // Smooth micro-shave prevents flickering overlapping faces
+                    if (distanceToPath <= 8.0) {
+                        calculatedHeight -= 0.04; // Modify this line: Shaves the rough down slightly under the fairway core
+                    } else if (distanceToPath <= 8.8) {
+                        const t = (distanceToPath - 8.0) / 0.8; // Add this line
+                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t); // Add this line: Smoothly brings rough back up to ground level
                     }
                 }
 
                 // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    if (distanceToPath <= 9.0) {
+                    if (worldZ > -8.0) {
+                        calculatedHeight = -10.0; // Hides the fairway for the first 50 yards to create the rough carry
+                    } else if (insideSandZone) {
+                        calculatedHeight = -10.0; // Keeps the fairway completely hidden inside sand trap perimeters
+                    } else if (distanceToPath <= 8.0) {
                         calculatedHeight += 0.06;
+                    } else if (distanceToPath <= 8.8) { // Modify this line: Sharpens the outer border to a tight 8.8 limit
+                        const t = (distanceToPath - 8.0) / 0.8; // Modify this line: Tightly constrains the slope calculation to 0.8 units
+                        calculatedHeight += THREE.MathUtils.lerp(0.06, -1.2, t); // Modify this line: Dives the fairway sharply under the rough mesh
                     } else {
-                        calculatedHeight = -10.0;
+                        calculatedHeight = -10.0; // Keep this line
                     }
                 }
             }
 
             // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
-            if (insideSandZone) {
+            if (insideSandZone && targetMesh === floor) { // Modify this line: Added && targetMesh === floor
                 calculatedHeight = targetSandY;
             }
 
@@ -628,11 +765,11 @@ function resetEntireGame(advanceHole = false) {
                 const cy = row * spacing + spacing / 2;
 
                 // Map canvas coordinates to world coordinates relative to the green center
-                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2);
+                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2) + greenEndpoint.x; // Modify this line: Added + greenEndpoint.x
                 const wz = (cy / 512 - 0.5) * (GREEN_RADIUS * 2) + greenCenterZ;
 
                 // Check if this point falls inside the circular green grass area
-                const distFromCenter = Math.sqrt(wx * wx + (wz - greenCenterZ) * (wz - greenCenterZ));
+                const distFromCenter = Math.sqrt((wx - greenEndpoint.x) * (wx - greenEndpoint.x) + (wz - greenCenterZ) * (wz - greenCenterZ)); // Modify this line: Subtracted greenEndpoint.x to keep circle check relative
                 if (distFromCenter < GREEN_RADIUS - 0.5) {
 
                     // Sample local neighbors to get the exact slope direction at this specific point
@@ -673,8 +810,12 @@ function resetEntireGame(advanceHole = false) {
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
     if (teeBox) {
-        teeBox.position.set(teeBoxX, 0.01, 10);
+        teeBox.position.set(teeBoxX, physics.getGroundHeight(teeBoxX, 10) + 0.01, 10);
         teeBox.visible = true;
+
+        // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
+        const firstTarget = holeConfig.waypoints[1];
+        teeBox.lookAt(new THREE.Vector3(firstTarget.x, 0.01, firstTarget.z));
     }
 
     ball.position.set(teeBoxX, 0.37, 10); // Modify this line (elevated slightly to sit exactly on top of the tee)
@@ -685,14 +826,16 @@ function resetEntireGame(advanceHole = false) {
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
+    if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
     isOverheadActive = false;
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
 
-    // Calculate the precise target-line vector between the randomized tee and pin positions
-    const startDirX = holePosition.x - teeBoxX;
-    const startDirZ = holePosition.z - 10;
+    // Calculate the precise target-line vector between the randomized tee and the first fairway waypoint
+    const firstTarget = holeConfig.waypoints[1]; // Add this line
+    const startDirX = firstTarget.x - teeBoxX;    // Modify this line: Points camera down the initial straightaway
+    const startDirZ = firstTarget.z - 10;          // Modify this line: Points camera down the initial straightaway
     const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ);
 
     // Position the camera exactly 5.5 units backward along the true ball-to-hole line of sight
@@ -716,16 +859,28 @@ function resetEntireGame(advanceHole = false) {
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 });
 
     // Generate 35 pieces of random scenery scattered along the edges
-    for (let i = 0; i < 35; i++) {
-        const side = Math.random() > 0.5 ? 1 : -1;
-        const x = side * (31 + Math.random() * 15);
+    for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
+        const isHouse = Math.random() <= 0.4; // Add this line: Pre-determine type to enforce placement rules
+        // Modify this line: If it's a house, snap it strictly to outer out-of-bounds limits; otherwise let background trees scatter
+        const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
-        const sceneryGroup = new THREE.Group();
-        const courseHeight = physics.getGroundHeight(x, z);
+        // Prevent background houses/trees from landing on the fairways
+        if (physics && physics.getDistanceToSpline(x, z) < 18.0) { // Add this line
+            continue; // Add this line
+        } // Add this line
+
+        // Prevent background houses/trees from landing on the green
+        const distToHole = Math.sqrt((x - holePosition.x) * (x - holePosition.x) + (z - holePosition.z) * (z - holePosition.z)); // Add this line
+        if (distToHole < 22.0) { // Add this line
+            continue; // Add this line
+        } // Add this line
+
+        const sceneryGroup = new THREE.Group(); // Keep this line
+        const courseHeight = physics.getGroundHeight(x, z); // Keep this line
         sceneryGroup.position.set(x, courseHeight, z);
 
-        if (Math.random() > 0.4) {
+        if (!isHouse) {
             // BUILD A PROCEDURAL TREE
             const treeHeight = 1.5;
             const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, treeHeight, 8);
@@ -763,8 +918,10 @@ function resetEntireGame(advanceHole = false) {
     // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
     if (physics) physics.obstacles = [];
 
-    for (let i = 0; i < 30; i++) {
-        let sampleX = (Math.random() - 0.5) * 50;
+    let obstacleAttempts = currentHoleConfig.theme === 'open' ? 12 : (currentHoleConfig.theme === 'forest' ? 145 : 45);
+
+    for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
+        let sampleX = (Math.random() - 0.5) * 220;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
 
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
@@ -775,10 +932,10 @@ function resetEntireGame(advanceHole = false) {
         }
 
         // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
-        let distanceToGreenCenter = Math.sqrt((sampleX - 0) * (sampleX - 0) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Add this line
-        if (distanceToGreenCenter < 15.0) { // Add this line
-            continue; // Add this line
-        } // Add this line
+        let distanceToGreenCenter = Math.sqrt((sampleX - greenEndpoint.x) * (sampleX - greenEndpoint.x) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Modify this line: Swapped to greenEndpoint.x
+        if (distanceToGreenCenter < 15.0) { // Keep this line
+            continue; // Keep this line
+        } // Keep this line
 
         // Prevent spawning inside sand traps (+1.0 unit buffer padding)
         let insideSandTrap = sandTraps.some(sandMesh => { // Add this line
@@ -798,9 +955,9 @@ function resetEntireGame(advanceHole = false) {
         });
         if (insideWaterHazard) continue;
 
-        // Evaluate Course Boundaries: Fairway width is defined inside (-9.0 to 9.0)
-        let insideFairwayLane = physics.getDistanceToSpline(sampleX, sampleZ) <= 9.0; // Change this line
-        if (insideFairwayLane) { // Change this line: Always skip if the coordinates fall on the fairway
+        // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
+        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
+        if (fairwayDistance <= 9.0 || fairwayDistance > 25.0) { // Modify this line: Skip if inside the fairway OR too far out in the deep rough
             continue;
         }
 
@@ -1059,12 +1216,14 @@ function animate() {
         if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
 
-            // FIXED: Raised speed threshold from 0.07 to 0.14 so true putts sink cleanly 
-            // instead of automatically bouncing off the rim due to mound acceleration
-            if (ballSpeed > 0.14) {
-                physics.velocity.y = 0.04; // Pops the ball up into the air slightly
-                physics.velocity.x *= 0.85;
-                physics.velocity.z *= 0.85;
+            // FIXED: Realism Lip-out simulation. Deflects the ball horizontally around the rim instead of bouncing upward
+            if (ballSpeed > 0.14) { // Modify this block
+                const perpX = -dz / distanceToHole;
+                const perpZ = dx / distanceToHole;
+
+                // Centripetal sling wraps the ball around the lip edge based on velocity
+                physics.velocity.x = (physics.velocity.x * 0.3) + (perpX * ballSpeed * 0.6);
+                physics.velocity.z = (physics.velocity.z * 0.3) + (perpZ * ballSpeed * 0.6);
                 return;
             }
             isSinking = true;
@@ -1129,7 +1288,8 @@ function animate() {
             const dxHole = ball.position.x - holePosition.x;
             const dzHole = ball.position.z - holePosition.z;
             const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-            isLongShot = initialYards > 100; // Track if shot is over 100 yards
+            isLongShot = initialYards > 30; // Track if shot is over 30 yards
+            window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
         }
 
         updateDistanceDisplay();
@@ -1153,8 +1313,7 @@ function animate() {
             ballTargetScale = Math.max(0.80, 1.0 - (distanceTraveled * 0.006));
         }
 
-        // AUTOMATIC CHASE CAMERA FOR SHOTS OVER 100 YARDS
-        if (isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        if (isLongShot && (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) { // Modify this line
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
@@ -1172,23 +1331,27 @@ function animate() {
         const camDist = onGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
         const camHeight = onGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
         const lookDist = onGreen ? 6.0 : 12.0;
-        if (wasMoving && !isSinking) {
-            isOverheadActive = false;
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
 
-            const backX = -(dirX / length) * camDist; // CHANGED
-            const backZ = -(dirZ / length) * camDist; // CHANGED
-
-            if (!isOverheadActive) {
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
-                cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist); // Change this line: Added vertical look-at offset for putting green contours
+        if (!isOverheadActive) {
+            let baseTargetX = holePosition.x;
+            let baseTargetZ = holePosition.z;
+            if (teeBox && teeBox.visible && currentHoleConfig) { // Modify this line
+                const firstLeg = currentHoleConfig.waypoints[1]; // Modify this line
+                if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
             }
+            const dX = baseTargetX - ball.position.x;
+            const dZ = baseTargetZ - ball.position.z;
+            let angle = Math.atan2(dX, dZ);
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Adjusts camera base angle by dragging offset
 
+            const aimDirX = Math.sin(angle);
+            const aimDirZ = Math.cos(angle);
+            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+        }
 
-
-
+        if (wasMoving && !isSinking) {
+            isOverheadActive = false; // Keep this line
 
             // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
@@ -1203,6 +1366,7 @@ function animate() {
             generateNewWind();
             updateDistanceDisplay();
             wasMoving = false;
+            window.puttingCameraDelayStart = performance.now();
 
             // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
             tracerPoints = [];
@@ -1215,16 +1379,6 @@ function animate() {
         }
 
         if (input && input.isSwinging) {
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ);
-
-            const backX = -(dirX / length) * camDist; // CHANGED
-            const backZ = -(dirZ / length) * camDist; // CHANGED
-
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ); // CHANGED
-            cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
-
             // 3-OPTION BALL SCALING ENGINE
             // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
@@ -1235,7 +1389,7 @@ function animate() {
             } else {
                 ballTargetScale = 0.80;
             }
-        } // <-- This brace closes the swinging check
+        }
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
@@ -1266,69 +1420,119 @@ function animate() {
     }
 
     // Hole preview path fly-through logic
-    if (isOverheadActive) { // Add this line
-        previewProgress += 0.002; // Add this line (Controls fly-through speed. Increase to go faster, decrease to go slower)
-        if (previewProgress > 1) previewProgress = 1; // Add this line
-        // Add this line
-        const dirX = holePosition.x - ball.position.x; // Add this line
-        const dirZ = holePosition.z - ball.position.z; // Add this line
-        const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
-        // Add this line
-        // Starting camera position high above the ball structure // Add this line
-        const startCamX = ball.position.x - (dirX / length) * 6.5; // Add this line
-        const startCamZ = ball.position.z - (dirZ / length) * 6.5; // Add this line
-        const startCamY = physics.getGroundHeight(ball.position.x, ball.position.z) + 7.5; // Add this line
-        // Add this line
-        // Target destination high above the pin flag cup // Add this line
-        const endCamX = holePosition.x - (dirX / length) * 4.0; // Add this line
-        const endCamZ = holePosition.z - (dirZ / length) * 4.0; // Add this line
-        const endCamY = physics.getGroundHeight(holePosition.x, holePosition.z) + 6.0; // Add this line
-        // Add this line
-        // Smoothly glide horizontal parameters along the path // Add this line
-        const currentX = THREE.MathUtils.lerp(startCamX, endCamX, previewProgress); // Add this line
-        const currentZ = THREE.MathUtils.lerp(startCamZ, endCamZ, previewProgress); // Add this line
-        // Add this line
-        // Add a gentle height arc over the course + a ground clearance safety check // Add this line
-        const localGroundY = physics.getGroundHeight(currentX, currentZ); // Add this line
-        const heightArc = Math.sin(previewProgress * Math.PI) * 6.0; // Add this line
-        const currentY = THREE.MathUtils.lerp(startCamY, endCamY, previewProgress) + heightArc; // Add this line
-        // Add this line
-        // Smoothly point the camera lens down the fairway toward the hole // Add this line
-        const lookProgress = Math.min(1, previewProgress + 0.15); // Add this line
-        const currentLookX = THREE.MathUtils.lerp(ball.position.x, holePosition.x, lookProgress); // Add this line
-        const currentLookZ = THREE.MathUtils.lerp(ball.position.z, holePosition.z, lookProgress); // Add this line
-        const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ); // Add this line
-        // Add this line
+    if (isOverheadActive) {
+        previewProgress += 0.002;
+        if (previewProgress > 1) previewProgress = 1;
+
+        // Calculate the base alignment heading vector matching the player's current aim
+        let baseTargetX = holePosition.x;
+        let baseTargetZ = holePosition.z;
+        if (teeBox && teeBox.visible && currentHoleConfig) {
+            const firstLeg = currentHoleConfig.waypoints[1];
+            if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+        }
+        const dX = baseTargetX - ball.position.x;
+        const dZ = baseTargetZ - ball.position.z;
+        let angle = Math.atan2(dX, dZ);
+        if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+        const aimDirX = Math.sin(angle);
+        const aimDirZ = Math.cos(angle);
+
+        // CHANGED: Query your active club details to cap the flight trajectory right at the yellow target circle range
+        const club = input ? input.getClubInfo() : null;
+        const ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
+
+        // Projected target point straight down the custom aim line capped at your club ring distance
+        const targetX = ball.position.x + aimDirX * ringDist;
+        const targetZ = ball.position.z + aimDirZ * ringDist;
+
+        // Stage 1: Starting positions pulled back to 14 units behind the ball so you can see the aim point clearly
+        const startCamX = ball.position.x - aimDirX * 14.0;
+        const startCamZ = ball.position.z - aimDirZ * 14.0;
+        const startCamY = physics.getGroundHeight(ball.position.x, ball.position.z) + 6.5;
+
+        // Stage 2: Middle point at your custom landing zone/elbow
+        const midCamX = targetX - aimDirX * 12.0; // Modify this line: Changed from 5.0 to 12.0
+        const midCamZ = targetZ - aimDirZ * 12.0; // Modify this line: Changed from 5.0 to 12.0
+        const midCamY = physics.getGroundHeight(targetX, targetZ) + 11.0;
+
+        // Stage 3: Final destination safely overlooking the actual green hole cup
+        const holeDirX = holePosition.x - targetX;
+        const holeDirZ = holePosition.z - targetZ;
+        const holeLen = Math.sqrt(holeDirX * holeDirX + holeDirZ * holeDirZ) || 1;
+        const endCamX = holePosition.x - (holeDirX / holeLen) * 12.0; // Modify this line: Changed from 5.0 to 12.0
+        const endCamZ = holePosition.z - (holeDirZ / holeLen) * 12.0; // Modify this line: Changed from 5.0 to 12.0
+        const endCamY = physics.getGroundHeight(holePosition.x, holePosition.z) + 11.0;
+
+        let currentX, currentZ, currentY;
+        let currentLookX, currentLookZ, currentLookY; // Modify this line
+        const targetGroundY = physics.getGroundHeight(targetX, targetZ); // Add this line
+        const holeGroundY = physics.getGroundHeight(holePosition.x, holePosition.z);
+
+        if (previewProgress < 0.5) {
+            // PART 1: Fly from Tee Box to your custom Aim Point
+            const t = previewProgress * 2; // Scales local segment progress from 0 to 1
+            currentX = THREE.MathUtils.lerp(startCamX, midCamX, t);
+            currentZ = THREE.MathUtils.lerp(startCamZ, midCamZ, t);
+
+            const heightArc = Math.sin(t * Math.PI) * 4.0;
+            currentY = THREE.MathUtils.lerp(startCamY, midCamY, t) + heightArc;
+
+            // CHANGED: Keeps the camera lens locked down facing directly toward the aim circle marker on the ground
+            currentLookX = targetX;
+            currentLookZ = targetZ;
+            currentLookY = targetGroundY + 2.0; // Add this line
+        } else {
+            // PART 2: Fly from your custom Aim Point around the corner directly to the Green
+            const t = (previewProgress - 0.5) * 2; // Scales local segment progress from 0 to 1
+            currentX = THREE.MathUtils.lerp(midCamX, endCamX, t);
+            currentZ = THREE.MathUtils.lerp(midCamZ, endCamZ, t);
+
+            const heightArc = Math.sin(t * Math.PI) * 4.0;
+            currentY = THREE.MathUtils.lerp(midCamY, endCamY, t) + heightArc;
+
+            // CHANGED: Locks the lens focus straight on the hole pin immediately upon turning the corner
+            currentLookX = holePosition.x; // Modify this line: Lock directly to the hole
+            currentLookZ = holePosition.z; // Modify this line: Lock directly to the hole
+            currentLookY = holeGroundY + 2.0; // Modify this line: Lock directly to the hole height
+        }
+
+        const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ);
+        const localGroundY = physics.getGroundHeight(currentX, currentZ); // Restored this line: Safe height calculations on every tick
+
         cameraTargetPos.set(currentX, Math.max(localGroundY + 3.0, currentY), currentZ);
-        cameraLookAt.set(currentLookX, lookGroundY + 0.5, currentLookZ);
+        cameraLookAt.set(currentLookX, currentLookY, currentLookZ); // Modify this line
         activeCameraSpeed = 0.08;
 
-        // Automatically snap back to normal behind the ball once progress finishes
-        if (previewProgress >= 1) { // Add this line
-            isOverheadActive = false; // Add this line
-            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS; // Add this line
-            const camDist = onGreen ? 2.5 : 5.5; // Change this line: Pulled back from 1.6
-            const camHeight = onGreen ? 1.0 : 1.8; // Change this line: Elevated from 0.5
+        // Automatically snap back behind the ball once the full camera flight completes
+        if (previewProgress >= 1) {
+            isOverheadActive = false;
+            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+            const camDist = onGreen ? 2.5 : 5.5;
+            const camHeight = onGreen ? 1.0 : 1.8;
             const lookDist = onGreen ? 6.0 : 12.0;
-            const pDirX = holePosition.x - ball.position.x; // Add this line
-            const pDirZ = holePosition.z - ball.position.z; // Fixed recursive naming loop bug from original file
-            const pLength = Math.sqrt(pDirX * pDirX + pDirZ * pDirZ) || 1; // Add this line
-            cameraTargetPos.set(ball.position.x - (pDirX / pLength) * camDist, ball.position.y + camHeight, ball.position.z - (pDirZ / pLength) * camDist); // Add this line
-            cameraLookAt.set(ball.position.x + (pDirX / pLength) * lookDist, ball.position.y, ball.position.z + (pDirZ / pLength) * lookDist); // Add this line
-            activeCameraSpeed = 0.05; // Add this line
-        } // Add this line
+
+            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+            activeCameraSpeed = 0.02;
+        }
+
     }
 
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
+    const puttingDelayPassed = !window.puttingCameraDelayStart || (performance.now() - window.puttingCameraDelayStart > 1500);
     // Gated with physics variables so fairway shots fly and land normally, but putts keep tracking smoothly
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && (!physics.isMoving || physics.isPutting)) {
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive && ((!physics.isMoving && puttingDelayPassed) || physics.isPutting)) { // Modify this line
         const dX = holePosition.x - ball.position.x;
         const dZ = holePosition.z - ball.position.z;
-        const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
-        const dirX = dX / len;
-        const dirZ = dZ / len;
+
+        let angle = Math.atan2(dX, dZ); // Modify this line
+        if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Add this line
+        const dirX = Math.sin(angle);  // Modify this line
+        const dirZ = Math.cos(angle);
 
         // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
         const aspect = window.innerWidth / window.innerHeight;
@@ -1398,7 +1602,7 @@ function animate() {
     if (clubSwipeElement && input) {
         // Only modify stance classes if the forward swing animation isn't currently playing
         if (!clubSwipeElement.classList.contains('swipe-animation')) {
-            if (!physics.isMoving && !isSinking) {
+            if (!physics.isMoving && !isSinking && !isOverheadActive) {
                 const activeClub = input.getClubInfo();
 
                 // Establish base club layout shapes
@@ -1412,15 +1616,18 @@ function animate() {
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
                 const putterBaseBottom = 21.8;
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
+                const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}`;
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`; // Modify this line: Appended ${aimClass} to fix the idle mode visibility
+                    // Clean out dynamic inline properties when resting at address
+                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     // Clean out dynamic inline properties when resting at address
                     clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
                     clubSwipeElement.style.transform = '';
                 } else if (input.state === 'PULLBACK') {
-                    clubSwipeElement.className = `pullback-stance ${clubTypeClass}`;
+                    clubSwipeElement.className = `pullback-stance ${clubTypeClass}${aimClass}`;
 
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
@@ -1482,11 +1689,21 @@ function animate() {
             const club = input ? input.getClubInfo() : null; // Add this line
             if (club && !club.isGreen) { // Add this line
                 const ringDist = club.maxYards / 2.76923; // Add this line
-                const dirX = holePosition.x - ball.position.x; // Add this line
-                const dirZ = holePosition.z - ball.position.z; // Add this line
-                const targetLength = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
-                const normX = dirX / targetLength; // Add this line
-                const normZ = dirZ / targetLength; // Add this line
+
+                // Modify these lines: Calculates active aim angle to swing the yellow ring left or right
+                let baseTargetX = holePosition.x;
+                let baseTargetZ = holePosition.z;
+                if (teeBox && teeBox.visible && currentHoleConfig) {
+                    const firstLeg = currentHoleConfig.waypoints[1];
+                    if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+                }
+                const dX = baseTargetX - ball.position.x;
+                const dZ = baseTargetZ - ball.position.z;
+                let angle = Math.atan2(dX, dZ);
+                if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+                const normX = Math.sin(angle); // Modify this line
+                const normZ = Math.cos(angle); // Modify this line
                 const ringX = ball.position.x + normX * ringDist;
                 const ringZ = ball.position.z + normZ * ringDist;
 
@@ -1591,7 +1808,7 @@ function init() {
     fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4); // Dark stripe tint (Add this line)
     const fairwayTexture = new THREE.CanvasTexture(fCanvas);
     fairwayTexture.wrapS = THREE.RepeatWrapping;
-    fairwayTexture.repeat.set(4, 1);
+    fairwayTexture.repeat.set(55, 1);
 
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
@@ -1758,8 +1975,9 @@ function init() {
 
     // 6.6. Add Club Landing Destination Ring for Overhead View
     const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: false });
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
+    clubLandingRing.renderOrder = 9999;
     clubLandingRing.rotation.x = -Math.PI / 2;
     clubLandingRing.visible = false;
     scene.add(clubLandingRing);
@@ -1783,7 +2001,8 @@ function init() {
 
     // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle, spin, loft) => {
-        isOverheadActive = false; // Add this line
+        isOverheadActive = false;
+        if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
@@ -1880,10 +2099,28 @@ function init() {
             e.stopPropagation();
             if (isSinking) return; // Ignore if ball is dropping in the cup
 
-            // Calculate direction vectors from ball to hole dynamically
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            // Calculate active direction vectors following the current custom aim track heading
+            let baseTargetX = holePosition.x;
+            let baseTargetZ = holePosition.z;
+            if (teeBox && teeBox.visible && currentHoleConfig) {
+                const firstLeg = currentHoleConfig.waypoints[1];
+                if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+            }
+            const dX = baseTargetX - ball.position.x;
+            const dZ = baseTargetZ - ball.position.z;
+            let angle = Math.atan2(dX, dZ);
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+            const aimDirX = Math.sin(angle);
+            const aimDirZ = Math.cos(angle);
+
+            // Add these lines: Fetch active club range dynamically to frame the camera over the selected aim circle
+            const club = input ? input.getClubInfo() : null;
+            const ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
+
+            const dirX = aimDirX * ringDist; // Modify this line: Scales horizontally to your aim ring
+            const dirZ = aimDirZ * ringDist; // Modify this line: Scales vertically to your aim ring
+            const length = ringDist || 1;    // Modify this line: Anchors the aspect framing ratio to match the club distance
 
             if (!isOverheadActive) {
                 // TOGGLE ON: Go up to the 20-foot elevated view
@@ -1894,9 +2131,9 @@ function init() {
                 const backZ = -(dirZ / length) * 6.5;
                 const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
 
-                // RESTORED: Puts the camera back up high and focuses directly on the target hole pin map area
+                // Puts the camera back up high focused directly on the actual flag cup pin location
                 cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
-                cameraLookAt.copy(holePosition);
+                cameraLookAt.copy(holePosition); // Modify this line: Focuses directly on the hole pin right away when clicking static view
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;

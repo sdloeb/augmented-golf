@@ -165,7 +165,7 @@ html {
     right: -200px;
     width: 140px;
     height: 70px;
-    pointer-events: none;
+    pointer-events: auto;
     z-index: 5;
     opacity: 0;
 }
@@ -173,6 +173,12 @@ html {
 /* Active trigger animation utility class */
 #clubSwipe.swipe-animation {
     animation: clubSwipeAnim 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* NEW: Automatically transforms the active club profile to be muted and completely slate-gray when aiming */
+#clubSwipe.idle-stance.aim-mode {
+    opacity: 0.25 !important;
+    /* Modify this line: Combines selectors to force 25% opacity over default stance styles */
 }
 
 /* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
