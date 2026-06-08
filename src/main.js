@@ -437,75 +437,100 @@ function resetEntireGame(advanceHole = false) {
 
     let holeConfig = null;
 
-    // Fallback Generator: Create random doglegs if players exceed the configured preset list
+    // Championship Procedural Generator: Determines Par first, then maps realistic course segment distances
     if (!holeConfig) {
-        // Add this block: 60% chance of a straight fairway hole, 40% chance of a dogleg/S-curve
-        if (Math.random() < 0.6) {
-            const straightZ = -80 - Math.random() * 40; // Generates a realistic variable target depth
+        const UNIT_YARDS = 2.76923; // Fixed spatial engine multiplier matching game scaling
+        const parRoll = Math.random();
+
+        if (parRoll < 0.20) {
+            // Archetype 1: Real Par 3 (140 to 220 yards)
+            const yards = 140 + Math.random() * 80;
+            const totalUnits = yards / UNIT_YARDS;
+
             holeConfig = {
-                par: straightZ < -110 ? 5 : 4, // Sets Par 5 for extra-long straight holes
+                par: 3,
                 waypoints: [
                     new THREE.Vector3(0, 0, 10),
-                    new THREE.Vector3(0, 0, straightZ)
+                    new THREE.Vector3(0, 0, 10 - totalUnits)
                 ]
             };
-        } else { // Add this line: Wraps your dogleg generation logic
-            const archetype = Math.floor(Math.random() * 3); // 0 = Smooth Dogleg, 1 = Sharp 90 Dogleg, 2 = S-Curve
-            const sideDir = Math.random() > 0.5 ? 1 : -1;    // 1 = Right, -1 = Left orientation
+        }
+        else if (parRoll < 0.75) {
+            // Archetype 2: Real Par 4 (360 to 460 yards)
+            const isDogleg = Math.random() > 0.35; // 65% chance of a strategic dogleg layout
 
-            if (archetype === 0) {
-                // Procedural Smooth Dogleg (Par 4)
-                const elbowZ = -45 - Math.random() * 10;
-                const elbowX = sideDir * (45 + Math.random() * 10);
-                const greenZ = elbowZ - 45 - Math.random() * 10;
-                const greenX = elbowX + sideDir * (25 + Math.random() * 10);
-
+            if (!isDogleg) {
+                // Straight Challenging Par 4
+                const yards = 360 + Math.random() * 100;
+                const totalUnits = yards / UNIT_YARDS;
                 holeConfig = {
                     par: 4,
                     waypoints: [
                         new THREE.Vector3(0, 0, 10),
-                        new THREE.Vector3(elbowX * 0.2, 0, elbowZ * 0.5),
-                        new THREE.Vector3(elbowX, 0, elbowZ),
-                        new THREE.Vector3(greenX, 0, greenZ)
-                    ]
-                };
-            } else if (archetype === 1) {
-                // Procedural Sharp 90-Degree Dogleg (Par 4)
-                const turnZ = -80 - Math.random() * 10;
-                const elbowX = sideDir * (45 + Math.random() * 5);
-                const greenX = sideDir * (85 + Math.random() * 5);
-
-                holeConfig = {
-                    par: 4,
-                    waypoints: [
-                        new THREE.Vector3(0, 0, 10),
-                        new THREE.Vector3(0, 0, turnZ),
-                        new THREE.Vector3(elbowX, 0, turnZ),
-                        new THREE.Vector3(greenX, 0, turnZ)
+                        new THREE.Vector3(0, 0, 10 - totalUnits)
                     ]
                 };
             } else {
-                // Procedural Long S-Curve Double Dogleg (Par 5)
-                const z1 = -45 - Math.random() * 10;
-                const z2 = -105 - Math.random() * 10;
-                const z3 = -165 - Math.random() * 15;
-                const x1 = sideDir * (15 + Math.random() * 10);
-                const x2 = -sideDir * (15 + Math.random() * 10);
+                // Dogleg Left or Right Par 4
+                const sideDir = Math.random() > 0.5 ? 1 : -1;
+                const driveYards = 240 + Math.random() * 40;    // 240-280 yard drive to landing zone
+                const approachYards = 120 + Math.random() * 40; // 120-160 yard secondary approach shot
+
+                const driveUnits = driveYards / UNIT_YARDS;
+                const approachUnits = approachYards / UNIT_YARDS;
+
+                // Calculate a realistic 35-degree dogleg break angle
+                const angle = (30 + Math.random() * 10) * Math.PI / 180;
+                const elbowZ = 10 - driveUnits;
+                const greenX = sideDir * (Math.sin(angle) * approachUnits);
+                const greenZ = elbowZ - (Math.cos(angle) * approachUnits);
 
                 holeConfig = {
-                    par: 5,
+                    par: 4,
                     waypoints: [
                         new THREE.Vector3(0, 0, 10),
-                        new THREE.Vector3(x1, 0, z1),
-                        new THREE.Vector3(x2, 0, z2),
-                        new THREE.Vector3(0, 0, z3)
+                        new THREE.Vector3(0, 0, elbowZ), // Keeps initial drive line completely straight
+                        new THREE.Vector3(greenX, 0, greenZ)
                     ]
                 };
             }
-        } // Add this line: Closes the 40% probability else-statement block
+        }
+        else {
+            // Archetype 3: Real Par 5 (500 to 580 yards) - True 3-Shot Strategy Hole
+            const sideDir = Math.random() > 0.5 ? 1 : -1;
+            const driveYards = 250 + Math.random() * 30;    // 250-280 yard tee shot landing zone
+            const secondYards = 160 + Math.random() * 30;   // 160-190 yard layup area
+            const approachYards = 90 + Math.random() * 30;  // 90-120 yard wedge shot into the green
+
+            const driveUnits = driveYards / UNIT_YARDS;
+            const secondUnits = secondYards / UNIT_YARDS;
+            const approachUnits = approachYards / UNIT_YARDS;
+
+            const elbowZ1 = 10 - driveUnits;
+
+            // First turn out into the dogleg lane
+            const angle1 = (25 + Math.random() * 10) * Math.PI / 180;
+            const elbowX2 = sideDir * (Math.sin(angle1) * secondUnits);
+            const elbowZ2 = elbowZ1 - (Math.cos(angle1) * secondUnits);
+
+            // S-Curve turn back around the corner toward the green pin
+            const angle2 = (15 + Math.random() * 10) * Math.PI / 180;
+            const greenX = elbowX2 - sideDir * (Math.sin(angle2) * approachUnits);
+            const greenZ = elbowZ2 - (Math.cos(angle2) * approachUnits);
+
+            holeConfig = {
+                par: 5,
+                waypoints: [
+                    new THREE.Vector3(0, 0, 10),
+                    new THREE.Vector3(0, 0, elbowZ1),
+                    new THREE.Vector3(elbowX2, 0, elbowZ2),
+                    new THREE.Vector3(greenX, 0, greenZ)
+                ]
+            };
+        }
     }
 
-    currentHoleConfig = holeConfig; // Add this line: Stores procedural data globally
+    currentHoleConfig = holeConfig; // Modify this line: Stores procedural data globally
     currentPar = holeConfig.par;    // Keep this single instance of the assignment
 
     // Update the Wood Placard Map Dashboard display readings
