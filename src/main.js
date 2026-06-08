@@ -1807,7 +1807,7 @@ function init() {
         if (isOnGreen) {
             // Multiply to fine-tune putting physics:
             // e.g., 0.5 cuts putting power in half, 1.5 increases it by 50%
-            finalPower *= 2.4;
+            finalPower *= 2.1;
         }
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
