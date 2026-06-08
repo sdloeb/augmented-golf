@@ -1389,7 +1389,7 @@ function animate() {
             } else {
                 ballTargetScale = 0.80;
             }
-        } // <-- This brace closes the swinging check
+        } 
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
