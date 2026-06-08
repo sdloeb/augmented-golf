@@ -263,13 +263,12 @@ function generateHazards() {
             waterAttempts++; // Add this line
             if (waterAttempts > 50) break;
         } while (
-            checkOverlap(x, z, r, waterHazards) ||
+            checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 4.0) || // Modify this line: Checks true green center + extra safety buffer
-            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 2.0)) || // Add this line: Keeps water completely clear of the curving fairway
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) || // Modify this line: Checks true green center
+            (physics && (physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5) || physics.getDistanceToSpline(x, z) > (9.0 + r + 2.0))) || // Modify this line: Set min distance to 0.5 and clamped max distance to 18.0
             (z > -15 && Math.abs(x) < 15)
         );
-
         if (waterAttempts > 50) continue;
 
         let currentWaterGroundY = physics.getGroundHeight(x, z);
@@ -346,19 +345,36 @@ function generateHazards() {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
         do {
-            x = (Math.random() - 0.5) * 160; // Modify this line: Spans wide enough for doglegs
-            z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
+            // NEW APPROACH: Base coordinates directly on the fairway track or green center so they can never wander off
+            if (Math.random() > 0.3 && physics.fairwayPoints && physics.fairwayPoints.length > 0) {
+                // Pick a random track coordinate along the active fairway line
+                const basePt = physics.fairwayPoints[Math.floor(Math.random() * physics.fairwayPoints.length)];
+                const angle = Math.random() * Math.PI * 2;
+                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the fairway edge
+                const offsetDist = 9.0 + r + 0.5 + Math.random() * 4.0;
+
+                x = basePt.x + Math.cos(angle) * offsetDist;
+                z = basePt.z + Math.sin(angle) * offsetDist;
+            } else {
+                // Pick a random angle around the green
+                const angle = Math.random() * Math.PI * 2;
+                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the green edge
+                const offsetDist = 12.0 + r + 0.5 + Math.random() * 4.0;
+
+                x = targetGreenX + Math.cos(angle) * offsetDist;
+                z = targetGreenZ + Math.sin(angle) * offsetDist;
+            }
             sandAttempts++;
-            if (sandAttempts > 50) break;
+            if (sandAttempts > 100) break;
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 3.0) || // Modify this line: Checks true green center
-            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 1.5)) || // Add this line: Keeps sand traps completely clear of the curving fairway
-            (z > -15 && Math.abs(x) < 15)
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) || // Keep clear of green surface
+            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) || // Keep clear of fairway short grass
+            (z > -15 && Math.abs(x) < 15) // Keep clear of the immediate tee box zone
         );
 
-        if (sandAttempts > 50) continue;
+        if (sandAttempts > 100) continue;
 
         let currentSandGroundY = physics.getGroundHeight(x, z);
 
@@ -666,10 +682,15 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = -10.0;
                     }
                 }
-            }
+            } else { // Add this block
+                // If we ARE inside a water hazard zone, make sure the fairway plane still hides itself
+                if (targetMesh === fairway) { // Add this line
+                    calculatedHeight = -10.0; // Add this line
+                } // Add this line
+            } // Add this line
 
             // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
-            if (insideSandZone) {
+            if (insideSandZone && targetMesh === floor) { // Modify this line: Added && targetMesh === floor
                 calculatedHeight = targetSandY;
             }
 
@@ -799,8 +820,10 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        const x = (Math.random() - 0.5) * 220; // Modify this line: spans wide enough to cover doglegs
-        const z = 15 - Math.random() * (25 + Math.abs(holePosition.z)); // Keep this line
+        const isHouse = Math.random() <= 0.4; // Add this line: Pre-determine type to enforce placement rules
+        // Modify this line: If it's a house, snap it strictly to outer out-of-bounds limits; otherwise let background trees scatter
+        const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
+        const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
         // Prevent background houses/trees from landing on the fairways
         if (physics && physics.getDistanceToSpline(x, z) < 18.0) { // Add this line
@@ -817,7 +840,7 @@ function resetEntireGame(advanceHole = false) {
         const courseHeight = physics.getGroundHeight(x, z); // Keep this line
         sceneryGroup.position.set(x, courseHeight, z);
 
-        if (Math.random() > 0.4) {
+        if (!isHouse) {
             // BUILD A PROCEDURAL TREE
             const treeHeight = 1.5;
             const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, treeHeight, 8);
@@ -890,9 +913,9 @@ function resetEntireGame(advanceHole = false) {
         });
         if (insideWaterHazard) continue;
 
-        // Evaluate Course Boundaries: Fairway width is defined inside (-9.0 to 9.0)
-        let insideFairwayLane = physics.getDistanceToSpline(sampleX, sampleZ) <= 9.0; // Change this line
-        if (insideFairwayLane) { // Change this line: Always skip if the coordinates fall on the fairway
+        // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
+        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
+        if (fairwayDistance <= 9.0 || fairwayDistance > 25.0) { // Modify this line: Skip if inside the fairway OR too far out in the deep rough
             continue;
         }
 
