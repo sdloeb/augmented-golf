@@ -298,8 +298,9 @@ export class PhysicsEngine {
             currentBounceHeight = 0.20;
             currentBounceForwardLoss = 0.50;
         }
-        if (this.isPutting) {
-            currentFriction = 0.985;
+        else if (this.isPutting) {
+            // Only use slick green friction if we are putting and NOT stuck in sand or deep rough
+            currentFriction = 0.979;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -372,9 +373,17 @@ export class PhysicsEngine {
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
-            // FIXED: Scaled by timeScale so gravity forces accumulate in the exact same time dimension as rolling friction
-            this.velocity.x += this.slopeX * timeScale;
-            this.velocity.z += this.slopeZ * timeScale;
+            // ADJUSTED: Calculate ball speed to prevent exaggerated 90-degree hooks at ultra-low velocities
+            const ballRollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+            let slopeInfluenceModifier = 1.0;
+
+            // If a putt is dying down near the new 0.025 cutoff threshold, smoothly fade the break to let grass resistance win
+            if (this.isPutting && ballRollSpeed < 0.06) {
+                slopeInfluenceModifier = Math.max(0.0, (ballRollSpeed - 0.18) / (0.06 - 0.18));
+            }
+
+            this.velocity.x += this.slopeX * slopeInfluenceModifier;
+            this.velocity.z += this.slopeZ * slopeInfluenceModifier;
 
         }
 
@@ -505,9 +514,9 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        // FIXED: Removed the slopeForce lockout block. When a slow ball's velocity falls beneath a realistic 
-        // threshold, static friction cuts off kinetic energy so the ball can settle to a dead stop directly on hillsides.
-        if (this.velocity.length() < 0.012 && this.ball.position.y <= groundY) {
+        // ADJUSTED: Raised the cutoff threshold for putts to 0.025 to simulate grass blade interlocking and stop the crawling effect
+        const stopThreshold = this.isPutting ? 0.018 : 0.012;
+        if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;
