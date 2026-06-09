@@ -1181,9 +1181,21 @@ function animate() {
 
             // Rotate the dimpled texture based on the ball's rolling speed and direction
             if (physics.isMoving && physics.isPutting) {
-                ball.rotation.x += physics.velocity.z / 0.25;
-                ball.rotation.z -= physics.velocity.x / 0.25;
+                const vx = physics.velocity.x;
+                const vz = physics.velocity.z;
+                const speed = Math.sqrt(vx * vx + vz * vz);
+
+                if (speed > 0.0001) {
+                    // FIXED: Generate a single true world-space axle vector perpendicular to current motion
+                    const axle = new THREE.Vector3(vz, 0, -vx).normalize();
+                    // Determine rotation angle proportional to distance traveled (speed / ball radius 0.25)
+                    const angle = speed / 0.25;
+
+                    // Rotate directly on the world-space axis to prevent wobbly Euler angle loops
+                    ball.rotateOnWorldAxis(axle, angle);
+                }
             }
+
             // --- NEW: INTERCEPT BUSH TRAP PENALTIES ---
             if (physics && physics.isStuckInBush) {
                 physics.isStuckInBush = false;

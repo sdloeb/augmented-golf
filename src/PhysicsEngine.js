@@ -2,7 +2,7 @@ export class PhysicsEngine {
     constructor(ballMesh) {
         this.ball = ballMesh;
         this.velocity = new THREE.Vector3(0, 0, 0);
-        this.friction = 0.98; // Lower numbers slow the ball down faster
+        this.friction = 0.95; // Lower numbers slow the ball down faster
         this.gravity = 0.006;  // Pulls the ball back to earth
         this.bounce = 0.40;    // How elastic the bounces are (0.55 = 55% height kept)
         this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
@@ -294,13 +294,13 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.30;
         }
         else if (!onGreen && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0) { // Change this line
-            currentFriction = 0.92;
+            currentFriction = 0.86;
             currentBounceHeight = 0.20;
             currentBounceForwardLoss = 0.50;
         }
         else if (this.isPutting) {
             // Only use slick green friction if we are putting and NOT stuck in sand or deep rough
-            currentFriction = 0.979;
+            currentFriction = 0.975;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -357,34 +357,43 @@ export class PhysicsEngine {
                 this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
-            // Apply ground surface friction
-            this.velocity.x *= currentFriction;
-            this.velocity.z *= currentFriction;
+            // Apply ground surface friction using a combined percentage and linear deceleration model
+            const rollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+            if (rollSpeed > 0) {
+                let newSpeed = rollSpeed * currentFriction;
+
+                // NEW: Apply a flat linear grass resistance to putts to kill off the long, slow crawl
+                if (this.isPutting) {
+                    const linearResistance = 0.0003;
+                    newSpeed = Math.max(0, newSpeed - linearResistance);
+                }
+
+                this.velocity.x = (this.velocity.x / rollSpeed) * newSpeed;
+                this.velocity.z = (this.velocity.z / rollSpeed) * newSpeed;
+            }
 
             // NEW: Continuous 3D gradient vector checks when rolling across the contoured tiers
-            // Delete 'if (onGreen) {' from here
             const delta = 0.1;
-            const hL = this.getGroundHeight(this.ball.position.x - delta, this.ball.position.z); // Update this line
-            const hR = this.getGroundHeight(this.ball.position.x + delta, this.ball.position.z); // Update this line
-            const hB = this.getGroundHeight(this.ball.position.x, this.ball.position.z - delta); // Update this line
-            const hF = this.getGroundHeight(this.ball.position.x, this.ball.position.z + delta); // Update this line
+            const hL = this.getGroundHeight(this.ball.position.x - delta, this.ball.position.z);
+            const hR = this.getGroundHeight(this.ball.position.x + delta, this.ball.position.z);
+            const hB = this.getGroundHeight(this.ball.position.x, this.ball.position.z - delta);
+            const hF = this.getGroundHeight(this.ball.position.x, this.ball.position.z + delta);
 
             // Calculates precise slope forces pulling the ball downhill based on local mesh angles
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
-            // ADJUSTED: Calculate ball speed to prevent exaggerated 90-degree hooks at ultra-low velocities
+            // ADJUSTED: Re-calculate speed post-friction to apply accurate slope breaks
             const ballRollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
             let slopeInfluenceModifier = 1.0;
 
-            // If a putt is dying down near the new 0.025 cutoff threshold, smoothly fade the break to let grass resistance win
-            if (this.isPutting && ballRollSpeed < 0.06) {
-                slopeInfluenceModifier = Math.max(0.0, (ballRollSpeed - 0.18) / (0.06 - 0.18));
+            // FIXED: Removed the putting restriction so regular shots also simulate static grass friction and stop on hillsides
+            if (ballRollSpeed < 0.05) {
+                slopeInfluenceModifier = Math.max(0.0, (ballRollSpeed - 0.012) / (0.05 - 0.012));
             }
 
             this.velocity.x += this.slopeX * slopeInfluenceModifier;
             this.velocity.z += this.slopeZ * slopeInfluenceModifier;
-
         }
 
         // 2. MOVE THE BALL 
@@ -514,8 +523,8 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        // ADJUSTED: Raised the cutoff threshold for putts to 0.025 to simulate grass blade interlocking and stop the crawling effect
-        const stopThreshold = this.isPutting ? 0.018 : 0.012;
+        // ADJUSTED: Reverted to 0.012 baseline since linear resistance handles smooth low-end damping naturally
+        const stopThreshold = 0.012;
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
