@@ -926,6 +926,11 @@ function resetEntireGame(advanceHole = false) {
 
     let obstacleAttempts = currentHoleConfig.theme === 'open' ? 12 : (currentHoleConfig.theme === 'forest' ? 145 : 45);
 
+    // Add this block: 50% chance to turn the rough into a dense forest barrier forcing precise fairway play
+    if (Math.random() < 0.5) {
+        obstacleAttempts = 275;
+    }
+
     for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
@@ -963,7 +968,7 @@ function resetEntireGame(advanceHole = false) {
 
         // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
         let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
-        if (fairwayDistance <= 9.0 || fairwayDistance > 25.0) { // Modify this line: Skip if inside the fairway OR too far out in the deep rough
+        if (fairwayDistance <= 9.0 || fairwayDistance > 35.0) { // Modify this line: Skip if inside the fairway OR too far out in the deep rough
             continue;
         }
 
