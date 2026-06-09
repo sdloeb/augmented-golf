@@ -1213,8 +1213,8 @@ function animate() {
                     const dirX = holePosition.x - ball.position.x;
                     const dirZ = holePosition.z - ball.position.z;
                     const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-                    const backX = -(dirX / length) * 5.5;
-                    const backZ = -(dirZ / length) * 5.5;
+                    const backX = -(dirX / length) * 7.5;
+                    const backZ = -(dirZ / length) * 7.5;
                     cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
                     cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
 
@@ -1380,10 +1380,10 @@ function animate() {
         }
     } else {
         const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-        const camDist = onGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
-        const camHeight = onGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
-        const lookDist = onGreen ? 6.0 : 12.0;
-
+        // ADJUSTED: Increased camDist from 5.5 to 7.5 and height to 2.2 to pull the camera back on short shots
+        const camDist = onGreen ? 2.5 : 7.5;
+        const camHeight = onGreen ? 1.0 : 2.2;
+        const lookDist = onGreen ? 6.0 : 15.0;
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -1654,12 +1654,11 @@ function animate() {
         finalBallTargetScale *= 0.85;
     }
 
-    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than 5.5 units
-    // This stops the ball from ballooning or filling the screen on short shots, tree rebounds, or fast camera glides
+    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 7.5 units envelope
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
-    if (cameraDistanceToBall < 5.5) {
-        // Smoothly reduce target scale proportional to closeness, clamping to a minimum of 20% size to prevent zero-scale errors
-        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 5.5);
+    if (cameraDistanceToBall < 7.5) {
+        // TUNED: Adjusted tracking window to 7.5 to smoothly suppress ball ballooning on short chip shots
+        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 7.5);
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -2209,12 +2208,13 @@ function init() {
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-                const camDist = checkOnGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
-                const camHeight = checkOnGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
-                const lookDist = checkOnGreen ? 6.0 : 12.0;
+                // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
+                const camDist = checkOnGreen ? 2.5 : 7.5;
+                const camHeight = checkOnGreen ? 1.0 : 2.2;
+                const lookDist = checkOnGreen ? 6.0 : 15.0;
 
-                const backX = -(dirX / length) * camDist;
-                const backZ = -(dirZ / length) * camDist;
+                const backX = -(dirX / length) * 7.5;
+                const backZ = -(dirZ / length) * 7.5;
 
                 // CORRECTED: Smoothly transitions the camera back to your active zoom/horizon offsets
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ);
