@@ -221,7 +221,7 @@ function generateNewWind() {
         text.innerText = `${windSpeed} mph`;
     }
 
-    const windScale = 0.000012;
+    const windScale = 0.00006;
     physics.wind.set(
         Math.sin(currentWindAngle) * windSpeed * windScale,
         0,
@@ -415,6 +415,7 @@ function generateHazards() {
 function updateWindArrowDisplay() {
     const arrow = document.getElementById('windArrow');
     if (!arrow || !camera) return;
+    if (physics && physics.isMoving) return;
 
     // Get the horizontal direction vector the camera is facing
     const forward = new THREE.Vector3();
