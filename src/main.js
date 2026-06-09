@@ -1216,6 +1216,8 @@ function animate() {
         if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const ballSpeed = physics.velocity.length();
 
+            const maxSinkVelocity = (physics && physics.isPutting) ? (0.26 / 0.70) : 0.14;
+
             // FIXED: Realism Lip-out simulation. Deflects the ball horizontally around the rim instead of bouncing upward
             if (ballSpeed > 0.14) { // Modify this block
                 const perpX = -dz / distanceToHole;
@@ -1389,7 +1391,7 @@ function animate() {
             } else {
                 ballTargetScale = 0.80;
             }
-        } 
+        }
 
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';

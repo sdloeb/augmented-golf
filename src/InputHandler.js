@@ -220,7 +220,7 @@ export class InputHandler {
             }
 
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 50);
+                const feet = Math.round(pullRatio * 80);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
@@ -348,7 +348,7 @@ export class InputHandler {
             }
 
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 80);
+                const feet = Math.round(pullRatio * 80); // Modify this line: Changed 50 to 80 to match true physics distance range
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
