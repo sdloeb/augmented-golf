@@ -1225,7 +1225,7 @@ function animate() {
             const maxSinkVelocity = (physics && physics.isPutting) ? (0.26 / 0.70) : 0.14;
 
             // FIXED: Realism Lip-out simulation. Deflects the ball horizontally around the rim instead of bouncing upward
-            if (ballSpeed > 0.14) { // Modify this block
+            if (ballSpeed > maxSinkVelocity) { // Modify this line: Swapped 0.14 for maxSinkVelocity
                 const perpX = -dz / distanceToHole;
                 const perpZ = dx / distanceToHole;
 
@@ -1292,14 +1292,20 @@ function animate() {
             wasMoving = true;
             shotStartTime = performance.now(); // Record launch timestamp
 
+            // Add these two lines: Records where this specific shot was struck from
+            window.shotStartX = ball.position.x;
+            window.shotStartZ = ball.position.z;
+
             // Calculate initial distance to the hole pin in true game yards
             const dxHole = ball.position.x - holePosition.x;
             const dzHole = ball.position.z - holePosition.z;
             const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-            isLongShot = initialYards > 30; // Track if shot is over 30 yards
+
+            // Modify this line: Raised from 30 to 90 so intermediate approach shots stay stationary
+            isLongShot = initialYards > 90;
+
             window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
         }
-
         updateDistanceDisplay();
 
         tracerPoints.push(ball.position.clone());
@@ -1307,8 +1313,11 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        const dx = ball.position.x - 0;
-        const dz = ball.position.z - 10;
+        // Modify these two lines: Replaces hardcoded values with the live shot origin coordinates
+        const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
+        const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
+        const dx = ball.position.x - startX;
+        const dz = ball.position.z - startZ;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
         const checkX = ball.position.x - (green ? green.position.x : 0);
@@ -1318,7 +1327,8 @@ function animate() {
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
             ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
         } else {
-            ballTargetScale = Math.max(0.80, 1.0 - (distanceTraveled * 0.006));
+            // Modify this line: Adjusts minimum clamp to 0.30 and scaling factor to 0.012 so it shrinks smoothly
+            ballTargetScale = Math.max(0.30, 1.0 - (distanceTraveled * 0.012));
         }
 
         if (isLongShot && (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) { // Modify this line
@@ -1422,10 +1432,7 @@ function animate() {
         activeCameraSpeed = 0.005;
     }
 
-    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
-    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.005;
-    }
+
 
     // Hole preview path fly-through logic
     if (isOverheadActive) {
@@ -1532,11 +1539,14 @@ function animate() {
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
 
-    // FIXED: Removed the 1.5s delay countdown loop. Putting camera configurations now engage uniformly
-    // whenever the ball is resting or moving on the green surface with no double-camera cuts.
     if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive) {
-        const dX = holePosition.x - ball.position.x;
-        const dZ = holePosition.z - ball.position.z;
+        // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
+        const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
+        const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
+
+        // Modify these two lines: Use the new stable references instead of the raw moving ball positions
+        const dX = holePosition.x - refX;
+        const dZ = holePosition.z - refZ;
 
         let angle = Math.atan2(dX, dZ);
         if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
@@ -1557,6 +1567,14 @@ function animate() {
             rigidCamDist = 3.5;
             rigidCamHeight = 1.2;
             lookUpOffset = -0.40;
+        }
+
+        // Add this block: Overrides the zoom values to be much wider/higher if the shot is still moving
+        if (physics.isMoving && !physics.isPutting) {
+            targetFov = aspect < 1 ? 72 : 65; // Normal wider field of view
+            rigidCamDist = 8.0;               // Pulls camera 8 units back instead of 3.5
+            rigidCamHeight = 3.5;             // Elevates camera 3.5 units up to see the green context
+            lookUpOffset = -0.10;             // Centers the look-at target nicely
         }
 
         if (camera.fov !== targetFov) {

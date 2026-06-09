@@ -260,7 +260,7 @@ html {
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.45),
         inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
-    margin-bottom: -22px;
+    margin-bottom: -10px;
     /* Adjusted to -22px to perfectly counteract the 62px height and keep alignment locked to the ball center */
     position: absolute;
 }
