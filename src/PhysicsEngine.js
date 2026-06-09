@@ -22,6 +22,7 @@ export class PhysicsEngine {
         this.obstacles = [];
         this.isStuckInBush = false;
         this.fairwayPoints = [];
+        this.hasLanded = false;
     }
 
     // NEW: Receives the shuffled configurations from the map setup
@@ -223,6 +224,7 @@ export class PhysicsEngine {
 
         // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
         this.spin = isPutting ? 0 : spin;
+        this.hasLanded = false;
 
         // 2. ROTATE THE INITIAL TRAJECTORY OUTWARDS
         let adjustedAngle = mouseAngle;
@@ -346,10 +348,10 @@ export class PhysicsEngine {
             }
 
             if (!this.isPutting) {
+                // FIXED: Direct wind to 0.0 permanently if the ball has touched the ground, bypassing high bounce loops
+                let bounceWindMultiplier = this.hasLanded ? 0.0 : 1.0;
 
-
-                let bounceWindMultiplier = 1.0;
-                if (this.ball.position.y < groundY + 1.25) {
+                if (!this.hasLanded && this.ball.position.y < groundY + 1.25) {
                     bounceWindMultiplier = 0.20;
                 }
 
@@ -490,9 +492,10 @@ export class PhysicsEngine {
             }
         }
 
-        // 3. GROUND COLLISION & HAZARD DETECTION
+    // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= groundY) {
             this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
+            this.hasLanded = true;
 
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;

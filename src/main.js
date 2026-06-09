@@ -1180,7 +1180,7 @@ function animate() {
             physics.update();
 
             // Rotate the dimpled texture based on the ball's rolling speed and direction
-            if (physics.isMoving && physics.isPutting) {
+            if (physics.isMoving) {
                 const vx = physics.velocity.x;
                 const vz = physics.velocity.z;
                 const speed = Math.sqrt(vx * vx + vz * vz);
