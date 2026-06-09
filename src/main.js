@@ -1654,6 +1654,14 @@ function animate() {
         finalBallTargetScale *= 0.85;
     }
 
+    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than 5.5 units
+    // This stops the ball from ballooning or filling the screen on short shots, tree rebounds, or fast camera glides
+    const cameraDistanceToBall = camera.position.distanceTo(ball.position);
+    if (cameraDistanceToBall < 5.5) {
+        // Smoothly reduce target scale proportional to closeness, clamping to a minimum of 20% size to prevent zero-scale errors
+        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 5.5);
+    }
+
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
