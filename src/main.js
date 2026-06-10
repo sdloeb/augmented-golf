@@ -1709,14 +1709,13 @@ function animate() {
                 }
 
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
-                const putterBaseBottom = 21.8;
+                const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
+                const putterBaseBottom = isMobileView ? 35.0 : 21.8;
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`; // Modify this line: Appended ${aimClass} to fix the idle mode visibility
-                    // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`;
                     // Clean out dynamic inline properties when resting at address
                     clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
@@ -2135,7 +2134,9 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
-                const currentBottom = 21.8 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
+                const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
+                const baseBottom = isMobileView ? 35.0 : 21.8;
+                const currentBottom = baseBottom - (6.0 * ratio);
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
             }
 

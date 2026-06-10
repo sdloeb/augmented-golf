@@ -554,15 +554,15 @@ html {
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
         left: calc(50% - 65px) !important;
-        bottom: 3cqi !important;
-        /* Modify this line: Lowered from 16% to drop the floating club down to the ball */
+        bottom: 23% !important;
+        /* Restored to 16% scale to perfectly align the woods/irons on mobile screens */
     }
 
     /* Add this block right below it to override the putter on mobile screens */
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 77.5px) !important;
         bottom: 35% !important;
-        /* Modify this line: Lowered from 16% to line up perfectly with the putter view */
+        /* Kept at 35% to line up perfectly with closer portrait putter camera view */
     }
 
     #clubSwipe.pullback-stance {
@@ -580,27 +580,26 @@ html {
 
 @keyframes putterSwipeAnimMobile {
     0% {
-        bottom: var(--putter-start-bottom, 21.8%);
+        bottom: var(--putter-start-bottom, 35.0%);
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     35% {
-        bottom: 21.8%;
+        bottom: 35.0%;
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     100% {
-        bottom: 25.0%;
+        bottom: 38.2%;
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 0;
     }
 }
-
 
 
 /* ==========================================================================
