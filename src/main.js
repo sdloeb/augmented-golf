@@ -1202,6 +1202,7 @@ function animate() {
 
                 setTimeout(() => {
                     alert("One stroke penalty! 🍃 Your ball got stuck in a bush.");
+                    lastTime = performance.now();
 
                     ball.position.x = physics.bushResetX;
                     ball.position.z = physics.bushResetZ;
@@ -1226,6 +1227,7 @@ function animate() {
     // FIXED: Re-added your Out of Bounds course boundary tracking check
     if (Math.abs(ball.position.x) > 120 || ball.position.z < holePosition.z - 40) {
         alert(`Out of Bounds! Ball flew off the course.`);
+        lastTime = performance.now();
         resetEntireGame(false);
         return;
     }
@@ -1238,6 +1240,7 @@ function animate() {
 
         setTimeout(() => { // Add this line
             alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`); // Modify this line
+            lastTime = performance.now();
 
             // Reset ball position directly to where this shot was struck from
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0; // Add this line
@@ -1327,6 +1330,7 @@ function animate() {
             // Give the browser 30ms to fully render the final subterranean frame before alerting
             setTimeout(() => {
                 alert(`Sunk it! 🎉 ${standardTermCelebration}`);
+                lastTime = performance.now();
                 resetEntireGame(true); // Advance layout tracking systems to the next hole number configuration
             }, 30);
             return;
@@ -1354,8 +1358,8 @@ function animate() {
             const dzHole = ball.position.z - holePosition.z;
             const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
 
-            // Modify this line: Raised from 30 to 90 so intermediate approach shots stay stationary
-            isLongShot = initialYards > 90;
+            // UPDATED: Lowered from 90 to 25 so all approach shots get smooth tracking instead of staying frozen behind
+            isLongShot = initialYards > 25;
 
             window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
         }
@@ -1576,7 +1580,8 @@ function animate() {
         // Automatically snap back behind the ball once the full camera flight completes
         if (previewProgress >= 1) {
             isOverheadActive = false;
-            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+            const gXOffset = green ? green.position.x : 0;
+            const onGreen = Math.sqrt((ball.position.x - gXOffset) * (ball.position.x - gXOffset) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
             const camDist = onGreen ? 2.5 : 5.5;
             const camHeight = onGreen ? 1.0 : 1.8;
             const lookDist = onGreen ? 6.0 : 12.0;
@@ -1631,10 +1636,11 @@ function animate() {
                 rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
                 lookUpOffset = -0.25;
             } else {
-                targetFov = aspect < 1 ? 72 : 65; // Normal wider field of view for chips/full shots
-                rigidCamDist = 8.0;               // Pulls camera 8 units back instead of 3.5
-                rigidCamHeight = 3.5;             // Elevates camera 3.5 units up to see the green context
-                lookUpOffset = -0.10;             // Centers the look-at target nicely
+                // UPDATED: Spacious wide-angle broadcast perspective for approach shots and chips landing on the green
+                targetFov = aspect < 1 ? 65 : 50;
+                rigidCamDist = 22.0;              // Pulled back from 8.0 to 22.0 units to see the green context clearly
+                rigidCamHeight = 8.5;             // Elevated from 3.5 to 8.5 units to look down onto the green surface
+                lookUpOffset = -0.55;             // Tilted down to frame the ball landing relative to the pin cup
             }
         }
 
@@ -2237,7 +2243,8 @@ function init() {
                 isOverheadActive = false;
 
                 // Check green tracking states on click release to select matching land coordinates
-                const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+                const gXOffset = green ? green.position.x : 0;
+                const checkOnGreen = Math.sqrt((ball.position.x - gXOffset) * (ball.position.x - gXOffset) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
                 // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
                 const camDist = checkOnGreen ? 2.5 : 7.5;
                 const camHeight = checkOnGreen ? 1.0 : 2.2;
