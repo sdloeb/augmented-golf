@@ -1212,8 +1212,29 @@ function animate() {
     // FIXED: Re-added your Water Hazard tracker check
     if (physics && physics.hitWater) {
         physics.hitWater = false;
-        alert(`Water Hazard! 🌊 Your ball splashed in. Resetting hole!`);
-        resetEntireGame(false);
+        strokeCount++; // Add this line: Assess the 1-stroke penalty
+        document.getElementById('strokeText').innerText = strokeCount; // Add this line: Update the UI text display
+
+        setTimeout(() => { // Add this line
+            alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`); // Modify this line
+
+            // Reset ball position directly to where this shot was struck from
+            ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0; // Add this line
+            ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10; // Add this line
+            ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25; // Add this line
+            ball.visible = true; // Add this line
+
+            // Re-align the camera safely behind the ball looking toward the hole cup
+            const dirX = holePosition.x - ball.position.x; // Add this line
+            const dirZ = holePosition.z - ball.position.z; // Add this line
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
+            const backX = -(dirX / length) * 7.5; // Add this line
+            const backZ = -(dirZ / length) * 7.5; // Add this line
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ); // Add this line
+            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
+
+            updateDistanceDisplay(); // Add this line
+        }, 30); // Add this line
         return;
     }
 
@@ -1576,11 +1597,19 @@ function animate() {
         }
 
         // Add this block: Overrides the zoom values to be much wider/higher if the shot is still moving
-        if (physics.isMoving && !physics.isPutting) {
-            targetFov = aspect < 1 ? 72 : 65; // Normal wider field of view
-            rigidCamDist = 8.0;               // Pulls camera 8 units back instead of 3.5
-            rigidCamHeight = 3.5;             // Elevates camera 3.5 units up to see the green context
-            lookUpOffset = -0.10;             // Centers the look-at target nicely
+        if (physics.isMoving) { // Modify this line: Removed !physics.isPutting to allow putting camera tracking overrides
+            if (physics.isPutting) {
+                // Add this block: A specialized cinematic viewpoint for rolling putts to observe green breaks
+                targetFov = aspect < 1 ? 65 : 45;
+                rigidCamDist = 4.8;               // Backs away slightly to open up the visual field
+                rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
+                lookUpOffset = -0.25;
+            } else {
+                targetFov = aspect < 1 ? 72 : 65; // Normal wider field of view for chips/full shots
+                rigidCamDist = 8.0;               // Pulls camera 8 units back instead of 3.5
+                rigidCamHeight = 3.5;             // Elevates camera 3.5 units up to see the green context
+                lookUpOffset = -0.10;             // Centers the look-at target nicely
+            }
         }
 
         if (camera.fov !== targetFov) {
@@ -1624,6 +1653,13 @@ function animate() {
     if (isCamOnGreen) {
         // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
         finalBallTargetScale *= 0.85;
+    }
+
+    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 7.5 units envelope
+    const cameraDistanceToBall = camera.position.distanceTo(ball.position);
+    if (cameraDistanceToBall < 7.5 && !isCamOnGreen) { // Modify this line: Added !isCamOnGreen to prevent crushing the ball size on the green
+        // TUNED: Adjusted tracking window to 7.5 to smoothly suppress ball ballooning on short chip shots
+        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 7.5);
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -2060,7 +2096,7 @@ function init() {
             finalPower *= 1.25;
         }
 
-        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
+
 
         physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
 

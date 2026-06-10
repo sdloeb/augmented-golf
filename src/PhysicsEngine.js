@@ -293,13 +293,14 @@ export class PhysicsEngine {
             currentBounceHeight = 0.12;
             currentBounceForwardLoss = 0.30;
         }
-        else if (!onGreen && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0) { // Change this line
-            currentFriction = 0.92;
+        else if (!onGreen && (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0 || this.ball.position.z > -8.0)) { // Modify this line: Added the z > -8.0 rough carry check
+            currentFriction = 0.68;
             currentBounceHeight = 0.20;
             currentBounceForwardLoss = 0.50;
         }
-        if (this.isPutting) {
-            currentFriction = 0.985;
+        else if (this.isPutting) {
+            // Only use slick green friction if we are putting and NOT stuck in sand or deep rough
+            currentFriction = 0.990;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -345,10 +346,10 @@ export class PhysicsEngine {
             }
 
             if (!this.isPutting) {
+                // FIXED: Direct wind to 0.0 permanently if the ball has touched the ground, bypassing high bounce loops
+                let bounceWindMultiplier = this.hasLanded ? 0.0 : 1.0;
 
-
-                let bounceWindMultiplier = 1.0;
-                if (this.ball.position.y < groundY + 1.25) {
+                if (!this.hasLanded && this.ball.position.y < groundY + 1.25) {
                     bounceWindMultiplier = 0.20;
                 }
 
@@ -356,27 +357,47 @@ export class PhysicsEngine {
                 this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
-            // Apply ground surface friction
-            this.velocity.x *= currentFriction;
-            this.velocity.z *= currentFriction;
+            // Apply ground surface friction using a combined percentage and linear deceleration model
+            const rollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+            if (rollSpeed > 0) {
+                let newSpeed = rollSpeed * currentFriction;
+
+                // REALISM UPDATE: Increased linear resistance to serve as the primary steady stopping force
+                if (this.isPutting) {
+                    const linearResistance = 0.0009;
+                    newSpeed = Math.max(0, newSpeed - linearResistance);
+                } else {
+                    const linearResistance = 0.0032; // Modify this line: Increased from 0.0014 to confidently stop slow trickles
+                    newSpeed = Math.max(0, newSpeed - linearResistance);
+                }
+
+                this.velocity.x = (this.velocity.x / rollSpeed) * newSpeed;
+                this.velocity.z = (this.velocity.z / rollSpeed) * newSpeed;
+            }
 
             // NEW: Continuous 3D gradient vector checks when rolling across the contoured tiers
-            // Delete 'if (onGreen) {' from here
             const delta = 0.1;
-            const hL = this.getGroundHeight(this.ball.position.x - delta, this.ball.position.z); // Update this line
-            const hR = this.getGroundHeight(this.ball.position.x + delta, this.ball.position.z); // Update this line
-            const hB = this.getGroundHeight(this.ball.position.x, this.ball.position.z - delta); // Update this line
-            const hF = this.getGroundHeight(this.ball.position.x, this.ball.position.z + delta); // Update this line
+            const hL = this.getGroundHeight(this.ball.position.x - delta, this.ball.position.z);
+            const hR = this.getGroundHeight(this.ball.position.x + delta, this.ball.position.z);
+            const hB = this.getGroundHeight(this.ball.position.x, this.ball.position.z - delta);
+            const hF = this.getGroundHeight(this.ball.position.x, this.ball.position.z + delta);
 
             // Calculates precise slope forces pulling the ball downhill based on local mesh angles
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
-            // FIXED: Scaled by timeScale so gravity forces accumulate in the exact same time dimension as rolling friction
-            this.velocity.x += this.slopeX * timeScale;
-            this.velocity.z += this.slopeZ * timeScale;
+            // ADJUSTED: Re-calculate speed post-friction to apply accurate slope breaks
+            const ballRollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
+            let slopeInfluenceModifier = 1.0;
 
-        }
+            // REALISM UPDATE: Tuned the slope break fade window to 0.035 for a fluid, continuous slow-down curve
+            if (ballRollSpeed < 0.035) {
+                slopeInfluenceModifier = Math.max(0.0, (ballRollSpeed - 0.020) / (0.035 - 0.020)); // Modify this line: Raised lower limit from 0.012 to 0.020 to kill slope influence early
+            }
+
+            this.velocity.x += this.slopeX * slopeInfluenceModifier;
+            this.velocity.z += this.slopeZ * slopeInfluenceModifier;
+        } // <-- This brace closes the entire ground movement block
 
         // 2. MOVE THE BALL 
         this.ball.position.x += this.velocity.x * timeScale;
@@ -453,7 +474,11 @@ export class PhysicsEngine {
                 }
 
                 // 2. Upper Leaves & Canopy Height Zone Collision Check
-                if (this.ball.position.y > obs.trunkHeight && this.ball.position.y <= obs.totalHeight && distance < (obs.foliageRadius + 0.25)) { // Change this line: Added ball radius cushion
+                let canopyCenterY = obs.trunkHeight + (obs.foliageRadius * 0.7); // Add this line: Calculate the vertical center point of the canopy leaves sphere
+                let dyFoliage = this.ball.position.y - canopyCenterY; // Add this line: Get the vertical distance from the ball to the canopy center
+                let distance3D = Math.sqrt(dx * dx + dyFoliage * dyFoliage + dz * dz); // Add this line: Calculate true 3D straight-line distance to the canopy center
+
+                if (distance3D < (obs.foliageRadius + 0.25)) { // Modify this line: Replaced the flat cylinder bounds with a realistic 3D sphere check
                     let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
                     let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
 
@@ -473,8 +498,9 @@ export class PhysicsEngine {
         }
 
         // 3. GROUND COLLISION & HAZARD DETECTION
-        if (this.ball.position.y <= groundY) {
+        if (this.ball.position.y <= groundY || !isAirborne) { // Modify this line: Added || !isAirborne to force rolling balls to hug downward slopes
             this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
+            this.hasLanded = true
 
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
