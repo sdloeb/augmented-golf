@@ -554,7 +554,7 @@ html {
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
         left: calc(50% - 65px) !important;
-        bottom: 40% !important;
+        bottom: 60% !important;
         /* Modify this line: Controls Woods and Irons on mobile. Adjust this until they sit tight against the ball! */
     }
 
