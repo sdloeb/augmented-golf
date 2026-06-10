@@ -386,7 +386,7 @@ html {
 
 /* NEW: Club resting right behind the ball at address */
 #clubSwipe.idle-stance {
-    bottom: 24% !important;
+    bottom: 27% !important;
     left: 47% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.4) !important;

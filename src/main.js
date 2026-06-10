@@ -173,36 +173,34 @@ function updateDistanceDisplay() {
         leftBtn.innerText = '◀';
 
         // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === 0) {
+        if (currentIdx === clubList.length - 1) { // Modify this line: Change 0 to clubList.length - 1
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx > 0) {
-                input.chosenClubIndex = cIdx - 1;
+            if (cIdx < clubList.length - 1) { // Modify this line: Change > 0 to < clubList.length - 1
+                input.chosenClubIndex = cIdx + 1; // Modify this line: Change cIdx - 1 to cIdx + 1
                 updateDistanceDisplay(); // Refresh UI layout positions instantly
             }
         });
 
-
-
-        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to shorter distance clubs)
+        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to longer distance clubs)
         const rightBtn = document.createElement('button');
         rightBtn.className = 'club-option';
         rightBtn.innerText = '▶';
 
-        // Disable the arrow if we are already holding the shortest club (SW Iron at max index)
-        if (currentIdx === clubList.length - 1) {
+        // Disable the arrow if we are already holding the longest club (Driver at index 0)
+        if (currentIdx === 0) { // Modify this line: Check against index 0 limit
             rightBtn.style.opacity = '0.3';
             rightBtn.style.pointerEvents = 'none';
         }
         rightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx < clubList.length - 1) {
-                input.chosenClubIndex = cIdx + 1;
+            if (cIdx > 0) { // Modify this line: Decrement index to select longer clubs
+                input.chosenClubIndex = cIdx - 1;
                 updateDistanceDisplay(); // Refresh UI layout positions instantly
             }
         });
@@ -1782,10 +1780,10 @@ function animate() {
 
     // Update Club Landing Ring visibility and positions dynamically in Overhead mode
     if (clubLandingRing) { // Add this line
-        if (isOverheadActive && physics && !physics.isMoving && !isSinking) { // Add this line
+        if ((isOverheadActive || (input && input.isAimMode)) && physics && !physics.isMoving && !isSinking) { // Modify this line: Added || (input && input.isAimMode) to show the ring during ground aiming
             const club = input ? input.getClubInfo() : null; // Add this line
             if (club && !club.isGreen) { // Add this line
-                const ringDist = club.maxYards / 2.76923; // Add this line
+                const ringDist = club.maxYards / 2.76923;
 
                 // Modify these lines: Calculates active aim angle to swing the yellow ring left or right
                 let baseTargetX = holePosition.x;
