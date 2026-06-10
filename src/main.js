@@ -1376,21 +1376,28 @@ function animate() {
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
             ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
         } else {
-            // Modify this line: Adjusts minimum clamp to 0.30 and scaling factor to 0.012 so it shrinks smoothly
-            ballTargetScale = Math.max(0.30, 1.0 - (distanceTraveled * 0.012));
+            // FIXED: Short chip shots start at a much smaller, realistic scale (0.45) so they never 
+            // balloon at launch, while long drives still start at full size (1.0).
+            const baseScale = isLongShot ? 1.0 : 0.45;
+            ballTargetScale = Math.max(0.30, baseScale - (distanceTraveled * 0.012));
         }
 
-        if (isLongShot && (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) { // Modify this line
+        // UPDATED: Long shots wait for their delay timers, but short chips/pitches track INSTANTLY
+        const shouldTrack = isLongShot ? (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) : true;
+
+        if (shouldTrack && !isOverheadActive) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-            // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-            const backX = -(dirX / length) * 5.5;
-            const backZ = -(dirZ / length) * 5.5;
+            // Use tighter framing constraints for short shots so the camera stays close to the action
+            const camBackDist = isLongShot ? 5.5 : 7.5;
+            const camBackHeight = isLongShot ? 1.8 : 2.2;
 
-            // Smoothly tracks target positioning vectors forward through 3D space
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+            const backX = -(dirX / length) * camBackDist;
+            const backZ = -(dirZ / length) * camBackDist;
+
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camBackHeight, ball.position.z + backZ);
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
         }
     } else {
@@ -1462,11 +1469,11 @@ function animate() {
         // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 0.70;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.40;
+            ballTargetScale = 0.28;
         } else {
-            ballTargetScale = 0.80;
+            ballTargetScale = 0.70;
         }
     } // <-- This brace closes the entire "ball is not moving" section
 
@@ -1479,12 +1486,21 @@ function animate() {
         updateGreenGrid();
     }
 
-    // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
-    let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
+    // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking and hole resets
+    let activeCameraSpeed = 0.05;
 
-    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
-    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.005;
+    // 2. ISOLATED CHASE SPEED: Applies a smooth trailing lag to airborne flying shots
+    if (physics.isMoving && !isOverheadActive) {
+        if (isLongShot) {
+            if (performance.now() - shotStartTime > 2000) {
+                activeCameraSpeed = 0.005; // Long drive slow cinematic lag
+            }
+        } else {
+            // FIXED: Short chip shots get a smooth trailing lag (0.018) instead of snapping instantly (0.05).
+            // This allows the ball to lift off and fly away from the camera, shrinking naturally 
+            // and letting you clearly watch it land and bounce on the turf!
+            activeCameraSpeed = 0.018;
+        }
     }
 
 
@@ -1634,11 +1650,14 @@ function animate() {
                 rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
                 lookUpOffset = -0.25;
             } else {
-                // UPDATED: Spacious wide-angle broadcast perspective for approach shots and chips landing on the green
+                // Spacious wide-angle broadcast perspective for approach shots and chips landing on the green
                 targetFov = aspect < 1 ? 65 : 50;
-                rigidCamDist = 22.0;              // Pulled back from 8.0 to 22.0 units to see the green context clearly
-                rigidCamHeight = 8.5;             // Elevated from 3.5 to 8.5 units to look down onto the green surface
-                lookUpOffset = -0.55;             // Tilted down to frame the ball landing relative to the pin cup
+
+                // FIXED: If it's a short green-side chip shot under 25 yards, keep the camera close (7.5 units)
+                // instead of jumping to a massive 22 units away where the ball turns invisible!
+                rigidCamDist = isLongShot ? 22.0 : 7.5;
+                rigidCamHeight = isLongShot ? 8.5 : 2.2;
+                lookUpOffset = isLongShot ? -0.55 : -0.40;
             }
         }
 
@@ -1685,11 +1704,12 @@ function animate() {
         finalBallTargetScale *= 0.85;
     }
 
-    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 7.5 units envelope
+    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 9.5 units envelope
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
-    if (cameraDistanceToBall < 7.5 && !isCamOnGreen) { // Modify this line: Added !isCamOnGreen to prevent crushing the ball size on the green
-        // TUNED: Adjusted tracking window to 7.5 to smoothly suppress ball ballooning on short chip shots
-        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 7.5);
+    if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
+        // TUNED: Increased tracking window to 9.5 units so it successfully suppresses ball ballooning
+        // during tight, close-up short-game tracking angles.
+        finalBallTargetScale *= Math.max(0.3, cameraDistanceToBall / 9.5);
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
