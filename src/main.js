@@ -1710,7 +1710,7 @@ function animate() {
 
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
                 const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
-                const putterBaseBottom = isMobileView ? 35.0 : 21.8;
+                const putterBaseBottom = isMobileView ? 30.0 : 21.8;
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
@@ -2137,7 +2137,7 @@ function init() {
                 const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
                 const baseBottom = isMobileView ? 30.0 : 21.8;
                 const currentBottom = baseBottom - (6.0 * ratio);
-                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
+                clubSwiconst isMobileView = window.innerWpe.style.setProperty('--putter-start-bottom', currentBottom + '%');
             }
 
             clubSwipe.className = '';
