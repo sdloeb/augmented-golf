@@ -184,61 +184,50 @@ html {
 /* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
 #clubSwipe.wood {
     /* Reshaped width and height to give the crown a deep, bulbous driver silhouette */
-    width: 130px;
-    /* Modify this line */
-    height: 85px;
-    /* Modify this line */
+    width: 110px;
+    height: 75px;
 
     /* Re-oriented pear-shaped curve: flatter at the top face, deeply rounded bulbous crown at the bottom-right */
     border-radius: 20px 40px 75px 45px;
-    /* Modify this line */
 
     background:
-        /* Sweet-spot alignment dot centered horizontally near the front hitting face */
-        radial-gradient(circle at 65px 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
-        /* Modify this line */
+        /* UPDATED: Sweet-spot alignment dot moved from 65px to 55px to stay perfectly centered on the new 110px width */
+        radial-gradient(circle at 55px 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
         /* Aerodynamic crown gloss reflection tracing the front top edge curve */
         linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%),
-        /* Modify this line */
         /* Deep multi-tone carbon composite dark graphite body weave coloring centered low */
         radial-gradient(circle at 50% 65%, #323538 0%, #1a1c1e 60%, #0a0b0c 100%);
-    /* Modify this line */
 
     border: 1px solid #141516;
 
     /* Striking face plate moved to the TOP edge facing directly into the ball */
     border-top: 4px solid #7a7e82;
-    /* Replace border-left with border-top */
 
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.6),
         inset 0 -8px 16px rgba(0, 0, 0, 0.85),
         inset 0 2px 3px rgba(255, 255, 255, 0.2);
 
-    /* Offset counter-adjustment to keep our new 85px club height perfectly centered behind the ball */
-    margin-bottom: -15px;
-    /* Add this line */
+    /* UPDATED: Changed from -15px to -5px to pull the top edge back up exactly to the center equator of the ball */
+    margin-bottom: -5px;
 }
 
 /* Authentic rear chassis stability perimeter weight cartridge trim */
 #clubSwipe.wood::before {
     content: '';
     position: absolute;
-    /* Repositioned horizontally along the bottom trailing edge rim of the club */
-    bottom: 6px;
-    /* Modify this line */
-    left: 20px;
-    /* Modify this line */
-    width: 90px;
-    /* Modify this line */
-    height: 18px;
-    /* Modify this line */
 
-    /* Mimics structural tungsten weight ports wrapping smoothly around the back rim */
-    border-radius: 6px 6px 40px 30px;
-    /* Modify this line */
+    /* UPDATED PLACEMENT: Shifted inward and slightly up to prevent breaking through the new 110x75 perimeter bounds */
+    bottom: 6px;
+    left: 10px;
+    width: 78px;
+    height: 14px;
+
+    /* UPDATED CORNER RADII: Increased the bottom-right radius to 55px so this inner highlight curves inward 
+       and hugs the parent's steep asymmetrical bottom-right edge without popping out of alignment */
+    border-radius: 4px 6px 55px 22px;
+
     background: linear-gradient(to bottom, transparent, #3c3f42, #8b8e91 75%, #1b1c1d);
-    /* Modify this line */
     opacity: 0.75;
     pointer-events: none;
     box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
@@ -265,17 +254,48 @@ html {
     position: absolute;
 }
 
+/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
+#clubSwipe.iron {
+    /* Main Chassis: Defines the polished steel outer perimeter shell */
+    border-radius: 5px 27px 19px 13px;
+    /* UPDATED: Scaled down corner curves */
+    width: 104px;
+    /* UPDATED: Shrank from 130px (130 * 0.8) */
+    height: 50px;
+    /* UPDATED: Shrank from 62px (62 * 0.8) */
+
+    background:
+        /* UPDATED: Scaled background sizing from 24px to 19px to keep the lofted groove lines proportional */
+        repeating-linear-gradient(to bottom, transparent, transparent 2.5px, rgba(0, 0, 0, 0.16) 2.5px, rgba(0, 0, 0, 0.16) 3.5px) top left / 100% 19px no-repeat,
+        /* Metallic slope transition leading down to an emphasized polished chrome topline highlight */
+        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 32%, #ffffff 36%, #b4b8bb 46%, #7f8284 100%);
+
+    border: 1px solid #6c6f72;
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.45),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
+
+    /* UPDATED: Adjusted to -4px to perfectly counteract the shallower 50px height and keep alignment locked to the ball center */
+    margin-bottom: -4px;
+    position: absolute;
+}
+
 /* 1. Recessed Cavity Pocket: Anchored deep into the lower rear flange mass */
 #clubSwipe.iron::before {
     content: '';
     position: absolute;
-    /* Pushed lower to leave substantial vertical room for the highly slanted front face layout */
-    top: 29px;
-    left: 14px;
-    width: 98px;
-    height: 26px;
-    /* Slightly lengthened to balance the deeper perimeter border mass */
-    border-radius: 3px 16px 12px 4px;
+
+    /* UPDATED: Cavity dimensions reduced by exactly 20% */
+    top: 23px;
+    /* Shrank from 29px */
+    left: 11px;
+    /* Shrank from 14px */
+    width: 78px;
+    /* Shrank from 98px */
+    height: 21px;
+    /* Shrank from 26px */
+
+    border-radius: 2px 13px 10px 3px;
     background:
         linear-gradient(135deg, #595d60 0%, #8c9093 50%, #414345 100%);
     border: 2px solid #525557;
@@ -289,12 +309,18 @@ html {
 #clubSwipe.iron::after {
     content: '';
     position: absolute;
-    left: -7px;
-    top: 25px;
-    /* Shifted down from 19px to align with the expanded 62px frame */
-    width: 24px;
-    height: 16px;
-    border-radius: 6px 0 0 6px;
+
+    /* UPDATED: Neck adapter position and bounds reduced by exactly 20% */
+    left: -6px;
+    /* Adjusted from -7px to remain flush with the smaller chassis edge */
+    top: 20px;
+    /* Shrank from 25px */
+    width: 19px;
+    /* Shrank from 24px */
+    height: 13px;
+    /* Shrank from 16px */
+
+    border-radius: 5px 0 0 5px;
     background: linear-gradient(to bottom, #ffffff, #9fa2a5 45%, #4b4e50 100%);
     border: 1px solid #6c6f72;
     border-right: none;
@@ -387,7 +413,7 @@ html {
 /* NEW: Club resting right behind the ball at address */
 #clubSwipe.idle-stance {
     bottom: 27% !important;
-    left: 47% !important;
+    left: 47.5% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.4) !important;
     opacity: 1 !important;

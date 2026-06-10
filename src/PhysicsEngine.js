@@ -290,18 +290,33 @@ export class PhysicsEngine {
             }
         }
 
+        // CHIP & DRIVE TERRAIN PROFILE MATRIX
         if (inSand) {
-            currentFriction = 0.80;
-            currentBounceHeight = 0.12;
-            currentBounceForwardLoss = 0.30;
+            currentFriction = 0.72;
+            currentBounceHeight = 0.10;
+            currentBounceForwardLoss = 0.25;
         }
-        else if (!onGreen && (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0 || this.ball.position.z > -8.0)) { // Modify this line: Added the z > -8.0 rough carry check
-            currentFriction = 0.68;
-            currentBounceHeight = 0.20;
-            currentBounceForwardLoss = 0.50;
+        else if (onGreen) {
+            // Receptive Green Landing: Soft check-up thud, low rolling friction resistance
+            currentBounceHeight = 0.22;        // Lowers bounce elasticity so approach shots check up
+            currentBounceForwardLoss = 0.35;   // Turf grabs the ball back on initial impact
+            currentFriction = 0.965;           // Smooth rolling glide once the ball settles
         }
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= 9.0 && this.ball.position.z <= -8.0) {
+            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
+            currentFriction = 0.91;
+            currentBounceHeight = 0.36;
+            currentBounceForwardLoss = 0.52;   // Preserves strong forward kinetic velocity
+        }
+        else {
+            // Deep Course Rough: Dense grass absorbs energy completely
+            currentFriction = 0.74;            // Heavy friction brakes rolling momentum fast
+            currentBounceHeight = 0.18;        // Deadened bounce height
+            currentBounceForwardLoss = 0.30;   // Strongly strips forward speed on ground contact
+        }
+
         if (this.isPutting) {
-            currentFriction = 0.985;
+            currentFriction = 0.985; // Preserves your exact putting calibration constant
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -480,6 +495,7 @@ export class PhysicsEngine {
         // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= groundY) {
             this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
+            this.hasLanded = true;
 
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
