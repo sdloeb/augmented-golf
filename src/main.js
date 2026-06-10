@@ -2135,7 +2135,7 @@ function init() {
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
                 const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
-                const baseBottom = isMobileView ? 35.0 : 21.8;
+                const baseBottom = isMobileView ? 30.0 : 21.8;
                 const currentBottom = baseBottom - (6.0 * ratio);
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
             }
