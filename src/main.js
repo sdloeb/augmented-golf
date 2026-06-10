@@ -1332,16 +1332,12 @@ function animate() {
     // 3. DYNAMIC CAMERA CONTROLLER
 
 
-    // 3. DYNAMIC CAMERA CONTROLLER
-
-
-
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
             shotStartTime = performance.now(); // Record launch timestamp
 
-            // Add these two lines: Records where this specific shot was struck from
+            // Records where this specific shot was struck from
             window.shotStartX = ball.position.x;
             window.shotStartZ = ball.position.z;
 
@@ -1350,8 +1346,9 @@ function animate() {
             const dzHole = ball.position.z - holePosition.z;
             const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
 
-            // UPDATED: Lowered from 90 to 25 so all approach shots get smooth tracking instead of staying frozen behind
-            isLongShot = initialYards > 25;
+            // Base long shots on intended club power instead of raw green proximity
+            const club = input ? input.getClubInfo() : null;
+            isLongShot = club ? (club.maxYards > 160) : (initialYards > 25);
 
             window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
         }
@@ -1361,8 +1358,7 @@ function animate() {
         if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
         ballTracer.geometry.computeBoundingSphere();
 
-        // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        // Modify these two lines: Replaces hardcoded values with the live shot origin coordinates
+        // Calculate travel distance parameters for ball scaling textures
         const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
         const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
         const dx = ball.position.x - startX;
@@ -1373,68 +1369,46 @@ function animate() {
         const checkZ = ball.position.z - greenCenterZ;
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
+        // Dynamic Ball Target Scaling
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
+            ballTargetScale = 0.40;
         } else {
-            // FIXED: Short chip shots start at a much smaller, realistic scale (0.45) so they never 
-            // balloon at launch, while long drives still start at full size (1.0).
-            const baseScale = isLongShot ? 1.0 : 0.45;
-            ballTargetScale = Math.max(0.30, baseScale - (distanceTraveled * 0.012));
+            const startingScale = isLongShot ? 1.0 : 0.50;
+            ballTargetScale = Math.max(0.30, startingScale - (distanceTraveled * 0.012));
         }
 
-        // UPDATED: Long shots wait for their delay timers, but short chips/pitches track INSTANTLY
-        const shouldTrack = isLongShot ? (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) : true;
+        // Obstacle Intercept Override
+        const horizSpeed = Math.sqrt(physics.velocity.x * physics.velocity.x + physics.velocity.z * physics.velocity.z);
+        const hitObstacle = isLongShot && horizSpeed < 0.05 && distanceTraveled > 1.0;
+
+        const shouldTrack = (isLongShot && !hitObstacle) ? (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) : true;
 
         if (shouldTrack && !isOverheadActive) {
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-            // Use tighter framing constraints for short shots so the camera stays close to the action
             const camBackDist = isLongShot ? 5.5 : 7.5;
             const camBackHeight = isLongShot ? 1.8 : 2.2;
 
             const backX = -(dirX / length) * camBackDist;
             const backZ = -(dirZ / length) * camBackDist;
 
+            // Smoothly tracks target positioning vectors forward through 3D space
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + camBackHeight, ball.position.z + backZ);
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
         }
-    } else {
-        const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-        // ADJUSTED: Increased camDist from 5.5 to 7.5 and height to 2.2 to pull the camera back on short shots
-        const camDist = onGreen ? 2.5 : 7.5;
-        const camHeight = onGreen ? 1.0 : 2.2;
-        const lookDist = onGreen ? 6.0 : 15.0;
-        if (!isOverheadActive) {
-            let baseTargetX = holePosition.x;
-            let baseTargetZ = holePosition.z;
-            if (teeBox && teeBox.visible && currentHoleConfig) { // Modify this line
-                const firstLeg = currentHoleConfig.waypoints[1]; // Modify this line
-                if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
-            }
-            const dX = baseTargetX - ball.position.x;
-            const dZ = baseTargetZ - ball.position.z;
-            let angle = Math.atan2(dX, dZ);
-            if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Adjusts camera base angle by dragging offset
-
-            const aimDirX = Math.sin(angle);
-            const aimDirZ = Math.cos(angle);
-            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
-            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
-        }
 
         if (wasMoving && !isSinking) {
-            isOverheadActive = false; // Keep this line
+            isOverheadActive = false;
 
-            // 3-OPTION BALL SCALING ENGINE
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
+                ballTargetScale = 0.32;
             } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.40;  // OPTION 2: Size when on the Green or using the Putter
+                ballTargetScale = 0.40;
             } else {
-                ballTargetScale = 0.80; // OPTION 3: Size when out in the Fairway or Rough
+                ballTargetScale = 0.80;
             }
 
             generateNewWind();
@@ -1443,19 +1417,14 @@ function animate() {
             wasMoving = false;
             window.puttingCameraDelayStart = performance.now();
 
-            // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
             tracerPoints = [];
             if (ballTracer) {
                 ballTracer.geometry.setFromPoints(tracerPoints);
                 ballTracer.geometry.computeBoundingSphere();
             }
-
-
         }
 
         if (input && input.isSwinging) {
-            // 3-OPTION BALL SCALING ENGINE
-            // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.55;
@@ -1466,42 +1435,38 @@ function animate() {
             }
         }
 
-        // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 0.70;  // Keeps it big on the tee box automatically!
+            ballTargetScale = 0.70;
         } else if (onGreen || restingClub === 'Putter') {
             ballTargetScale = 0.28;
         } else {
             ballTargetScale = 0.70;
         }
-    } // <-- This brace closes the entire "ball is not moving" section
+    } // This structural brace closes the moving-vs-resting condition branches completely
 
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
     const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
 
-    // REAL-TIME RUNWAY REFRESHER: Forces the contour corridor to track moving balls and look-angle shifts instantly
     if (isCamOnGreen && !isSinking) {
         updateGreenGrid();
     }
 
-    // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking and hole resets
+    // Set interactive physics follow camera speed factors
     let activeCameraSpeed = 0.05;
 
-    // 2. ISOLATED CHASE SPEED: Applies a smooth trailing lag to airborne flying shots
     if (physics.isMoving && !isOverheadActive) {
         if (isLongShot) {
             if (performance.now() - shotStartTime > 2000) {
-                activeCameraSpeed = 0.005; // Long drive slow cinematic lag
+                activeCameraSpeed = 0.005; // Cinematic long drive camera lag
             }
         } else {
-            // FIXED: Short chip shots get a smooth trailing lag (0.018) instead of snapping instantly (0.05).
-            // This allows the ball to lift off and fly away from the camera, shrinking naturally 
-            // and letting you clearly watch it land and bounce on the turf!
-            activeCameraSpeed = 0.018;
+            activeCameraSpeed = 0.018; // Smooth short shot trailing camera lag
         }
     }
+
+
 
 
 
@@ -1641,58 +1606,113 @@ function animate() {
             lookUpOffset = -0.40;
         }
 
-        // Add this block: Overrides the zoom values to be much wider/higher if the shot is still moving
-        if (physics.isMoving) { // Modify this line: Removed !physics.isPutting to allow putting camera tracking overrides
-            if (physics.isPutting) {
-                // Add this block: A specialized cinematic viewpoint for rolling putts to observe green breaks
-                targetFov = aspect < 1 ? 65 : 45;
-                rigidCamDist = 4.8;               // Backs away slightly to open up the visual field
-                rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
-                lookUpOffset = -0.25;
-            } else {
-                // Spacious wide-angle broadcast perspective for approach shots and chips landing on the green
-                targetFov = aspect < 1 ? 65 : 50;
+        if (physics.isMoving) {
+            if (!wasMoving) {
+                wasMoving = true;
+                shotStartTime = performance.now(); // Record launch timestamp
 
-                // FIXED: If it's a short green-side chip shot under 25 yards, keep the camera close (7.5 units)
-                // instead of jumping to a massive 22 units away where the ball turns invisible!
-                rigidCamDist = isLongShot ? 22.0 : 7.5;
-                rigidCamHeight = isLongShot ? 8.5 : 2.2;
-                lookUpOffset = isLongShot ? -0.55 : -0.40;
+                // Add these two lines: Records where this specific shot was struck from
+                window.shotStartX = ball.position.x;
+                window.shotStartZ = ball.position.z;
+
+                // Calculate initial distance to the hole pin in true game yards
+                const dxHole = ball.position.x - holePosition.x;
+                const dzHole = ball.position.z - holePosition.z;
+                const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
+
+                // UPDATED: Redefined long shots based on intended club power instead of green proximity!
+                const club = input ? input.getClubInfo() : null;
+                isLongShot = club ? (club.maxYards > 160) : (initialYards > 25);
+
+                window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
             }
+            updateDistanceDisplay();
+
+            tracerPoints.push(ball.position.clone());
+            if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
+            ballTracer.geometry.computeBoundingSphere();
+
+            // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
+            const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
+            const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
+            const dx = ball.position.x - startX;
+            const dz = ball.position.z - startZ;
+            const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
+
+            const checkX = ball.position.x - (green ? green.position.x : 0);
+            const checkZ = ball.position.z - greenCenterZ;
+            const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
+
+            // Dynamic Ball Target Scaling
+            if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
+                ballTargetScale = 0.40;
+            } else {
+                const startingScale = isLongShot ? 1.0 : 0.50;
+                ballTargetScale = Math.max(0.30, startingScale - (distanceTraveled * 0.012));
+            }
+
+            // Obstacle Intercept Override
+            const horizSpeed = Math.sqrt(physics.velocity.x * physics.velocity.x + physics.velocity.z * physics.velocity.z);
+            const hitObstacle = isLongShot && horizSpeed < 0.05 && distanceTraveled > 1.0;
+
+            const shouldTrack = (isLongShot && !hitObstacle) ? (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) : true;
+
+            if (shouldTrack && !isOverheadActive) {
+                const dirX = holePosition.x - ball.position.x;
+                const dirZ = holePosition.z - ball.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+
+                const camBackDist = isLongShot ? 5.5 : 7.5;
+                const camBackHeight = isLongShot ? 1.8 : 2.2;
+
+                const backX = -(dirX / length) * camBackDist;
+                const backZ = -(dirZ / length) * camBackDist;
+
+                // Smoothly tracks target positioning vectors forward through 3D space
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + camBackHeight, ball.position.z + backZ);
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+            }
+
+        } else {
+            // Ball is Stationary at Address (Play UI interface is active)
+            const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+            const camDist = onGreen ? 2.5 : 7.5;
+            const camHeight = onGreen ? 1.0 : 2.2;
+            const lookDist = onGreen ? 6.0 : 15.0;
+
+            if (!isOverheadActive) {
+                let baseTargetX = holePosition.x;
+                let baseTargetZ = holePosition.z;
+                if (teeBox && teeBox.visible && currentHoleConfig) {
+                    const firstLeg = currentHoleConfig.waypoints[1];
+                    if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
+                }
+                const dX = baseTargetX - ball.position.x;
+                const dZ = baseTargetZ - ball.position.z;
+                let angle = Math.atan2(dX, dZ);
+                if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+
+                const aimDirX = Math.sin(angle);
+                const aimDirZ = Math.cos(angle);
+                cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+                cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+            }
+
+            activeCameraSpeed = physics.isMoving ? 0.04 : 0.08;
         }
-
-        if (camera.fov !== targetFov) {
-            camera.fov = targetFov;
-            camera.updateProjectionMatrix();
-        }
-
-        const lookAheadDist = 6.0;
-
-        cameraTargetPos.set(
-            ball.position.x - dirX * rigidCamDist,
-            ball.position.y + rigidCamHeight,
-            ball.position.z - dirZ * rigidCamDist
-        );
-
-        cameraLookAt.set(
-            ball.position.x + dirX * lookAheadDist,
-            ball.position.y + lookUpOffset,
-            ball.position.z + dirZ * lookAheadDist
-        );
-
-        // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
-        // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
-        // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? 0.04 : 0.08;
-    } else {
+    } else { // ➕ ADD THIS LINE to close the green check and handle non-green shots
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
         if (camera.fov !== defaultFov) {
             camera.fov = defaultFov;
             camera.updateProjectionMatrix();
         }
-    }
+    } // ➕ ADD THIS LINE to close the else block completely
 
+
+
+
+    // This follows directly after your FOV reset block's closing brace:
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
@@ -1874,6 +1894,7 @@ function animate() {
 
     renderer.render(scene, camera);
 }
+
 
 function init() {
     // 1. Create the 3D World Scene
