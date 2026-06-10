@@ -9,27 +9,15 @@
 
     <script>
         (function () {
-            var currentTime = Date.now();
-
-            // 1. Inject the fresh CSS file path
             var link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = 'style.css?v=' + currentTime;
+            link.href = 'style.css?v=' + Date.now();
             document.head.appendChild(link);
-
-            // 2. Create a visual indicator once the screen finishes loading
-            window.addEventListener('DOMContentLoaded', function () {
-                var debugDiv = document.createElement('div');
-                debugDiv.id = "cacheDebugIndicator";
-
-                // Formats the timestamp into a readable text string (e.g., "Build: 12:34:56 PM")
-                var timeString = new Date(currentTime).toLocaleTimeString();
-                debugDiv.innerText = "Build: " + timeString;
-
-                document.body.appendChild(debugDiv);
-            });
         })();
     </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
 
 <body>
 
