@@ -555,7 +555,7 @@ html {
     #clubSwipe.idle-stance {
         left: calc(50% - 65px) !important;
         /* Centering adjustment for the 130px wide iron/wood frame */
-        bottom: 30% !important;
+        bottom: 40% !important;
         /* Add this line: Adjust this percentage up or down to make it look perfect on mobile! */
     }
 
