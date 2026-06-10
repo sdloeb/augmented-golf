@@ -554,14 +554,14 @@ html {
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
         left: calc(50% - 65px) !important;
-        bottom: 75% !important;
+        bottom: 55% !important;
         /* Modify this line: Lowered from 16% to drop the floating club down to the ball */
     }
 
     /* Add this block right below it to override the putter on mobile screens */
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 77.5px) !important;
-        bottom: 75% !important;
+        bottom: 55% !important;
         /* Modify this line: Lowered from 16% to line up perfectly with the putter view */
     }
 
