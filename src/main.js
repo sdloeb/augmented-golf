@@ -750,65 +750,13 @@ function resetEntireGame(advanceHole = false) {
         posAttr.needsUpdate = true;
         targetMesh.geometry.computeVertexNormals();
     };
-
     // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
     deformVisualGreenMesh(green);
     deformVisualGreenMesh(greenGrid);
     deformVisualGreenMesh(greenFringe);
 
-    // Extract local physics engine height maps to draw custom contour arrows across the surface grid
-    if (gridCanvas && gridTexture) {
-        const ctx = gridCanvas.getContext('2d');
-        ctx.clearRect(0, 0, 512, 512);
-
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 4.0;
-
-        const gridCount = 5;
-        const spacing = 512 / gridCount;
-
-        for (let row = 0; row < gridCount; row++) {
-            for (let col = 0; col < gridCount; col++) {
-                const cx = col * spacing + spacing / 2;
-                const cy = row * spacing + spacing / 2;
-
-                // Map canvas coordinates to world coordinates relative to the green center
-                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2) + greenEndpoint.x; // Modify this line: Added + greenEndpoint.x
-                const wz = (cy / 512 - 0.5) * (GREEN_RADIUS * 2) + greenCenterZ;
-
-                // Check if this point falls inside the circular green grass area
-                const distFromCenter = Math.sqrt((wx - greenEndpoint.x) * (wx - greenEndpoint.x) + (wz - greenCenterZ) * (wz - greenCenterZ)); // Modify this line: Subtracted greenEndpoint.x to keep circle check relative
-                if (distFromCenter < GREEN_RADIUS - 0.5) {
-
-                    // Sample local neighbors to get the exact slope direction at this specific point
-                    const delta = 0.1;
-                    const hL = physics.getGreenHeight(wx - delta, wz);
-                    const hR = physics.getGreenHeight(wx + delta, wz);
-                    const hB = physics.getGreenHeight(wx, wz - delta);
-                    const hF = physics.getGreenHeight(wx, wz + delta);
-
-                    const localSlopeX = (hL - hR) / (2 * delta);
-                    const localSlopeZ = (hB - hF) / (2 * delta);
-
-                    // Only paint an arrow if there is an active slope angle here
-                    if (Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ) > 0.001) {
-                        ctx.save();
-                        ctx.translate(cx, cy);
-                        ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points arrow downhill
-
-                        // Draw clean, bolder medium-sized arrows
-                        ctx.beginPath();
-                        ctx.moveTo(-25, 0); ctx.lineTo(25, 0);
-                        ctx.lineTo(12, -9);
-                        ctx.moveTo(25, 0); ctx.lineTo(12, 9);
-                        ctx.stroke();
-                        ctx.restore();
-                    }
-                }
-            }
-        }
-        gridTexture.needsUpdate = true;
-    }
+    // UPDATED: Triggers the new dynamic, color-coded contour renderer
+    updateGreenGrid();
 
 
 
@@ -1440,6 +1388,7 @@ function animate() {
 
             generateNewWind();
             updateDistanceDisplay();
+            updateGreenGrid();
             wasMoving = false;
             window.puttingCameraDelayStart = performance.now();
 
@@ -1480,6 +1429,11 @@ function animate() {
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
     const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+
+    // REAL-TIME RUNWAY REFRESHER: Forces the contour corridor to track moving balls and look-angle shifts instantly
+    if (isCamOnGreen && !isSinking) {
+        updateGreenGrid();
+    }
 
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
     let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
@@ -1992,7 +1946,7 @@ function init() {
     // FIXED: Changed to solid RingGeometry (0 inner radius) to unlock actual high-density concentric vertex rings
     const greenGeo = new THREE.RingGeometry(0, GREEN_RADIUS, 64, 32);
     // FIXED: Giving the grid map its own independent mesh geometry prevents shared-vertex texture coordinate breaks
-    const gridGeo = new THREE.RingGeometry(0, GREEN_RADIUS - 0.02, 64, 32);
+    const gridGeo = new THREE.PlaneGeometry(GREEN_RADIUS * 2, GREEN_RADIUS * 2, 40, 40);
 
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.85 });
     green = new THREE.Mesh(greenGeo, greenMat);
@@ -2311,3 +2265,109 @@ function init() {
 }
 
 init();
+
+// ==========================================================================
+// DYNAMIC CORRIDOR RUNWAY CONTOUR RENDERER (CLEAN CENTERLINE TRACK)
+// ==========================================================================
+function updateGreenGrid() {
+    if (!gridCanvas || !gridTexture || !green || !ball || !physics) return;
+    const ctx = gridCanvas.getContext('2d');
+    ctx.clearRect(0, 0, 512, 512);
+
+    const gX = green.position.x;
+    const gZ = greenCenterZ;
+
+    // 1. AIRBORNE & AIM MODE GUARD: Tracks green boundaries, ball height, and active aiming state
+    const dxB = ball.position.x - gX;
+    const dzB = ball.position.z - gZ;
+    const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < GREEN_RADIUS;
+    const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
+
+    // Checks if the player is actively using your InputHandler's aim mode flag
+    const isAiming = input && input.isAimMode;
+
+    // UPDATED: Added !isAiming to the core engine check list. If the player isn't aiming, 
+    // the canvas stays empty and the function exits, making the track completely hidden!
+    if (!isBallOnGreen || isAirborne || physics.hitWater || isSinking || !isAiming) {
+        gridTexture.needsUpdate = true;
+        return;
+    }
+
+    // 2. CALCULATE TARGET RUNWAY LINE
+    const dx = holePosition.x - ball.position.x;
+    const dz = holePosition.z - ball.position.z;
+    const pathLen = Math.sqrt(dx * dx + dz * dz) || 1;
+
+    const dirX = dx / pathLen;
+    const dirZ = dz / pathLen;
+
+    // Increased the distance spacing to 1.5 units so individual arrows stay cleanly separated
+    const stepDistance = 1.5;
+    const travelSteps = Math.floor(pathLen / stepDistance);
+
+    // 3. REAL-TIME UPHILL / DOWNHILL SPEED ACCELERATION ENGINE
+    const delta = 0.1;
+    const ballSlopeX = (physics.getGreenHeight(ball.position.x - delta, ball.position.z) - physics.getGreenHeight(ball.position.x + delta, ball.position.z)) / (2 * delta);
+    const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
+
+    // Measures if the putt line travels with the hill gradient (downhill) or against it (uphill)
+    const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
+
+    // Dynamically warp time velocity: Downhill putts speed up, uphill putts crawl slowly
+    const baseFlowVelocity = 0.003;
+    const dynamicVelocity = baseFlowVelocity + (pathSlopeComponent * 0.05);
+    const finalVelocity = Math.max(0.0008, dynamicVelocity); // Safety floor to keep them trickling
+
+    // Smooth scrolling timeline loop multiplier
+    const animationShift = (performance.now() * finalVelocity) % 1.0;
+
+    // 4. RENDER SINGLE CENTERLINE PATHWAY
+    for (let s = -1; s <= travelSteps + 1; s++) {
+        // Scroll chevrons smoothly forward down the path towards the hole
+        const t = (s + animationShift) / travelSteps;
+        if (t < 0 || t > 1) continue;
+
+        const wx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
+        const wz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, t);
+
+        // Clip drawing instructions tightly inside the putting green circle radius boundaries
+        if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < GREEN_RADIUS - 0.3) {
+            const cx = 512 * ((wx - gX) / (GREEN_RADIUS * 2) + 0.5);
+            const cy = 512 * ((wz - gZ) / (GREEN_RADIUS * 2) + 0.5);
+
+            const localSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
+            const localSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
+            const slopeMag = Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ);
+
+            if (slopeMag > 0.0005) {
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points chevron exactly downhill to show break direction
+
+                // SIMULATOR STYLING PACK: Thin lines and subtle scaling for crisp visuals
+                let arrowScale = 0.35;
+                if (slopeMag < 0.015) {
+                    ctx.strokeStyle = 'rgba(130, 200, 255, 0.85)'; // Slim Light Blue: Safe flat ground
+                    ctx.lineWidth = 2.0;
+                } else if (slopeMag < 0.035) {
+                    ctx.strokeStyle = 'rgba(0, 255, 204, 0.9)';   // Aqua Cyan: Moderate slope break
+                    arrowScale = 0.42;
+                    ctx.lineWidth = 2.6;
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Bright Pink/Red: Heavy breaking tier ridge
+                    arrowScale = 0.50;
+                    ctx.lineWidth = 3.2;
+                }
+
+                // Draw a sleek, high-visibility narrow golf chevron pointer profile
+                ctx.beginPath();
+                ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
+                ctx.lineTo(4 * arrowScale, 0);
+                ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+    }
+    gridTexture.needsUpdate = true;
+}
