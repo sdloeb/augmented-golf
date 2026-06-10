@@ -60,6 +60,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
+let currentFairwayWidth = 8.0;
 let currentHoleNumber = 1;
 let currentHoleConfig = null;
 let currentPar = 4;
@@ -272,8 +273,9 @@ function generateHazards() {
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) || // Modify this line: Checks true green center
-            (physics && (physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5) || physics.getDistanceToSpline(x, z) > (9.0 + r + 2.0))) || // Modify this line: Set min distance to 0.5 and clamped max distance to 18.0
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) ||
+            // UPDATED: Replaced hardcoded 9.0 with our dynamic width variable + buffer padding
+            (physics && (physics.getDistanceToSpline(x, z) < (currentFairwayWidth + r + 1.0) || physics.getDistanceToSpline(x, z) > (currentFairwayWidth + r + 10.0))) ||
             (z > -15 && Math.abs(x) < 15)
         );
         if (waterAttempts > 50) continue;
@@ -352,13 +354,12 @@ function generateHazards() {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
         do {
-            // NEW APPROACH: Base coordinates directly on the fairway track or green center so they can never wander off
             if (Math.random() > 0.3 && physics.fairwayPoints && physics.fairwayPoints.length > 0) {
-                // Pick a random track coordinate along the active fairway line
                 const basePt = physics.fairwayPoints[Math.floor(Math.random() * physics.fairwayPoints.length)];
                 const angle = Math.random() * Math.PI * 2;
-                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the fairway edge
-                const offsetDist = 9.0 + r + 0.5 + Math.random() * 4.0;
+
+                // UPDATED: Adjust offset distance dynamically based on the current fairway width scale
+                const offsetDist = currentFairwayWidth + r + 1.0 + Math.random() * 4.0;
 
                 x = basePt.x + Math.cos(angle) * offsetDist;
                 z = basePt.z + Math.sin(angle) * offsetDist;
@@ -376,9 +377,10 @@ function generateHazards() {
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) || // Keep clear of green surface
-            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) || // Keep clear of fairway short grass
-            (z > -15 && Math.abs(x) < 15) // Keep clear of the immediate tee box zone
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) ||
+            // UPDATED: Replaced hardcoded 9.0 with our dynamic fairway width check
+            (physics && physics.getDistanceToSpline(x, z) < (currentFairwayWidth + r + 0.5)) ||
+            (z > -15 && Math.abs(x) < 15)
         );
 
         if (sandAttempts > 100) continue;
@@ -539,6 +541,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     currentHoleConfig = holeConfig; // 
+    currentFairwayWidth = 7.5 + Math.random() * 21.5;
 
     const themeRoll = Math.random();
     if (themeRoll < 0.25) {
@@ -657,6 +660,7 @@ function resetEntireGame(advanceHole = false) {
         const posAttr = targetMesh.geometry.attributes.position;
         const scaleX = useScale ? targetMesh.scale.x : 1;
         const scaleY = useScale ? targetMesh.scale.y : 1;
+
         for (let i = 0; i < posAttr.count; i++) {
             const localX = posAttr.getX(i);
             const localY = posAttr.getY(i);
@@ -665,10 +669,11 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * scaleX + targetMesh.position.x;
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
-            // Gather the pre-calculated, unified terrain height from the physics engine
+            // 1. Gather the pre-calculated, unified baseline terrain height
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
+            const localGreenHeight = physics.getGreenHeight(worldX, worldZ);
 
-            // NEW: Scan if this vertex falls inside any active water hazard perimeter shelf
+            // 2. Scan for Water Hazard constraints
             let insideWaterZone = false;
             waterHazards.forEach(water => {
                 const dxW = worldX - water.position.x;
@@ -680,7 +685,7 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
-            // NEW: Scan if this vertex falls inside any active sand trap perimeter
+            // 3. Scan for Sand Trap constraints
             let insideSandZone = false;
             let targetSandY = 0;
             sandTraps.forEach(sand => {
@@ -688,68 +693,105 @@ function resetEntireGame(advanceHole = false) {
                 const dzS = worldZ - sand.position.z;
                 const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
                 const sandRadius = sand.geometry.parameters.radius || 5;
-                if (distToSand < sandRadius + 0.2) { // 0.2 buffer keeps mesh edges stitched neatly
+                if (distToSand < sandRadius + 0.2) {
                     insideSandZone = true;
-                    targetSandY = sand.position.y - 0.02; // Keeps the grass bed 0.02 units underneath the flat disc
+                    targetSandY = sand.position.y - 0.02;
                 }
             });
 
-            const gX = worldX - (green ? green.position.x : 0);
+            // Calculate precise distance to the putting green center
+            const gX = worldX - greenEndpoint.x;
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            if (distToGreen < 14.0) {
-                calculatedHeight -= 0.45;
+            // ==================================================================
+            // MASTER TRANSITION ENGINE: Extended blend window to eliminate teeth spikes
+            // ==================================================================
+            if (distToGreen < 25.0) {
+                // Expanded from a 3-unit window to a wide 12-unit slope window (25.0 down to 13.0).
+                // This gives large triangles room to gently conform to the green's height profile.
+                const blendT = Math.max(0, Math.min(1, (25.0 - distToGreen) / (25.0 - 13.0)));
+                calculatedHeight = THREE.MathUtils.lerp(calculatedHeight, localGreenHeight, blendT);
             }
 
-            // FIXED: Wrap fairway and floor offsets in a conditional block. If the vertex is inside 
-            // a water hazard zone, we skip relative offsets to keep both meshes perfectly stitched and flush.
             if (!insideWaterZone) {
-                // FIXED: Restored this critical declaration line to clear your ReferenceError blank screen crash!
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
 
-                // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
-                // UPDATED: Swapped out old straight Z constraints for the dynamic spline path tracking
-                // to cleanly handle our new 90-degree sideways dogleg modifications
+                // FUNNEL ENGINE: Dynamic width tapering near the green complex
+                let activeWidth = currentFairwayWidth;
+                if (distToGreen < 45.0) {
+                    const taperFactor = Math.max(0, Math.min(1, (distToGreen - 13.0) / (45.0 - 13.0)));
+                    activeWidth = THREE.MathUtils.lerp(8.0, currentFairwayWidth, taperFactor);
+                }
+
+                const maxFairwayLimit = activeWidth;
+                const maxBlendLimit = activeWidth + 0.8;
+
+                // CONCEALMENT CUTS (Applies ONLY to the rough floor mesh)
                 if (targetMesh === floor) {
-                    if (distanceToPath <= 8.0) {
-                        calculatedHeight -= 0.04; // Modify this line: Shaves the rough down slightly under the fairway core
-                    } else if (distanceToPath <= 8.8) {
-                        const t = (distanceToPath - 8.0) / 0.8; // Add this line
-                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t); // Add this line: Smoothly brings rough back up to ground level
+                    if (distanceToPath <= maxFairwayLimit) {
+                        calculatedHeight -= 0.04;
+                    } else if (distanceToPath <= maxBlendLimit) {
+                        const t = (distanceToPath - maxFairwayLimit) / 0.8;
+                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t);
                     }
                 }
 
-                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                // ELEVATION CUSHION (Applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     if (worldZ > -8.0) {
-                        calculatedHeight = -10.0; // Hides the fairway for the first 50 yards to create the rough carry
+                        calculatedHeight = -10.0;
                     } else if (insideSandZone) {
-                        calculatedHeight = -10.0; // Keeps the fairway completely hidden inside sand trap perimeters
-                    } else if (distanceToPath <= 8.0) {
-                        calculatedHeight += 0.06;
-                    } else if (distanceToPath <= 8.8) { // Modify this line: Sharpens the outer border to a tight 8.8 limit
-                        const t = (distanceToPath - 8.0) / 0.8; // Modify this line: Tightly constrains the slope calculation to 0.8 units
-                        calculatedHeight += THREE.MathUtils.lerp(0.06, -1.2, t); // Modify this line: Dives the fairway sharply under the rough mesh
+                        calculatedHeight = -10.0;
                     } else {
-                        calculatedHeight = -10.0; // Keep this line
+                        if (distanceToPath <= maxFairwayLimit) {
+                            // Smoothly clear out the raised fairway lip as it meets the green basin
+                            let cushion = 0.06;
+                            if (distToGreen < 25.0) {
+                                cushion *= Math.max(0, Math.min(1, (distToGreen - 13.0) / (25.0 - 13.0)));
+                            }
+                            calculatedHeight += cushion;
+                        } else if (distanceToPath <= maxBlendLimit) {
+                            const t = (distanceToPath - maxFairwayLimit) / 0.8;
+                            let cushion = THREE.MathUtils.lerp(0.06, -1.2, t);
+                            if (distToGreen < 25.0) {
+                                const fade = Math.max(0, Math.min(1, (distToGreen - 13.0) / (25.0 - 13.0)));
+                                cushion = THREE.MathUtils.lerp(-0.04, cushion, fade);
+                            }
+                            calculatedHeight += cushion;
+                        } else {
+                            calculatedHeight = -10.0;
+                        }
                     }
                 }
+            }
+
+            // ==================================================================
+            // MASTER UNDER-GREEN ANCHOR GUARD
+            // ==================================================================
+            // Once any vertex passes underneath the high-res green fringe, drop it 
+            // completely flat below the deck. 
+            if (distToGreen < 13.0) {
+                // UPDATED: Dropped to -0.45 to provide deep subterranean clearance.
+                // This ensures even your deepest contour valleys have room to curve 
+                // downward without hitting the underlying rough mesh grid!
+                calculatedHeight = localGreenHeight - 0.45;
             }
 
             // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
-            if (insideSandZone && targetMesh === floor) { // Modify this line: Added && targetMesh === floor
+            if (insideSandZone && targetMesh === floor) {
                 calculatedHeight = targetSandY;
             }
 
             // Write the finalized calculated height to the current vertex
             posAttr.setZ(i, calculatedHeight);
-        } // Closes the for loop
+        }
 
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
         targetMesh.geometry.computeVertexNormals();
     };
+
     // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
     deformVisualGreenMesh(green);
     deformVisualGreenMesh(greenGrid);
@@ -917,8 +959,10 @@ function resetEntireGame(advanceHole = false) {
         if (insideWaterHazard) continue;
 
         // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
-        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
-        if (fairwayDistance <= 9.0 || fairwayDistance > 35.0) { // Modify this line: Skip if inside the fairway OR too far out in the deep rough
+        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ);
+
+        // UPDATED: Replaced hardcoded 9.0 with our dynamic width + safety buffer clearance line
+        if (fairwayDistance <= (currentFairwayWidth + 1.0) || fairwayDistance > 35.0) {
             continue;
         }
 
