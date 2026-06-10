@@ -2134,12 +2134,14 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
-                const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
-                const baseBottom = isMobileView ? 30.0 : 21.8;
-                const currentBottom = baseBottom - (6.0 * ratio);
-                clubSwiconst isMobileView = window.innerWpe.style.setProperty('--putter-start-bottom', currentBottom + '%');
-            }
+                const isMobileMedia = window.matchMedia("(orientation: portrait), (max-width: 768px)").matches;
 
+                // ⚠️ NOTE: Keep this number completely identical to the putterBaseBottom value set above!
+                const baseBottom = isMobileMedia ? 30.0 : 21.8;
+
+                const currentBottom = baseBottom - (6.0 * ratio);
+                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
+            }
             clubSwipe.className = '';
 
             // Assign the style type based on the active club selection
