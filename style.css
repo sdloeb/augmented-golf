@@ -606,14 +606,14 @@ html {
 
 @keyframes putterSwipeAnimMobile {
     0% {
-        bottom: var(--putter-start-bottom, 35.0%);
+        bottom: var(--putter-start-bottom, 30.0%);
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     35% {
-        bottom: 35.0%;
+        bottom: 30.0%;
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
