@@ -554,9 +554,15 @@ html {
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
         left: calc(50% - 65px) !important;
-        /* Centering adjustment for the 130px wide iron/wood frame */
-        bottom: 40% !important;
-        /* Add this line: Adjust this percentage up or down to make it look perfect on mobile! */
+        bottom: 34% !important;
+        /* Modify this line: Controls Woods and Irons on mobile. Adjust this until they sit tight against the ball! */
+    }
+
+    /* Add this block right below it to override the putter on mobile screens */
+    #clubSwipe.putter.idle-stance {
+        left: calc(50% - 77.5px) !important;
+        bottom: 30% !important;
+        /* Add this line: Controls the Putter specifically on mobile. Adjust this until the putter sits tight against the ball! */
     }
 
     #clubSwipe.pullback-stance {
