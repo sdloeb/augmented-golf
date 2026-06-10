@@ -64,6 +64,9 @@ let currentHoleNumber = 1;
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
+let lastTime = performance.now();
+let physicsAccumulator = 0;
+const FIXED_TIMESTEP = 1000 / 60
 
 // Camera cinematic interpolation variables
 let cameraTargetPos = new THREE.Vector3(0, 2, 14);
@@ -1163,43 +1166,63 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-    // FIXED: Re-added the frame tick runner so the ball can actually move through space!
-    if (physics && !isSinking) {
-        physics.update();
+    // Calculate elapsed real-world delta time
+    const currentTime = performance.now();
+    let frameDelta = currentTime - lastTime;
+    if (frameDelta > 100) frameDelta = 100; // Cap to prevent infinite evaluation spirals when alert modals freeze execution
+    lastTime = currentTime;
 
-        // Rotate the dimpled texture based on the ball's rolling speed and direction
-        if (physics.isMoving && physics.isPutting) { // Add this line
-            ball.rotation.x += physics.velocity.z / 0.25; // Rotates forward/backward relative to Z speed // Add this line
-            ball.rotation.z -= physics.velocity.x / 0.25; // Rotates left/right relative to X speed // Add this line
-        } // Add this line
-        // --- NEW: INTERCEPT BUSH TRAP PENALTIES ---
-        if (physics && physics.isStuckInBush) {
-            physics.isStuckInBush = false; // Add this line
-            strokeCount++; // Add this line
-            document.getElementById('strokeText').innerText = strokeCount; // Add this line
+    physicsAccumulator += frameDelta;
 
-            // Give the browser 30ms to fully render the frame with the ball hidden inside the bush
-            setTimeout(() => { // Add this line
-                alert("One stroke penalty! 🍃 Your ball got stuck in a bush."); // Change this line
+    // Step through physics at a fixed internal simulation speed
+    while (physicsAccumulator >= FIXED_TIMESTEP) {
+        if (physics && !isSinking) {
+            physics.update();
 
-                // Reposition the ball to safety and make it visible again after clicking OK
-                ball.position.x = physics.bushResetX; // Add this line
-                ball.position.z = physics.bushResetZ; // Add this line
-                ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25; // Add this line
-                ball.visible = true; // Add this line
+            // Rotate the dimpled texture based on the ball's rolling speed and direction
+            if (physics.isMoving) {
+                const vx = physics.velocity.x;
+                const vz = physics.velocity.z;
+                const speed = Math.sqrt(vx * vx + vz * vz);
 
-                // Snap the camera directly behind the ball's new safe position so the club aligns perfectly
-                const dirX = holePosition.x - ball.position.x; // Add this line
-                const dirZ = holePosition.z - ball.position.z; // Add this line
-                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
-                const backX = -(dirX / length) * 5.5; // Add this line
-                const backZ = -(dirZ / length) * 5.5; // Add this line
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ); // Add this line
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
+                if (speed > 0.0001) {
+                    // FIXED: Generate a single true world-space axle vector perpendicular to current motion
+                    const axle = new THREE.Vector3(vz, 0, -vx).normalize();
+                    // Determine rotation angle proportional to distance traveled (speed / ball radius 0.25)
+                    const angle = speed / 0.25;
 
-                updateDistanceDisplay(); // Add this line: Refresh distance metrics and club list capacity options instantly
-            }, 30); // Add this line
+                    // Rotate directly on the world-space axis to prevent wobbly Euler angle loops
+                    ball.rotateOnWorldAxis(axle, angle);
+                }
+            }
+
+            // --- NEW: INTERCEPT BUSH TRAP PENALTIES ---
+            if (physics && physics.isStuckInBush) {
+                physics.isStuckInBush = false;
+                strokeCount++;
+                document.getElementById('strokeText').innerText = strokeCount;
+
+                setTimeout(() => {
+                    alert("One stroke penalty! 🍃 Your ball got stuck in a bush.");
+
+                    ball.position.x = physics.bushResetX;
+                    ball.position.z = physics.bushResetZ;
+                    ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+                    ball.visible = true;
+
+                    const dirX = holePosition.x - ball.position.x;
+                    const dirZ = holePosition.z - ball.position.z;
+                    const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                    const backX = -(dirX / length) * 7.5;
+                    const backZ = -(dirZ / length) * 7.5;
+                    cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                    cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+
+                    updateDistanceDisplay();
+                }, 30);
+            }
         }
+        physicsAccumulator -= FIXED_TIMESTEP;
     }
 
     // FIXED: Re-added your Out of Bounds course boundary tracking check
@@ -1247,18 +1270,23 @@ function animate() {
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
         if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
-            const ballSpeed = physics.velocity.length();
+            const rawSpeed = physics.velocity.length();
 
-            const maxSinkVelocity = (physics && physics.isPutting) ? (0.26 / 0.70) : 0.14;
+            // Calculate true world speed translation based on internal engine time scaling profiles
+            const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
+            const trueWorldSpeed = rawSpeed * currentScale;
 
-            // FIXED: Realism Lip-out simulation. Deflects the ball horizontally around the rim instead of bouncing upward
-            if (ballSpeed > maxSinkVelocity) { // Modify this line: Swapped 0.14 for maxSinkVelocity
+            // A uniform physical threshold standard (0.24) applied equally to both chips and putts
+            const maxWorldSinkSpeed = 0.24;
+
+            // Realism Lip-out simulation based on true physical ground speed limits
+            if (trueWorldSpeed > maxWorldSinkSpeed) {
                 const perpX = -dz / distanceToHole;
                 const perpZ = dx / distanceToHole;
 
                 // Centripetal sling wraps the ball around the lip edge based on velocity
-                physics.velocity.x = (physics.velocity.x * 0.3) + (perpX * ballSpeed * 0.6);
-                physics.velocity.z = (physics.velocity.z * 0.3) + (perpZ * ballSpeed * 0.6);
+                physics.velocity.x = (physics.velocity.x * 0.3) + (perpX * rawSpeed * 0.6);
+                physics.velocity.z = (physics.velocity.z * 0.3) + (perpZ * rawSpeed * 0.6);
                 return;
             }
             isSinking = true;
@@ -1373,10 +1401,10 @@ function animate() {
         }
     } else {
         const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-        const camDist = onGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
-        const camHeight = onGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
-        const lookDist = onGreen ? 6.0 : 12.0;
-
+        // ADJUSTED: Increased camDist from 5.5 to 7.5 and height to 2.2 to pull the camera back on short shots
+        const camDist = onGreen ? 2.5 : 7.5;
+        const camHeight = onGreen ? 1.0 : 2.2;
+        const lookDist = onGreen ? 6.0 : 15.0;
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -2209,12 +2237,13 @@ function init() {
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-                const camDist = checkOnGreen ? 2.5 : 5.5;      // Change this line: Pulled back from 1.6
-                const camHeight = checkOnGreen ? 1.0 : 1.8;    // Change this line: Elevated from 0.5
-                const lookDist = checkOnGreen ? 6.0 : 12.0;
+                // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
+                const camDist = checkOnGreen ? 2.5 : 7.5;
+                const camHeight = checkOnGreen ? 1.0 : 2.2;
+                const lookDist = checkOnGreen ? 6.0 : 15.0;
 
-                const backX = -(dirX / length) * camDist;
-                const backZ = -(dirZ / length) * camDist;
+                const backX = -(dirX / length) * 7.5;
+                const backZ = -(dirZ / length) * 7.5;
 
                 // CORRECTED: Smoothly transitions the camera back to your active zoom/horizon offsets
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ);

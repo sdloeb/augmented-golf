@@ -155,8 +155,9 @@ export class InputHandler {
         this.gaugeFill.style.height = `${pullRatio * 100}%`; // Keep this line! Resets the color bar layout instantly
 
         if (club.isGreen) {
-            const feet = Math.round(pullRatio * 50); // Modify this line: Updates touch gauge text mapping to 50 ft max
-            this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
+            // FIXED: Changed 50 to 80 to establish a consistent distance scale before the finger moves
+            const feet = Math.round(pullRatio * 80);
+            this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
         } else {
             this.gaugeLabel.innerText = `${club.name}: 0 yds`;
         }

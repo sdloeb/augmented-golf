@@ -2,7 +2,7 @@ export class PhysicsEngine {
     constructor(ballMesh) {
         this.ball = ballMesh;
         this.velocity = new THREE.Vector3(0, 0, 0);
-        this.friction = 0.98; // Lower numbers slow the ball down faster
+        this.friction = 0.88; // Lower numbers slow the ball down faster
         this.gravity = 0.006;  // Pulls the ball back to earth
         this.bounce = 0.40;    // How elastic the bounces are (0.55 = 55% height kept)
         this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
@@ -22,6 +22,7 @@ export class PhysicsEngine {
         this.obstacles = [];
         this.isStuckInBush = false;
         this.fairwayPoints = [];
+        this.hasLanded = false;
     }
 
     // NEW: Receives the shuffled configurations from the map setup
@@ -223,6 +224,7 @@ export class PhysicsEngine {
 
         // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
         this.spin = isPutting ? 0 : spin;
+        this.hasLanded = false;
 
         // 2. ROTATE THE INITIAL TRAJECTORY OUTWARDS
         let adjustedAngle = mouseAngle;
@@ -267,7 +269,7 @@ export class PhysicsEngine {
         // 0. SURFACE PHYSICS PARAMETERS CHECK
         let currentFriction = this.friction;
         let currentBounceHeight = this.bounce;
-        let currentBounceForwardLoss = 0.80;
+        let currentBounceForwardLoss = 0.38;
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
@@ -298,9 +300,8 @@ export class PhysicsEngine {
             currentBounceHeight = 0.20;
             currentBounceForwardLoss = 0.50;
         }
-        else if (this.isPutting) {
-            // Only use slick green friction if we are putting and NOT stuck in sand or deep rough
-            currentFriction = 0.990;
+        if (this.isPutting) {
+            currentFriction = 0.985;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -357,23 +358,9 @@ export class PhysicsEngine {
                 this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
-            // Apply ground surface friction using a combined percentage and linear deceleration model
-            const rollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
-            if (rollSpeed > 0) {
-                let newSpeed = rollSpeed * currentFriction;
-
-                // REALISM UPDATE: Increased linear resistance to serve as the primary steady stopping force
-                if (this.isPutting) {
-                    const linearResistance = 0.0009;
-                    newSpeed = Math.max(0, newSpeed - linearResistance);
-                } else {
-                    const linearResistance = 0.0032; // Modify this line: Increased from 0.0014 to confidently stop slow trickles
-                    newSpeed = Math.max(0, newSpeed - linearResistance);
-                }
-
-                this.velocity.x = (this.velocity.x / rollSpeed) * newSpeed;
-                this.velocity.z = (this.velocity.z / rollSpeed) * newSpeed;
-            }
+            // Apply ground surface friction
+            this.velocity.x *= currentFriction;
+            this.velocity.z *= currentFriction;
 
             // NEW: Continuous 3D gradient vector checks when rolling across the contoured tiers
             const delta = 0.1;
@@ -386,18 +373,11 @@ export class PhysicsEngine {
             this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
             this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
 
-            // ADJUSTED: Re-calculate speed post-friction to apply accurate slope breaks
-            const ballRollSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
-            let slopeInfluenceModifier = 1.0;
+            // FIXED: Scaled by timeScale so gravity forces accumulate in the exact same time dimension as rolling friction
+            this.velocity.x += this.slopeX * timeScale;
+            this.velocity.z += this.slopeZ * timeScale;
 
-            // REALISM UPDATE: Tuned the slope break fade window to 0.035 for a fluid, continuous slow-down curve
-            if (ballRollSpeed < 0.035) {
-                slopeInfluenceModifier = Math.max(0.0, (ballRollSpeed - 0.020) / (0.035 - 0.020)); // Modify this line: Raised lower limit from 0.012 to 0.020 to kill slope influence early
-            }
-
-            this.velocity.x += this.slopeX * slopeInfluenceModifier;
-            this.velocity.z += this.slopeZ * slopeInfluenceModifier;
-        } // <-- This brace closes the entire ground movement block
+        }
 
         // 2. MOVE THE BALL 
         this.ball.position.x += this.velocity.x * timeScale;
@@ -498,9 +478,8 @@ export class PhysicsEngine {
         }
 
         // 3. GROUND COLLISION & HAZARD DETECTION
-        if (this.ball.position.y <= groundY || !isAirborne) { // Modify this line: Added || !isAirborne to force rolling balls to hug downward slopes
+        if (this.ball.position.y <= groundY) {
             this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
-            this.hasLanded = true
 
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
@@ -531,9 +510,9 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        // FIXED: Removed the slopeForce lockout block. When a slow ball's velocity falls beneath a realistic 
-        // threshold, static friction cuts off kinetic energy so the ball can settle to a dead stop directly on hillsides.
-        if (this.velocity.length() < 0.012 && this.ball.position.y <= groundY) {
+        // ADJUSTED: Reverted to 0.012 baseline since linear resistance handles smooth low-end damping naturally
+        const stopThreshold = 0.012;
+        if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;
