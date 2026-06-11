@@ -413,7 +413,7 @@ function generateHazards() {
         const sandDepth = 0.4 + Math.random() * 1.6;
 
         const sandMesh = new THREE.Mesh(
-            // FIXED: Changed to RingGeometry(0, ...) to give the mesh concentric internal rows to mold to the wide flat floor!
+            // FIXED: Changed to RingGeometry(0, ...) to give the mesh interior rows to bend over slopes!
             new THREE.RingGeometry(0, r, 32, 6),
             new THREE.MeshStandardMaterial({
                 color: 0xd9c59e, // Clean realistic sand coloring
@@ -426,7 +426,7 @@ function generateHazards() {
         );
         sandMesh.rotation.x = -Math.PI / 2;
 
-        // FIXED: Reset position.y to 0 so absolute height deformations don't stack and float over hills
+        // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
         sandMesh.position.set(x, 0, z);
         sandMesh.userData = { radius: r, depth: sandDepth };
         scene.add(sandMesh);
@@ -678,10 +678,26 @@ function resetEntireGame(advanceHole = false) {
             const worldZ = -localY + targetMesh.position.z;
 
             // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
+            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
             let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
-            if (targetMesh === green) calculatedHeight += 0.02;
-            if (targetMesh === greenGrid) calculatedHeight += 0.03;
-            if (targetMesh === greenFringe) calculatedHeight += 0.018;
+
+            // NEW: Check if this vertex falls inside a sand trap to submerge the fringe collar
+            let insideSand = false;
+            sandTraps.forEach(sand => {
+                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
+                    insideSand = true;
+                }
+            });
+
+            if (insideSand && targetMesh === greenFringe) {
+                // Safely drop the collar triangles beneath the 3D bunker floor
+                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.14;
+            } else {
+                if (targetMesh === green) calculatedHeight += 0.02;
+                if (targetMesh === greenGrid) calculatedHeight += 0.03;
+                if (targetMesh === greenFringe) calculatedHeight += 0.018;
+            }
+
             posAttr.setZ(i, calculatedHeight);
         }
         posAttr.needsUpdate = true;
@@ -716,14 +732,14 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
-            // Scan active sand trap footprint borders
+            // Scan active sand trap footprint borders using correct userData properties
             let insideSandZone = false;
             sandTraps.forEach(sand => {
                 const dxS = worldX - sand.position.x;
                 const dzS = worldZ - sand.position.z;
                 const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                if (distToSand < sandRadius) {
+                // FIXED: Increased buffer to +1.6 to pull wide fairway triangles underground before they can clip the sloped walls
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6; {
                     insideSandZone = true;
                 }
             });
@@ -764,28 +780,24 @@ function resetEntireGame(advanceHole = false) {
 
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
-                    calculatedHeight = floorHeight;
-                    if (insideSandZone) calculatedHeight -= 0.14;
+                    calculatedHeight = insideSandZone ? (floorHeight - 0.35) : floorHeight;
                 }
 
-                // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    // Determine if this part of the fairway should be visible or hidden under the rough floor
                     const shouldHide = (worldZ > -8.0) || isPastFairway || insideSandZone || (distanceToPath > fWEdge);
 
                     if (shouldHide) {
-                        // Place hidden fairway mesh slightly underneath either the rough floor height or sand bowl height
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.16) : (floorHeight - 0.16);
+                        // FIXED: Submerges 0.37 units beneath the dynamic depth map instead of obsolete flat baselines
+                        calculatedHeight = insideSandZone ? (calculatedHeight - 0.37) : (floorHeight - 0.02);
                     } else if (distanceToPath <= fW) {
-                        // Inside the core fairway lane, stay visible above base height
                         calculatedHeight += 0.06;
                     } else {
-                        // Inside the transition shoulder, blend smoothly from fairway height to hidden floor depth
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
                         const visibleHeight = calculatedHeight + 0.06;
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.02) : (floorHeight - 0.02);
+                        const hiddenHeight = insideSandZone ? (calculatedHeight - 0.37) : (floorHeight - 0.02);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
@@ -1004,8 +1016,8 @@ function resetEntireGame(advanceHole = false) {
         let insideSandTrap = sandTraps.some(sandMesh => { // Add this line
             let dxS = sampleX - sandMesh.position.x; // Add this line
             let dzS = sampleZ - sandMesh.position.z; // Add this line
-            let sandRadius = sandMesh.geometry.parameters.radius || 0; // Add this line
-            return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0); // Add this line
+            // FIXED: Look up our live userData radius property, and add a +1.5 buffer cushion to clear foliage limbs
+            let sandRadius = (sandMesh.userData && sandMesh.userData.radius ? sandMesh.userData.radius : 5) + 1.5; return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0); // Add this line
         }); // Add this line
         if (insideSandTrap) continue; // Add this line
 
