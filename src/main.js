@@ -2331,9 +2331,10 @@ function updateGreenGrid() {
     const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
     const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
 
-    // Modify this block: Drives speed directly by slope steepness, allowing forward, backward, or zero movement
-    const velocityScale = 0.04; // Change this value to adjust general arrow speed
-    const finalVelocity = pathSlopeComponent * velocityScale; // Add this line
+    // Modify this block: Drives speed directly by slope steepness with a strict maximum speed cap
+    const velocityScale = 0.02; // Modify this line: Lowered from 0.04 to slow down general speed
+    let finalVelocity = pathSlopeComponent * velocityScale; // Modify this line: Changed 'const' to 'let'
+    finalVelocity = Math.max(-0.002, Math.min(0.002, finalVelocity)); // Add this line: This is what limits the max speed!
 
     let animationShift = (performance.now() * finalVelocity) % 1.0; // Add this line
     if (animationShift < 0) { // Add this line: Corrects JavaScript negative loops for smooth reverse flow
@@ -2355,7 +2356,7 @@ function updateGreenGrid() {
             const localSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
             const slopeMag = Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ);
 
-            if (slopeMag > 0.0005) {
+            if (slopeMag > 0.0002) {
                 ctx.save();
                 ctx.translate(cx, cy);
 
@@ -2378,7 +2379,7 @@ function updateGreenGrid() {
 
                 // Modify this block: Overrides all conditions to force a uniform pink style and scale
                 let arrowScale = 0.42;                         // Modify this line: Consistent medium scale size
-                ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Modify this line: Solid Pink for all conditions
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.95)';   // Modify this line: Solid Pink for all conditions
                 ctx.lineWidth = 3.2;                           // Modify this line: Clean uniform thickness
 
                 ctx.beginPath();
