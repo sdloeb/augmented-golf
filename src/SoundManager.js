@@ -6,7 +6,9 @@ export class SoundManager {
             swing: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-swing-no-ball-contact.mp3'),
             bounce: new Audio('https://raw.githubusercontent.com/scottschiller/SoundManager2/master/demo/_mp3/click-low.mp3'),
             water: new Audio('https://gfxsounds.com/wp-content/uploads/2021/09/Swimming-pool-dive-in-with-a-splash.mp3'), // Changed movie to a real water splash
-            sink: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-ball-spins-around-cup.mp3')
+            sink: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-ball-spins-around-cup.mp3'),
+            putt: new Audio('https://raw.githubusercontent.com/scottschiller/SoundManager2/master/demo/_mp3/click-high.mp3')
+
         };
 
         // Pre-adjust volumes so they blend together nicely
@@ -14,6 +16,7 @@ export class SoundManager {
         this.sounds.bounce.volume = 0.5;
         this.sounds.water.volume = 0.6;
         this.sounds.sink.volume = 0.7;
+        this.sounds.putt.volume = 0.65;
 
         Object.values(this.sounds).forEach(sound => {
             sound.preload = 'auto';

@@ -2119,7 +2119,13 @@ function init() {
 
 
 
-        if (sounds) sounds.play('swing');
+        if (sounds) {
+            if (isOnGreen) {
+                sounds.play('putt'); // Add this line: Triggers the crisp short tap audio file when putting
+            } else {
+                sounds.play('swing'); // Add this line: Keeps standard big club windy whoosh audio for standard shots
+            }
+        }
         const club = input.getClubInfo();
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
