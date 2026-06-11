@@ -1333,35 +1333,10 @@ function animate() {
         }
     }
 
-    // Add this entire block below:
-    if (!physics.isMoving && wasMoving && !isSinking) {
-        isOverheadActive = false;
+    // 3. DYNAMIC CAMERA CONTROLLER
 
-        const checkX = ball.position.x - (green ? green.position.x : 0);
-        const checkZ = ball.position.z - greenCenterZ;
-        const isOnGreenStop = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
-        const currentClub = input ? input.getClubInfo().name : '';
-        if (teeBox && teeBox.visible) {
-            ballTargetScale = 0.32;
-        } else if (isOnGreenStop || currentClub === 'Putter') {
-            ballTargetScale = 0.40;
-        } else {
-            ballTargetScale = 0.80;
-        }
-
-        generateNewWind();
-        updateDistanceDisplay();
-        updateGreenGrid();
-        wasMoving = false;
-        window.puttingCameraDelayStart = performance.now();
-
-        tracerPoints = [];
-        if (ballTracer) {
-            ballTracer.geometry.setFromPoints(tracerPoints);
-            ballTracer.geometry.computeBoundingSphere();
-        }
-    }
+    // 3. DYNAMIC CAMERA CONTROLLER
 
 
 
@@ -1394,10 +1369,9 @@ function animate() {
         // Modify these two lines: Replaces hardcoded values with the live shot origin coordinates
         const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
         const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-        const dx = ball.position.x - startX; // Add this line
-        const dz = ball.position.z - startZ; // Add this line
+        const dx = ball.position.x - startX;
+        const dz = ball.position.z - startZ;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
-
 
         const checkX = ball.position.x - (green ? green.position.x : 0);
         const checkZ = ball.position.z - greenCenterZ;
@@ -1447,7 +1421,33 @@ function animate() {
             cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
         }
 
+        if (wasMoving && !isSinking) {
+            isOverheadActive = false; // Keep this line
 
+            // 3-OPTION BALL SCALING ENGINE
+            const currentClub = input ? input.getClubInfo().name : '';
+            if (teeBox && teeBox.visible) {
+                ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
+            } else if (onGreen || currentClub === 'Putter') {
+                ballTargetScale = 0.40;  // OPTION 2: Size when on the Green or using the Putter
+            } else {
+                ballTargetScale = 0.80; // OPTION 3: Size when out in the Fairway or Rough
+            }
+
+            generateNewWind();
+            updateDistanceDisplay();
+            wasMoving = false;
+            window.puttingCameraDelayStart = performance.now();
+
+            // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
+            tracerPoints = [];
+            if (ballTracer) {
+                ballTracer.geometry.setFromPoints(tracerPoints);
+                ballTracer.geometry.computeBoundingSphere();
+            }
+
+
+        }
 
         if (input && input.isSwinging) {
             // 3-OPTION BALL SCALING ENGINE
