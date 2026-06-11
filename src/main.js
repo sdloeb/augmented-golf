@@ -834,61 +834,6 @@ function resetEntireGame(advanceHole = false) {
     deformVisualGreenMesh(greenGrid);
     deformVisualGreenMesh(greenFringe);
 
-    // Extract local physics engine height maps to draw custom contour arrows across the surface grid
-    if (gridCanvas && gridTexture) {
-        const ctx = gridCanvas.getContext('2d');
-        ctx.clearRect(0, 0, 512, 512);
-
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.lineWidth = 4.0;
-
-        const gridCount = 5;
-        const spacing = 512 / gridCount;
-
-        for (let row = 0; row < gridCount; row++) {
-            for (let col = 0; col < gridCount; col++) {
-                const cx = col * spacing + spacing / 2;
-                const cy = row * spacing + spacing / 2;
-
-                // Map canvas coordinates to world coordinates relative to the green center
-                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2) + greenEndpoint.x; // Modify this line: Added + greenEndpoint.x
-                const wz = (cy / 512 - 0.5) * (GREEN_RADIUS * 2) + greenCenterZ;
-
-                // Check if this point falls inside the circular green grass area
-                const distFromCenter = Math.sqrt((wx - greenEndpoint.x) * (wx - greenEndpoint.x) + (wz - greenCenterZ) * (wz - greenCenterZ)); // Modify this line: Subtracted greenEndpoint.x to keep circle check relative
-                if (distFromCenter < GREEN_RADIUS - 0.5) {
-
-                    // Sample local neighbors to get the exact slope direction at this specific point
-                    const delta = 0.1;
-                    const hL = physics.getGreenHeight(wx - delta, wz);
-                    const hR = physics.getGreenHeight(wx + delta, wz);
-                    const hB = physics.getGreenHeight(wx, wz - delta);
-                    const hF = physics.getGreenHeight(wx, wz + delta);
-
-                    const localSlopeX = (hL - hR) / (2 * delta);
-                    const localSlopeZ = (hB - hF) / (2 * delta);
-
-                    // Only paint an arrow if there is an active slope angle here
-                    if (Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ) > 0.001) {
-                        ctx.save();
-                        ctx.translate(cx, cy);
-                        ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points arrow downhill
-
-                        // Draw clean, bolder medium-sized arrows
-                        ctx.beginPath();
-                        ctx.moveTo(-25, 0); ctx.lineTo(25, 0);
-                        ctx.lineTo(12, -9);
-                        ctx.moveTo(25, 0); ctx.lineTo(12, 9);
-                        ctx.stroke();
-                        ctx.restore();
-                    }
-                }
-            }
-        }
-        gridTexture.needsUpdate = true;
-    }
-
-
 
     deformCourseMesh(floor, false);
     deformCourseMesh(fairway, true);
@@ -1563,7 +1508,10 @@ function animate() {
 
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
-    const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+
+    // NEW: Ensure green surface state only activates when the ball is low to the ground or has landed
+    const isBallInGreenCircle = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+    const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
 
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
     let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
