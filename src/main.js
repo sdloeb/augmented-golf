@@ -418,12 +418,11 @@ function updateWindArrowDisplay() {
     if (!arrow || !camera) return;
     if (physics && physics.isMoving) return;
 
-    // Get the horizontal direction vector the camera is facing
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
+    // Get the horizontal direction vector between our stable camera look targets
+    const stableForward = new THREE.Vector3().subVectors(cameraLookAt, cameraTargetPos); // Add this line
 
-    // Calculate the camera's heading angle in radians
-    const cameraAngle = Math.atan2(forward.x, -forward.z);
+    // Calculate the camera's heading angle in radians using our stable target vectors
+    const cameraAngle = Math.atan2(stableForward.x, -stableForward.z); // Modify this line
 
     // Wind direction relative to the camera's perspective
     const relativeAngle = currentWindAngle - cameraAngle;
