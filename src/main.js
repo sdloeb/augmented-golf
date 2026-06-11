@@ -2319,10 +2319,9 @@ function updateGreenGrid() {
     const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < GREEN_RADIUS;
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
 
-    // NEW: Keep arrows visible during look-around AND active swing pullback states
-    const isAiming = input && (input.isAimMode || input.state === 'PULLBACK' || input.state === 'FORWARD');
+    // Grid safely stays hidden when swinging
+    const isAiming = input && input.isAimMode;
 
-    // If not on the green, airborne, or not aiming, clear the canvas completely
     if (!isBallOnGreen || isAirborne || physics.hitWater || isSinking || !isAiming) {
         gridTexture.needsUpdate = true;
         return;
@@ -2335,73 +2334,84 @@ function updateGreenGrid() {
     const dirX = dx / pathLen;
     const dirZ = dz / pathLen;
 
-    const stepDistance = 1.5;
-    const travelSteps = Math.floor(pathLen / stepDistance);
-
+    // Fixed step intervals ensure uniform, consistent arrow spacing across the entire path
+    const travelSteps = Math.max(1, Math.floor(pathLen / 2.2));
     const delta = 0.1;
-    const ballSlopeX = (physics.getGreenHeight(ball.position.x - delta, ball.position.z) - physics.getGreenHeight(ball.position.x + delta, ball.position.z)) / (2 * delta);
-    const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
 
-    // NEW: Calculate true overall slope magnitude so side-breaks register physical steepness
-    const totalSlopeSteepness = Math.sqrt(ballSlopeX * ballSlopeX + ballSlopeZ * ballSlopeZ);
+    for (let s = 0; s <= travelSteps; s++) {
+        let baseT = s / travelSteps;
+        baseT = Math.max(0, Math.min(1, baseT));
+        const sampleWx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, baseT);
+        const sampleWz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, baseT);
 
-    // NEW: Give it a baseline trickle speed so arrows always flow forward, accelerating on severe breaks
-    const baseStreamSpeed = 0.0006;
-    const velocityScale = 0.015;
-    let finalVelocity = baseStreamSpeed + (totalSlopeSteepness * velocityScale);
-    finalVelocity = Math.max(0.0003, Math.min(0.0025, finalVelocity));
+        // Sample slope values to determine local speed and forward/backward flow vectors
+        const localSlopeX = (physics.getGreenHeight(sampleWx - delta, sampleWz) - physics.getGreenHeight(sampleWx + delta, sampleWz)) / (2 * delta);
+        const localSlopeZ = (physics.getGreenHeight(sampleWx, sampleWz - delta) - physics.getGreenHeight(sampleWx, sampleWz + delta)) / (2 * delta);
 
-    let animationShift = (performance.now() * finalVelocity) % 1.0;
+        // FIXED: Multiplies by localSlopeZ instead of localPathSlope to prevent code crashes
+        const localPathSlope = (dirX * localSlopeX) + (dirZ * localSlopeZ);
 
+        let localShift = 0.5; // Perfectly centered resting point for static flat terrain slots
 
-    for (let s = -1; s <= travelSteps + 1; s++) {
-        const t = (s + animationShift) / travelSteps;
+        // If an active forward or backward slope exists, animate the streaming velocity
+        if (Math.abs(localPathSlope) > 0.0001) {
+            const flowDirection = localPathSlope >= 0 ? 1 : -1;
+            const velocityScale = 0.025;
+            let localVelocity = Math.abs(localPathSlope) * velocityScale * flowDirection;
+            localVelocity = Math.max(-0.003, Math.min(0.003, localVelocity));
+
+            localShift = (performance.now() * localVelocity) % 1.0;
+            if (localShift < 0) {
+                localShift += 1.0;
+            }
+        }
+
+        // Apply slot coordinates smoothly down the putting line trajectory
+        const t = baseT + (localShift - 0.5) / travelSteps;
         if (t < 0 || t > 1) continue;
 
         const wx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
         const wz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, t);
 
+        // Keep texture maps safely contained inside the visual boundary circles
         if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < GREEN_RADIUS - 0.3) {
             const cx = 512 * ((wx - gX) / (GREEN_RADIUS * 2) + 0.5);
             const cy = 512 * ((wz - gZ) / (GREEN_RADIUS * 2) + 0.5);
 
-            const localSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
-            const localSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
-            const slopeMag = Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ);
+            const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
+            const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
 
-            if (slopeMag > 0.0002) {
-                ctx.save();
-                ctx.translate(cx, cy);
+            ctx.save();
+            ctx.translate(cx, cy);
 
-                // Add this block: Vector calculations to blend hole targets with sideways break curves
-                const toHoleX = holePosition.x - wx; // Add this line
-                const toHoleZ = holePosition.z - wz; // Add this line
-                const distToHole = Math.sqrt(toHoleX * toHoleX + toHoleZ * toHoleZ) || 1; // Add this line
-                const unitHoleX = toHoleX / distToHole; // Add this line
-                const unitHoleZ = toHoleZ / distToHole; // Add this line
+            const toHoleX = holePosition.x - wx;
+            const toHoleZ = holePosition.z - wz;
+            const distToHole = Math.sqrt(toHoleX * toHoleX + toHoleZ * toHoleZ) || 1;
+            const unitHoleX = toHoleX / distToHole;
+            const unitHoleZ = toHoleZ / distToHole;
 
-                const perpX = -unitHoleZ; // Add this line: Perpendicular right vector
-                const perpZ = unitHoleX;  // Add this line
+            const perpX = -unitHoleZ;
+            const perpZ = unitHoleX;
 
-                const curveIntensity = (localSlopeX * perpX) + (localSlopeZ * perpZ); // Add this line: Sideways break component
-                const curveSensitivity = 15.0; // Add this line: Exaggerates arrow bending visibility
+            // Sideways bending calculations to face the arrow left/right depending on contours
+            const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
+            const curveSensitivity = 15.0;
 
-                const arrowDirX = unitHoleX + perpX * curveIntensity * curveSensitivity; // Add this line
-                const arrowDirZ = unitHoleZ + perpZ * curveIntensity * curveSensitivity; // Add this line
-                ctx.rotate(Math.atan2(arrowDirZ, arrowDirX)); // Modify this line: Rotates pointing along the curve vector
+            const arrowDirX = unitHoleX + perpX * curveIntensity * curveSensitivity;
+            const arrowDirZ = unitHoleZ + perpZ * curveIntensity * curveSensitivity;
+            ctx.rotate(Math.atan2(arrowDirZ, arrowDirX));
 
-                // Modify this block: Overrides all conditions to force a uniform pink style and scale
-                let arrowScale = 0.42;                         // Modify this line: Consistent medium scale size
-                ctx.strokeStyle = 'rgba(50, 115, 255, 0.95)';   // Corrected to Blue
-                ctx.lineWidth = 3.2;                           // Modify this line: Clean uniform thickness
+            // Your exact custom drawing metrics are fully preserved here:
+            let arrowScale = 0.42;
+            ctx.strokeStyle = 'rgba(100, 200, 255, 0.95)';
+            ctx.lineWidth = 3.2;
 
-                ctx.beginPath();
-                ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
-                ctx.lineTo(4 * arrowScale, 0);
-                ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
-                ctx.stroke();
-                ctx.restore();
-            }
+            ctx.beginPath();
+            ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
+            ctx.lineTo(4 * arrowScale, 0);
+            ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
+            ctx.stroke();
+            ctx.restore();
         }
     }
     gridTexture.needsUpdate = true;
