@@ -1420,57 +1420,8 @@ function animate() {
             cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
         }
 
-        if (wasMoving && !isSinking) {
-            isOverheadActive = false; // Keep this line
 
-            // 3-OPTION BALL SCALING ENGINE
-            const currentClub = input ? input.getClubInfo().name : '';
-            if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
-            } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.40;  // OPTION 2: Size when on the Green or using the Putter
-            } else {
-                ballTargetScale = 0.80; // OPTION 3: Size when out in the Fairway or Rough
-            }
-
-            generateNewWind();
-            updateDistanceDisplay();
-            wasMoving = false;
-            window.puttingCameraDelayStart = performance.now();
-
-            // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
-            tracerPoints = [];
-            if (ballTracer) {
-                ballTracer.geometry.setFromPoints(tracerPoints);
-                ballTracer.geometry.computeBoundingSphere();
-            }
-
-
-        }
-
-        if (input && input.isSwinging) {
-            // 3-OPTION BALL SCALING ENGINE
-            // 1. Scales the ball while you ARE swinging
-            const currentClub = input ? input.getClubInfo().name : '';
-            if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.55;
-            } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.40;
-            } else {
-                ballTargetScale = 0.80;
-            }
-        }
-
-        // 2. NEW: Scales the ball while it is sitting completely still at rest
-        const restingClub = input ? input.getClubInfo().name : '';
-        if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
-        } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.40;
-        } else {
-            ballTargetScale = 0.80;
-        }
-    } // <-- This brace closes the entire "ball is not moving" section
+     // <-- This brace closes the entire "ball is not moving" section
 
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
@@ -1669,7 +1620,16 @@ function animate() {
         }
     }
 
-    camera.position.lerp(cameraTargetPos, activeCameraSpeed);
+    // Add this block below:
+    const ballGreenX = ball.position.x - (green ? green.position.x : 0);
+    const ballGreenZ = ball.position.z - greenCenterZ;
+    const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+
+    if (isCamOnGreen && !isSinking) {
+        updateGreenGrid();
+    }
+
+    camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Existing line below your new addition
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
 
@@ -1682,9 +1642,8 @@ function animate() {
 
     // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 7.5 units envelope
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
-    if (cameraDistanceToBall < 7.5 && !isCamOnGreen) { // Modify this line: Added !isCamOnGreen to prevent crushing the ball size on the green
-        // TUNED: Adjusted tracking window to 7.5 to smoothly suppress ball ballooning on short chip shots
-        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 7.5);
+    if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
+        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 9.5);
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -2300,3 +2259,93 @@ function init() {
 }
 
 init();
+
+init();
+
+// Add this entire function block at the very bottom of the file:
+function updateGreenGrid() {
+    if (!gridCanvas || !gridTexture || !green || !ball || !physics) return;
+    const ctx = gridCanvas.getContext('2d');
+    ctx.clearRect(0, 0, 512, 512);
+
+    const gX = green.position.x;
+    const gZ = greenCenterZ;
+
+    const dxB = ball.position.x - gX;
+    const dzB = ball.position.z - gZ;
+    const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < GREEN_RADIUS;
+    const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
+    const isAiming = input && input.isAimMode;
+
+    // If not on the green, airborne, or not aiming, clear the canvas completely
+    if (!isBallOnGreen || isAirborne || physics.hitWater || isSinking || !isAiming) {
+        gridTexture.needsUpdate = true;
+        return;
+    }
+
+    const dx = holePosition.x - ball.position.x;
+    const dz = holePosition.z - ball.position.z;
+    const pathLen = Math.sqrt(dx * dx + dz * dz) || 1;
+
+    const dirX = dx / pathLen;
+    const dirZ = dz / pathLen;
+
+    const stepDistance = 1.5;
+    const travelSteps = Math.floor(pathLen / stepDistance);
+
+    const delta = 0.1;
+    const ballSlopeX = (physics.getGreenHeight(ball.position.x - delta, ball.position.z) - physics.getGreenHeight(ball.position.x + delta, ball.position.z)) / (2 * delta);
+    const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
+    const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
+
+    const baseFlowVelocity = 0.003;
+    const dynamicVelocity = baseFlowVelocity + (pathSlopeComponent * 0.05);
+    const finalVelocity = Math.max(0.0008, dynamicVelocity);
+
+    const animationShift = (performance.now() * finalVelocity) % 1.0;
+
+    for (let s = -1; s <= travelSteps + 1; s++) {
+        const t = (s + animationShift) / travelSteps;
+        if (t < 0 || t > 1) continue;
+
+        const wx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
+        const wz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, t);
+
+        if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < GREEN_RADIUS - 0.3) {
+            const cx = 512 * ((wx - gX) / (GREEN_RADIUS * 2) + 0.5);
+            const cy = 512 * ((wz - gZ) / (GREEN_RADIUS * 2) + 0.5);
+
+            const localSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
+            const localSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
+            const slopeMag = Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ);
+
+            if (slopeMag > 0.0005) {
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(Math.atan2(localSlopeZ, localSlopeX));
+
+                let arrowScale = 0.35;
+                if (slopeMag < 0.015) {
+                    ctx.strokeStyle = 'rgba(130, 200, 255, 0.85)'; // Light Blue (Flat)
+                    ctx.lineWidth = 2.0;
+                } else if (slopeMag < 0.035) {
+                    ctx.strokeStyle = 'rgba(0, 255, 204, 0.9)';   // Cyan (Moderate break)
+                    arrowScale = 0.42;
+                    ctx.lineWidth = 2.6;
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Pink/Red (Heavy slope)
+                    arrowScale = 0.50;
+                    ctx.lineWidth = 3.2;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
+                ctx.lineTo(4 * arrowScale, 0);
+                ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+    }
+    gridTexture.needsUpdate = true;
+}
