@@ -1692,7 +1692,7 @@ function animate() {
             if (physics.isPutting) {
                 // Add this block: A specialized cinematic viewpoint for rolling putts to observe green breaks
                 targetFov = aspect < 1 ? 65 : 45;
-                rigidCamDist = 4.8;               // Backs away slightly to open up the visual field
+                rigidCamDist = 4.0;               // Backs away slightly to open up the visual field
                 rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
                 lookUpOffset = -0.25;
             } else {
