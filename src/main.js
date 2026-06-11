@@ -60,7 +60,6 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentFairwayWidth = 8.0;
 let currentHoleNumber = 1;
 let currentHoleConfig = null;
 let currentPar = 4;
@@ -273,9 +272,8 @@ function generateHazards() {
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) ||
-            // UPDATED: Replaced hardcoded 9.0 with our dynamic width variable + buffer padding
-            (physics && (physics.getDistanceToSpline(x, z) < (currentFairwayWidth + r + 1.0) || physics.getDistanceToSpline(x, z) > (currentFairwayWidth + r + 10.0))) ||
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) || // Modify this line: Checks true green center
+            (physics && (physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5) || physics.getDistanceToSpline(x, z) > (9.0 + r + 2.0))) || // Modify this line: Set min distance to 0.5 and clamped max distance to 18.0
             (z > -15 && Math.abs(x) < 15)
         );
         if (waterAttempts > 50) continue;
@@ -354,12 +352,13 @@ function generateHazards() {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
         do {
+            // NEW APPROACH: Base coordinates directly on the fairway track or green center so they can never wander off
             if (Math.random() > 0.3 && physics.fairwayPoints && physics.fairwayPoints.length > 0) {
+                // Pick a random track coordinate along the active fairway line
                 const basePt = physics.fairwayPoints[Math.floor(Math.random() * physics.fairwayPoints.length)];
                 const angle = Math.random() * Math.PI * 2;
-
-                // UPDATED: Adjust offset distance dynamically based on the current fairway width scale
-                const offsetDist = currentFairwayWidth + r + 1.0 + Math.random() * 4.0;
+                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the fairway edge
+                const offsetDist = 9.0 + r + 0.5 + Math.random() * 4.0;
 
                 x = basePt.x + Math.cos(angle) * offsetDist;
                 z = basePt.z + Math.sin(angle) * offsetDist;
@@ -377,10 +376,9 @@ function generateHazards() {
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) ||
-            // UPDATED: Replaced hardcoded 9.0 with our dynamic fairway width check
-            (physics && physics.getDistanceToSpline(x, z) < (currentFairwayWidth + r + 0.5)) ||
-            (z > -15 && Math.abs(x) < 15)
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) || // Keep clear of green surface
+            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) || // Keep clear of fairway short grass
+            (z > -15 && Math.abs(x) < 15) // Keep clear of the immediate tee box zone
         );
 
         if (sandAttempts > 100) continue;
@@ -541,7 +539,6 @@ function resetEntireGame(advanceHole = false) {
     }
 
     currentHoleConfig = holeConfig; // 
-    currentFairwayWidth = 7.5 + Math.random() * 21.5;
 
     const themeRoll = Math.random();
     if (themeRoll < 0.25) {
@@ -660,7 +657,6 @@ function resetEntireGame(advanceHole = false) {
         const posAttr = targetMesh.geometry.attributes.position;
         const scaleX = useScale ? targetMesh.scale.x : 1;
         const scaleY = useScale ? targetMesh.scale.y : 1;
-
         for (let i = 0; i < posAttr.count; i++) {
             const localX = posAttr.getX(i);
             const localY = posAttr.getY(i);
@@ -669,11 +665,10 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * scaleX + targetMesh.position.x;
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
-            // 1. Gather the pre-calculated, unified baseline terrain height
+            // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
-            const localGreenHeight = physics.getGreenHeight(worldX, worldZ);
 
-            // 2. Scan for Water Hazard constraints
+            // NEW: Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
             waterHazards.forEach(water => {
                 const dxW = worldX - water.position.x;
@@ -685,7 +680,7 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
-            // 3. Scan for Sand Trap constraints
+            // NEW: Scan if this vertex falls inside any active sand trap perimeter
             let insideSandZone = false;
             let targetSandY = 0;
             sandTraps.forEach(sand => {
@@ -693,99 +688,63 @@ function resetEntireGame(advanceHole = false) {
                 const dzS = worldZ - sand.position.z;
                 const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
                 const sandRadius = sand.geometry.parameters.radius || 5;
-                if (distToSand < sandRadius + 0.2) {
+                if (distToSand < sandRadius + 0.2) { // 0.2 buffer keeps mesh edges stitched neatly
                     insideSandZone = true;
-                    targetSandY = sand.position.y - 0.02;
+                    targetSandY = sand.position.y - 0.02; // Keeps the grass bed 0.02 units underneath the flat disc
                 }
             });
 
-            // Calculate precise distance to the putting green center
-            const gX = worldX - greenEndpoint.x;
+            const gX = worldX - (green ? green.position.x : 0);
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // ==================================================================
-            // MASTER TRANSITION ENGINE: Extended blend window to eliminate teeth spikes
-            // ==================================================================
-            if (distToGreen < 25.0) {
-                // Expanded from a 3-unit window to a wide 12-unit slope window (25.0 down to 13.0).
-                // This gives large triangles room to gently conform to the green's height profile.
-                const blendT = Math.max(0, Math.min(1, (25.0 - distToGreen) / (25.0 - 13.0)));
-                calculatedHeight = THREE.MathUtils.lerp(calculatedHeight, localGreenHeight, blendT);
+            if (distToGreen < 14.0) {
+                calculatedHeight -= 0.45;
             }
 
+            // FIXED: Wrap fairway and floor offsets in a conditional block. If the vertex is inside 
+            // a water hazard zone, we skip relative offsets to keep both meshes perfectly stitched and flush.
             if (!insideWaterZone) {
+                // FIXED: Restored this critical declaration line to clear your ReferenceError blank screen crash!
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
 
-                // FUNNEL ENGINE: Dynamic width tapering near the green complex
-                let activeWidth = currentFairwayWidth;
-                if (distToGreen < 45.0) {
-                    const taperFactor = Math.max(0, Math.min(1, (distToGreen - 13.0) / (45.0 - 13.0)));
-                    activeWidth = THREE.MathUtils.lerp(8.0, currentFairwayWidth, taperFactor);
-                }
-
-                const maxFairwayLimit = activeWidth;
-                const maxBlendLimit = activeWidth + 0.8;
-
-                // CONCEALMENT CUTS (Applies ONLY to the rough floor mesh)
+                // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
+                // UPDATED: Swapped out old straight Z constraints for the dynamic spline path tracking
+                // to cleanly handle our new 90-degree sideways dogleg modifications
                 if (targetMesh === floor) {
-                    if (distanceToPath <= maxFairwayLimit) {
-                        calculatedHeight -= 0.04;
-                    } else if (distanceToPath <= maxBlendLimit) {
-                        const t = (distanceToPath - maxFairwayLimit) / 0.8;
-                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t);
+                    if (distanceToPath <= 8.0) {
+                        calculatedHeight -= 0.04; // Modify this line: Shaves the rough down slightly under the fairway core
+                    } else if (distanceToPath <= 8.8) {
+                        const t = (distanceToPath - 8.0) / 0.8; // Add this line
+                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t); // Add this line: Smoothly brings rough back up to ground level
                     }
                 }
 
-                // ELEVATION CUSHION (Applies ONLY to the fairway mesh)
+                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     if (worldZ > -8.0) {
-                        calculatedHeight = -10.0;
+                        calculatedHeight = -10.0; // Hides the fairway for the first 50 yards to create the rough carry
                     } else if (insideSandZone) {
-                        calculatedHeight = -10.0;
+                        calculatedHeight = -10.0; // Keeps the fairway completely hidden inside sand trap perimeters
+                    } else if (distanceToPath <= 8.0) {
+                        calculatedHeight += 0.06;
+                    } else if (distanceToPath <= 8.8) { // Modify this line: Sharpens the outer border to a tight 8.8 limit
+                        const t = (distanceToPath - 8.0) / 0.8; // Modify this line: Tightly constrains the slope calculation to 0.8 units
+                        calculatedHeight += THREE.MathUtils.lerp(0.06, -1.2, t); // Modify this line: Dives the fairway sharply under the rough mesh
                     } else {
-                        if (distanceToPath <= maxFairwayLimit) {
-                            // Smoothly clear out the raised fairway lip as it meets the green basin
-                            let cushion = 0.06;
-                            if (distToGreen < 25.0) {
-                                cushion *= Math.max(0, Math.min(1, (distToGreen - 13.0) / (25.0 - 13.0)));
-                            }
-                            calculatedHeight += cushion;
-                        } else if (distanceToPath <= maxBlendLimit) {
-                            const t = (distanceToPath - maxFairwayLimit) / 0.8;
-                            let cushion = THREE.MathUtils.lerp(0.06, -1.2, t);
-                            if (distToGreen < 25.0) {
-                                const fade = Math.max(0, Math.min(1, (distToGreen - 13.0) / (25.0 - 13.0)));
-                                cushion = THREE.MathUtils.lerp(-0.04, cushion, fade);
-                            }
-                            calculatedHeight += cushion;
-                        } else {
-                            calculatedHeight = -10.0;
-                        }
+                        calculatedHeight = -10.0; // Keep this line
                     }
                 }
-            }
-
-            // ==================================================================
-            // MASTER UNDER-GREEN ANCHOR GUARD
-            // ==================================================================
-            // Once any vertex passes underneath the high-res green fringe, drop it 
-            // completely flat below the deck. 
-            if (distToGreen < 13.0) {
-                // UPDATED: Dropped to -0.45 to provide deep subterranean clearance.
-                // This ensures even your deepest contour valleys have room to curve 
-                // downward without hitting the underlying rough mesh grid!
-                calculatedHeight = localGreenHeight - 0.45;
             }
 
             // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
-            if (insideSandZone && targetMesh === floor) {
+            if (insideSandZone && targetMesh === floor) { // Modify this line: Added && targetMesh === floor
                 calculatedHeight = targetSandY;
             }
 
             // Write the finalized calculated height to the current vertex
             posAttr.setZ(i, calculatedHeight);
-        }
+        } // Closes the for loop
 
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
@@ -797,8 +756,59 @@ function resetEntireGame(advanceHole = false) {
     deformVisualGreenMesh(greenGrid);
     deformVisualGreenMesh(greenFringe);
 
-    // UPDATED: Triggers the new dynamic, color-coded contour renderer
-    updateGreenGrid();
+    // Extract local physics engine height maps to draw custom contour arrows across the surface grid
+    if (gridCanvas && gridTexture) {
+        const ctx = gridCanvas.getContext('2d');
+        ctx.clearRect(0, 0, 512, 512);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = 4.0;
+
+        const gridCount = 5;
+        const spacing = 512 / gridCount;
+
+        for (let row = 0; row < gridCount; row++) {
+            for (let col = 0; col < gridCount; col++) {
+                const cx = col * spacing + spacing / 2;
+                const cy = row * spacing + spacing / 2;
+
+                // Map canvas coordinates to world coordinates relative to the green center
+                const wx = (cx / 512 - 0.5) * (GREEN_RADIUS * 2) + greenEndpoint.x; // Modify this line: Added + greenEndpoint.x
+                const wz = (cy / 512 - 0.5) * (GREEN_RADIUS * 2) + greenCenterZ;
+
+                // Check if this point falls inside the circular green grass area
+                const distFromCenter = Math.sqrt((wx - greenEndpoint.x) * (wx - greenEndpoint.x) + (wz - greenCenterZ) * (wz - greenCenterZ)); // Modify this line: Subtracted greenEndpoint.x to keep circle check relative
+                if (distFromCenter < GREEN_RADIUS - 0.5) {
+
+                    // Sample local neighbors to get the exact slope direction at this specific point
+                    const delta = 0.1;
+                    const hL = physics.getGreenHeight(wx - delta, wz);
+                    const hR = physics.getGreenHeight(wx + delta, wz);
+                    const hB = physics.getGreenHeight(wx, wz - delta);
+                    const hF = physics.getGreenHeight(wx, wz + delta);
+
+                    const localSlopeX = (hL - hR) / (2 * delta);
+                    const localSlopeZ = (hB - hF) / (2 * delta);
+
+                    // Only paint an arrow if there is an active slope angle here
+                    if (Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ) > 0.001) {
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points arrow downhill
+
+                        // Draw clean, bolder medium-sized arrows
+                        ctx.beginPath();
+                        ctx.moveTo(-25, 0); ctx.lineTo(25, 0);
+                        ctx.lineTo(12, -9);
+                        ctx.moveTo(25, 0); ctx.lineTo(12, 9);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            }
+        }
+        gridTexture.needsUpdate = true;
+    }
 
 
 
@@ -959,10 +969,8 @@ function resetEntireGame(advanceHole = false) {
         if (insideWaterHazard) continue;
 
         // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
-        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ);
-
-        // UPDATED: Replaced hardcoded 9.0 with our dynamic width + safety buffer clearance line
-        if (fairwayDistance <= (currentFairwayWidth + 1.0) || fairwayDistance > 35.0) {
+        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
+        if (fairwayDistance <= 9.0 || fairwayDistance > 35.0) { // Modify this line: Skip if inside the fairway OR too far out in the deep rough
             continue;
         }
 
@@ -1194,7 +1202,6 @@ function animate() {
 
                 setTimeout(() => {
                     alert("One stroke penalty! 🍃 Your ball got stuck in a bush.");
-                    lastTime = performance.now();
 
                     ball.position.x = physics.bushResetX;
                     ball.position.z = physics.bushResetZ;
@@ -1219,7 +1226,6 @@ function animate() {
     // FIXED: Re-added your Out of Bounds course boundary tracking check
     if (Math.abs(ball.position.x) > 120 || ball.position.z < holePosition.z - 40) {
         alert(`Out of Bounds! Ball flew off the course.`);
-        lastTime = performance.now();
         resetEntireGame(false);
         return;
     }
@@ -1232,7 +1238,6 @@ function animate() {
 
         setTimeout(() => { // Add this line
             alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`); // Modify this line
-            lastTime = performance.now();
 
             // Reset ball position directly to where this shot was struck from
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0; // Add this line
@@ -1322,16 +1327,13 @@ function animate() {
             // Give the browser 30ms to fully render the final subterranean frame before alerting
             setTimeout(() => {
                 alert(`Sunk it! 🎉 ${standardTermCelebration}`);
-                lastTime = performance.now();
                 resetEntireGame(true); // Advance layout tracking systems to the next hole number configuration
             }, 30);
             return;
         }
     }
 
-    // 3. DYNAMIC CAMERA CONTROLLER
-
-    // Add this block: Run exactly once only when the ball comes to a complete stop
+    // Add this entire block below:
     if (!physics.isMoving && wasMoving && !isSinking) {
         isOverheadActive = false;
 
@@ -1368,7 +1370,7 @@ function animate() {
             wasMoving = true;
             shotStartTime = performance.now(); // Record launch timestamp
 
-            // Records where this specific shot was struck from
+            // Add these two lines: Records where this specific shot was struck from
             window.shotStartX = ball.position.x;
             window.shotStartZ = ball.position.z;
 
@@ -1377,9 +1379,8 @@ function animate() {
             const dzHole = ball.position.z - holePosition.z;
             const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
 
-            // Base long shots on intended club power instead of raw green proximity
-            const club = input ? input.getClubInfo() : null;
-            isLongShot = club ? (club.maxYards > 160) : (initialYards > 25);
+            // Modify this line: Raised from 30 to 90 so intermediate approach shots stay stationary
+            isLongShot = initialYards > 90;
 
             window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
         }
@@ -1389,76 +1390,68 @@ function animate() {
         if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
         ballTracer.geometry.computeBoundingSphere();
 
-        // Calculate travel distance parameters for ball scaling textures
+        // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
+        // Modify these two lines: Replaces hardcoded values with the live shot origin coordinates
         const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
         const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-        const dx = ball.position.x - startX;
-        const dz = ball.position.z - startZ;
+        const dx = ball.position.x - startX; // Add this line
+        const dz = ball.position.z - startZ; // Add this line
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
+
 
         const checkX = ball.position.x - (green ? green.position.x : 0);
         const checkZ = ball.position.z - greenCenterZ;
         const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
 
-        // Dynamic Ball Target Scaling
         if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.40;
+            ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
         } else {
-            const startingScale = isLongShot ? 1.0 : 0.50;
-            ballTargetScale = Math.max(0.30, startingScale - (distanceTraveled * 0.012));
+            // Modify this line: Adjusts minimum clamp to 0.30 and scaling factor to 0.012 so it shrinks smoothly
+            ballTargetScale = Math.max(0.30, 1.0 - (distanceTraveled * 0.012));
         }
 
-        // Obstacle Intercept Override
-        const horizSpeed = Math.sqrt(physics.velocity.x * physics.velocity.x + physics.velocity.z * physics.velocity.z);
-        const hitObstacle = isLongShot && horizSpeed < 0.05 && distanceTraveled > 1.0;
-
-        const shouldTrack = (isLongShot && !hitObstacle) ? (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) : true;
-
-        if (shouldTrack && !isOverheadActive) {
+        if (isLongShot && (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) { // Modify this line
             const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z;
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-            const camBackDist = isLongShot ? 5.5 : 7.5;
-            const camBackHeight = isLongShot ? 1.8 : 2.2;
-
-            const backX = -(dirX / length) * camBackDist;
-            const backZ = -(dirZ / length) * camBackDist;
+            // Target coordinates 5.5 units horizontally behind the ball's moving flight path
+            const backX = -(dirX / length) * 5.5;
+            const backZ = -(dirZ / length) * 5.5;
 
             // Smoothly tracks target positioning vectors forward through 3D space
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + camBackHeight, ball.position.z + backZ);
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
         }
-
-        if (wasMoving && !isSinking) {
-            isOverheadActive = false; // Keep this line
-
-            // 3-OPTION BALL SCALING ENGINE
-            const currentClub = input ? input.getClubInfo().name : '';
-            if (teeBox && teeBox.visible) {
-                ballTargetScale = 0.32;  // OPTION 1: Size when on the Tee Box
-            } else if (onGreen || currentClub === 'Putter') {
-                ballTargetScale = 0.40;  // OPTION 2: Size when on the Green or using the Putter
-            } else {
-                ballTargetScale = 0.80; // OPTION 3: Size when out in the Fairway or Rough
+    } else {
+        const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+        // ADJUSTED: Increased camDist from 5.5 to 7.5 and height to 2.2 to pull the camera back on short shots
+        const camDist = onGreen ? 2.5 : 7.5;
+        const camHeight = onGreen ? 1.0 : 2.2;
+        const lookDist = onGreen ? 6.0 : 15.0;
+        if (!isOverheadActive) {
+            let baseTargetX = holePosition.x;
+            let baseTargetZ = holePosition.z;
+            if (teeBox && teeBox.visible && currentHoleConfig) { // Modify this line
+                const firstLeg = currentHoleConfig.waypoints[1]; // Modify this line
+                if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
             }
+            const dX = baseTargetX - ball.position.x;
+            const dZ = baseTargetZ - ball.position.z;
+            let angle = Math.atan2(dX, dZ);
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Adjusts camera base angle by dragging offset
 
-            generateNewWind();
-            updateDistanceDisplay();
-            wasMoving = false;
-            window.puttingCameraDelayStart = performance.now();
-
-            // Wipe the tracer clean immediately whenever the ball comes to a stop anywhere
-            tracerPoints = [];
-            if (ballTracer) {
-                ballTracer.geometry.setFromPoints(tracerPoints);
-                ballTracer.geometry.computeBoundingSphere();
-            }
-
-
+            const aimDirX = Math.sin(angle);
+            const aimDirZ = Math.cos(angle);
+            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
         }
 
+
+
         if (input && input.isSwinging) {
+            // 3-OPTION BALL SCALING ENGINE
+            // 1. Scales the ball while you ARE swinging
             const currentClub = input ? input.getClubInfo().name : '';
             if (teeBox && teeBox.visible) {
                 ballTargetScale = 0.55;
@@ -1469,38 +1462,28 @@ function animate() {
             }
         }
 
+        // 2. NEW: Scales the ball while it is sitting completely still at rest
         const restingClub = input ? input.getClubInfo().name : '';
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 0.70;
+            ballTargetScale = 1.00;  // Keeps it big on the tee box automatically!
         } else if (onGreen || restingClub === 'Putter') {
-            ballTargetScale = 0.28;
+            ballTargetScale = 0.40;
         } else {
-            ballTargetScale = 0.70;
+            ballTargetScale = 0.80;
         }
-    } // This structural brace closes the moving-vs-resting condition branches completely
+    } // <-- This brace closes the entire "ball is not moving" section
 
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
     const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
 
-    if (isCamOnGreen && !isSinking) {
-        updateGreenGrid();
+    // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
+    let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
+
+    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
+        activeCameraSpeed = 0.005;
     }
-
-    // Set interactive physics follow camera speed factors
-    let activeCameraSpeed = 0.05;
-
-    if (physics.isMoving && !isOverheadActive) {
-        if (isLongShot) {
-            if (performance.now() - shotStartTime > 2000) {
-                activeCameraSpeed = 0.005; // Cinematic long drive camera lag
-            }
-        } else {
-            activeCameraSpeed = 0.018; // Smooth short shot trailing camera lag
-        }
-    }
-
-
 
 
 
@@ -1593,8 +1576,7 @@ function animate() {
         // Automatically snap back behind the ball once the full camera flight completes
         if (previewProgress >= 1) {
             isOverheadActive = false;
-            const gXOffset = green ? green.position.x : 0;
-            const onGreen = Math.sqrt((ball.position.x - gXOffset) * (ball.position.x - gXOffset) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+            const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
             const camDist = onGreen ? 2.5 : 5.5;
             const camHeight = onGreen ? 1.0 : 1.8;
             const lookDist = onGreen ? 6.0 : 12.0;
@@ -1640,113 +1622,54 @@ function animate() {
             lookUpOffset = -0.40;
         }
 
-        if (physics.isMoving) {
-            if (!wasMoving) {
-                wasMoving = true;
-                shotStartTime = performance.now(); // Record launch timestamp
-
-                // Add these two lines: Records where this specific shot was struck from
-                window.shotStartX = ball.position.x;
-                window.shotStartZ = ball.position.z;
-
-                // Calculate initial distance to the hole pin in true game yards
-                const dxHole = ball.position.x - holePosition.x;
-                const dzHole = ball.position.z - holePosition.z;
-                const initialYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-
-                // UPDATED: Redefined long shots based on intended club power instead of green proximity!
-                const club = input ? input.getClubInfo() : null;
-                isLongShot = club ? (club.maxYards > 160) : (initialYards > 25);
-
-                window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
-            }
-            updateDistanceDisplay();
-
-            tracerPoints.push(ball.position.clone());
-            if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
-            ballTracer.geometry.computeBoundingSphere();
-
-            // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-            const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
-            const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-            const dx = ball.position.x - startX;
-            const dz = ball.position.z - startZ;
-            const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
-
-            const checkX = ball.position.x - (green ? green.position.x : 0);
-            const checkZ = ball.position.z - greenCenterZ;
-            const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
-
-            // Dynamic Ball Target Scaling
-            if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-                ballTargetScale = 0.40;
+        // Add this block: Overrides the zoom values to be much wider/higher if the shot is still moving
+        if (physics.isMoving) { // Modify this line: Removed !physics.isPutting to allow putting camera tracking overrides
+            if (physics.isPutting) {
+                // Add this block: A specialized cinematic viewpoint for rolling putts to observe green breaks
+                targetFov = aspect < 1 ? 65 : 45;
+                rigidCamDist = 4.8;               // Backs away slightly to open up the visual field
+                rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
+                lookUpOffset = -0.25;
             } else {
-                const startingScale = isLongShot ? 1.0 : 0.50;
-                ballTargetScale = Math.max(0.30, startingScale - (distanceTraveled * 0.012));
+                targetFov = aspect < 1 ? 72 : 65; // Normal wider field of view for chips/full shots
+                rigidCamDist = 8.0;               // Pulls camera 8 units back instead of 3.5
+                rigidCamHeight = 3.5;             // Elevates camera 3.5 units up to see the green context
+                lookUpOffset = -0.10;             // Centers the look-at target nicely
             }
-
-            // Obstacle Intercept Override
-            const horizSpeed = Math.sqrt(physics.velocity.x * physics.velocity.x + physics.velocity.z * physics.velocity.z);
-            const hitObstacle = isLongShot && horizSpeed < 0.05 && distanceTraveled > 1.0;
-
-            const shouldTrack = (isLongShot && !hitObstacle) ? (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) : true;
-
-            if (shouldTrack && !isOverheadActive) {
-                const dirX = holePosition.x - ball.position.x;
-                const dirZ = holePosition.z - ball.position.z;
-                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-
-                const camBackDist = isLongShot ? 5.5 : 7.5;
-                const camBackHeight = isLongShot ? 1.8 : 2.2;
-
-                const backX = -(dirX / length) * camBackDist;
-                const backZ = -(dirZ / length) * camBackDist;
-
-                // Smoothly tracks target positioning vectors forward through 3D space
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + camBackHeight, ball.position.z + backZ);
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
-            }
-
-        } else {
-            // Ball is Stationary at Address (Play UI interface is active)
-            const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-            const camDist = onGreen ? 2.5 : 7.5;
-            const camHeight = onGreen ? 1.0 : 2.2;
-            const lookDist = onGreen ? 6.0 : 15.0;
-
-            if (!isOverheadActive) {
-                let baseTargetX = holePosition.x;
-                let baseTargetZ = holePosition.z;
-                if (teeBox && teeBox.visible && currentHoleConfig) {
-                    const firstLeg = currentHoleConfig.waypoints[1];
-                    if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
-                }
-                const dX = baseTargetX - ball.position.x;
-                const dZ = baseTargetZ - ball.position.z;
-                let angle = Math.atan2(dX, dZ);
-                if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
-
-                const aimDirX = Math.sin(angle);
-                const aimDirZ = Math.cos(angle);
-                cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
-                cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
-            }
-
-            activeCameraSpeed = physics.isMoving ? 0.04 : 0.08;
         }
-    } else { // ➕ ADD THIS LINE to close the green check and handle non-green shots
+
+        if (camera.fov !== targetFov) {
+            camera.fov = targetFov;
+            camera.updateProjectionMatrix();
+        }
+
+        const lookAheadDist = 6.0;
+
+        cameraTargetPos.set(
+            ball.position.x - dirX * rigidCamDist,
+            ball.position.y + rigidCamHeight,
+            ball.position.z - dirZ * rigidCamDist
+        );
+
+        cameraLookAt.set(
+            ball.position.x + dirX * lookAheadDist,
+            ball.position.y + lookUpOffset,
+            ball.position.z + dirZ * lookAheadDist
+        );
+
+        // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
+        // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
+        // Set to 0.08 when stationary so the camera glides gracefully into position at address.
+        activeCameraSpeed = physics.isMoving ? 0.04 : 0.08;
+    } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
         if (camera.fov !== defaultFov) {
             camera.fov = defaultFov;
             camera.updateProjectionMatrix();
         }
-    } // ➕ ADD THIS LINE to close the else block completely
+    }
 
-
-
-
-    // This follows directly after your FOV reset block's closing brace:
     camera.position.lerp(cameraTargetPos, activeCameraSpeed);
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
@@ -1758,12 +1681,11 @@ function animate() {
         finalBallTargetScale *= 0.85;
     }
 
-    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 9.5 units envelope
+    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 7.5 units envelope
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
-    if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
-        // TUNED: Increased tracking window to 9.5 units so it successfully suppresses ball ballooning
-        // during tight, close-up short-game tracking angles.
-        finalBallTargetScale *= Math.max(0.3, cameraDistanceToBall / 9.5);
+    if (cameraDistanceToBall < 7.5 && !isCamOnGreen) { // Modify this line: Added !isCamOnGreen to prevent crushing the ball size on the green
+        // TUNED: Adjusted tracking window to 7.5 to smoothly suppress ball ballooning on short chip shots
+        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 7.5);
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
@@ -1787,13 +1709,14 @@ function animate() {
                 }
 
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
-                const isMobileView = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768;
-                const putterBaseBottom = isMobileView ? 30.0 : 21.8;
+                const putterBaseBottom = 21.8;
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`;
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`; // Modify this line: Appended ${aimClass} to fix the idle mode visibility
+                    // Clean out dynamic inline properties when resting at address
+                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     // Clean out dynamic inline properties when resting at address
                     clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
                     clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
@@ -1928,7 +1851,6 @@ function animate() {
 
     renderer.render(scene, camera);
 }
-
 
 function init() {
     // 1. Create the 3D World Scene
@@ -2065,7 +1987,7 @@ function init() {
     // FIXED: Changed to solid RingGeometry (0 inner radius) to unlock actual high-density concentric vertex rings
     const greenGeo = new THREE.RingGeometry(0, GREEN_RADIUS, 64, 32);
     // FIXED: Giving the grid map its own independent mesh geometry prevents shared-vertex texture coordinate breaks
-    const gridGeo = new THREE.PlaneGeometry(GREEN_RADIUS * 2, GREEN_RADIUS * 2, 40, 40);
+    const gridGeo = new THREE.RingGeometry(0, GREEN_RADIUS - 0.02, 64, 32);
 
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.85 });
     green = new THREE.Mesh(greenGeo, greenMat);
@@ -2213,14 +2135,10 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
-                const isMobileMedia = window.matchMedia("(orientation: portrait), (max-width: 768px)").matches;
-
-                // ⚠️ NOTE: Keep this number completely identical to the putterBaseBottom value set above!
-                const baseBottom = isMobileMedia ? 30.0 : 21.8;
-
-                const currentBottom = baseBottom - (6.0 * ratio);
+                const currentBottom = 21.8 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
             }
+
             clubSwipe.className = '';
 
             // Assign the style type based on the active club selection
@@ -2316,8 +2234,7 @@ function init() {
                 isOverheadActive = false;
 
                 // Check green tracking states on click release to select matching land coordinates
-                const gXOffset = green ? green.position.x : 0;
-                const checkOnGreen = Math.sqrt((ball.position.x - gXOffset) * (ball.position.x - gXOffset) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+                const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
                 // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
                 const camDist = checkOnGreen ? 2.5 : 7.5;
                 const camHeight = checkOnGreen ? 1.0 : 2.2;
@@ -2384,109 +2301,3 @@ function init() {
 }
 
 init();
-
-// ==========================================================================
-// DYNAMIC CORRIDOR RUNWAY CONTOUR RENDERER (CLEAN CENTERLINE TRACK)
-// ==========================================================================
-function updateGreenGrid() {
-    if (!gridCanvas || !gridTexture || !green || !ball || !physics) return;
-    const ctx = gridCanvas.getContext('2d');
-    ctx.clearRect(0, 0, 512, 512);
-
-    const gX = green.position.x;
-    const gZ = greenCenterZ;
-
-    // 1. AIRBORNE & AIM MODE GUARD: Tracks green boundaries, ball height, and active aiming state
-    const dxB = ball.position.x - gX;
-    const dzB = ball.position.z - gZ;
-    const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < GREEN_RADIUS;
-    const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
-
-    // Checks if the player is actively using your InputHandler's aim mode flag
-    const isAiming = input && input.isAimMode;
-
-    // UPDATED: Added !isAiming to the core engine check list. If the player isn't aiming, 
-    // the canvas stays empty and the function exits, making the track completely hidden!
-    if (!isBallOnGreen || isAirborne || physics.hitWater || isSinking || !isAiming) {
-        gridTexture.needsUpdate = true;
-        return;
-    }
-
-    // 2. CALCULATE TARGET RUNWAY LINE
-    const dx = holePosition.x - ball.position.x;
-    const dz = holePosition.z - ball.position.z;
-    const pathLen = Math.sqrt(dx * dx + dz * dz) || 1;
-
-    const dirX = dx / pathLen;
-    const dirZ = dz / pathLen;
-
-    // Increased the distance spacing to 1.5 units so individual arrows stay cleanly separated
-    const stepDistance = 1.5;
-    const travelSteps = Math.floor(pathLen / stepDistance);
-
-    // 3. REAL-TIME UPHILL / DOWNHILL SPEED ACCELERATION ENGINE
-    const delta = 0.1;
-    const ballSlopeX = (physics.getGreenHeight(ball.position.x - delta, ball.position.z) - physics.getGreenHeight(ball.position.x + delta, ball.position.z)) / (2 * delta);
-    const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
-
-    // Measures if the putt line travels with the hill gradient (downhill) or against it (uphill)
-    const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
-
-    // Dynamically warp time velocity: Downhill putts speed up, uphill putts crawl slowly
-    const baseFlowVelocity = 0.003;
-    const dynamicVelocity = baseFlowVelocity + (pathSlopeComponent * 0.05);
-    const finalVelocity = Math.max(0.0008, dynamicVelocity); // Safety floor to keep them trickling
-
-    // Smooth scrolling timeline loop multiplier
-    const animationShift = (performance.now() * finalVelocity) % 1.0;
-
-    // 4. RENDER SINGLE CENTERLINE PATHWAY
-    for (let s = -1; s <= travelSteps + 1; s++) {
-        // Scroll chevrons smoothly forward down the path towards the hole
-        const t = (s + animationShift) / travelSteps;
-        if (t < 0 || t > 1) continue;
-
-        const wx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
-        const wz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, t);
-
-        // Clip drawing instructions tightly inside the putting green circle radius boundaries
-        if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < GREEN_RADIUS - 0.3) {
-            const cx = 512 * ((wx - gX) / (GREEN_RADIUS * 2) + 0.5);
-            const cy = 512 * ((wz - gZ) / (GREEN_RADIUS * 2) + 0.5);
-
-            const localSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
-            const localSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
-            const slopeMag = Math.sqrt(localSlopeX * localSlopeX + localSlopeZ * localSlopeZ);
-
-            if (slopeMag > 0.0005) {
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(Math.atan2(localSlopeZ, localSlopeX)); // Points chevron exactly downhill to show break direction
-
-                // SIMULATOR STYLING PACK: Thin lines and subtle scaling for crisp visuals
-                let arrowScale = 0.35;
-                if (slopeMag < 0.015) {
-                    ctx.strokeStyle = 'rgba(130, 200, 255, 0.85)'; // Slim Light Blue: Safe flat ground
-                    ctx.lineWidth = 2.0;
-                } else if (slopeMag < 0.035) {
-                    ctx.strokeStyle = 'rgba(0, 255, 204, 0.9)';   // Aqua Cyan: Moderate slope break
-                    arrowScale = 0.42;
-                    ctx.lineWidth = 2.6;
-                } else {
-                    ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Bright Pink/Red: Heavy breaking tier ridge
-                    arrowScale = 0.50;
-                    ctx.lineWidth = 3.2;
-                }
-
-                // Draw a sleek, high-visibility narrow golf chevron pointer profile
-                ctx.beginPath();
-                ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
-                ctx.lineTo(4 * arrowScale, 0);
-                ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
-                ctx.stroke();
-                ctx.restore();
-            }
-        }
-    }
-    gridTexture.needsUpdate = true;
-}
