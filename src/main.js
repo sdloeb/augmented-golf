@@ -913,6 +913,24 @@ function resetEntireGame(advanceHole = false) {
             continue;
         }
 
+        // Prevent background scenery from spawning inside water hazards (+1.5 unit buffer padding)
+        let insideWater = waterHazards.some(waterMesh => {
+            let dxW = x - waterMesh.position.x;
+            let dzW = z - waterMesh.position.z;
+            let waterRadius = waterMesh.userData && waterMesh.userData.radius ? waterMesh.userData.radius : 5;
+            return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
+        });
+        if (insideWater) continue;
+
+        // Prevent background scenery from spawning inside sand traps (+1.5 unit buffer padding)
+        let insideSand = sandTraps.some(sandMesh => {
+            let dxS = x - sandMesh.position.x;
+            let dzS = z - sandMesh.position.z;
+            let sandRadius = sandMesh.userData && sandMesh.userData.radius ? sandMesh.userData.radius : 5;
+            return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.5);
+        });
+        if (insideSand) continue;
+
         const sceneryGroup = new THREE.Group(); // Keep this line
         const courseHeight = physics.getGroundHeight(x, z); // Keep this line
         sceneryGroup.position.set(x, courseHeight, z);
