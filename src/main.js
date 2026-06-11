@@ -159,10 +159,12 @@ function updateDistanceDisplay() {
         const clubList = input.getClubList();
 
         // Reconfigure the container style from vertical column to horizontal row row
+        const isMobileScreen = window.innerWidth / window.innerHeight < 1 || window.innerWidth <= 768; // Add this line
         container.style.flexDirection = 'row';
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center'; // CHANGED: Centers the arrows horizontally
-        container.style.gap = '20px';
+        container.style.gap = isMobileScreen ? '10px' : '20px'; // Modify this line: Tightens layout footprint on mobile screens
+        container.style.flexWrap = 'wrap'; // Add this line: Safely wraps the buttons instead of breaking outer layout bounds
 
         // Calculate what index is currently highlighted
         let currentIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
