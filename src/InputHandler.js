@@ -501,6 +501,8 @@ export class InputHandler {
         // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable
         this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft || 0.042);
         this.chosenClubIndex = null;
+        this.isAimMode = false;
+        this.aimAngleOffset = 0;
         this.resetSwing();
     }
 

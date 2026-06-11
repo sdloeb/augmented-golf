@@ -1399,8 +1399,24 @@ function animate() {
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
         }
     } else {
+        if (wasMoving) {
+            wasMoving = false;
+            tracerPoints = []; // Add this line: Empties the line point rendering path history array
+            if (ballTracer) ballTracer.geometry.setFromPoints([]); // Add this line: Erases the path geometry line visually from screen
+            updateDistanceDisplay();
+        }
+
         const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-        // ADJUSTED: Increased camDist from 5.5 to 7.5 and height to 2.2 to pull the camera back on short shots
+
+        // Add this block: Restores your custom location sizing conditions when the ball is at rest
+        if (teeBox && teeBox.visible) {
+            ballTargetScale = 1.0;   // Change this number to adjust size on the Tee
+        } else if (onGreen) {
+            ballTargetScale = 0.30;  // Change this number to adjust size when Putting
+        } else {
+            ballTargetScale = 0.70;  // Change this number to adjust size on Fairways/Rough
+        }
+
         const camDist = onGreen ? 2.5 : 7.5;
         const camHeight = onGreen ? 1.0 : 2.2;
         const lookDist = onGreen ? 6.0 : 15.0;
