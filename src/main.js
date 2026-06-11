@@ -743,14 +743,14 @@ function resetEntireGame(advanceHole = false) {
                     calculatedHeight = floorHeight;
                 }
 
-                // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     // Determine if this part of the fairway should be visible or hidden under the rough floor
                     const shouldHide = (worldZ > -8.0) || isPastFairway || insideSandZone || (distanceToPath > fWEdge);
 
                     if (shouldHide) {
-                        // NEW: Place it slightly beneath the rough floor so it's hidden with zero harsh vertical cliff walls
-                        calculatedHeight = floorHeight - 0.02;
+                        // FIXED: If inside a sand trap, submerge beneath the sand trench bed; otherwise hide beneath the rough floor
+                        calculatedHeight = insideSandZone ? (targetSandY - 0.04) : (floorHeight - 0.02);
                     } else if (distanceToPath <= fW) {
                         // Inside the core fairway lane, stay visible above base height
                         calculatedHeight += 0.06;
@@ -760,7 +760,7 @@ function resetEntireGame(advanceHole = false) {
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
                         const visibleHeight = calculatedHeight + 0.06;
-                        const hiddenHeight = floorHeight - 0.02;
+                        const hiddenHeight = insideSandZone ? (targetSandY - 0.04) : (floorHeight - 0.02);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
