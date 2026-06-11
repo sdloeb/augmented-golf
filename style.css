@@ -34,9 +34,9 @@ html {
     background: rgba(0, 0, 0, 0.6);
     border: 2px solid #ffffff;
     border-radius: 5px;
-    padding: 6px 12px;
+    padding: 11px 12px;
     color: white;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
@@ -537,9 +537,9 @@ html {
         background: rgba(0, 0, 0, 0.6);
         border: 2px solid #ffffff;
         border-radius: 5px;
-        padding: 6px 12px;
+        padding: 11px 12px;
         color: white;
-        font-size: 13px;
+        font-size: 16px;
         font-weight: bold;
         cursor: pointer;
         box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
