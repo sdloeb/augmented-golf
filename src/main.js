@@ -274,7 +274,7 @@ function generateHazards() {
     }
 
     const numWater = 1 + Math.floor(Math.random() * 2);
-    const numSand = Math.floor(Math.random() * 3);  // 0 to 2
+    const numSand = Math.floor(Math.random() * 4);  // 0 to 3
 
     const checkOverlap = (x, z, r, list, padding = 0) => {
         return list.some(mesh => {
