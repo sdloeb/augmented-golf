@@ -2357,12 +2357,13 @@ function updateGreenGrid() {
 
                 let arrowScale = 0.35;
                 if (slopeMag < 0.015) {
-                    ctx.strokeStyle = 'rgba(130, 200, 255, 0.85)'; // Light Blue (Flat)
-                    ctx.lineWidth = 2.0;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'; // Modify this line: High-contrast bright white for flat terrain
+                    arrowScale = 0.38;                             // Add this line: Makes the flat arrows slightly larger
+                    ctx.lineWidth = 3.0;                           // Modify this line: Thickened from 2.0 to 3.0 so it stands out
                 } else if (slopeMag < 0.035) {
-                    ctx.strokeStyle = 'rgba(0, 255, 204, 0.9)';   // Cyan (Moderate break)
-                    arrowScale = 0.42;
-                    ctx.lineWidth = 2.6;
+                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.95)';   // Modify this line: Pure neon cyan for moderate break
+                    arrowScale = 0.45;                             // Modify this line: Bumped up scale slightly
+                    ctx.lineWidth = 3.2;                           // Modify this line: Thickened from 2.6 to 3.2
                 } else {
                     ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Pink/Red (Heavy slope)
                     arrowScale = 0.50;
