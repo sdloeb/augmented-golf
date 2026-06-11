@@ -242,10 +242,21 @@ function updateDistanceDisplay() {
 }
 
 function generateNewWind() {
-    const maxWindSpeed = 21;
-    const windSpeed = Math.floor(Math.random() * maxWindSpeed);
+    // RESTORED: Re-randomize the wind angle on every generation so wind direction varies completely!
+    currentWindAngle = Math.random() * Math.PI * 2;
+
+    let windSpeed = 0;
+
+    // 33% chance to trigger high winds (13 to 20 mph)
+    if (Math.random() < 0.33) {
+        windSpeed = 13 + Math.floor(Math.random() * 8); // Picks an integer from 13 up to 20
+    }
+    // 67% chance to trigger low/moderate winds (0 to 12 mph)
+    else {
+        windSpeed = Math.floor(Math.random() * 13); // Picks an integer from 0 up to 12
+    }
+
     currentWindSpeed = windSpeed;
-    currentWindAngle = Math.random() * Math.PI * 2; // Save globally
 
     const text = document.getElementById('windText');
     if (text) {
