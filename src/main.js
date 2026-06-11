@@ -2331,11 +2331,14 @@ function updateGreenGrid() {
     const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
     const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
 
-    const baseFlowVelocity = 0.003;
-    const dynamicVelocity = baseFlowVelocity + (pathSlopeComponent * 0.015);
-    const finalVelocity = Math.min(0.005, Math.max(0.0008, dynamicVelocity));
+    // Modify this block: Drives speed directly by slope steepness, allowing forward, backward, or zero movement
+    const velocityScale = 0.04; // Change this value to adjust general arrow speed
+    const finalVelocity = pathSlopeComponent * velocityScale; // Add this line
 
-    const animationShift = (performance.now() * finalVelocity) % 1.0;
+    let animationShift = (performance.now() * finalVelocity) % 1.0; // Add this line
+    if (animationShift < 0) { // Add this line: Corrects JavaScript negative loops for smooth reverse flow
+        animationShift += 1.0; // Add this line
+    } // Add this line
 
     for (let s = -1; s <= travelSteps + 1; s++) {
         const t = (s + animationShift) / travelSteps;
@@ -2355,22 +2358,28 @@ function updateGreenGrid() {
             if (slopeMag > 0.0005) {
                 ctx.save();
                 ctx.translate(cx, cy);
-                ctx.rotate(Math.atan2(localSlopeZ, localSlopeX));
 
-                let arrowScale = 0.35;
-                if (slopeMag < 0.015) {
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'; // Modify this line: High-contrast bright white for flat terrain
-                    arrowScale = 0.38;                             // Add this line: Makes the flat arrows slightly larger
-                    ctx.lineWidth = 3.0;                           // Modify this line: Thickened from 2.0 to 3.0 so it stands out
-                } else if (slopeMag < 0.035) {
-                    ctx.strokeStyle = 'rgba(0, 255, 255, 0.95)';   // Modify this line: Pure neon cyan for moderate break
-                    arrowScale = 0.45;                             // Modify this line: Bumped up scale slightly
-                    ctx.lineWidth = 3.2;                           // Modify this line: Thickened from 2.6 to 3.2
-                } else {
-                    ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Pink/Red (Heavy slope)
-                    arrowScale = 0.50;
-                    ctx.lineWidth = 3.2;
-                }
+                // Add this block: Vector calculations to blend hole targets with sideways break curves
+                const toHoleX = holePosition.x - wx; // Add this line
+                const toHoleZ = holePosition.z - wz; // Add this line
+                const distToHole = Math.sqrt(toHoleX * toHoleX + toHoleZ * toHoleZ) || 1; // Add this line
+                const unitHoleX = toHoleX / distToHole; // Add this line
+                const unitHoleZ = toHoleZ / distToHole; // Add this line
+
+                const perpX = -unitHoleZ; // Add this line: Perpendicular right vector
+                const perpZ = unitHoleX;  // Add this line
+
+                const curveIntensity = (localSlopeX * perpX) + (localSlopeZ * perpZ); // Add this line: Sideways break component
+                const curveSensitivity = 15.0; // Add this line: Exaggerates arrow bending visibility
+
+                const arrowDirX = unitHoleX + perpX * curveIntensity * curveSensitivity; // Add this line
+                const arrowDirZ = unitHoleZ + perpZ * curveIntensity * curveSensitivity; // Add this line
+                ctx.rotate(Math.atan2(arrowDirZ, arrowDirX)); // Modify this line: Rotates pointing along the curve vector
+
+                // Modify this block: Overrides all conditions to force a uniform pink style and scale
+                let arrowScale = 0.42;                         // Modify this line: Consistent medium scale size
+                ctx.strokeStyle = 'rgba(255, 45, 85, 0.95)';   // Modify this line: Solid Pink for all conditions
+                ctx.lineWidth = 3.2;                           // Modify this line: Clean uniform thickness
 
                 ctx.beginPath();
                 ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
