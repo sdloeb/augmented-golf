@@ -2332,8 +2332,8 @@ function updateGreenGrid() {
     const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
 
     const baseFlowVelocity = 0.003;
-    const dynamicVelocity = baseFlowVelocity + (pathSlopeComponent * 0.05);
-    const finalVelocity = Math.max(0.0008, dynamicVelocity);
+    const dynamicVelocity = baseFlowVelocity + (pathSlopeComponent * 0.015);
+    const finalVelocity = Math.min(0.005, Math.max(0.0008, dynamicVelocity));
 
     const animationShift = (performance.now() * finalVelocity) % 1.0;
 
