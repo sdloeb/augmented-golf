@@ -93,8 +93,11 @@ export class InputHandler {
         const clubEl = document.getElementById('clubSwipe');
         if (clubEl) {
             const handleClubTap = (e) => {
-                // Delete e.stopPropagation() from here
-                // Delete e.preventDefault() from here
+                // If this is a touchstart event, prevent the browser from firing a duplicate click event
+                if (e.type === 'touchstart') {
+                    e.preventDefault();
+                }
+
                 const now = performance.now();
                 if (now - this.lastClubTapTime < 1000) {
                     e.stopPropagation(); // Add this line here: Only intercept when an official double tap happens

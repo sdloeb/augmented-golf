@@ -1282,9 +1282,12 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
+        // NEW: Dynamically expand capture radius if the ball comes to rest or rolls slowly, preventing it from balancing on the lip
+        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.32 : 0.22;
+
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
-        if (distanceToHole < 0.18 && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
+        if (distanceToHole < dynamicCaptureRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
 
             // Calculate true world speed translation based on internal engine time scaling profiles
@@ -2315,7 +2318,9 @@ function updateGreenGrid() {
     const dzB = ball.position.z - gZ;
     const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < GREEN_RADIUS;
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
-    const isAiming = input && input.isAimMode;
+
+    // NEW: Keep arrows visible during look-around AND active swing pullback states
+    const isAiming = input && (input.isAimMode || input.state === 'PULLBACK' || input.state === 'FORWARD');
 
     // If not on the green, airborne, or not aiming, clear the canvas completely
     if (!isBallOnGreen || isAirborne || physics.hitWater || isSinking || !isAiming) {
@@ -2336,17 +2341,18 @@ function updateGreenGrid() {
     const delta = 0.1;
     const ballSlopeX = (physics.getGreenHeight(ball.position.x - delta, ball.position.z) - physics.getGreenHeight(ball.position.x + delta, ball.position.z)) / (2 * delta);
     const ballSlopeZ = (physics.getGreenHeight(ball.position.x, ball.position.z - delta) - physics.getGreenHeight(ball.position.x, ball.position.z + delta)) / (2 * delta);
-    const pathSlopeComponent = (dirX * ballSlopeX) + (dirZ * ballSlopeZ);
 
-    // Modify this block: Drives speed directly by slope steepness with a strict maximum speed cap
-    const velocityScale = 0.02; // Modify this line: Lowered from 0.04 to slow down general speed
-    let finalVelocity = pathSlopeComponent * velocityScale; // Modify this line: Changed 'const' to 'let'
-    finalVelocity = Math.max(-0.002, Math.min(0.002, finalVelocity)); // Add this line: This is what limits the max speed!
+    // NEW: Calculate true overall slope magnitude so side-breaks register physical steepness
+    const totalSlopeSteepness = Math.sqrt(ballSlopeX * ballSlopeX + ballSlopeZ * ballSlopeZ);
 
-    let animationShift = (performance.now() * finalVelocity) % 1.0; // Add this line
-    if (animationShift < 0) { // Add this line: Corrects JavaScript negative loops for smooth reverse flow
-        animationShift += 1.0; // Add this line
-    } // Add this line
+    // NEW: Give it a baseline trickle speed so arrows always flow forward, accelerating on severe breaks
+    const baseStreamSpeed = 0.0006;
+    const velocityScale = 0.015;
+    let finalVelocity = baseStreamSpeed + (totalSlopeSteepness * velocityScale);
+    finalVelocity = Math.max(0.0003, Math.min(0.0025, finalVelocity));
+
+    let animationShift = (performance.now() * finalVelocity) % 1.0;
+
 
     for (let s = -1; s <= travelSteps + 1; s++) {
         const t = (s + animationShift) / travelSteps;
@@ -2386,7 +2392,7 @@ function updateGreenGrid() {
 
                 // Modify this block: Overrides all conditions to force a uniform pink style and scale
                 let arrowScale = 0.42;                         // Modify this line: Consistent medium scale size
-                ctx.strokeStyle = 'rgba(100, 200, 255, 0.95)';   // Modify this line: Solid Pink for all conditions
+                ctx.strokeStyle = 'rgba(50, 115, 255, 0.95)';   // Corrected to Blue
                 ctx.lineWidth = 3.2;                           // Modify this line: Clean uniform thickness
 
                 ctx.beginPath();

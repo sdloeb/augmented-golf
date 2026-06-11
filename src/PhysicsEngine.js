@@ -182,6 +182,7 @@ export class PhysicsEngine {
         // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
         this.spin = isPutting ? 0 : spin;
         this.hasLanded = false;
+        this.currentLoft = isPutting ? 0 : loft;
 
         // 2. ROTATE THE INITIAL TRAJECTORY OUTWARDS
         let adjustedAngle = mouseAngle;
@@ -261,10 +262,21 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.25;
         }
         else if (onGreen) {
-            // Receptive Green Landing: Soft check-up thud, low rolling friction resistance
-            currentBounceHeight = 0.22;        // Lowers bounce elasticity so approach shots check up
-            currentBounceForwardLoss = 0.35;   // Turf grabs the ball back on initial impact
-            currentFriction = 0.965;           // Smooth rolling glide once the ball settles
+            // Receptive Green Landing: Base calibrations optimized for wedges
+            currentBounceHeight = 0.22;
+            currentBounceForwardLoss = 0.35;
+            currentFriction = 0.965;
+
+            // NEW: If it's a full shot (not a putt) adjust behavior based on landing loft angle
+            if (!this.isPutting && this.currentLoft) {
+                // A lower loft value (Driver = 0.040) means less vertical check, more forward skid
+                // A higher loft value (SW = 0.063) naturally preserves your high biting check-up settings
+                const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
+
+                // Low loft clubs get higher bounce resilience and much less forward speed loss (skidding out)
+                currentBounceHeight = 0.22 * (2.0 - loftRatio);
+                currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
+            }
         }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= this.fairwayWidth && this.ball.position.z <= -8.0 && !isPastFairway) { // Modify this line: Added && !isPastFairway
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
