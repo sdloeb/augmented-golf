@@ -1430,7 +1430,9 @@ function animate() {
         } else if (onGreen) {
             ballTargetScale = 0.30;  // Change this number to adjust size when Putting
         } else {
-            ballTargetScale = 0.70;  // Change this number to adjust size on Fairways/Rough
+            // Modify this block: Automatically scales down if screen width is mobile or portrait orientation
+            const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1; // Add this line
+            ballTargetScale = isMobile ? 0.55 : 0.70; // Modify this line: 0.50 is themobile  size, 0.70 is the desktop size
         }
 
         const camDist = onGreen ? 2.5 : 7.5;
