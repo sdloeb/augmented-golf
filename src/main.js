@@ -1419,9 +1419,10 @@ function animate() {
             cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
             cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
         }
+    }
 
 
-     // <-- This brace closes the entire "ball is not moving" section
+    // <-- This brace closes the entire "ball is not moving" section
 
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
@@ -1620,10 +1621,6 @@ function animate() {
         }
     }
 
-    // Add this block below:
-    const ballGreenX = ball.position.x - (green ? green.position.x : 0);
-    const ballGreenZ = ball.position.z - greenCenterZ;
-    const isCamOnGreen = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
 
     if (isCamOnGreen && !isSinking) {
         updateGreenGrid();
@@ -2260,7 +2257,7 @@ function init() {
 
 init();
 
-init();
+
 
 // Add this entire function block at the very bottom of the file:
 function updateGreenGrid() {
