@@ -1424,15 +1424,16 @@ function animate() {
 
         const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
 
-        // Add this block: Restores your custom location sizing conditions when the ball is at rest
+        // Detect if screen width is mobile or portrait orientation at top of block
+        const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+
         if (teeBox && teeBox.visible) {
-            ballTargetScale = 1.0;   // Change this number to adjust size on the Tee
+            // NEW: Separate mobile and desktop sizing for the Tee
+            ballTargetScale = isMobile ? 0.9 : 1.0; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             ballTargetScale = 0.30;  // Change this number to adjust size when Putting
         } else {
-            // Modify this block: Automatically scales down if screen width is mobile or portrait orientation
-            const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1; // Add this line
-            ballTargetScale = isMobile ? 0.75 : 0.70; // Modify this line: 0.50 is themobile  size, 0.70 is the desktop size
+            ballTargetScale = isMobile ? 0.75 : 0.70; // Fairway, rough, and sand size
         }
 
         const camDist = onGreen ? 2.5 : 7.5;
