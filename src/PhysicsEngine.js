@@ -266,12 +266,12 @@ export class PhysicsEngine {
         const gZ = this.ball.position.z - this.greenCenterZ;
         const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
 
-        // Check Sand Traps contact
         let inSand = false;
         for (let sand of this.sandTraps) {
             const dx = this.ball.position.x - sand.position.x;
             const dz = this.ball.position.z - sand.position.z;
-            if (Math.sqrt(dx * dx + dz * dz) < sand.geometry.parameters.radius) {
+            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
                 inSand = true;
                 break;
             }
@@ -394,13 +394,13 @@ export class PhysicsEngine {
             this.slopeX = rawSlopeX * 0.0075;
             this.slopeZ = rawSlopeZ * 0.0075;
 
-            // 2. Scan active sand trap borders using your synchronized +1.6 cushion
+            // 2. Scan active sand trap borders using unified visible boundary
             let currentlyInSand = false;
             if (this.sandTraps) {
                 this.sandTraps.forEach(sand => {
                     const dxS = this.ball.position.x - sand.position.x;
                     const dzS = this.ball.position.z - sand.position.z;
-                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6;
+                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                     if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
                         currentlyInSand = true;
                     }

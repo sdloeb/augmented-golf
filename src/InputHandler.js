@@ -451,7 +451,8 @@ export class InputHandler {
                     for (let sand of this.sandTrapsRef) {
                         const dx = this.ballRef.position.x - sand.position.x;
                         const dz = this.ballRef.position.z - sand.position.z;
-                        if (Math.sqrt(dx * dx + dz * dz) < sand.geometry.parameters.radius) {
+                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                        if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
                             inSand = true;
                             break;
                         }

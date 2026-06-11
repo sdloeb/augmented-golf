@@ -1900,6 +1900,34 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
+    // --- NEW: ANIMATE AND UPDATE SAND SPRAY PARTICLES ---
+    for (let i = sandParticles.length - 1; i >= 0; i--) {
+        const p = sandParticles[i];
+
+        // 1. Advance position over its horizontal and vertical velocity vectors
+        p.mesh.position.x += p.vx;
+        p.mesh.position.y += p.vy;
+        p.mesh.position.z += p.vz;
+
+        // 2. Apply gravity deceleration to create a beautiful ballistic arc curve
+        p.vy -= 0.005;
+
+        // 3. Degrade particle life index over time
+        p.life -= p.decay;
+
+        // 4. Smoothly fade the particle out before it disappears
+        if (p.mesh.material) {
+            p.mesh.material.opacity = Math.max(0, p.life);
+        }
+
+        // 5. Memory Cleanup: Wipe out expired particle arrays from the active 3D scene
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            p.mesh.geometry.dispose();
+            if (p.mesh.material) p.mesh.material.dispose();
+            sandParticles.splice(i, 1);
+        }
+    }
 
     updateWindArrowDisplay();
 
@@ -2151,14 +2179,14 @@ function init() {
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
+
         // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
         let launchedFromSand = false;
         for (let sand of sandTraps) {
             const dx = ball.position.x - sand.position.x;
             const dz = ball.position.z - sand.position.z;
 
-            // FIXED: Added the +1.6 buffer cushion here so the hitting engine recognizes the expanded walls of your deep traps!
-            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6;
+            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
             if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
                 launchedFromSand = true;
                 break;
