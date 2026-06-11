@@ -23,15 +23,17 @@ export class PhysicsEngine {
         this.isStuckInBush = false;
         this.fairwayPoints = [];
         this.hasLanded = false;
+        this.fairwayWidth = 9.0;
     }
 
     // NEW: Receives the shuffled configurations from the map setup
-    setGreenContours(back, mid, front, centerX, centerZ) {
+    setGreenContours(back, mid, front, centerX, centerZ, randomWidth) {
         this.backZone = back;
         this.midZone = mid;
         this.frontZone = front;
         this.greenCenterX = centerX;
         this.greenCenterZ = centerZ;
+        this.fairwayWidth = randomWidth || 9.0;
 
         // Randomize fairway/rough course contours for the new hole
         this.courseSeedX1 = Math.random() * 50; // Add this line
@@ -245,6 +247,13 @@ export class PhysicsEngine {
             }
         }
 
+        // Modify this block: Calculates if the ball is inside the green fringe circle or behind the green center
+        const relX = this.ball.position.x - this.greenCenterX;
+        const relZ = this.ball.position.z - this.greenCenterZ;
+        const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ); // Add this line
+        const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
+        const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
+
         // CHIP & DRIVE TERRAIN PROFILE MATRIX
         if (inSand) {
             currentFriction = 0.72;
@@ -257,7 +266,8 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.35;   // Turf grabs the ball back on initial impact
             currentFriction = 0.965;           // Smooth rolling glide once the ball settles
         }
-        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= 9.0 && this.ball.position.z <= -8.0) {
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= this.fairwayWidth && this.ball.position.z <= -8.0 && !isPastFairway) { // Modify this line: Added && !isPastFairway
+            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             currentFriction = 0.91;
             currentBounceHeight = 0.36;
