@@ -570,7 +570,7 @@ html {
     /* Add this block right below it to override the putter on mobile screens */
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 77.5px) !important;
-        bottom: 17% !important;
+        bottom: 19% !important;
         /* Kept at 35% to line up perfectly with closer portrait putter camera view */
     }
 
