@@ -2,6 +2,32 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
+// NEW: Global 3D Particle System for Sand Spray Animations
+let sandParticles = [];
+window.triggerSandSpray = function (x, y, z, count = 15, force = 1.0) {
+    for (let i = 0; i < count; i++) {
+        const pGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+        const pMat = new THREE.MeshBasicMaterial({ color: 0xd6c29a, transparent: true, opacity: 0.9 });
+        const pMesh = new THREE.Mesh(pGeo, pMat);
+
+        // Randomize micro-sparks positioning near ball bounds
+        pMesh.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.05, z + (Math.random() - 0.5) * 0.2);
+        scene.add(pMesh);
+
+        const angle = Math.random() * Math.PI * 2;
+        const horizSpeed = 0.01 + Math.random() * 0.04;
+
+        sandParticles.push({
+            mesh: pMesh,
+            vx: Math.cos(angle) * horizSpeed,
+            vy: (0.04 + Math.random() * 0.08) * force,
+            vz: Math.sin(angle) * horizSpeed,
+            life: 1.0,
+            decay: 0.03 + Math.random() * 0.03
+        });
+    }
+};
+
 // Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
 const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
@@ -354,22 +380,15 @@ function generateHazards() {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
         do {
-            // NEW APPROACH: Base coordinates directly on the fairway track or green center so they can never wander off
             if (Math.random() > 0.3 && physics.fairwayPoints && physics.fairwayPoints.length > 0) {
-                // Pick a random track coordinate along the active fairway line
                 const basePt = physics.fairwayPoints[Math.floor(Math.random() * physics.fairwayPoints.length)];
                 const angle = Math.random() * Math.PI * 2;
-                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the fairway edge
                 const offsetDist = 9.0 + r + 0.5 + Math.random() * 4.0;
-
                 x = basePt.x + Math.cos(angle) * offsetDist;
                 z = basePt.z + Math.sin(angle) * offsetDist;
             } else {
-                // Pick a random angle around the green
                 const angle = Math.random() * Math.PI * 2;
-                // Force the sand trap to sit tightly between 0.5 and 4.5 units away from the green edge
                 const offsetDist = 12.0 + r + 0.5 + Math.random() * 4.0;
-
                 x = targetGreenX + Math.cos(angle) * offsetDist;
                 z = targetGreenZ + Math.sin(angle) * offsetDist;
             }
@@ -378,33 +397,38 @@ function generateHazards() {
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) || // Keep clear of green surface
-            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) || // Keep clear of fairway short grass
-            (z > -15 && Math.abs(x) < 15) // Keep clear of the immediate tee box zone
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) ||
+            (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) ||
+            (z > -15 && Math.abs(x) < 15)
         );
 
         if (sandAttempts > 100) continue;
 
         let currentSandGroundY = physics.getGroundHeight(x, z);
-
-        // NEW: If sand spawns inside the fairway lane, elevate it slightly to match the fairway mesh cushion (+0.03)
         if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
             currentSandGroundY += 0.035;
         }
 
-        // UPDATED MATERIAL: Keeps your exact geometry/artwork but adds polygon offsets to overlay properly
+        // NEW: Select a variable depth profile between a shallow bunker (0.4) and a deep pot trap (1.0)
+        const sandDepth = 0.4 + Math.random() * 1.6;
+
         const sandMesh = new THREE.Mesh(
-            new THREE.CircleGeometry(r, 32),
+            // FIXED: Changed to RingGeometry(0, ...) to give the mesh concentric internal rows to mold to the wide flat floor!
+            new THREE.RingGeometry(0, r, 32, 6),
             new THREE.MeshStandardMaterial({
-                color: 0xe0ca9b,
-                roughness: 0.9,
-                polygonOffset: true,         // Tells the GPU to pull this layer slightly forward
+                color: 0xd9c59e, // Clean realistic sand coloring
+                roughness: 0.95,
+                metalness: 0.0,
+                polygonOffset: true,
                 polygonOffsetFactor: -1,
-                polygonOffsetUnits: -2
+                polygonOffsetUnits: -4
             })
         );
         sandMesh.rotation.x = -Math.PI / 2;
-        sandMesh.position.set(x, currentSandGroundY + 0.007, z);
+
+        // FIXED: Reset position.y to 0 so absolute height deformations don't stack and float over hills
+        sandMesh.position.set(x, 0, z);
+        sandMesh.userData = { radius: r, depth: sandDepth };
         scene.add(sandMesh);
         sandTraps.push(sandMesh);
     }
@@ -414,6 +438,8 @@ function generateHazards() {
         physics.waterHazards = waterHazards;
     }
 }
+
+
 
 function updateWindArrowDisplay() {
     const arrow = document.getElementById('windArrow');
@@ -678,7 +704,7 @@ function resetEntireGame(advanceHole = false) {
             // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            // NEW: Scan if this vertex falls inside any active water hazard perimeter shelf
+            // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
             waterHazards.forEach(water => {
                 const dxW = worldX - water.position.x;
@@ -690,17 +716,15 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
-            // NEW: Scan if this vertex falls inside any active sand trap perimeter
+            // Scan active sand trap footprint borders
             let insideSandZone = false;
-            let targetSandY = 0;
             sandTraps.forEach(sand => {
                 const dxS = worldX - sand.position.x;
                 const dzS = worldZ - sand.position.z;
                 const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                const sandRadius = sand.geometry.parameters.radius || 5;
-                if (distToSand < sandRadius + 0.2) { // 0.2 buffer keeps mesh edges stitched neatly
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                if (distToSand < sandRadius) {
                     insideSandZone = true;
-                    targetSandY = sand.position.y - 0.02; // Keeps the grass bed 0.02 units underneath the flat disc
                 }
             });
 
@@ -708,7 +732,7 @@ function resetEntireGame(advanceHole = false) {
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // FIXED: Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
+            // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
             if (distToGreen < 12.0) {
                 calculatedHeight -= 0.45;
             } else if (distToGreen < 15.5) {
@@ -741,16 +765,17 @@ function resetEntireGame(advanceHole = false) {
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
+                    if (insideSandZone) calculatedHeight -= 0.14;
                 }
 
-                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     // Determine if this part of the fairway should be visible or hidden under the rough floor
                     const shouldHide = (worldZ > -8.0) || isPastFairway || insideSandZone || (distanceToPath > fWEdge);
 
                     if (shouldHide) {
-                        // FIXED: If inside a sand trap, submerge beneath the sand trench bed; otherwise hide beneath the rough floor
-                        calculatedHeight = insideSandZone ? (targetSandY - 0.04) : (floorHeight - 0.02);
+                        // Place hidden fairway mesh slightly underneath either the rough floor height or sand bowl height
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.16) : (floorHeight - 0.16);
                     } else if (distanceToPath <= fW) {
                         // Inside the core fairway lane, stay visible above base height
                         calculatedHeight += 0.06;
@@ -760,21 +785,21 @@ function resetEntireGame(advanceHole = false) {
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
                         const visibleHeight = calculatedHeight + 0.06;
-                        const hiddenHeight = insideSandZone ? (targetSandY - 0.04) : (floorHeight - 0.02);
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.02) : (floorHeight - 0.02);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
                 }
             }
 
-            // Flatten the wavy terrain bed underneath the flat sand disc to prevent clipping
-            if (insideSandZone && targetMesh === floor) { // Modify this line: Added && targetMesh === floor
-                calculatedHeight = targetSandY;
+            // NEW: If deforming a sand trap mesh itself, add a tiny positive offset cushion to prevent z-fighting clips
+            if (sandTraps.includes(targetMesh)) {
+                calculatedHeight += 0.02;
             }
 
             // Write the finalized calculated height to the current vertex
             posAttr.setZ(i, calculatedHeight);
-        } // Closes the for loop
+        }
 
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
@@ -844,6 +869,7 @@ function resetEntireGame(advanceHole = false) {
 
     deformCourseMesh(floor, false);
     deformCourseMesh(fairway, true);
+    sandTraps.forEach(sand => deformCourseMesh(sand, false));
 
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
@@ -1851,6 +1877,28 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
+    // NEW: Update sand spray particle animations dynamically every frame
+    for (let i = sandParticles.length - 1; i >= 0; i--) {
+        const p = sandParticles[i];
+        p.mesh.position.x += p.vx;
+        p.mesh.position.y += p.vy;
+        p.mesh.position.z += p.vz;
+
+        p.vy -= 0.006; // Simulates real gravity downward pull on grain meshes
+        p.life -= p.decay;
+        p.mesh.material.opacity = p.life;
+
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            p.mesh.geometry.dispose();
+            p.mesh.material.dispose();
+            sandParticles.splice(i, 1);
+        }
+    }
+
+
+
+
     updateWindArrowDisplay();
 
     renderer.render(scene, camera);
@@ -2089,23 +2137,33 @@ function init() {
     scene.add(clubLandingBeacon);
 
     // 7. Initialize Modules
-
     physics = new PhysicsEngine(ball);
     window.physicsEngine = physics;
 
-    // Add these lines below to create the sound instance and pass it to physics
     sounds = new SoundManager();
     physics.sounds = sounds;
 
-
-    // UPDATED: Now passes an extra dynamic checker argument directly into InputHandler
     input = new InputHandler((power, angle, spin, loft) => {
         isOverheadActive = false;
         if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
-        tracerPoints.push(ball.position.clone());  //to anchor the tracer exactly at the ball's starting position
+        // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
+        let launchedFromSand = false;
+        for (let sand of sandTraps) {
+            const dx = ball.position.x - sand.position.x;
+            const dz = ball.position.z - sand.position.z;
+            if (Math.sqrt(dx * dx + dz * dz) < (sand.userData.radius || 5)) {
+                launchedFromSand = true;
+                break;
+            }
+        }
+        if (launchedFromSand && typeof window.triggerSandSpray === 'function') {
+            window.triggerSandSpray(ball.position.x, ball.position.y, ball.position.z, 25, 1.4);
+        }
+
+        tracerPoints.push(ball.position.clone());
         if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
         ballTracer.geometry.computeBoundingSphere();
         const forward = new THREE.Vector3();
