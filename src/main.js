@@ -4,26 +4,28 @@ import { SoundManager } from './SoundManager.js';
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
-window.triggerSandSpray = function (x, y, z, count = 15, force = 1.0) {
+// NEW: High-Velocity 3D Particle System for Deep Pot Bunker Eruptions
+window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Increased default particle density
     for (let i = 0; i < count; i++) {
-        const pGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
-        const pMat = new THREE.MeshBasicMaterial({ color: 0xd6c29a, transparent: true, opacity: 0.9 });
+        const pGeo = new THREE.BoxGeometry(0.07, 0.07, 0.07); // Slightly more visible grain sizes
+        const pMat = new THREE.MeshBasicMaterial({ color: 0xe3d1b1, transparent: true, opacity: 0.95 });
         const pMesh = new THREE.Mesh(pGeo, pMat);
 
-        // Randomize micro-sparks positioning near ball bounds
         pMesh.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.05, z + (Math.random() - 0.5) * 0.2);
         scene.add(pMesh);
 
         const angle = Math.random() * Math.PI * 2;
-        const horizSpeed = 0.01 + Math.random() * 0.04;
+        const horizSpeed = (0.02 + Math.random() * 0.05) * force; // Wider outward blast radius
 
         sandParticles.push({
             mesh: pMesh,
             vx: Math.cos(angle) * horizSpeed,
-            vy: (0.04 + Math.random() * 0.08) * force,
+            // FIXED: Massive upward velocity boost so particles easily clear 2.6-unit deep pot bunker lips!
+            vy: (0.14 + Math.random() * 0.16) * force,
             vz: Math.sin(angle) * horizSpeed,
             life: 1.0,
-            decay: 0.03 + Math.random() * 0.03
+            // FIXED: Slower decay lets the particles live longer to display a full, gorgeous ballistic arc path
+            decay: 0.012 + Math.random() * 0.012
         });
     }
 };
@@ -410,7 +412,7 @@ function generateHazards() {
         }
 
         // NEW: Select a variable depth profile between a shallow bunker (0.4) and a deep pot trap (1.0)
-        const sandDepth = 0.4 + Math.random() * 1.6;
+        const sandDepth = 0.5 + Math.random() * 2.6;
 
         const sandMesh = new THREE.Mesh(
             // FIXED: Changed to RingGeometry(0, ...) to give the mesh interior rows to bend over slopes!
@@ -734,13 +736,18 @@ function resetEntireGame(advanceHole = false) {
 
             // Scan active sand trap footprint borders using correct userData properties
             let insideSandZone = false;
+            let activeSandDepth = 0; // Fixes the ReferenceError crash!
             sandTraps.forEach(sand => {
                 const dxS = worldX - sand.position.x;
                 const dzS = worldZ - sand.position.z;
                 const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                // FIXED: Increased buffer to +1.6 to pull wide fairway triangles underground before they can clip the sloped walls
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6; {
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6;
+
+                // Added the missing condition check
+                if (distToSand < sandRadius) {
                     insideSandZone = true;
+                    const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
+                    if (depth > activeSandDepth) activeSandDepth = depth;
                 }
             });
 
@@ -780,16 +787,20 @@ function resetEntireGame(advanceHole = false) {
 
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
-                    calculatedHeight = insideSandZone ? (floorHeight - 0.35) : floorHeight;
+                    calculatedHeight = floorHeight;
+                    // FIXED: Clearance cushion automatically scales deeper to completely neutralize triangle bridging
+                    if (insideSandZone) {
+                        calculatedHeight -= (0.15 + activeSandDepth * 0.35);
+                    }
                 }
 
-                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     const shouldHide = (worldZ > -8.0) || isPastFairway || insideSandZone || (distanceToPath > fWEdge);
 
                     if (shouldHide) {
-                        // FIXED: Submerges 0.37 units beneath the dynamic depth map instead of obsolete flat baselines
-                        calculatedHeight = insideSandZone ? (calculatedHeight - 0.37) : (floorHeight - 0.02);
+                        // FIXED: Automatically pulls hidden cuts deeper proportional to the trap's customized depth profile
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 0.02);
                     } else if (distanceToPath <= fW) {
                         calculatedHeight += 0.06;
                     } else {
@@ -797,7 +808,7 @@ function resetEntireGame(advanceHole = false) {
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
                         const visibleHeight = calculatedHeight + 0.06;
-                        const hiddenHeight = insideSandZone ? (calculatedHeight - 0.37) : (floorHeight - 0.02);
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 0.02);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
@@ -1889,27 +1900,6 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
-    // NEW: Update sand spray particle animations dynamically every frame
-    for (let i = sandParticles.length - 1; i >= 0; i--) {
-        const p = sandParticles[i];
-        p.mesh.position.x += p.vx;
-        p.mesh.position.y += p.vy;
-        p.mesh.position.z += p.vz;
-
-        p.vy -= 0.006; // Simulates real gravity downward pull on grain meshes
-        p.life -= p.decay;
-        p.mesh.material.opacity = p.life;
-
-        if (p.life <= 0) {
-            scene.remove(p.mesh);
-            p.mesh.geometry.dispose();
-            p.mesh.material.dispose();
-            sandParticles.splice(i, 1);
-        }
-    }
-
-
-
 
     updateWindArrowDisplay();
 
@@ -2166,7 +2156,10 @@ function init() {
         for (let sand of sandTraps) {
             const dx = ball.position.x - sand.position.x;
             const dz = ball.position.z - sand.position.z;
-            if (Math.sqrt(dx * dx + dz * dz) < (sand.userData.radius || 5)) {
+
+            // FIXED: Added the +1.6 buffer cushion here so the hitting engine recognizes the expanded walls of your deep traps!
+            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6;
+            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
                 launchedFromSand = true;
                 break;
             }

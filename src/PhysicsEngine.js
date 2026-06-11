@@ -185,7 +185,7 @@ export class PhysicsEngine {
                 if (distToSand < sandRadius) {
                     // EASY TUNING: Controls what percentage of the inner bunker is completely flat maximum depth.
                     // 0.45 means the inner 45% of the radius spreads out perfectly flat before sloping up.
-                    const floorFraction = 0.45;
+                    const floorFraction = 0.60;
                     const flatRadius = sandRadius * floorFraction;
 
                     if (distToSand <= flatRadius) {
@@ -379,25 +379,57 @@ export class PhysicsEngine {
                 this.velocity.z += this.wind.z * bounceWindMultiplier * timeScale;
             }
         } else {
-            // Apply ground surface friction
-            this.velocity.x *= currentFriction;
-            this.velocity.z *= currentFriction;
-
-            // NEW: Continuous 3D gradient vector checks when rolling across the contoured tiers
-            const delta = 0.1;
+            // 1. Calculate high-precision local 3D terrain slopes
+            const delta = 0.05;
             const hL = this.getGroundHeight(this.ball.position.x - delta, this.ball.position.z);
             const hR = this.getGroundHeight(this.ball.position.x + delta, this.ball.position.z);
             const hB = this.getGroundHeight(this.ball.position.x, this.ball.position.z - delta);
             const hF = this.getGroundHeight(this.ball.position.x, this.ball.position.z + delta);
 
-            // Calculates precise slope forces pulling the ball downhill based on local mesh angles
-            this.slopeX = ((hL - hR) / (2 * delta)) * 0.015 * 0.5;
-            this.slopeZ = ((hB - hF) / (2 * delta)) * 0.015 * 0.5;
+            const rawSlopeX = (hL - hR) / (2 * delta);
+            const rawSlopeZ = (hB - hF) / (2 * delta);
+            const slopeMagnitude = Math.sqrt(rawSlopeX * rawSlopeX + rawSlopeZ * rawSlopeZ);
 
-            // FIXED: Scaled by timeScale so gravity forces accumulate in the exact same time dimension as rolling friction
-            this.velocity.x += this.slopeX * timeScale;
-            this.velocity.z += this.slopeZ * timeScale;
+            // Preserves legacy slope properties for compatibility with outside rendering tools
+            this.slopeX = rawSlopeX * 0.0075;
+            this.slopeZ = rawSlopeZ * 0.0075;
 
+            // 2. Scan active sand trap borders using your synchronized +1.6 cushion
+            let currentlyInSand = false;
+            if (this.sandTraps) {
+                this.sandTraps.forEach(sand => {
+                    const dxS = this.ball.position.x - sand.position.x;
+                    const dzS = this.ball.position.z - sand.position.z;
+                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6;
+                    if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
+                        currentlyInSand = true;
+                    }
+                });
+            }
+
+            // 3. Apply Dynamic Surface Friction Matrix
+            if (currentlyInSand) {
+                if (slopeMagnitude > 0.15) {
+                    // Ball is on the steep bunker wall: drop friction to allow a smooth gravity slide
+                    this.velocity.x *= 0.91;
+                    this.velocity.z *= 0.91;
+                } else {
+                    // Ball is on the flat bunker floor: apply heavy drag to plug/settle the ball
+                    this.velocity.x *= 0.82;
+                    this.velocity.z *= 0.82;
+                }
+            } else {
+                // Apply standard grass/green/rough friction
+                this.velocity.x *= currentFriction;
+                this.velocity.z *= currentFriction;
+            }
+
+            // 4. Accumulate Downhill Gravitational Forces
+            // Boost gravity pull dynamically inside sand hazards so they trickle down to the flat basin
+            const gravityRollPower = currentlyInSand ? 0.18 : 1.0;
+
+            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * timeScale;
+            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * timeScale;
         }
 
         // 2. MOVE THE BALL 
