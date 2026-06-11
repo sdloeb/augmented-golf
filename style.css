@@ -563,7 +563,7 @@ html {
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
         left: calc(50% - 40px) !important;
-        bottom: 32% !important;
+        bottom: 34% !important;
         /* Restored to 16% scale to perfectly align the woods/irons on mobile screens */
     }
 
