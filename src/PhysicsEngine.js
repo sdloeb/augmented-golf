@@ -33,7 +33,7 @@ export class PhysicsEngine {
         this.frontZone = front;
         this.greenCenterX = centerX;
         this.greenCenterZ = centerZ;
-        this.fairwayWidth = randomWidth || 9.0;
+        this.fairwayWidth = randomWidth || 8.5;
 
         // Randomize fairway/rough course contours for the new hole
         this.courseSeedX1 = Math.random() * 50; // Add this line

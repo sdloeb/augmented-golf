@@ -604,7 +604,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
-        const generatedWidth = 9 + Math.random() * 20; // Add this line: Produces a random width from 8.0 to 21.0
+        const generatedWidth = 8.5 + Math.random() * 20; // Add this line: Produces a random width from 8.0 to 21.0
         physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenEndpoint.x, greenCenterZ, generatedWidth); // Modify this line: Added generatedWidth parameter
 
         // Add these lines: Calculates and stores the normalized final approach direction vector
@@ -708,48 +708,61 @@ function resetEntireGame(advanceHole = false) {
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            if (distToGreen < 14.0) {
+            // FIXED: Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
+            if (distToGreen < 12.0) {
                 calculatedHeight -= 0.45;
+            } else if (distToGreen < 15.5) {
+                const greenT = (distToGreen - 12.0) / 3.5;
+                const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
+                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
             }
 
             if (!insideWaterZone) {
-                // FIXED: Restored this critical declaration line to clear your ReferenceError blank screen crash!
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
-                const fW = physics.fairwayWidth; // Add this line: Local shorthand reference to the active width
-                const fWEdge = fW + 0.8;         // Add this line: Sets up a smooth 0.8 unit blended shoulder boundary
+                const fW = physics.fairwayWidth;
+                const fWEdge = fW + 3.5;
 
-                // Modify this block: Checks if the vertex is inside the circular green fringe or behind the green center
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
-                const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ); // Add this line
+                const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
-                const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
+                const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0);
 
-                // 2. Fairway Lane Floor Concealment (applies ONLY to the rough floor mesh)
-                // UPDATED: Swapped out old straight Z constraints for the dynamic spline path tracking
-                // to cleanly handle our new 90-degree sideways dogleg modifications
-                if (targetMesh === floor) {
-                    if (distanceToPath <= fW && !isPastFairway) { // Modify this line: Added && !isPastFairway
-                        calculatedHeight -= 0.04; // Modify this line: Shaves the rough down slightly under the fairway core
-                    } else if (distanceToPath <= fWEdge && !isPastFairway) { // Modify this line: Added && !isPastFairway
-                        const t = (distanceToPath - fW) / 0.8; // Modify this line: Changed 8.0 to fW
-                        calculatedHeight -= THREE.MathUtils.lerp(0.04, 0.0, t); // Add this line: Smoothly brings rough back up to ground level
-                    }
+                // 1. Calculate exactly where the rough floor mesh sits at this coordinate
+                let floorHeight = calculatedHeight;
+                if (distanceToPath <= fW && !isPastFairway) {
+                    floorHeight -= 0.04;
+                } else if (distanceToPath <= fWEdge && !isPastFairway) {
+                    const t = (distanceToPath - fW) / 3.5;
+                    const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
+                    floorHeight -= THREE.MathUtils.lerp(0.04, 0.0, smoothT);
                 }
 
-                // 3. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+                // Render the rough floor geometry
+                if (targetMesh === floor) {
+                    calculatedHeight = floorHeight;
+                }
+
+                // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    if (worldZ > -8.0 || isPastFairway) { // Modify this line: Added || isPastFairway to hide fairway past the fringe line
-                        calculatedHeight = -10.0; // Hides the fairway for the first 50 yards to create the rough carry
-                    } else if (insideSandZone) {
-                        calculatedHeight = -10.0; // Keeps the fairway completely hidden inside sand trap perimeters
-                    } else if (distanceToPath <= fW) { // Modify this line: Changed 8.0 to fW
+                    // Determine if this part of the fairway should be visible or hidden under the rough floor
+                    const shouldHide = (worldZ > -8.0) || isPastFairway || insideSandZone || (distanceToPath > fWEdge);
+
+                    if (shouldHide) {
+                        // NEW: Place it slightly beneath the rough floor so it's hidden with zero harsh vertical cliff walls
+                        calculatedHeight = floorHeight - 0.02;
+                    } else if (distanceToPath <= fW) {
+                        // Inside the core fairway lane, stay visible above base height
                         calculatedHeight += 0.06;
-                    } else if (distanceToPath <= fWEdge) { // Modify this line: Changed 8.8 to fWEdge
-                        const t = (distanceToPath - fW) / 0.8; // Modify this line: Changed 8.0 to fW
-                        calculatedHeight += THREE.MathUtils.lerp(0.06, -1.2, t); // Modify this line: Dives the fairway sharply under the rough mesh
                     } else {
-                        calculatedHeight = -10.0; // Keep this line
+                        // Inside the transition shoulder, blend smoothly from fairway height to hidden floor depth
+                        const t = (distanceToPath - fW) / 3.5;
+                        const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
+
+                        const visibleHeight = calculatedHeight + 0.06;
+                        const hiddenHeight = floorHeight - 0.02;
+
+                        calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
                 }
             }
@@ -890,16 +903,10 @@ function resetEntireGame(advanceHole = false) {
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
-        // Prevent background houses/trees from landing on the fairways
-        if (physics && physics.getDistanceToSpline(x, z) < 18.0) { // Add this line
-            continue; // Add this line
-        } // Add this line
-
-        // Prevent background houses/trees from landing on the green
-        const distToHole = Math.sqrt((x - holePosition.x) * (x - holePosition.x) + (z - holePosition.z) * (z - holePosition.z)); // Add this line
-        if (distToHole < 22.0) { // Add this line
-            continue; // Add this line
-        } // Add this line
+        // FIXED: Replaced the hardcoded 18.0 with a dynamic check relative to fairway width and transition zones
+        if (physics && physics.getDistanceToSpline(x, z) < (physics.fairwayWidth + 4.5)) {
+            continue;
+        }
 
         const sceneryGroup = new THREE.Group(); // Keep this line
         const courseHeight = physics.getGroundHeight(x, z); // Keep this line
@@ -987,7 +994,9 @@ function resetEntireGame(advanceHole = false) {
 
         // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
         let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
-        if (fairwayDistance <= (physics.fairwayWidth + 1.5) || fairwayDistance > 35.0) { // Modify this line: Changed 9.0 to check against dynamic width plus a tree cushion
+
+        // FIXED: Expanded clearance cushion to 6.8 units to clear the smooth transition grass and prevent branches from overlapping the fairway
+        if (fairwayDistance <= (physics.fairwayWidth + 6.8) || fairwayDistance > 35.0) { // Modify this line: Changed 9.0 to check against dynamic width plus a tree cushion
             continue;
         }
 
