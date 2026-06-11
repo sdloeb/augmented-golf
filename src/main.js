@@ -1436,6 +1436,21 @@ function animate() {
             isLongShot = initialYards > 90;
 
             window.cameraDelayTime = initialYards > 100 ? 2000 : 300;
+
+            // NEW: Capture exact visual scale baseline at moment of launch to prevent sudden size pops
+            const screenAspectRatio = window.innerWidth / window.innerHeight;
+            const isCurrentMobile = window.innerWidth <= 768 || screenAspectRatio < 1;
+            const launchGreenX = ball.position.x - (green ? green.position.x : 0);
+            const launchGreenZ = ball.position.z - greenCenterZ;
+            const launchedFromGreenSurface = Math.sqrt(launchGreenX * launchGreenX + launchGreenZ * launchGreenZ) < GREEN_RADIUS;
+
+            if (teeBox && teeBox.visible) {
+                window.shotStartScale = isCurrentMobile ? 0.9 : 1.0;
+            } else if (launchedFromGreenSurface) {
+                window.shotStartScale = 0.30;
+            } else {
+                window.shotStartScale = isCurrentMobile ? 0.75 : 0.70;
+            }
         }
         updateDistanceDisplay();
 
@@ -1444,36 +1459,60 @@ function animate() {
         ballTracer.geometry.computeBoundingSphere();
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
-        // Modify these two lines: Replaces hardcoded values with the live shot origin coordinates
+        // Unified seamless transition: base scale calculation on active shot origin size
         const startX = window.shotStartX !== undefined ? window.shotStartX : 0;
         const startZ = window.shotStartZ !== undefined ? window.shotStartZ : 10;
         const dx = ball.position.x - startX;
         const dz = ball.position.z - startZ;
         const distanceTraveled = Math.sqrt(dx * dx + dz * dz);
 
-        const checkX = ball.position.x - (green ? green.position.x : 0);
-        const checkZ = ball.position.z - greenCenterZ;
-        const onGreen = Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS;
+        const currentActiveClub = input ? input.getClubInfo() : null;
+        const isPuttingStroke = currentActiveClub && currentActiveClub.name === 'Putter';
+        const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
 
-        if (onGreen || (input && input.getClubInfo().name === 'Putter')) {
-            ballTargetScale = 0.40; // Locks the moving ball size to perfectly match its resting green size
+        if (isPuttingStroke || activeLaunchScale === 0.30) {
+            ballTargetScale = 0.30; // Keep putts and green side rolling completely stable
         } else {
-            // Modify this line: Adjusts minimum clamp to 0.30 and scaling factor to 0.012 so it shrinks smoothly
-            ballTargetScale = Math.max(0.30, 1.0 - (distanceTraveled * 0.012));
+            // Scale down smoothly from the true starting lie scale instead of inflating to 1.0
+            ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0035));
         }
+        if (isLongShot) {
+            if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) {
+                const dirX = holePosition.x - ball.position.x;
+                const dirZ = holePosition.z - ball.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-        if (isLongShot && (performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) { // Modify this line
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z;
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                // Target coordinates 5.5 units horizontally behind the ball's moving flight path
+                const backX = -(dirX / length) * 5.5;
+                const backZ = -(dirZ / length) * 5.5;
 
-            // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-            const backX = -(dirX / length) * 5.5;
-            const backZ = -(dirZ / length) * 5.5;
+                // Smoothly tracks target positioning vectors forward through 3D space
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+            }
+        } else if (!isOverheadActive) {
+            // NEW: Continuous short-shot follow camera tracking out in the open field
+            const activeClub = input ? input.getClubInfo() : null;
+            if (activeClub === null || activeClub.name !== 'Putter') {
+                const dirX = holePosition.x - ball.position.x;
+                const dirZ = holePosition.z - ball.position.z;
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-            // Smoothly tracks target positioning vectors forward through 3D space
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+                // Back away 8.2 units and elevate 3.5 units to open up the view and keep ball size beautifully proportional
+                const shortCamDist = 8.2;
+                const shortCamHeight = 3.5;
+
+                cameraTargetPos.set(
+                    ball.position.x - (dirX / length) * shortCamDist,
+                    ball.position.y + shortCamHeight,
+                    ball.position.z - (dirZ / length) * shortCamDist
+                );
+                cameraLookAt.set(
+                    ball.position.x + (dirX / length) * 6.0,
+                    ball.position.y - 0.10,
+                    ball.position.z + (dirZ / length) * 6.0
+                );
+            }
         }
     } else {
         if (wasMoving) {
@@ -1735,10 +1774,12 @@ function animate() {
         finalBallTargetScale *= 0.85;
     }
 
-    // FIXED: Dynamically scale down the ball if the camera transitions or settles closer than the new 7.5 units envelope
+    // FIXED: Dynamically scale down the ball smoothly if the camera transitions closer, preventing ballooning
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
     if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
-        finalBallTargetScale *= Math.max(0.2, cameraDistanceToBall / 9.5);
+        // Clamp the proximity modifier to keep visual scale completely stable during close-up chips and approaches
+        const proximityFactor = THREE.MathUtils.clamp(cameraDistanceToBall / 9.5, 0.55, 1.0);
+        finalBallTargetScale *= proximityFactor;
     }
 
     // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
