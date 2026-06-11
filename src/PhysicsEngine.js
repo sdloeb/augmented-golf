@@ -41,52 +41,7 @@ export class PhysicsEngine {
 
         this.obstacles = []; // Add this line to store the trees and bushes
 
-        // Add this block to handle the random spawning rules
-        this.generateObstacles = function (teeX, teeZ, holeX, holeZ, courseWidth, courseDepth) {
-            const YARDS_TO_UNITS = 1; // Change 1 to match your game's coordinate scale if 1 unit != 1 yard
-            const safeZoneLimit = 100 * YARDS_TO_UNITS;
-            const totalObstaclesToSpawn = 50; // Adjust this number for more or fewer objects on the course
 
-            for (let i = 0; i < totalObstaclesToSpawn; i++) {
-                let sampleX = Math.random() * courseWidth;
-                let sampleZ = Math.random() * courseDepth;
-
-                // 100-Yard Safe Zone Guard
-                let distToTee = Math.hypot(sampleX - teeX, sampleZ - teeZ);
-                let distToHole = Math.hypot(sampleX - holeX, sampleZ - holeZ);
-                if (distToTee < safeZoneLimit || distToHole < safeZoneLimit) {
-                    continue; // Skip this spawn if it's too close to Tee or Hole
-                }
-
-                // Get the terrain type at these coordinates
-                let terrainType = this.getTerrainType(sampleX, sampleZ);
-                let fairwayRoll = Math.random();
-
-                // Spawn conditions: 100% in rough, 5% of the time in fairway
-                if (terrainType === 'rough' || (terrainType === 'fairway' && fairwayRoll <= 0.05)) {
-                    let isTree = Math.random() > 0.4; // 60% chance tree, 40% chance bush
-
-                    if (isTree) {
-                        this.obstacles.push({
-                            type: 'tree',
-                            x: sampleX,
-                            z: sampleZ,
-                            trunkRadius: 1.0 + Math.random() * 1.5,
-                            trunkHeight: 8 + Math.random() * 4,
-                            foliageRadius: 4.0 + Math.random() * 3.0,
-                            totalHeight: 25 + Math.random() * 15
-                        });
-                    } else {
-                        this.obstacles.push({
-                            type: 'bush',
-                            x: sampleX,
-                            z: sampleZ,
-                            radius: 3.0 + Math.random() * 3.5
-                        });
-                    }
-                }
-            }
-        };
 
         // Occasional big feature toggle (60% chance of a major hill or drop-off)
         this.hasBigFeature = Math.random() > 0.4; // Add this line
@@ -290,18 +245,33 @@ export class PhysicsEngine {
             }
         }
 
+        // CHIP & DRIVE TERRAIN PROFILE MATRIX
         if (inSand) {
-            currentFriction = 0.80;
-            currentBounceHeight = 0.12;
-            currentBounceForwardLoss = 0.30;
+            currentFriction = 0.72;
+            currentBounceHeight = 0.10;
+            currentBounceForwardLoss = 0.25;
         }
-        else if (!onGreen && (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) >= 9.0 || this.ball.position.z > -8.0)) { // Modify this line: Added the z > -8.0 rough carry check
-            currentFriction = 0.68;
-            currentBounceHeight = 0.20;
-            currentBounceForwardLoss = 0.50;
+        else if (onGreen) {
+            // Receptive Green Landing: Soft check-up thud, low rolling friction resistance
+            currentBounceHeight = 0.22;        // Lowers bounce elasticity so approach shots check up
+            currentBounceForwardLoss = 0.35;   // Turf grabs the ball back on initial impact
+            currentFriction = 0.965;           // Smooth rolling glide once the ball settles
         }
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= 9.0 && this.ball.position.z <= -8.0) {
+            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
+            currentFriction = 0.91;
+            currentBounceHeight = 0.36;
+            currentBounceForwardLoss = 0.52;   // Preserves strong forward kinetic velocity
+        }
+        else {
+            // Deep Course Rough: Dense grass absorbs energy completely
+            currentFriction = 0.74;            // Heavy friction brakes rolling momentum fast
+            currentBounceHeight = 0.18;        // Deadened bounce height
+            currentBounceForwardLoss = 0.30;   // Strongly strips forward speed on ground contact
+        }
+
         if (this.isPutting) {
-            currentFriction = 0.985;
+            currentFriction = 0.984; // Preserves your exact putting calibration constant
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -480,6 +450,7 @@ export class PhysicsEngine {
         // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= groundY) {
             this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
+            this.hasLanded = true;
 
             for (let water of this.waterHazards) {
                 const dx = this.ball.position.x - water.position.x;
@@ -510,8 +481,9 @@ export class PhysicsEngine {
         }
 
         // 4. STOP CONSTANT LOOPS 
-        // ADJUSTED: Reverted to 0.012 baseline since linear resistance handles smooth low-end damping naturally
-        const stopThreshold = 0.012;
+        // UPDATED: Putts get a higher threshold (0.024) to simulate real grass blades capturing 
+        // the ball at low speeds, completely eliminating the unnatural micro-creeping at the end.
+        const stopThreshold = this.isPutting ? 0.024 : 0.012;
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;

@@ -183,62 +183,55 @@ html {
 
 /* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
 #clubSwipe.wood {
+    zoom: 0.75;
+    /* NEW: Change this ONE number to scale the entire wood club up or down instantly! */
+
     /* Reshaped width and height to give the crown a deep, bulbous driver silhouette */
-    width: 130px;
-    /* Modify this line */
-    height: 85px;
-    /* Modify this line */
+    width: 110px;
+    height: 75px;
 
     /* Re-oriented pear-shaped curve: flatter at the top face, deeply rounded bulbous crown at the bottom-right */
     border-radius: 20px 40px 75px 45px;
-    /* Modify this line */
 
     background:
-        /* Sweet-spot alignment dot centered horizontally near the front hitting face */
-        radial-gradient(circle at 65px 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
-        /* Modify this line */
+        /* UPDATED: Sweet-spot alignment dot moved from 65px to 55px to stay perfectly centered on the new 110px width */
+        radial-gradient(circle at 55px 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
         /* Aerodynamic crown gloss reflection tracing the front top edge curve */
         linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%),
-        /* Modify this line */
         /* Deep multi-tone carbon composite dark graphite body weave coloring centered low */
         radial-gradient(circle at 50% 65%, #323538 0%, #1a1c1e 60%, #0a0b0c 100%);
-    /* Modify this line */
 
     border: 1px solid #141516;
 
     /* Striking face plate moved to the TOP edge facing directly into the ball */
     border-top: 4px solid #7a7e82;
-    /* Replace border-left with border-top */
 
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.6),
         inset 0 -8px 16px rgba(0, 0, 0, 0.85),
         inset 0 2px 3px rgba(255, 255, 255, 0.2);
 
-    /* Offset counter-adjustment to keep our new 85px club height perfectly centered behind the ball */
-    margin-bottom: -15px;
-    /* Add this line */
+    /* UPDATED: Changed from -15px to -5px to pull the top edge back up exactly to the center equator of the ball */
+    margin-bottom: -20px;
+    margin-left: -10px;
 }
 
 /* Authentic rear chassis stability perimeter weight cartridge trim */
 #clubSwipe.wood::before {
     content: '';
     position: absolute;
-    /* Repositioned horizontally along the bottom trailing edge rim of the club */
-    bottom: 6px;
-    /* Modify this line */
-    left: 20px;
-    /* Modify this line */
-    width: 90px;
-    /* Modify this line */
-    height: 18px;
-    /* Modify this line */
 
-    /* Mimics structural tungsten weight ports wrapping smoothly around the back rim */
-    border-radius: 6px 6px 40px 30px;
-    /* Modify this line */
+    /* UPDATED PLACEMENT: Shifted inward and slightly up to prevent breaking through the new 110x75 perimeter bounds */
+    bottom: 6px;
+    left: 10px;
+    width: 78px;
+    height: 14px;
+
+    /* UPDATED CORNER RADII: Increased the bottom-right radius to 55px so this inner highlight curves inward 
+       and hugs the parent's steep asymmetrical bottom-right edge without popping out of alignment */
+    border-radius: 4px 6px 55px 22px;
+
     background: linear-gradient(to bottom, transparent, #3c3f42, #8b8e91 75%, #1b1c1d);
-    /* Modify this line */
     opacity: 0.75;
     pointer-events: none;
     box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
@@ -246,65 +239,81 @@ html {
 
 /* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
-    /* Main Chassis: Defines the polished steel outer perimeter shell */
-    border-radius: 6px 34px 24px 16px;
-    width: 130px;
-    height: 62px;
-    /* Increased from 50px to provide an exceptionally tall back flange profile */
+    zoom: 0.85;
+    /* Main Chassis: Corner curves downscaled by 25% to keep proportions sharp */
+    border-radius: 4px 20px 14px 10px;
+    width: 78px;
+    /* Exactly 25% smaller than your current 104px width */
+    height: 37px;
+    /* Exactly 25% smaller than your current 50px height */
+
     background:
-        /* Dramatically extended hitting face section to display a wide, highly-lofted grooved plane */
-        repeating-linear-gradient(to bottom, transparent, transparent 2.5px, rgba(0, 0, 0, 0.16) 2.5px, rgba(0, 0, 0, 0.16) 3.5px) top left / 100% 24px no-repeat,
+        /* Groove ceiling tightened from 19px to 14px to align with the shallower face depth */
+        repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0, 0, 0, 0.16) 2px, rgba(0, 0, 0, 0.16) 3px) top left / 100% 14px no-repeat,
         /* Metallic slope transition leading down to an emphasized polished chrome topline highlight */
         linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 32%, #ffffff 36%, #b4b8bb 46%, #7f8284 100%);
+
     border: 1px solid #6c6f72;
     box-shadow:
-        0 12px 24px rgba(0, 0, 0, 0.45),
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
-    margin-bottom: -10px;
-    /* Adjusted to -22px to perfectly counteract the 62px height and keep alignment locked to the ball center */
+        0 9px 18px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+    /* Centered height offset baseline alignment to match camera angles */
+    margin-bottom: -4px;
     position: absolute;
 }
 
-/* 1. Recessed Cavity Pocket: Anchored deep into the lower rear flange mass */
+/* 1. Recessed Cavity Pocket: Rescaled and shifted to sit neatly inside the smaller chassis */
 #clubSwipe.iron::before {
     content: '';
     position: absolute;
-    /* Pushed lower to leave substantial vertical room for the highly slanted front face layout */
-    top: 29px;
-    left: 14px;
-    width: 98px;
-    height: 26px;
-    /* Slightly lengthened to balance the deeper perimeter border mass */
-    border-radius: 3px 16px 12px 4px;
-    background:
-        linear-gradient(135deg, #595d60 0%, #8c9093 50%, #414345 100%);
+
+    top: 17px;
+    /* Downscaled from 23px */
+    left: 8px;
+    /* Downscaled from 11px */
+    width: 58px;
+    /* Downscaled from 78px */
+    height: 16px;
+    /* Downscaled from 21px */
+
+    border-radius: 1.5px 10px 8px 2px;
+    background: linear-gradient(135deg, #595d60 0%, #8c9093 50%, #414345 100%);
     border: 2px solid #525557;
     box-shadow:
-        inset 2px 3px 7px rgba(0, 0, 0, 0.8),
+        inset 2px 2px 4px rgba(0, 0, 0, 0.8),
         0 1px 1px rgba(255, 255, 255, 0.5);
     pointer-events: none;
 }
 
-/* 2. The Hosel Neck Adapter Offset: Lowered to center smoothly against the extended heel mass */
+/* 2. The Hosel Neck Adapter Offset: Tapered down so the shaft joint looks sleek instead of bulky */
 #clubSwipe.iron::after {
     content: '';
     position: absolute;
-    left: -7px;
-    top: 25px;
-    /* Shifted down from 19px to align with the expanded 62px frame */
-    width: 24px;
-    height: 16px;
-    border-radius: 6px 0 0 6px;
+
+    left: -5px;
+    /* Downscaled from -6px */
+    top: 15px;
+    /* Downscaled from 20px */
+    width: 14px;
+    /* Downscaled from 19px */
+    height: 10px;
+    /* Downscaled from 13px */
+
+    border-radius: 4px 0 0 4px;
     background: linear-gradient(to bottom, #ffffff, #9fa2a5 45%, #4b4e50 100%);
     border: 1px solid #6c6f72;
     border-right: none;
-    box-shadow: -2px 4px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: -2px 3px 4px rgba(0, 0, 0, 0.15);
     pointer-events: none;
 }
 
 /* Top view style of a premium milled blade putter - compact and detailed */
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
+    zoom: 0.70;
+    /* NEW: Change this ONE number to scale the entire putter asset up or down instantly! */
+
     border-radius: 4px 4px 6px 6px;
     width: 155px;
     /* Scaled up from 124px */
@@ -386,8 +395,8 @@ html {
 
 /* NEW: Club resting right behind the ball at address */
 #clubSwipe.idle-stance {
-    bottom: 27% !important;
-    left: 47% !important;
+    bottom: 30.5% !important;
+    left: 48.25% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.4) !important;
     opacity: 1 !important;
@@ -553,16 +562,16 @@ html {
 
     /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
-        left: calc(50% - 65px) !important;
-        bottom: 3cqi !important;
-        /* Modify this line: Lowered from 16% to drop the floating club down to the ball */
+        left: calc(50% - 60px) !important;
+        bottom: 30% !important;
+        /* Restored to 16% scale to perfectly align the woods/irons on mobile screens */
     }
 
     /* Add this block right below it to override the putter on mobile screens */
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 77.5px) !important;
-        bottom: 35% !important;
-        /* Modify this line: Lowered from 16% to line up perfectly with the putter view */
+        bottom: 17% !important;
+        /* Kept at 35% to line up perfectly with closer portrait putter camera view */
     }
 
     #clubSwipe.pullback-stance {
@@ -580,27 +589,59 @@ html {
 
 @keyframes putterSwipeAnimMobile {
     0% {
-        bottom: var(--putter-start-bottom, 21.8%);
+        bottom: var(--putter-start-bottom, 30.0%);
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     35% {
-        bottom: 21.8%;
+        bottom: 30.0%;
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 1;
     }
 
     100% {
-        bottom: 25.0%;
+        bottom: 38.2%;
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.4);
         opacity: 0;
     }
 }
 
+@keyframes clubSwipeAnimMobile {
+    0% {
+        bottom: -100px;
+        left: 51%;
+        right: auto;
+        transform: rotate(30deg) scale(1.7);
+        opacity: 0;
+    }
+
+    15% {
+        opacity: 1;
+    }
+
+    /* The moment of impact with the ball */
+    35% {
+        bottom: 31%;
+        /* INCREASE THIS VALUE (e.g., 31% to 35%) TO MATCH YOUR NEW ADDRESS HEIGHT */
+        left: 47%;
+        right: auto;
+        transform: rotate(0deg) scale(1.2);
+    }
+
+    /* Follow-through height */
+    100% {
+        bottom: 52%;
+        /* INCREASE THIS VALUE TO ADJUST THE HEIGHT OF THE FINISHED SWING PATH */
+        left: 38%;
+        right: auto;
+        transform: rotate(-40deg) scale(0.5);
+        opacity: 0;
+    }
+}
 
 
 /* ==========================================================================
