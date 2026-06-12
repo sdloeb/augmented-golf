@@ -446,15 +446,23 @@ export class InputHandler {
             if (this.ballRef) {
                 let inSand = false;
 
+                // PASTE THIS INSTEAD:
                 // 1. Check Sand Traps contact
                 if (this.sandTrapsRef) {
                     for (let sand of this.sandTrapsRef) {
-                        const dx = this.ballRef.position.x - sand.position.x;
-                        const dz = this.ballRef.position.z - sand.position.z;
-                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                        if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                            inSand = true;
-                            break;
+                        if (sand.userData && sand.userData.shapeType === 'polygon') {
+                            if (window.isPointInPolygon(this.ballRef.position.x, this.ballRef.position.z, sand.userData.points)) {
+                                inSand = true;
+                                break;
+                            }
+                        } else {
+                            const dx = this.ballRef.position.x - sand.position.x;
+                            const dz = this.ballRef.position.z - sand.position.z;
+                            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                                inSand = true;
+                                break;
+                            }
                         }
                     }
                 }

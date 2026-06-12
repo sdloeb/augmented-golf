@@ -217,14 +217,22 @@ export class PhysicsEngine {
         const gZ = this.ball.position.z - this.greenCenterZ;
         const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
 
+        // PASTE THIS INSTEAD:
         let inSand = false;
         for (let sand of this.sandTraps) {
-            const dx = this.ball.position.x - sand.position.x;
-            const dz = this.ball.position.z - sand.position.z;
-            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                inSand = true;
-                break;
+            if (sand.userData && sand.userData.shapeType === 'polygon') {
+                if (window.isPointInPolygon(this.ball.position.x, this.ball.position.z, sand.userData.points)) {
+                    inSand = true;
+                    break;
+                }
+            } else {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                    inSand = true;
+                    break;
+                }
             }
         }
 
@@ -345,15 +353,22 @@ export class PhysicsEngine {
             this.slopeX = rawSlopeX * 0.0075;
             this.slopeZ = rawSlopeZ * 0.0075;
 
+            // PASTE THIS INSTEAD:
             // 2. Scan active sand trap borders using unified visible boundary
             let currentlyInSand = false;
             if (this.sandTraps) {
                 this.sandTraps.forEach(sand => {
-                    const dxS = this.ball.position.x - sand.position.x;
-                    const dzS = this.ball.position.z - sand.position.z;
-                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
-                        currentlyInSand = true;
+                    if (sand.userData && sand.userData.shapeType === 'polygon') {
+                        if (window.isPointInPolygon(this.ball.position.x, this.ball.position.z, sand.userData.points)) {
+                            currentlyInSand = true;
+                        }
+                    } else {
+                        const dxS = this.ball.position.x - sand.position.x;
+                        const dzS = this.ball.position.z - sand.position.z;
+                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                        if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
+                            currentlyInSand = true;
+                        }
                     }
                 });
             }

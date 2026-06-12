@@ -201,22 +201,175 @@ function spawnHazardsForHole(holeData) {
             if (hazard.type === 'trap') sandTraps.push(mesh);
 
         } else if (hazard.shape === 'polygon') {
-            const shape = new THREE.Shape();
-            shape.moveTo(hazard.points[0].x, hazard.points[0].z);
-            for (let i = 1; i < hazard.points.length; i++) {
-                shape.lineTo(hazard.points[i].x, hazard.points[i].z);
-            }
-            shape.lineTo(hazard.points[0].x, hazard.points[0].z);
+            // Find the bounding box limits of the custom polygon points to encapsulate it
+            let minX = Infinity, maxX = -Infinity;
+            let minZ = Infinity, maxZ = -Infinity;
+            hazard.points.forEach(p => {
+                if (p.x < minX) minX = p.x;
+                if (p.x > maxX) maxX = p.x;
+                if (p.z < minZ) minZ = p.z;
+                if (p.z > maxZ) maxZ = p.z;
+            });
 
-            geometry = new THREE.ShapeGeometry(shape);
+            const bWidth = (maxX - minX) || 1;
+            const bHeight = (maxZ - minZ) || 1;
+            const bCenterX = minX + bWidth / 2;
+            const bCenterZ = minZ + bHeight / 2;
+
+            // 1. Highly subdivided PlaneGeometry to provide ample internal vertices for wave animations
+            geometry = new THREE.PlaneGeometry(bWidth, bHeight, 32, 32);
+
+            // Re-shape the plane vertices to match the custom polygon layout exactly
+            const posAttr = geometry.attributes.position;
+            for (let j = 0; j < posAttr.count; j++) {
+                let localX = posAttr.getX(j);
+                let localY = posAttr.getY(j);
+
+                // Map local grid nodes to world coordinates
+                let worldX = bCenterX + localX;
+                let worldZ = bCenterZ - localY;
+
+                // Check if this grid vertex sits inside our custom polygon hazard shape
+                const inside = window.isPointInPolygon(worldX, worldZ, hazard.points);
+
+                if (!inside) {
+                    // Find the closest point on the polygon perimeter boundary and collapse outer vertices onto it
+                    let minDist = Infinity;
+                    let closestX = worldX, closestZ = worldZ;
+
+                    for (let k = 0; k < hazard.points.length; k++) {
+                        const pt1 = hazard.points[k];
+                        const pt2 = hazard.points[(k + 1) % hazard.points.length];
+
+                        const vx = pt2.x - pt1.x;
+                        const vz = pt2.z - pt1.z;
+                        const dx = worldX - pt1.x;
+                        const dz = worldZ - pt1.z;
+
+                        const segLengthSq = vx * vx + vz * vz;
+                        let t = segLengthSq === 0 ? 0 : (dx * vx + dz * vz) / segLengthSq;
+                        t = Math.max(0, Math.min(1, t)); // Clamp to line segment bounds
+
+                        const projX = pt1.x + t * vx;
+                        const projZ = pt1.z + t * vz;
+                        const distSq = (worldX - projX) * (worldX - projX) + (worldZ - projZ) * (worldZ - projZ);
+
+                        if (distSq < minDist) {
+                            minDist = distSq;
+                            closestX = projX;
+                            closestZ = projZ;
+                        }
+                    }
+                    worldX = closestX;
+                    worldZ = closestZ;
+                }
+
+                // FIXED: Keep coordinates relative to the bounding box center so the ripple wave speed formula matches up perfectly
+                posAttr.setX(j, worldX - bCenterX);
+                posAttr.setY(j, -(worldZ - bCenterZ));
+            }
+            geometry.computeVertexNormals();
+
             const mesh = new THREE.Mesh(geometry, material);
             mesh.rotation.x = -Math.PI / 2;
-            mesh.position.y = currentGroundY + 0.01;
+            // FIXED: Position the mesh at its true bounding box coordinates
+            mesh.position.set(bCenterX, currentGroundY + 0.01, bCenterZ);
 
             mesh.userData = { shapeType: 'polygon', points: hazard.points, depth: hazard.type === 'trap' ? 0.6 : 0 };
             scene.add(mesh);
 
-            if (hazard.type === 'water') waterHazards.push(mesh);
+            if (hazard.type === 'water') {
+                waterHazards.push(mesh);
+
+                // 2. FIXED: Calculate true edge-normal miters so the dirt trim follows the custom polygon shape uniformly
+                const miters = [];
+                let polyCenterX = 0, polyCenterZ = 0;
+                hazard.points.forEach(p => { polyCenterX += p.x; polyCenterZ += p.z; });
+                polyCenterX /= hazard.points.length;
+                polyCenterZ /= hazard.points.length;
+
+                for (let i = 0; i < hazard.points.length; i++) {
+                    const pCurr = hazard.points[i];
+                    const pPrev = hazard.points[(i - 1 + hazard.points.length) % hazard.points.length];
+                    const pNext = hazard.points[(i + 1) % hazard.points.length];
+
+                    let dxF = pNext.x - pCurr.x; let dzF = pNext.z - pCurr.z;
+                    let lenF = Math.hypot(dxF, dzF) || 1;
+                    dxF /= lenF; dzF /= lenF;
+
+                    let dxB = pCurr.x - pPrev.x; let dzB = pCurr.z - pPrev.z;
+                    let lenB = Math.hypot(dxB, dzB) || 1;
+                    dxB /= lenB; dzB /= lenB;
+
+                    let mx = (-dzF) + (-dzB);
+                    let mz = dxF + dxB;
+                    let mLen = Math.hypot(mx, mz) || 1;
+
+                    let dot = (-dzF) * (mx / mLen) + dxF * (mz / mLen);
+                    let mScale = dot > 0.1 ? 1.0 / dot : 1.0;
+                    if (mScale > 2.0) mScale = 2.0;
+
+                    mx = (mx / mLen) * mScale;
+                    mz = (mz / mLen) * mScale;
+
+                    let dotCentroid = mx * (pCurr.x - polyCenterX) + mz * (pCurr.z - polyCenterZ);
+                    if (dotCentroid < 0) { mx = -mx; mz = -mz; }
+
+                    miters.push({ x: mx, z: mz });
+                }
+
+                const shoreVertices = [];
+                for (let i = 0; i < hazard.points.length; i++) {
+                    const idx1 = i;
+                    const idx2 = (i + 1) % hazard.points.length;
+
+                    const p1 = hazard.points[idx1];
+                    const p2 = hazard.points[idx2];
+                    const m1 = miters[idx1];
+                    const m2 = miters[idx2];
+
+                    const o1x = p1.x + m1.x * 0.6; const o1z = p1.z + m1.z * 0.6;
+                    const o2x = p2.x + m2.x * 0.6; const o2z = p2.z + m2.z * 0.6;
+
+                    // Triangle 1
+                    shoreVertices.push(p1.x, currentGroundY + 0.015, p1.z);
+                    shoreVertices.push(o2x, currentGroundY + 0.015, o2z);
+                    shoreVertices.push(o1x, currentGroundY + 0.015, o1z);
+
+                    // Triangle 2
+                    shoreVertices.push(p1.x, currentGroundY + 0.015, p1.z);
+                    shoreVertices.push(p2.x, currentGroundY + 0.015, p2.z);
+                    shoreVertices.push(o2x, currentGroundY + 0.015, o2z);
+                }
+                const shoreGeometry = new THREE.BufferGeometry();
+                shoreGeometry.setAttribute('position', new THREE.Float32BufferAttribute(shoreVertices, 3));
+                shoreGeometry.computeVertexNormals();
+                const shoreMesh = new THREE.Mesh(shoreGeometry, new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1 }));
+                scene.add(shoreMesh);
+                waterShores.push(shoreMesh);
+
+                // 3. Build seamless vertical skirt panels matching the new clean miter coordinates
+                const wallVertices = [];
+                for (let i = 0; i < hazard.points.length; i++) {
+                    const p1 = hazard.points[i];
+                    const p2 = hazard.points[(i + 1) % hazard.points.length];
+
+                    wallVertices.push(p1.x, currentGroundY + 0.015, p1.z);
+                    wallVertices.push(p2.x, currentGroundY + 0.015, p2.z);
+                    wallVertices.push(p1.x, currentGroundY + 0.015 - 2.0, p1.z);
+
+                    wallVertices.push(p2.x, currentGroundY + 0.015, p2.z);
+                    wallVertices.push(p2.x, currentGroundY + 0.015 - 2.0, p2.z);
+                    wallVertices.push(p1.x, currentGroundY + 0.015 - 2.0, p1.z);
+                }
+                const wallGeometry = new THREE.BufferGeometry();
+                wallGeometry.setAttribute('position', new THREE.Float32BufferAttribute(wallVertices, 3));
+                wallGeometry.computeVertexNormals();
+                const wallMesh = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1, side: THREE.DoubleSide }));
+                scene.add(wallMesh);
+                waterShores.push(wallMesh);
+            }
+
             if (hazard.type === 'trap') sandTraps.push(mesh);
         }
     });
@@ -848,10 +1001,12 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX + targetMesh.position.x;
             const worldZ = -localY + targetMesh.position.z;
 
-            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
-            let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
+            // FIXED: Sample from integrated terrain height so the green fringe collar rides smoothly over hills
+            let calculatedHeight = (targetMesh === greenFringe) ? physics.getGroundHeight(worldX, worldZ) : physics.getGreenHeight(worldX, worldZ);
 
             // Check if this vertex falls inside a sand trap to submerge the fringe collar
+
+
             let insideSand = false;
             sandTraps.forEach(sand => {
                 if (sand.userData && sand.userData.shapeType === 'polygon') {
@@ -900,8 +1055,8 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * scaleX + targetMesh.position.x;
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
-            // Gather the pre-calculated, unified terrain height from the physics engine
-            let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
+            let calculatedHeight = (targetMesh === greenFringe) ? physics.getGroundHeight(worldX, worldZ) : physics.getGreenHeight(worldX, worldZ);
+
 
             // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
@@ -936,13 +1091,13 @@ function resetEntireGame(advanceHole = false) {
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
+            // FIXED: Removed the harsh flat -0.45 cliff drop. Let the rough surface blend seamlessly into the green boundaries.
             if (distToGreen < 12.0) {
                 calculatedHeight -= 0.45;
-            } else if (distToGreen < 15.5) {
-                const greenT = (distToGreen - 12.0) / 3.5;
-                const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
-                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
+            } else if (distToGreen < 13.5) {
+                const cushionT = (distToGreen - 12.0) / 1.5;
+                const smoothCushionT = THREE.MathUtils.smoothstep(cushionT, 0, 1);
+                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothCushionT);
             }
 
             if (!insideWaterZone) {
@@ -2368,16 +2523,23 @@ function init() {
         tracerPoints = [];
 
 
+        // PASTE THIS INSTEAD:
         // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
         let launchedFromSand = false;
         for (let sand of sandTraps) {
-            const dx = ball.position.x - sand.position.x;
-            const dz = ball.position.z - sand.position.z;
-
-            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                launchedFromSand = true;
-                break;
+            if (sand.userData && sand.userData.shapeType === 'polygon') {
+                if (window.isPointInPolygon(ball.position.x, ball.position.z, sand.userData.points)) {
+                    launchedFromSand = true;
+                    break;
+                }
+            } else {
+                const dx = ball.position.x - sand.position.x;
+                const dz = ball.position.z - sand.position.z;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                    launchedFromSand = true;
+                    break;
+                }
             }
         }
         if (launchedFromSand && typeof window.triggerSandSpray === 'function') {
