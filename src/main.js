@@ -483,9 +483,10 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-    let holeConfig = null;
+    // Pull the piece-by-piece blueprint configuration if it exists
+    let holeConfig = HOLES_CONFIG[currentHoleNumber] || null;
 
-    // Championship Procedural Generator: Determines Par first, then maps realistic course segment distances
+    // Championship Procedural Generator fallback: runs only if no manual config exists
     if (!holeConfig) {
         const UNIT_YARDS = 2.76923; // Fixed spatial engine multiplier matching game scaling
         const parRoll = Math.random();
