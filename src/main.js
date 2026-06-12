@@ -39,13 +39,21 @@ const HOLES_CONFIG = {
             new THREE.Vector3(0, 0, -55)
         ]
     },
-    2: { // Sharp Dogleg Right Hole
+    2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
         par: 4,
+        fairwayWidth: 9.5,
+        greenRadius: 9.0,
         waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(10, 0, -50),   // Modify this coordinate
-            new THREE.Vector3(50, 0, -100),  // Modify this coordinate
-            new THREE.Vector3(80, 0, -130)   // Modify this coordinate (Greens out of 1-shot range)
+            new THREE.Vector3(0, 0, 10),     // High Tee Box Point
+            new THREE.Vector3(0, 0, -108),   // 327 Yard Elbow (Ground has flattened out)
+            new THREE.Vector3(11, 0, -139)   // 87 Yard Approach Green Center
+        ],
+        // The 4 distinct bunkers matching your description and map positions
+        hazards: [
+            { type: 'sand', x: 4.0, z: -126.0, radius: 3.5, depth: 0.6 }, // Short and Left in the rough
+            { type: 'sand', x: 17.0, z: -128.0, radius: 3.8, depth: 0.6 }, // Short and Right in the rough
+            { type: 'sand', x: 6.0, z: -146.0, radius: 3.4, depth: 0.5 }, // Behind the Green (Back Left)
+            { type: 'sand', x: 16.0, z: -145.0, radius: 3.6, depth: 0.5 }  // Behind the Green (Back Right)
         ]
     },
     3: { // Long S-Curve Double Dogleg Hole
@@ -580,8 +588,13 @@ function resetEntireGame(advanceHole = false) {
     }
 
     currentHoleConfig = holeConfig; // 
-    // Read custom green radius template, or default to 12.0
     window.activeGreenRadius = (holeConfig && holeConfig.greenRadius) ? holeConfig.greenRadius : 12.0;
+
+    // Scale the visual 3D geometries to snap perfectly to the custom radius
+    const visualScaleFactor = window.activeGreenRadius / 12.0;
+    if (green) green.scale.set(visualScaleFactor, visualScaleFactor, 1);
+    if (greenGrid) greenGrid.scale.set(visualScaleFactor, visualScaleFactor, 1);
+    if (greenFringe) greenFringe.scale.set(visualScaleFactor, visualScaleFactor, 1);
 
     const themeRoll = Math.random();
     if (themeRoll < 0.25) {
@@ -677,57 +690,7 @@ function resetEntireGame(advanceHole = false) {
             const z = hz.z;
             const r = hz.radius || 5.0;
 
-            if (hz.type === 'water') {
-                let currentWaterGroundY = physics.getGroundHeight(x, z);
-                const waterGeo = new THREE.PlaneGeometry(r * 2, r * 2, 24, 24);
-                const waterGeoPos = waterGeo.attributes.position;
-                for (let j = 0; j < waterGeoPos.count; j++) {
-                    let pX = waterGeoPos.getX(j);
-                    let pY = waterGeoPos.getY(j);
-                    let pDist = Math.sqrt(pX * pX + pY * pY);
-                    if (pDist > r) {
-                        waterGeoPos.setX(j, (pX / pDist) * r);
-                        waterGeoPos.setY(j, (pY / pDist) * r);
-                    }
-                }
-                waterGeo.computeVertexNormals();
-
-                const waterMesh = new THREE.Mesh(
-                    waterGeo,
-                    new THREE.MeshPhongMaterial({
-                        color: 0x0000ff,
-                        specular: 0xffffff,
-                        shininess: 150,
-                        flatShading: true,
-                        polygonOffset: true,
-                        polygonOffsetFactor: -1,
-                        polygonOffsetUnits: -4
-                    })
-                );
-                waterMesh.rotation.x = -Math.PI / 2;
-                waterMesh.position.set(x, currentWaterGroundY + 0.01, z);
-                waterMesh.userData = { radius: r };
-                scene.add(waterMesh);
-                waterHazards.push(waterMesh);
-
-                const shoreMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(r - 0.05, r + 0.6, 64),
-                    new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1 })
-                );
-                shoreMesh.rotation.x = -Math.PI / 2;
-                shoreMesh.position.set(x, currentWaterGroundY + 0.015, z);
-                scene.add(shoreMesh);
-                waterShores.push(shoreMesh);
-
-                const wallMesh = new THREE.Mesh(
-                    new THREE.CylinderGeometry(r + 0.58, r + 0.58, 2.0, 64, 1, true),
-                    new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1, side: THREE.DoubleSide })
-                );
-                wallMesh.position.set(x, currentWaterGroundY + 0.015 - 1.0, z);
-                scene.add(wallMesh);
-                waterShores.push(wallMesh);
-            }
-            else if (hz.type === 'sand') {
+            if (hz.type === 'sand') {
                 const sandDepth = hz.depth || 0.6;
                 const sandMesh = new THREE.Mesh(
                     new THREE.RingGeometry(0, r, 32, 6),
@@ -753,6 +716,9 @@ function resetEntireGame(advanceHole = false) {
             physics.waterHazards = waterHazards;
         }
     }
+
+    // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
+
 
     // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
     const specificPinCupY = physics.getGreenHeight(holePosition.x, holePosition.z);
@@ -781,25 +747,26 @@ function resetEntireGame(advanceHole = false) {
             const localX = posAttr.getX(i);
             const localY = posAttr.getY(i);
 
-            // Map local plane points to true world coordinate spaces
-            const worldX = localX + targetMesh.position.x;
-            const worldZ = -localY + targetMesh.position.z;
+            // Map local plane points to true world spaces, respecting the dynamic mesh scales
+            const worldX = localX * targetMesh.scale.x + targetMesh.position.x;
+            const worldZ = -localY * targetMesh.scale.y + targetMesh.position.z;
 
-            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
-            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
-            let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
+            // Fringe mesh collar sits outside the main green mound, so it should follow the ground height directly
+            let calculatedHeight = (targetMesh === greenFringe)
+                ? physics.getGroundHeight(worldX, worldZ)
+                : physics.getGreenHeight(worldX, worldZ);
 
-            // NEW: Check if this vertex falls inside a sand trap to submerge the fringe collar
+            // Check if this vertex falls inside or near a sand trap edge
             let insideSand = false;
             sandTraps.forEach(sand => {
-                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
+                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5) + 1.0) {
                     insideSand = true;
                 }
             });
 
-            if (insideSand && targetMesh === greenFringe) {
-                // Safely drop the collar triangles beneath the 3D bunker floor
-                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.14;
+            if (insideSand) {
+                // Drop overlapping green elements cleanly under the bunker floor mesh out of sight
+                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.5;
             } else {
                 if (targetMesh === green) calculatedHeight += 0.02;
                 if (targetMesh === greenGrid) calculatedHeight += 0.03;
@@ -902,13 +869,22 @@ function resetEntireGame(advanceHole = false) {
 
                 // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    const shouldHide = (worldZ > -8.0) || isPastFairway || insideSandZone || (distanceToPath > fWEdge);
+                    // FIXED: Uses global currentHoleConfig to avoid ReferenceError crashes
+                    const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
+                    const activeR = window.activeGreenRadius || GREEN_RADIUS;
+
+                    // Adding + 1.0 forces the striped fairway to clear the outer fringe ring so it's fully visible
+                    const shouldHide = (!isCustomHole && worldZ > -8.0) ||
+                        (!isCustomHole && isPastFairway) ||
+                        (isCustomHole && distToGreenCenter < activeR + 1.0) ||
+                        insideSandZone ||
+                        (distanceToPath > fWEdge);
 
                     if (shouldHide) {
                         // FIXED: Automatically pulls hidden cuts deeper proportional to the trap's customized depth profile
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 0.02);
                     } else if (distanceToPath <= fW) {
-                        calculatedHeight += 0.06;
+                        calculatedHeight += 0.06; // Crucial elevation cushion that prevents texture flickering
                     } else {
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
@@ -956,11 +932,16 @@ function resetEntireGame(advanceHole = false) {
         teeBox.lookAt(new THREE.Vector3(firstTarget.x, 0.01, firstTarget.z));
     }
 
-    ball.position.set(teeBoxX, 0.37, 10); // Modify this line (elevated slightly to sit exactly on top of the tee)
+    // Fetch the true 3D hill peak height at the tee location
+    const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10);
+
+    // Snap the ball and plastic tee directly to the top of the hill elevation
+    ball.position.set(teeBoxX, currentTeeBoxY + 0.37, 10);
     if (golfTee) {
-        golfTee.position.set(teeBoxX, 0.06, 10); // Add this line (moves the tee under the randomized ball position)
-        golfTee.visible = true; // Add this line (makes tee appear for the initial drive)
-    } // Add this line
+        golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
+        golfTee.visible = true;
+    }
+
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;

@@ -114,28 +114,29 @@ export class PhysicsEngine {
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
-        // --- CUSTOM HOLE 2 DESIGNER ELEVATIONS ---
+        // --- CUSTOM HOLE 2 RUNOUT AND HIGHER BUMPY ROUGH ---
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
             let baseHeight = 0.0;
 
-            // Tee starts at the highest point. Fairway drops continuously for 327 yards down to the elbow marker, then flattens out
+            // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards (36 units), then flattens out around the 87 yard marker
             if (z > 10) {
                 baseHeight = 4.5;
-            } else if (z >= -108) {
-                let t = (10 - z) / 118; // Linear descent down the entire 118-unit (327 yard) drive segment to the elbow turn
+            } else if (z >= -26) {
+                let t = (10 - z) / 36;
                 baseHeight = THREE.MathUtils.lerp(4.5, 0.0, t);
             } else {
-                baseHeight = 0.0; // Ground flattens out completely from the 87-yard elbow marker up to the green
+                baseHeight = 0.0; // Flat bottom approach lane
             }
 
-            // 2. Right rough after tee is heavily hilly up until just before the green-side trap (Z=-124)
-            if (x > this.fairwayWidth && z < 0 && z > -124) {
-                let roughHills = Math.sin(x * 0.4) * Math.cos(z * 0.3) * 1.6;
-                baseHeight += roughHills;
+            // 2. Right side is all bumpy rough hills that are significantly higher than the fairway below
+            if (x > this.fairwayWidth && z < 10 && z > -124) {
+                let roughMounds = (Math.sin(x * 0.45) * Math.cos(z * 0.35) * 1.5) + 1.8;
+                baseHeight += roughMounds;
             }
 
             let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6));
-            return Math.max(0.001, baseHeight * teeFade * xFade);
+            // Removed teeFade so your custom 4.5 baseline peak elevation stays locked at the tee box
+            return Math.max(0.001, baseHeight * xFade);
         }
 
         // Base undulating small mounds and dips (mostly flat, natural ripples)
