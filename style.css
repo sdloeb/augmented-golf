@@ -585,64 +585,64 @@ html {
     #clubSwipe.putter.swipe-animation {
         animation: putterSwipeAnimMobile 0.4s linear forwards !important;
     }
+
+
+    @keyframes putterSwipeAnimMobile {
+        0% {
+            bottom: var(--putter-start-bottom, 30.0%);
+            left: calc(50% - 77.5px);
+            transform: rotate(0deg) scale(1.4);
+            opacity: 1;
+        }
+
+        35% {
+            bottom: 30.0%;
+            left: calc(50% - 77.5px);
+            transform: rotate(0deg) scale(1.4);
+            opacity: 1;
+        }
+
+        100% {
+            bottom: 38.2%;
+            left: calc(50% - 77.5px);
+            transform: rotate(0deg) scale(1.4);
+            opacity: 0;
+        }
+    }
+
+    @keyframes clubSwipeAnimMobile {
+        0% {
+            bottom: -100px;
+            left: 51%;
+            right: auto;
+            transform: rotate(30deg) scale(1.7);
+            opacity: 0;
+        }
+
+        15% {
+            opacity: 1;
+        }
+
+        /* The moment of impact with the ball */
+        35% {
+            bottom: 32%;
+            /* INCREASE THIS VALUE (e.g., 31% to 35%) TO MATCH YOUR NEW ADDRESS HEIGHT */
+            left: 47%;
+            right: auto;
+            transform: rotate(0deg) scale(1.2);
+        }
+
+        /* Follow-through height */
+        100% {
+            bottom: 40%;
+            /* INCREASE THIS VALUE TO ADJUST THE HEIGHT OF THE FINISHED SWING PATH */
+            left: 38%;
+            right: auto;
+            transform: rotate(-40deg) scale(0.5);
+            opacity: 0;
+        }
+    }
 }
-
-@keyframes putterSwipeAnimMobile {
-    0% {
-        bottom: var(--putter-start-bottom, 30.0%);
-        left: calc(50% - 77.5px);
-        transform: rotate(0deg) scale(1.4);
-        opacity: 1;
-    }
-
-    35% {
-        bottom: 30.0%;
-        left: calc(50% - 77.5px);
-        transform: rotate(0deg) scale(1.4);
-        opacity: 1;
-    }
-
-    100% {
-        bottom: 38.2%;
-        left: calc(50% - 77.5px);
-        transform: rotate(0deg) scale(1.4);
-        opacity: 0;
-    }
-}
-
-@keyframes clubSwipeAnimMobile {
-    0% {
-        bottom: -100px;
-        left: 51%;
-        right: auto;
-        transform: rotate(30deg) scale(1.7);
-        opacity: 0;
-    }
-
-    15% {
-        opacity: 1;
-    }
-
-    /* The moment of impact with the ball */
-    35% {
-        bottom: 32%;
-        /* INCREASE THIS VALUE (e.g., 31% to 35%) TO MATCH YOUR NEW ADDRESS HEIGHT */
-        left: 47%;
-        right: auto;
-        transform: rotate(0deg) scale(1.2);
-    }
-
-    /* Follow-through height */
-    100% {
-        bottom: 40%;
-        /* INCREASE THIS VALUE TO ADJUST THE HEIGHT OF THE FINISHED SWING PATH */
-        left: 38%;
-        right: auto;
-        transform: rotate(-40deg) scale(0.5);
-        opacity: 0;
-    }
-}
-
 
 
 /* ==========================================================================
