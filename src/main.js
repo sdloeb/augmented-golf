@@ -1,6 +1,7 @@
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
+import { globalCourseData } from './courseData.js';
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
@@ -484,7 +485,7 @@ function resetEntireGame(advanceHole = false) {
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
     // Pull the piece-by-piece blueprint configuration if it exists
-    let holeConfig = HOLES_CONFIG[currentHoleNumber] || null;
+    let holeConfig = globalCourseData['hole' + currentHoleNumber] || null;
 
     // Championship Procedural Generator fallback: runs only if no manual config exists
     if (!holeConfig) {
@@ -600,8 +601,11 @@ function resetEntireGame(advanceHole = false) {
     if (mapTitleElement) mapTitleElement.innerText = `HOLE ${currentHoleNumber}`;
     if (mapParElement) mapParElement.innerText = `PAR ${currentPar}`;
 
-    // Generate the mathematical Catmull-Rom spline curve from the waypoints
-    const fairwaySpline = new THREE.CatmullRomCurve3(holeConfig.waypoints);
+    // Automatically transform plain text coordinates into live 3D vectors
+    const activeWaypoints = (holeConfig.waypoints || []).map(w =>
+        w.isVector3 ? w : new THREE.Vector3(w.x, w.y || 0, w.z)
+    );
+    const fairwaySpline = new THREE.CatmullRomCurve3(activeWaypoints);
     physics.fairwayPoints = fairwaySpline.getPoints(200); // Extract 200 spatial resolution check nodes
 
     // The green centers itself perfectly on the final waypoint point of the path
@@ -789,17 +793,18 @@ function resetEntireGame(advanceHole = false) {
             // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
             let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
 
-            // NEW: Check if this vertex falls inside a sand trap to submerge the fringe collar
+            // Check if this vertex falls inside or near a sand trap edge
             let insideSand = false;
             sandTraps.forEach(sand => {
-                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
+                // Adding a +1.2 unit buffer cushion catches trailing edge vertices to stop sharp triangle piercing
+                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5) + 1.2) {
                     insideSand = true;
                 }
             });
 
-            if (insideSand && targetMesh === greenFringe) {
-                // Safely drop the collar triangles beneath the 3D bunker floor
-                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.14;
+            if (insideSand) {
+                // Drop the green components completely beneath the sand mesh layout so the sand texture is exposed
+                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.5;
             } else {
                 if (targetMesh === green) calculatedHeight += 0.02;
                 if (targetMesh === greenGrid) calculatedHeight += 0.03;
@@ -861,15 +866,19 @@ function resetEntireGame(advanceHole = false) {
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
-            if (distToGreen < 12.0) {
-                calculatedHeight -= 0.45;
-            } else if (distToGreen < 15.5) {
-                const greenT = (distToGreen - 12.0) / 3.5;
-                const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
-                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
-            }
+            // Dynamically scale boundaries based on your custom course data green template radius
+            const activeR = window.activeGreenRadius || 12.0;
 
+            // Only apply the old procedural height subtraction if we aren't rendering a precise custom course design layout
+            if (!currentHoleConfig || !currentHoleConfig.waypoints) {
+                if (distToGreen < activeR) {
+                    calculatedHeight -= 0.45;
+                } else if (distToGreen < activeR + 3.5) {
+                    const greenT = (distToGreen - activeR) / 3.5;
+                    const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
+                    calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
+                }
+            }
             if (!insideWaterZone) {
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
                 const fW = physics.fairwayWidth;

@@ -114,6 +114,30 @@ export class PhysicsEngine {
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
+        // --- CUSTOM HOLE 2 DESIGNER ELEVATIONS ---
+        if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
+            let baseHeight = 0.0;
+
+            // Tee starts at the highest point. Fairway drops continuously for 327 yards down to the elbow marker, then flattens out
+            if (z > 10) {
+                baseHeight = 4.5;
+            } else if (z >= -108) {
+                let t = (10 - z) / 118; // Linear descent down the entire 118-unit (327 yard) drive segment to the elbow turn
+                baseHeight = THREE.MathUtils.lerp(4.5, 0.0, t);
+            } else {
+                baseHeight = 0.0; // Ground flattens out completely from the 87-yard elbow marker up to the green
+            }
+
+            // 2. Right rough after tee is heavily hilly up until just before the green-side trap (Z=-124)
+            if (x > this.fairwayWidth && z < 0 && z > -124) {
+                let roughHills = Math.sin(x * 0.4) * Math.cos(z * 0.3) * 1.6;
+                baseHeight += roughHills;
+            }
+
+            let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6));
+            return Math.max(0.001, baseHeight * teeFade * xFade);
+        }
+
         // Base undulating small mounds and dips (mostly flat, natural ripples)
         const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
