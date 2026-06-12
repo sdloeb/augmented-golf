@@ -152,55 +152,6 @@ export class PhysicsEngine {
             }
         }
 
-        // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
-        if (this.waterHazards && this.waterHazards.length > 0) {
-            this.waterHazards.forEach(water => {
-                const dxW = x - water.position.x;
-                const dzW = z - water.position.z;
-                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
-                const centerLakeHeight = water.position.y - 0.01;
-
-                if (distToWater < lakeRadius + 0.6) {
-                    baseHeight = centerLakeHeight;
-                    if (distToWater < lakeRadius - 0.4) {
-                        baseHeight -= 1.2;
-                    }
-                } else if (distToWater < lakeRadius + 2.5) {
-                    const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9;
-                    baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, blendFactor);
-                }
-            });
-        }
-
-        // 2. Apply sand trap 3D parabolic depressions to carve smooth, seamless craters into the heightmap
-        if (this.sandTraps && this.sandTraps.length > 0) {
-            this.sandTraps.forEach(sand => {
-                const dxS = x - sand.position.x;
-                const dzS = z - sand.position.z;
-                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
-
-                if (distToSand < sandRadius) {
-                    // EASY TUNING: Controls what percentage of the inner bunker is completely flat maximum depth.
-                    // 0.45 means the inner 45% of the radius spreads out perfectly flat before sloping up.
-                    const floorFraction = 0.60;
-                    const flatRadius = sandRadius * floorFraction;
-
-                    if (distToSand <= flatRadius) {
-                        // Stays completely flat at maximum depth across the center floor space
-                        baseHeight -= sandDepth;
-                    } else {
-                        // Linearly maps and smoothsteps the slope only across the remaining outer distance
-                        const t = (distToSand - flatRadius) / (sandRadius - flatRadius);
-                        const smoothSlope = t * t * (3 - 2 * t); // Smooth S-curve transition
-
-                        baseHeight -= THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
-                    }
-                }
-            });
-        }
         return baseHeight;
     }
 
@@ -535,14 +486,30 @@ export class PhysicsEngine {
             this.ball.position.y = groundY; // Snap perfectly onto the contoured elevation curves
             this.hasLanded = true;
 
+            // Look through all water hazards to check if the ball landed inside any of them
             for (let water of this.waterHazards) {
-                // ... water hazard bounds check stays completely unchanged here ...
+                if (water.userData && water.userData.shapeType === 'polygon') {
+                    // Check custom blueprint polygon shapes (like winding rivers)
+                    if (window.isPointInPolygon(this.ball.position.x, this.ball.position.z, water.userData.points)) {
+                        this.hitWater = true;
+                        break;
+                    }
+                } else {
+                    // Check traditional circle shapes (like default lakes)
+                    const dx = this.ball.position.x - water.position.x;
+                    const dz = this.ball.position.z - water.position.z;
+                    const waterRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+                    if (Math.sqrt(dx * dx + dz * dz) < waterRadius) {
+                        this.hitWater = true;
+                        break;
+                    }
+                }
             }
 
             if (Math.abs(this.velocity.y) > 0.05) {
                 if (this.sounds) this.sounds.play('bounce');
 
-                // NEW: Trigger explosive sand spray on high-impact landings
+                // Trigger explosive sand spray on high-impact landings
                 if (inSand && typeof window.triggerSandSpray === 'function') {
                     window.triggerSandSpray(this.ball.position.x, this.ball.position.y, this.ball.position.z, 15, 1.0);
                 }
@@ -553,7 +520,7 @@ export class PhysicsEngine {
             } else {
                 this.velocity.y = 0;
 
-                // NEW: Kick up micro sand particle trails while rolling through the bunker
+                // Kick up micro sand particle trails while rolling through the bunker
                 if (inSand && this.velocity.length() > 0.05 && Math.random() > 0.70 && typeof window.triggerSandSpray === 'function') {
                     window.triggerSandSpray(this.ball.position.x, this.ball.position.y, this.ball.position.z, 2, 0.3);
                 }

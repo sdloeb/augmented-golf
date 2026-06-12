@@ -3,6 +3,19 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 
+// Global math helper to check if a coordinate point is inside a custom polygon shape
+window.isPointInPolygon = function (x, z, points) {
+    let inside = false;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        let xi = points[i].x, zi = points[i].z;
+        let xj = points[j].x, zj = points[j].z;
+        let intersect = ((zi > z) !== (zj > z))
+            && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
+
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
 // NEW: High-Velocity 3D Particle System for Deep Pot Bunker Eruptions
@@ -119,53 +132,99 @@ const HOLES_CONFIG = {
 };
 
 function spawnHazardsForHole(holeData) {
-    // If the current hole doesn't have a hazards array yet, stop here
     if (!holeData.hazards) return;
 
     holeData.hazards.forEach(hazard => {
         let geometry;
         let material;
 
-        // 1. Set the color based on hazard type
+        // 1. PRESERVED: Use your exact original materials, hex colors, and high-contrast specular settings
         if (hazard.type === 'water') {
-            material = new THREE.MeshStandardMaterial({ color: 0x0066ff, roughness: 0.1 }); // Blue water
+            material = new THREE.MeshPhongMaterial({
+                color: 0x0000ff,                         // Original vibrant lake blue
+                specular: 0xffffff,                     // Original crisp white sun-glint highlights
+                shininess: 150,                         // Original gloss factor
+                flatShading: true,
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -4
+            });
         } else if (hazard.type === 'trap') {
-            material = new THREE.MeshStandardMaterial({ color: 0xddcc99, roughness: 0.9 }); // Sandy beige
+            material = new THREE.MeshStandardMaterial({
+                color: 0xd9c59e,                         // Original clean sand coloring
+                roughness: 0.95,
+                metalness: 0.0,
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -4
+            });
         }
 
-        // 2. Build the shape based on geometry type
+        // 2. FIXED: Sample getGroundHeight to perfectly blend with green-side hills
+        let sampleX = hazard.shape === 'circle' ? hazard.center.x : hazard.points[0].x;
+        let sampleZ = hazard.shape === 'circle' ? hazard.center.z : hazard.points[0].z;
+        let currentGroundY = physics ? physics.getGroundHeight(sampleX, sampleZ) : 0;
+
         if (hazard.shape === 'circle') {
-            // Classic Circle
             geometry = new THREE.CircleGeometry(hazard.radius, 32);
             const mesh = new THREE.Mesh(geometry, material);
-
-            // Lay it flat on the ground and position it
             mesh.rotation.x = -Math.PI / 2;
             mesh.position.copy(hazard.center);
-            mesh.position.y = 0.01; // Sit slightly above the grass to prevent blinking
+            mesh.position.y = currentGroundY + 0.01;
+
+            mesh.userData = { radius: hazard.radius, depth: hazard.type === 'trap' ? 0.6 : 0 };
             scene.add(mesh);
 
-        } else if (hazard.shape === 'polygon') {
-            // 3. 🆕 CUSTOM POLYGON SHAPE (For Rivers and Winding Traps)
-            const shape = new THREE.Shape();
+            if (hazard.type === 'water') {
+                waterHazards.push(mesh);
 
-            // Connect the dots using your Vector3 points (using X and Z for the ground plane)
+                // 3. PRESERVED: Build your original dark brown rock/dirt shoreline rim
+                const shoreMesh = new THREE.Mesh(
+                    new THREE.RingGeometry(hazard.radius - 0.05, hazard.radius + 0.6, 64),
+                    new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1 })
+                );
+                shoreMesh.rotation.x = -Math.PI / 2;
+                shoreMesh.position.set(hazard.center.x, currentGroundY + 0.015, hazard.center.z);
+                scene.add(shoreMesh);
+                waterShores.push(shoreMesh);
+
+                // 4. PRESERVED: Build your original vertical cylinder to seal open air voids beneath the hill
+                const wallGeo = new THREE.CylinderGeometry(hazard.radius + 0.58, hazard.radius + 0.58, 2.0, 64, 1, true);
+                const wallMesh = new THREE.Mesh(
+                    wallGeo,
+                    new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1, side: THREE.DoubleSide })
+                );
+                wallMesh.position.set(hazard.center.x, currentGroundY + 0.015 - 1.0, hazard.center.z);
+                scene.add(wallMesh);
+                waterShores.push(wallMesh);
+            }
+            if (hazard.type === 'trap') sandTraps.push(mesh);
+
+        } else if (hazard.shape === 'polygon') {
+            const shape = new THREE.Shape();
             shape.moveTo(hazard.points[0].x, hazard.points[0].z);
             for (let i = 1; i < hazard.points.length; i++) {
                 shape.lineTo(hazard.points[i].x, hazard.points[i].z);
             }
-            shape.lineTo(hazard.points[0].x, hazard.points[0].z); // Close the shape loop
+            shape.lineTo(hazard.points[0].x, hazard.points[0].z);
 
-            // Turn the 2D shape into a flat 3D floor mesh
             geometry = new THREE.ShapeGeometry(shape);
             const mesh = new THREE.Mesh(geometry, material);
-
-            // Flip it so it lays perfectly flat on the ground map
             mesh.rotation.x = -Math.PI / 2;
-            mesh.position.y = 0.01;
+            mesh.position.y = currentGroundY + 0.01;
+
+            mesh.userData = { shapeType: 'polygon', points: hazard.points, depth: hazard.type === 'trap' ? 0.6 : 0 };
             scene.add(mesh);
+
+            if (hazard.type === 'water') waterHazards.push(mesh);
+            if (hazard.type === 'trap') sandTraps.push(mesh);
         }
     });
+
+    if (physics) {
+        physics.sandTraps = sandTraps;
+        physics.waterHazards = waterHazards;
+    }
 }
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -370,8 +429,13 @@ function generateHazards() {
     waterHazards.length = 0;
     waterShores.length = 0;
 
-    // NEW: Clear physics engine hazard arrays immediately so that getGroundHeight queries 
-    // inside this generation loop reflect clean terrain without old hole artifacts.
+    // 1. Check your global variable 'currentHoleConfig' for manual blueprint hazards
+    if (currentHoleConfig && currentHoleConfig.hazards && currentHoleConfig.hazards.length > 0) {
+        spawnHazardsForHole(currentHoleConfig);
+        return; // 2. CRITICAL: Stop the function here so it doesn't run the random code below!
+    }
+
+    // 3. Clear physics engine hazard arrays immediately for clean random generation
     if (physics) {
         physics.sandTraps = [];
         physics.waterHazards = [];
@@ -384,10 +448,12 @@ function generateHazards() {
         return list.some(mesh => {
             const dx = x - mesh.position.x;
             const dz = z - mesh.position.z;
-            const meshRadius = mesh.userData && mesh.userData.radius !== undefined ? mesh.userData.radius : (mesh.geometry.parameters.radius || 0); // Add this line
+            const meshRadius = mesh.userData && mesh.userData.radius !== undefined ? mesh.userData.radius : (mesh.geometry.parameters.radius || 0);
             return Math.sqrt(dx * dx + dz * dz) < (r + meshRadius + padding);
         });
     };
+
+    // ... rest of your original generateHazards() loops continue perfectly normal below here
 
     // Use a safe fallback if green hasn't initialized yet
     const targetGreenZ = green ? green.position.z : -55;
@@ -574,11 +640,12 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-    let holeConfig = null;
+    // ⬇️ Read directly from your custom handcrafted HOLES_CONFIG blueprint layout
+    let holeConfig = HOLES_CONFIG[currentHoleNumber];
 
-    // Championship Procedural Generator: Determines Par first, then maps realistic course segment distances
+    // Fall back to the random generator ONLY if we run out of handcrafted blueprint holes
     if (!holeConfig) {
-        const UNIT_YARDS = 2.76923; // Fixed spatial engine multiplier matching game scaling
+        const UNIT_YARDS = 2.76923;
         const parRoll = Math.random();
 
         if (parRoll < 0.20) {
@@ -782,20 +849,32 @@ function resetEntireGame(advanceHole = false) {
             const worldZ = -localY + targetMesh.position.z;
 
             // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
-            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
             let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
 
-            // NEW: Check if this vertex falls inside a sand trap to submerge the fringe collar
+            // Check if this vertex falls inside a sand trap to submerge the fringe collar
             let insideSand = false;
             sandTraps.forEach(sand => {
-                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
+                if (sand.userData && sand.userData.shapeType === 'polygon') {
+                    if (window.isPointInPolygon(worldX, worldZ, sand.userData.points)) insideSand = true;
+                } else if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
                     insideSand = true;
                 }
             });
 
-            if (insideSand && targetMesh === greenFringe) {
-                // Safely drop the collar triangles beneath the 3D bunker floor
-                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.14;
+            // 🆕 ADDED: Check if this vertex falls inside a water hazard to submerge it too!
+            let insideWater = false;
+            waterHazards.forEach(water => {
+                if (water.userData && water.userData.shapeType === 'polygon') {
+                    if (window.isPointInPolygon(worldX, worldZ, water.userData.points)) insideWater = true;
+                } else if (Math.hypot(worldX - water.position.x, worldZ - water.position.z) < (water.userData.radius || 5)) {
+                    insideWater = true;
+                }
+            });
+
+            // If overlapping any hazard, push the green fringe down below the map floor
+            if ((insideSand || insideWater) && targetMesh === greenFringe) {
+                // Safely drop the collar triangles beneath the hazard floor line
+                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.20;
             } else {
                 if (targetMesh === green) calculatedHeight += 0.02;
                 if (targetMesh === greenGrid) calculatedHeight += 0.03;
@@ -1919,24 +1998,24 @@ function animate() {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
 
-                // Calculate distance from lake center to flatten waves near the shore boundary
-                const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
-                const lakeRadius = mesh.userData.radius || 5; // Add this line
-                // Smoothly fade waves down over the outer 1.5 units of the lake profile
-                const waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5)); // Add this line
+                // Calculate distance from lake center to handle wave fades for circle shapes
+                const distFromCenter = Math.sqrt(u * u + v * v);
+                const lakeRadius = mesh.userData.radius || 5;
+                const isPolygon = mesh.userData && mesh.userData.shapeType === 'polygon';
+                const waveFade = isPolygon ? 1.0 : Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5));
 
-                // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
+                // Clean, organic cross-waves
                 const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
                 const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
                 const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
 
-                // Dampen the waves and smoothly transition base level flush with the 0.07 shore height rim
-                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade); // Modify this line
+                // Keep the water plane perfectly flat and level, only adding the surface ripples on top
+                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade);
 
                 posAttr.setZ(i, waveHeight);
             }
             posAttr.needsUpdate = true; // Forces the GPU to reload the fresh wave coordinates
-            mesh.geometry.computeVertexNormals(); // Recalculates lighting highlights so reflections move with waves
+            mesh.geometry.computeVertexNormals(); // Recalculates lighting highlights over the curves
         });
     }
 
