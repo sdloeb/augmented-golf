@@ -1,20 +1,6 @@
-import { globalCourseData } from './courseData.js';
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
-
-// Global math helper to check if a coordinate point is inside a custom polygon shape
-window.isPointInPolygon = function (x, z, points) {
-    let inside = false;
-    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-        let xi = points[i].x, zi = points[i].z;
-        let xj = points[j].x, zj = points[j].z;
-        let intersect = ((zi > z) !== (zj > z))
-            && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
-        if (intersect) inside = !inside;
-    }
-    return inside;
-};
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
@@ -44,57 +30,23 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
     }
 };
 
-// Centralized Modular Hole & Waypoint Blueprint Definition
+// Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
 const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
-        ],
-        // 🆕 ADDED: Custom elements for Hole 1
-        hazards: [
-            {
-                id: "bunker_left",
-                type: "trap",        // "trap" for sand bunker
-                shape: "circle",     // Easy classic circle shape
-                center: new THREE.Vector3(-12, 0, -25),
-                radius: 5
-            },
-            {
-                id: "tutorial_pond",
-                type: "water",       // "water" hazard
-                shape: "circle",
-                center: new THREE.Vector3(15, 0, -40),
-                radius: 8
-            }
-        ],
-        contours: [] // We can add hills/slopes here later!
+        ]
     },
     2: { // Sharp Dogleg Right Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(10, 0, -50),
-            new THREE.Vector3(50, 0, -100),
-            new THREE.Vector3(80, 0, -130)
-        ],
-        // 🆕 ADDED: A long river hazard instead of a circle lake!
-        hazards: [
-            {
-                id: "dogleg_river",
-                type: "water",
-                shape: "polygon",    // "polygon" lets you connect dots for ANY shape
-                // This builds a long, wide diagonal river crossing the map
-                points: [
-                    new THREE.Vector3(10, 0, -70),  // Corner 1
-                    new THREE.Vector3(70, 0, -110), // Corner 2
-                    new THREE.Vector3(75, 0, -100), // Corner 3
-                    new THREE.Vector3(15, 0, -60)   // Corner 4
-                ]
-            }
-        ],
-        contours: []
+            new THREE.Vector3(10, 0, -50),   // Modify this coordinate
+            new THREE.Vector3(50, 0, -100),  // Modify this coordinate
+            new THREE.Vector3(80, 0, -130)   // Modify this coordinate (Greens out of 1-shot range)
+        ]
     },
     3: { // Long S-Curve Double Dogleg Hole
         par: 5,
@@ -103,282 +55,27 @@ const HOLES_CONFIG = {
             new THREE.Vector3(-20, 0, -50),
             new THREE.Vector3(20, 0, -110),
             new THREE.Vector3(0, 0, -170)
-        ],
-        hazards: [],
-        contours: []
+        ]
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),
-            new THREE.Vector3(45, 0, -85),
-            new THREE.Vector3(85, 0, -85)
-        ],
-        hazards: [],
-        contours: []
-    },
+            new THREE.Vector3(0, 0, -85),   // Modify this line: Drives straight down further
+            new THREE.Vector3(45, 0, -85),  // Modify this line: Extends elbow outward
+            new THREE.Vector3(85, 0, -85)   // Modify this line: Safe Par 4 distance (~355 yards away)
+        ]
+    }, // Add this block
     5: { // Sharp 90-Degree Dogleg Left Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),
-            new THREE.Vector3(-45, 0, -85),
-            new THREE.Vector3(-85, 0, -85)
-        ],
-        hazards: [],
-        contours: []
-    }
+            new THREE.Vector3(0, 0, -85),   // Modify this line
+            new THREE.Vector3(-45, 0, -85), // Modify this line
+            new THREE.Vector3(-85, 0, -85)  // Modify this line
+        ]
+    } // Add this block
 };
-
-function spawnHazardsForHole(holeData) {
-    if (!holeData.hazards) return;
-
-    holeData.hazards.forEach(hazard => {
-        let geometry;
-        let material;
-
-        // 1. PRESERVED: Use your exact original materials, hex colors, and high-contrast specular settings
-        if (hazard.type === 'water') {
-            material = new THREE.MeshPhongMaterial({
-                color: 0x0000ff,                         // Original vibrant lake blue
-                specular: 0xffffff,                     // Original crisp white sun-glint highlights
-                shininess: 150,                         // Original gloss factor
-                flatShading: true,
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -4
-            });
-        } else if (hazard.type === 'trap') {
-            material = new THREE.MeshStandardMaterial({
-                color: 0xd9c59e,                         // Original clean sand coloring
-                roughness: 0.95,
-                metalness: 0.0,
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -4
-            });
-        }
-
-        // 2. FIXED: Sample getGroundHeight to perfectly blend with green-side hills
-        let sampleX = hazard.shape === 'circle' ? hazard.center.x : hazard.points[0].x;
-        let sampleZ = hazard.shape === 'circle' ? hazard.center.z : hazard.points[0].z;
-        let currentGroundY = physics ? physics.getGroundHeight(sampleX, sampleZ) : 0;
-
-        if (hazard.shape === 'circle') {
-            geometry = new THREE.CircleGeometry(hazard.radius, 32);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.rotation.x = -Math.PI / 2;
-            mesh.position.copy(hazard.center);
-            mesh.position.y = currentGroundY + 0.01;
-
-            mesh.userData = { radius: hazard.radius, depth: hazard.type === 'trap' ? 0.6 : 0 };
-            scene.add(mesh);
-
-            if (hazard.type === 'water') {
-                waterHazards.push(mesh);
-
-                // 3. PRESERVED: Build your original dark brown rock/dirt shoreline rim
-                const shoreMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(hazard.radius - 0.05, hazard.radius + 0.6, 64),
-                    new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1 })
-                );
-                shoreMesh.rotation.x = -Math.PI / 2;
-                shoreMesh.position.set(hazard.center.x, currentGroundY + 0.015, hazard.center.z);
-                scene.add(shoreMesh);
-                waterShores.push(shoreMesh);
-
-                // 4. PRESERVED: Build your original vertical cylinder to seal open air voids beneath the hill
-                const wallGeo = new THREE.CylinderGeometry(hazard.radius + 0.58, hazard.radius + 0.58, 2.0, 64, 1, true);
-                const wallMesh = new THREE.Mesh(
-                    wallGeo,
-                    new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1, side: THREE.DoubleSide })
-                );
-                wallMesh.position.set(hazard.center.x, currentGroundY + 0.015 - 1.0, hazard.center.z);
-                scene.add(wallMesh);
-                waterShores.push(wallMesh);
-            }
-            if (hazard.type === 'trap') sandTraps.push(mesh);
-
-        } else if (hazard.shape === 'polygon') {
-            // Find the bounding box limits of the custom polygon points to encapsulate it
-            let minX = Infinity, maxX = -Infinity;
-            let minZ = Infinity, maxZ = -Infinity;
-            hazard.points.forEach(p => {
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-                if (p.z < minZ) minZ = p.z;
-                if (p.z > maxZ) maxZ = p.z;
-            });
-
-            const bWidth = (maxX - minX) || 1;
-            const bHeight = (maxZ - minZ) || 1;
-            const bCenterX = minX + bWidth / 2;
-            const bCenterZ = minZ + bHeight / 2;
-
-            // 1. Highly subdivided PlaneGeometry to provide ample internal vertices for wave animations
-            geometry = new THREE.PlaneGeometry(bWidth, bHeight, 32, 32);
-
-            // Re-shape the plane vertices to match the custom polygon layout exactly
-            const posAttr = geometry.attributes.position;
-            for (let j = 0; j < posAttr.count; j++) {
-                let localX = posAttr.getX(j);
-                let localY = posAttr.getY(j);
-
-                // Map local grid nodes to world coordinates
-                let worldX = bCenterX + localX;
-                let worldZ = bCenterZ - localY;
-
-                // Check if this grid vertex sits inside our custom polygon hazard shape
-                const inside = window.isPointInPolygon(worldX, worldZ, hazard.points);
-
-                if (!inside) {
-                    // Find the closest point on the polygon perimeter boundary and collapse outer vertices onto it
-                    let minDist = Infinity;
-                    let closestX = worldX, closestZ = worldZ;
-
-                    for (let k = 0; k < hazard.points.length; k++) {
-                        const pt1 = hazard.points[k];
-                        const pt2 = hazard.points[(k + 1) % hazard.points.length];
-
-                        const vx = pt2.x - pt1.x;
-                        const vz = pt2.z - pt1.z;
-                        const dx = worldX - pt1.x;
-                        const dz = worldZ - pt1.z;
-
-                        const segLengthSq = vx * vx + vz * vz;
-                        let t = segLengthSq === 0 ? 0 : (dx * vx + dz * vz) / segLengthSq;
-                        t = Math.max(0, Math.min(1, t)); // Clamp to line segment bounds
-
-                        const projX = pt1.x + t * vx;
-                        const projZ = pt1.z + t * vz;
-                        const distSq = (worldX - projX) * (worldX - projX) + (worldZ - projZ) * (worldZ - projZ);
-
-                        if (distSq < minDist) {
-                            minDist = distSq;
-                            closestX = projX;
-                            closestZ = projZ;
-                        }
-                    }
-                    worldX = closestX;
-                    worldZ = closestZ;
-                }
-
-                // FIXED: Keep coordinates relative to the bounding box center so the ripple wave speed formula matches up perfectly
-                posAttr.setX(j, worldX - bCenterX);
-                posAttr.setY(j, -(worldZ - bCenterZ));
-            }
-            geometry.computeVertexNormals();
-
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.rotation.x = -Math.PI / 2;
-            // FIXED: Position the mesh at its true bounding box coordinates
-            mesh.position.set(bCenterX, currentGroundY + 0.01, bCenterZ);
-
-            mesh.userData = { shapeType: 'polygon', points: hazard.points, depth: hazard.type === 'trap' ? 0.6 : 0 };
-            scene.add(mesh);
-
-            if (hazard.type === 'water') {
-                waterHazards.push(mesh);
-
-                // 2. FIXED: Calculate true edge-normal miters so the dirt trim follows the custom polygon shape uniformly
-                const miters = [];
-                let polyCenterX = 0, polyCenterZ = 0;
-                hazard.points.forEach(p => { polyCenterX += p.x; polyCenterZ += p.z; });
-                polyCenterX /= hazard.points.length;
-                polyCenterZ /= hazard.points.length;
-
-                for (let i = 0; i < hazard.points.length; i++) {
-                    const pCurr = hazard.points[i];
-                    const pPrev = hazard.points[(i - 1 + hazard.points.length) % hazard.points.length];
-                    const pNext = hazard.points[(i + 1) % hazard.points.length];
-
-                    let dxF = pNext.x - pCurr.x; let dzF = pNext.z - pCurr.z;
-                    let lenF = Math.hypot(dxF, dzF) || 1;
-                    dxF /= lenF; dzF /= lenF;
-
-                    let dxB = pCurr.x - pPrev.x; let dzB = pCurr.z - pPrev.z;
-                    let lenB = Math.hypot(dxB, dzB) || 1;
-                    dxB /= lenB; dzB /= lenB;
-
-                    let mx = (-dzF) + (-dzB);
-                    let mz = dxF + dxB;
-                    let mLen = Math.hypot(mx, mz) || 1;
-
-                    let dot = (-dzF) * (mx / mLen) + dxF * (mz / mLen);
-                    let mScale = dot > 0.1 ? 1.0 / dot : 1.0;
-                    if (mScale > 2.0) mScale = 2.0;
-
-                    mx = (mx / mLen) * mScale;
-                    mz = (mz / mLen) * mScale;
-
-                    let dotCentroid = mx * (pCurr.x - polyCenterX) + mz * (pCurr.z - polyCenterZ);
-                    if (dotCentroid < 0) { mx = -mx; mz = -mz; }
-
-                    miters.push({ x: mx, z: mz });
-                }
-
-                const shoreVertices = [];
-                for (let i = 0; i < hazard.points.length; i++) {
-                    const idx1 = i;
-                    const idx2 = (i + 1) % hazard.points.length;
-
-                    const p1 = hazard.points[idx1];
-                    const p2 = hazard.points[idx2];
-                    const m1 = miters[idx1];
-                    const m2 = miters[idx2];
-
-                    const o1x = p1.x + m1.x * 0.6; const o1z = p1.z + m1.z * 0.6;
-                    const o2x = p2.x + m2.x * 0.6; const o2z = p2.z + m2.z * 0.6;
-
-                    // Triangle 1
-                    shoreVertices.push(p1.x, currentGroundY + 0.015, p1.z);
-                    shoreVertices.push(o2x, currentGroundY + 0.015, o2z);
-                    shoreVertices.push(o1x, currentGroundY + 0.015, o1z);
-
-                    // Triangle 2
-                    shoreVertices.push(p1.x, currentGroundY + 0.015, p1.z);
-                    shoreVertices.push(p2.x, currentGroundY + 0.015, p2.z);
-                    shoreVertices.push(o2x, currentGroundY + 0.015, o2z);
-                }
-                const shoreGeometry = new THREE.BufferGeometry();
-                shoreGeometry.setAttribute('position', new THREE.Float32BufferAttribute(shoreVertices, 3));
-                shoreGeometry.computeVertexNormals();
-                const shoreMesh = new THREE.Mesh(shoreGeometry, new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1 }));
-                scene.add(shoreMesh);
-                waterShores.push(shoreMesh);
-
-                // 3. Build seamless vertical skirt panels matching the new clean miter coordinates
-                const wallVertices = [];
-                for (let i = 0; i < hazard.points.length; i++) {
-                    const p1 = hazard.points[i];
-                    const p2 = hazard.points[(i + 1) % hazard.points.length];
-
-                    wallVertices.push(p1.x, currentGroundY + 0.015, p1.z);
-                    wallVertices.push(p2.x, currentGroundY + 0.015, p2.z);
-                    wallVertices.push(p1.x, currentGroundY + 0.015 - 2.0, p1.z);
-
-                    wallVertices.push(p2.x, currentGroundY + 0.015, p2.z);
-                    wallVertices.push(p2.x, currentGroundY + 0.015 - 2.0, p2.z);
-                    wallVertices.push(p1.x, currentGroundY + 0.015 - 2.0, p1.z);
-                }
-                const wallGeometry = new THREE.BufferGeometry();
-                wallGeometry.setAttribute('position', new THREE.Float32BufferAttribute(wallVertices, 3));
-                wallGeometry.computeVertexNormals();
-                const wallMesh = new THREE.Mesh(wallGeometry, new THREE.MeshStandardMaterial({ color: 0x655545, roughness: 0.95, metalness: 0.1, side: THREE.DoubleSide }));
-                scene.add(wallMesh);
-                waterShores.push(wallMesh);
-            }
-
-            if (hazard.type === 'trap') sandTraps.push(mesh);
-        }
-    });
-
-    if (physics) {
-        physics.sandTraps = sandTraps;
-        physics.waterHazards = waterHazards;
-    }
-}
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor, greenFringe;
@@ -582,13 +279,8 @@ function generateHazards() {
     waterHazards.length = 0;
     waterShores.length = 0;
 
-    // 1. Check your global variable 'currentHoleConfig' for manual blueprint hazards
-    if (currentHoleConfig && currentHoleConfig.hazards && currentHoleConfig.hazards.length > 0) {
-        spawnHazardsForHole(currentHoleConfig);
-        return; // 2. CRITICAL: Stop the function here so it doesn't run the random code below!
-    }
-
-    // 3. Clear physics engine hazard arrays immediately for clean random generation
+    // NEW: Clear physics engine hazard arrays immediately so that getGroundHeight queries 
+    // inside this generation loop reflect clean terrain without old hole artifacts.
     if (physics) {
         physics.sandTraps = [];
         physics.waterHazards = [];
@@ -601,12 +293,10 @@ function generateHazards() {
         return list.some(mesh => {
             const dx = x - mesh.position.x;
             const dz = z - mesh.position.z;
-            const meshRadius = mesh.userData && mesh.userData.radius !== undefined ? mesh.userData.radius : (mesh.geometry.parameters.radius || 0);
+            const meshRadius = mesh.userData && mesh.userData.radius !== undefined ? mesh.userData.radius : (mesh.geometry.parameters.radius || 0); // Add this line
             return Math.sqrt(dx * dx + dz * dz) < (r + meshRadius + padding);
         });
     };
-
-    // ... rest of your original generateHazards() loops continue perfectly normal below here
 
     // Use a safe fallback if green hasn't initialized yet
     const targetGreenZ = green ? green.position.z : -55;
@@ -793,12 +483,11 @@ function resetEntireGame(advanceHole = false) {
     tracerPoints = [];
     if (ballTracer) ballTracer.geometry.setFromPoints([]);
 
-    // ⬇️ Read directly from your custom handcrafted HOLES_CONFIG blueprint layout
-    let holeConfig = HOLES_CONFIG[currentHoleNumber];
+    let holeConfig = null;
 
-    // Fall back to the random generator ONLY if we run out of handcrafted blueprint holes
+    // Championship Procedural Generator: Determines Par first, then maps realistic course segment distances
     if (!holeConfig) {
-        const UNIT_YARDS = 2.76923;
+        const UNIT_YARDS = 2.76923; // Fixed spatial engine multiplier matching game scaling
         const parRoll = Math.random();
 
         if (parRoll < 0.20) {
@@ -1001,35 +690,21 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX + targetMesh.position.x;
             const worldZ = -localY + targetMesh.position.z;
 
-            // FIXED: Sample from integrated terrain height so the green fringe collar rides smoothly over hills
-            let calculatedHeight = (targetMesh === greenFringe) ? physics.getGroundHeight(worldX, worldZ) : physics.getGreenHeight(worldX, worldZ);
+            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
+            // Fetch height calculation and bind directly to local Z (world height elevation after rotation)
+            let calculatedHeight = physics.getGreenHeight(worldX, worldZ);
 
-            // Check if this vertex falls inside a sand trap to submerge the fringe collar
-
-
+            // NEW: Check if this vertex falls inside a sand trap to submerge the fringe collar
             let insideSand = false;
             sandTraps.forEach(sand => {
-                if (sand.userData && sand.userData.shapeType === 'polygon') {
-                    if (window.isPointInPolygon(worldX, worldZ, sand.userData.points)) insideSand = true;
-                } else if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
+                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5)) {
                     insideSand = true;
                 }
             });
 
-            // 🆕 ADDED: Check if this vertex falls inside a water hazard to submerge it too!
-            let insideWater = false;
-            waterHazards.forEach(water => {
-                if (water.userData && water.userData.shapeType === 'polygon') {
-                    if (window.isPointInPolygon(worldX, worldZ, water.userData.points)) insideWater = true;
-                } else if (Math.hypot(worldX - water.position.x, worldZ - water.position.z) < (water.userData.radius || 5)) {
-                    insideWater = true;
-                }
-            });
-
-            // If overlapping any hazard, push the green fringe down below the map floor
-            if ((insideSand || insideWater) && targetMesh === greenFringe) {
-                // Safely drop the collar triangles beneath the hazard floor line
-                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.20;
+            if (insideSand && targetMesh === greenFringe) {
+                // Safely drop the collar triangles beneath the 3D bunker floor
+                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.14;
             } else {
                 if (targetMesh === green) calculatedHeight += 0.02;
                 if (targetMesh === greenGrid) calculatedHeight += 0.03;
@@ -1055,8 +730,8 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * scaleX + targetMesh.position.x;
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
-            let calculatedHeight = (targetMesh === greenFringe) ? physics.getGroundHeight(worldX, worldZ) : physics.getGreenHeight(worldX, worldZ);
-
+            // Gather the pre-calculated, unified terrain height from the physics engine
+            let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
             // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
@@ -1091,13 +766,13 @@ function resetEntireGame(advanceHole = false) {
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            // FIXED: Removed the harsh flat -0.45 cliff drop. Let the rough surface blend seamlessly into the green boundaries.
+            // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
             if (distToGreen < 12.0) {
                 calculatedHeight -= 0.45;
-            } else if (distToGreen < 13.5) {
-                const cushionT = (distToGreen - 12.0) / 1.5;
-                const smoothCushionT = THREE.MathUtils.smoothstep(cushionT, 0, 1);
-                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothCushionT);
+            } else if (distToGreen < 15.5) {
+                const greenT = (distToGreen - 12.0) / 3.5;
+                const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
+                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
             }
 
             if (!insideWaterZone) {
@@ -2017,7 +1692,7 @@ function animate() {
             if (physics.isPutting) {
                 // Add this block: A specialized cinematic viewpoint for rolling putts to observe green breaks
                 targetFov = aspect < 1 ? 65 : 45;
-                rigidCamDist = 4.0;               // Backs away slightly to open up the visual field
+                rigidCamDist = 4.8;               // Backs away slightly to open up the visual field
                 rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
                 lookUpOffset = -0.25;
             } else {
@@ -2153,24 +1828,24 @@ function animate() {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
 
-                // Calculate distance from lake center to handle wave fades for circle shapes
-                const distFromCenter = Math.sqrt(u * u + v * v);
-                const lakeRadius = mesh.userData.radius || 5;
-                const isPolygon = mesh.userData && mesh.userData.shapeType === 'polygon';
-                const waveFade = isPolygon ? 1.0 : Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5));
+                // Calculate distance from lake center to flatten waves near the shore boundary
+                const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
+                const lakeRadius = mesh.userData.radius || 5; // Add this line
+                // Smoothly fade waves down over the outer 1.5 units of the lake profile
+                const waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5)); // Add this line
 
-                // Clean, organic cross-waves
+                // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
                 const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
                 const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
                 const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
 
-                // Keep the water plane perfectly flat and level, only adding the surface ripples on top
-                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade);
+                // Dampen the waves and smoothly transition base level flush with the 0.07 shore height rim
+                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade); // Modify this line
 
                 posAttr.setZ(i, waveHeight);
             }
             posAttr.needsUpdate = true; // Forces the GPU to reload the fresh wave coordinates
-            mesh.geometry.computeVertexNormals(); // Recalculates lighting highlights over the curves
+            mesh.geometry.computeVertexNormals(); // Recalculates lighting highlights so reflections move with waves
         });
     }
 
@@ -2523,23 +2198,16 @@ function init() {
         tracerPoints = [];
 
 
-        // PASTE THIS INSTEAD:
         // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
         let launchedFromSand = false;
         for (let sand of sandTraps) {
-            if (sand.userData && sand.userData.shapeType === 'polygon') {
-                if (window.isPointInPolygon(ball.position.x, ball.position.z, sand.userData.points)) {
-                    launchedFromSand = true;
-                    break;
-                }
-            } else {
-                const dx = ball.position.x - sand.position.x;
-                const dz = ball.position.z - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                    launchedFromSand = true;
-                    break;
-                }
+            const dx = ball.position.x - sand.position.x;
+            const dz = ball.position.z - sand.position.z;
+
+            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                launchedFromSand = true;
+                break;
             }
         }
         if (launchedFromSand && typeof window.triggerSandSpray === 'function') {
