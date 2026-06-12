@@ -1,3 +1,4 @@
+import { globalCourseData } from './courseData.js';
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
@@ -30,23 +31,57 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
     }
 };
 
-// Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
+// Centralized Modular Hole & Waypoint Blueprint Definition
 const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
-        ]
+        ],
+        // 🆕 ADDED: Custom elements for Hole 1
+        hazards: [
+            {
+                id: "bunker_left",
+                type: "trap",        // "trap" for sand bunker
+                shape: "circle",     // Easy classic circle shape
+                center: new THREE.Vector3(-12, 0, -25),
+                radius: 5
+            },
+            {
+                id: "tutorial_pond",
+                type: "water",       // "water" hazard
+                shape: "circle",
+                center: new THREE.Vector3(15, 0, -40),
+                radius: 8
+            }
+        ],
+        contours: [] // We can add hills/slopes here later!
     },
     2: { // Sharp Dogleg Right Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(10, 0, -50),   // Modify this coordinate
-            new THREE.Vector3(50, 0, -100),  // Modify this coordinate
-            new THREE.Vector3(80, 0, -130)   // Modify this coordinate (Greens out of 1-shot range)
-        ]
+            new THREE.Vector3(10, 0, -50),
+            new THREE.Vector3(50, 0, -100),
+            new THREE.Vector3(80, 0, -130)
+        ],
+        // 🆕 ADDED: A long river hazard instead of a circle lake!
+        hazards: [
+            {
+                id: "dogleg_river",
+                type: "water",
+                shape: "polygon",    // "polygon" lets you connect dots for ANY shape
+                // This builds a long, wide diagonal river crossing the map
+                points: [
+                    new THREE.Vector3(10, 0, -70),  // Corner 1
+                    new THREE.Vector3(70, 0, -110), // Corner 2
+                    new THREE.Vector3(75, 0, -100), // Corner 3
+                    new THREE.Vector3(15, 0, -60)   // Corner 4
+                ]
+            }
+        ],
+        contours: []
     },
     3: { // Long S-Curve Double Dogleg Hole
         par: 5,
@@ -55,27 +90,83 @@ const HOLES_CONFIG = {
             new THREE.Vector3(-20, 0, -50),
             new THREE.Vector3(20, 0, -110),
             new THREE.Vector3(0, 0, -170)
-        ]
+        ],
+        hazards: [],
+        contours: []
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),   // Modify this line: Drives straight down further
-            new THREE.Vector3(45, 0, -85),  // Modify this line: Extends elbow outward
-            new THREE.Vector3(85, 0, -85)   // Modify this line: Safe Par 4 distance (~355 yards away)
-        ]
-    }, // Add this block
+            new THREE.Vector3(0, 0, -85),
+            new THREE.Vector3(45, 0, -85),
+            new THREE.Vector3(85, 0, -85)
+        ],
+        hazards: [],
+        contours: []
+    },
     5: { // Sharp 90-Degree Dogleg Left Hole
         par: 4,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),   // Modify this line
-            new THREE.Vector3(-45, 0, -85), // Modify this line
-            new THREE.Vector3(-85, 0, -85)  // Modify this line
-        ]
-    } // Add this block
+            new THREE.Vector3(0, 0, -85),
+            new THREE.Vector3(-45, 0, -85),
+            new THREE.Vector3(-85, 0, -85)
+        ],
+        hazards: [],
+        contours: []
+    }
 };
+
+function spawnHazardsForHole(holeData) {
+    // If the current hole doesn't have a hazards array yet, stop here
+    if (!holeData.hazards) return;
+
+    holeData.hazards.forEach(hazard => {
+        let geometry;
+        let material;
+
+        // 1. Set the color based on hazard type
+        if (hazard.type === 'water') {
+            material = new THREE.MeshStandardMaterial({ color: 0x0066ff, roughness: 0.1 }); // Blue water
+        } else if (hazard.type === 'trap') {
+            material = new THREE.MeshStandardMaterial({ color: 0xddcc99, roughness: 0.9 }); // Sandy beige
+        }
+
+        // 2. Build the shape based on geometry type
+        if (hazard.shape === 'circle') {
+            // Classic Circle
+            geometry = new THREE.CircleGeometry(hazard.radius, 32);
+            const mesh = new THREE.Mesh(geometry, material);
+
+            // Lay it flat on the ground and position it
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.copy(hazard.center);
+            mesh.position.y = 0.01; // Sit slightly above the grass to prevent blinking
+            scene.add(mesh);
+
+        } else if (hazard.shape === 'polygon') {
+            // 3. 🆕 CUSTOM POLYGON SHAPE (For Rivers and Winding Traps)
+            const shape = new THREE.Shape();
+
+            // Connect the dots using your Vector3 points (using X and Z for the ground plane)
+            shape.moveTo(hazard.points[0].x, hazard.points[0].z);
+            for (let i = 1; i < hazard.points.length; i++) {
+                shape.lineTo(hazard.points[i].x, hazard.points[i].z);
+            }
+            shape.lineTo(hazard.points[0].x, hazard.points[0].z); // Close the shape loop
+
+            // Turn the 2D shape into a flat 3D floor mesh
+            geometry = new THREE.ShapeGeometry(shape);
+            const mesh = new THREE.Mesh(geometry, material);
+
+            // Flip it so it lays perfectly flat on the ground map
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.y = 0.01;
+            scene.add(mesh);
+        }
+    });
+}
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor, greenFringe;
