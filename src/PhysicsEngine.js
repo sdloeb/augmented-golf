@@ -120,18 +120,23 @@ export class PhysicsEngine {
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
             let baseHeight = 0.0;
 
-            // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards (36 units), then flattens out around the 87 yard marker
-            if (z > 10) {
-                baseHeight = 4.5;
-            } else if (z >= -26) {
-                let t = (10 - z) / 36;
-                baseHeight = THREE.MathUtils.lerp(4.5, 0.0, t);
-            } else {
-                baseHeight = 0.0; // Flat bottom approach lane
+            // Around Line 121 in src/PhysicsEngine.js (Inside getCourseHeight)
+            if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
+                let baseHeight = 0.0;
+
+                // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards
+                if (z > 5) {
+                    baseHeight = 15.0; // Keeps the tee platform level at 15 units high
+                } else if (z >= -15) {
+                    let t = (5 - z) / 20; // Drops steeply over 20 units (70 yards)
+                    baseHeight = THREE.MathUtils.lerp(15.0, 0.0, t); // Modify this line
+                } else {
+                    baseHeight = 0.0; // Flat bottom valley floor for the fairway and green
+                }
             }
 
             // 2. Right side is all bumpy rough hills that are significantly higher than the fairway below
-            if (x > this.fairwayWidth && z < 10 && z > -124) {
+            if (x > this.fairwayWidth && z < -15 && z > -124) {
                 let roughMounds = (Math.sin(x * 0.45) * Math.cos(z * 0.35) * 1.5) + 1.8;
                 baseHeight += roughMounds;
             }

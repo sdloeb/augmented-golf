@@ -97,7 +97,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 1;
+let currentHoleNumber = 2;
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -870,10 +870,11 @@ function resetEntireGame(advanceHole = false) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // Runs the fairway runway straight across the collar and snaps it flush to the green circle
+                    // Forces the fairway to stop in a clean straight cut right at the green entrance line
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && distToGreenCenter < activeR) || // Modify this line: Flow directly to inner green edge
+                        (isCustomHole && approachDot > -activeR) ||
+                        (isCustomHole && currentHoleNumber === 2 && worldZ > -15) || // Add this line: Turns the hill slope into rough
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
@@ -891,6 +892,7 @@ function resetEntireGame(advanceHole = false) {
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
+
                 }
             } // This bracket ends the insideWaterZone check clean
 
