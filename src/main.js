@@ -830,9 +830,17 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight -= THREE.MathUtils.lerp(0.0, 0.0, smoothGreenT);
             }
 
+            // Around Line 840 in src/main.js
             if (!insideWaterZone) {
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
-                const fW = physics.fairwayWidth;
+                let fW = physics.fairwayWidth; // Changed from const to let
+
+                // NEW: Fans the fairway width out smoothly from base width to 16 units as it approaches the green edge
+                if (currentHoleNumber === 2 && worldZ < -125) {
+                    let t = Math.min(1.0, Math.max(0.0, (-125 - worldZ) / 14.0)); // Interpolates over the last 14 units
+                    fW = THREE.MathUtils.lerp(physics.fairwayWidth, 16.0, t);
+                }
+
                 const fWEdge = fW + 3.5;
 
                 const relX = worldX - (green ? green.position.x : 0);

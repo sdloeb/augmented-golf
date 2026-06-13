@@ -120,20 +120,17 @@ export class PhysicsEngine {
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
             let baseHeight = 0.0;
 
-            // Around Line 121 in src/PhysicsEngine.js (Inside getCourseHeight)
-            if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
-                let baseHeight = 0.0;
 
-                // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards
-                if (z > 5) {
-                    baseHeight = 15.0; // Keeps the tee platform level at 15 units high
-                } else if (z >= -15) {
-                    let t = (5 - z) / 20; // Drops steeply over 20 units (70 yards)
-                    baseHeight = THREE.MathUtils.lerp(15.0, 0.0, t); // Modify this line
-                } else {
-                    baseHeight = 0.0; // Flat bottom valley floor for the fairway and green
-                }
+            // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards
+            if (z > 5) {
+                baseHeight = 15.0; // Keeps the tee platform level at 15 units high
+            } else if (z >= -15) {
+                let t = (5 - z) / 20; // Drops steeply over 20 units (70 yards)
+                baseHeight = THREE.MathUtils.lerp(15.0, 0.0, t); // Modify this line
+            } else {
+                baseHeight = 0.0; // Flat bottom valley floor for the fairway and green
             }
+
 
             // 2. Right side is all bumpy rough hills that are significantly higher than the fairway below
             if (x > this.fairwayWidth && z < -15 && z > -124) {
@@ -321,6 +318,12 @@ export class PhysicsEngine {
         const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
 
         // CHIP & DRIVE TERRAIN PROFILE MATRIX
+        let activeFW = this.fairwayWidth;
+        if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
+            let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
+            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t); // Matches fanning physics
+        }
+
         if (inSand) {
             currentFriction = 0.72;
             currentBounceHeight = 0.10;
@@ -343,8 +346,7 @@ export class PhysicsEngine {
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
-        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= this.fairwayWidth && this.ball.position.z <= -8.0 && !isPastFairway) { // Modify this line: Added && !isPastFairway
-            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && this.ball.position.z <= -8.0 && !isPastFairway) { // Changed this.fairwayWidth to activeFW
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             currentFriction = 0.91;
             currentBounceHeight = 0.36;
