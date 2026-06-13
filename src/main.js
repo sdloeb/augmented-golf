@@ -39,6 +39,7 @@ const HOLES_CONFIG = {
             new THREE.Vector3(0, 0, -55)
         ]
     },
+    // Around Line 42 in src/main.js (Inside HOLES_CONFIG -> 2)
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
         par: 4,
         fairwayWidth: 9.5,
@@ -52,8 +53,8 @@ const HOLES_CONFIG = {
         hazards: [
             { type: 'sand', x: 4.0, z: -126.0, radius: 3.5, depth: 0.6 }, // Short and Left in the rough
             { type: 'sand', x: 17.0, z: -128.0, radius: 3.8, depth: 0.6 }, // Short and Right in the rough
-            { type: 'sand', x: 6.0, z: -146.0, radius: 3.4, depth: 0.5 }, // Behind the Green (Back Left)
-            { type: 'sand', x: 16.0, z: -145.0, radius: 3.6, depth: 0.5 }  // Behind the Green (Back Right)
+            { type: 'sand', x: 2.0, z: -148.0, radius: 3.4, depth: 0.5 },  // Modify this line: Pulls trap safely off the Back Left green edge
+            { type: 'sand', x: 20.0, z: -147.0, radius: 3.6, depth: 0.5 }  // Modify this line: Pulls trap safely off the Back Right green edge
         ]
     },
     3: { // Long S-Curve Double Dogleg Hole
@@ -756,22 +757,10 @@ function resetEntireGame(advanceHole = false) {
                 ? physics.getGroundHeight(worldX, worldZ)
                 : physics.getGreenHeight(worldX, worldZ);
 
-            // Check if this vertex falls inside or near a sand trap edge
-            let insideSand = false;
-            sandTraps.forEach(sand => {
-                if (Math.hypot(worldX - sand.position.x, worldZ - sand.position.z) < (sand.userData.radius || 5) + 1.0) {
-                    insideSand = true;
-                }
-            });
-
-            if (insideSand) {
-                // Drop overlapping green elements cleanly under the bunker floor mesh out of sight
-                calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.5;
-            } else {
-                if (targetMesh === green) calculatedHeight += 0.02;
-                if (targetMesh === greenGrid) calculatedHeight += 0.03;
-                if (targetMesh === greenFringe) calculatedHeight += 0.018;
-            }
+            // Removed the old sand check block here to stop bunkers from eating cuts out of the green edges
+            if (targetMesh === green) calculatedHeight += 0.02;
+            if (targetMesh === greenGrid) calculatedHeight += 0.03;
+            if (targetMesh === greenFringe) calculatedHeight += 0.018;
 
             posAttr.setZ(i, calculatedHeight);
         }
@@ -824,19 +813,21 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
+            // Around Line 829 in src/main.js
             const gX = worldX - (green ? green.position.x : 0);
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
-            const activeR = window.activeGreenRadius || 12.0; // Add this line
+            const activeR = window.activeGreenRadius || 12.0;
+            const fringeOuterR = activeR * (13.0 / 12.0); // Dynamic outer edge of the scaled fringe mesh
 
             // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
-            if (distToGreen < activeR) { // Modify this line
-                calculatedHeight -= 0.45;
-            } else if (distToGreen < activeR + 3.5) { // Modify this line
-                const greenT = (distToGreen - activeR) / 3.5; // Modify this line
+            if (distToGreen < activeR) {
+                calculatedHeight -= 0.0;
+            } else if (distToGreen < activeR + 3.5) {
+                const greenT = (distToGreen - activeR) / 3.5;
                 const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
-                calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
+                calculatedHeight -= THREE.MathUtils.lerp(0.0, 0.0, smoothGreenT);
             }
 
             if (!insideWaterZone) {
@@ -848,7 +839,7 @@ function resetEntireGame(advanceHole = false) {
                 const relZ = worldZ - greenCenterZ;
                 const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
-                const isPastFairway = (distToGreenCenter < (activeR - 1.0)) || (approachDot > 0); // Modify this line
+                const isPastFairway = (distToGreenCenter < fringeOuterR) || (approachDot > 0);
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
@@ -863,6 +854,10 @@ function resetEntireGame(advanceHole = false) {
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
+                    // NEW: Bury the rough floor mesh underground inside the fringe radius to eliminate Z-fighting gaps
+                    if (distToGreen < fringeOuterR) {
+                        calculatedHeight -= 1.5;
+                    }
                     // FIXED: Clearance cushion automatically scales deeper to completely neutralize triangle bridging
                     if (insideSandZone) {
                         calculatedHeight -= (0.15 + activeSandDepth * 0.35);
@@ -875,16 +870,16 @@ function resetEntireGame(advanceHole = false) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // Adding + 1.0 forces the striped fairway to clear the outer fringe ring so it's fully visible
+                    // Runs the fairway runway straight across the collar and snaps it flush to the green circle
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && distToGreenCenter < activeR + 1.0) ||
+                        (isCustomHole && distToGreenCenter < activeR) || // Modify this line: Flow directly to inner green edge
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
                     if (shouldHide) {
-                        // FIXED: Automatically pulls hidden cuts deeper proportional to the trap's customized depth profile
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 0.02);
+                        // FIXED: Automatically pulls hidden cuts deeper underground (-1.5) to neutralize triangle bleeding
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
                     } else if (distanceToPath <= fW) {
                         calculatedHeight += 0.06; // Crucial elevation cushion that prevents texture flickering
                     } else {
@@ -892,12 +887,12 @@ function resetEntireGame(advanceHole = false) {
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
                         const visibleHeight = calculatedHeight + 0.06;
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 0.02);
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
                 }
-            }
+            } // This bracket ends the insideWaterZone check clean
 
             // NEW: If deforming a sand trap mesh itself, add a tiny positive offset cushion to prevent z-fighting clips
             if (sandTraps.includes(targetMesh)) {
