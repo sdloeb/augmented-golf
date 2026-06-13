@@ -52,14 +52,16 @@ export class PhysicsEngine {
         this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2); // Add this line
     }
 
-    // Analytical height function that calculates 3D elevations anywhere on the green
+    // Around Line 56 in src/PhysicsEngine.js
     getGreenHeight(x, z) {
         const dz = z - this.greenCenterZ;
         const dx = x - this.greenCenterX;
         const distanceSq = dx * dx + dz * dz;
 
+        const activeRadius = window.activeGreenRadius || 12.0; // Add this line
+
         // Out of bounds safety fallback
-        if (distanceSq >= 144) return 0;
+        if (distanceSq >= (activeRadius * activeRadius)) return 0; // Modify this line
 
         const r = Math.sqrt(distanceSq);
 
@@ -78,11 +80,11 @@ export class PhysicsEngine {
 
         // 3. NEW: Add a protective circular plateau mound foundation (+0.5 units at center)
         // This keeps downhill valleys elevated safely above the flat infinite floor sheet
-        const basePlateau = 0.20 * (1.0 - (distanceSq / 144));
+        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius))); // Modify this line
         const combinedHeight = basePlateau + rawSlopeHeight;
 
         // 4. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
-        const edgeFade = Math.min(1, Math.max(0, (12.0 - r) / 2.0));
+        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0)); // Modify this line
         const smoothFade = edgeFade * edgeFade * (3 - 2 * edgeFade);
 
         // Mathematical floor guard ensures the mesh can never drop below baseline ground level
@@ -163,18 +165,22 @@ export class PhysicsEngine {
         const gZ = z - this.greenCenterZ;
         const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
 
+        const activeRadius = window.activeGreenRadius || 12.0; // Add this line
+
         let baseHeight = 0;
-        if (distFromGreen < 12.0) {
+        if (distFromGreen < activeRadius) { // Modify this line
             baseHeight = this.getGreenHeight(x, z);
         } else {
             const courseHeight = this.getCourseHeight(x, z);
-            if (distFromGreen < 16.0) {
-                // Between 12 and 16 units out, blend smoothly from 0 to course height
-                const blend = (distFromGreen - 12.0) / 4.0;
+            if (distFromGreen < activeRadius + 4.0) { // Modify this line
+                // Between the green radius and transition zone out, blend smoothly from 0 to course height
+                const blend = (distFromGreen - activeRadius) / 4.0; // Modify this line
                 baseHeight = courseHeight * blend;
             } else {
                 baseHeight = courseHeight;
             }
+
+
         }
 
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin

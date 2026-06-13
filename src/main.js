@@ -828,11 +828,13 @@ function resetEntireGame(advanceHole = false) {
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
 
+            const activeR = window.activeGreenRadius || 12.0; // Add this line
+
             // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
-            if (distToGreen < 12.0) {
+            if (distToGreen < activeR) { // Modify this line
                 calculatedHeight -= 0.45;
-            } else if (distToGreen < 15.5) {
-                const greenT = (distToGreen - 12.0) / 3.5;
+            } else if (distToGreen < activeR + 3.5) { // Modify this line
+                const greenT = (distToGreen - activeR) / 3.5; // Modify this line
                 const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
                 calculatedHeight -= THREE.MathUtils.lerp(0.45, 0.0, smoothGreenT);
             }
@@ -846,7 +848,7 @@ function resetEntireGame(advanceHole = false) {
                 const relZ = worldZ - greenCenterZ;
                 const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
-                const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0);
+                const isPastFairway = (distToGreenCenter < (activeR - 1.0)) || (approachDot > 0); // Modify this line
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
