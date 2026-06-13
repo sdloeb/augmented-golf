@@ -924,7 +924,7 @@ function resetEntireGame(advanceHole = false) {
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
     if (teeBox) {
-        teeBox.position.set(teeBoxX, physics.getGroundHeight(teeBoxX, 10) + 0.01, 10);
+        teeBox.position.set(teeBoxX, physics.getGroundHeight(teeBoxX, 10) + 0.072, 10);
         teeBox.visible = true;
 
         // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
@@ -933,7 +933,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     // Fetch the true 3D hill peak height at the tee location
-    const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10);
+    const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10) + 0.071;
 
     // Snap the ball and plastic tee directly to the top of the hill elevation
     ball.position.set(teeBoxX, currentTeeBoxY + 0.37, 10);
