@@ -882,7 +882,7 @@ function resetEntireGame(advanceHole = false) {
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && approachDot > -activeR) ||
-                        (isCustomHole && currentHoleNumber === 2 && worldZ > -15) || // Add this line: Turns the hill slope into rough
+                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || // Modify this line: Fairway cuts in at bottom of hill
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
@@ -936,7 +936,7 @@ function resetEntireGame(advanceHole = false) {
 
         // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
         const firstTarget = holeConfig.waypoints[1];
-        teeBox.lookAt(new THREE.Vector3(firstTarget.x, 0.01, firstTarget.z));
+        teeBox.lookAt(new THREE.Vector3(firstTarget.x, teeBox.position.y, firstTarget.z)); // Modify this line
     }
 
     // Fetch the true 3D hill peak height at the tee location

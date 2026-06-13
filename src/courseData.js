@@ -59,7 +59,7 @@ export const globalCourseData = {
     hole2: {
         name: "The Downhill Dogleg",
         par: 4,
-        teePosition: { x: 0, y: 4.5, z: 10 },
+        teePosition: { x: 0, y: 37.5, z: 10 }, // Modify this line: Match the new peak terrain height
         holePosition: { x: 11, y: 0, z: -139 },
 
         // Custom base sizes for this specific layout
@@ -88,7 +88,7 @@ export const globalCourseData = {
                 type: "slope_descent",
                 startZ: 0,
                 endZ: -108,
-                topElevation: 4.5,  // Height at the top of the hill
+                topElevation: 37.5,  // Modify this line: Match top height profile
                 bottomElevation: 0.0 // Level height at the bottom
             },
             {

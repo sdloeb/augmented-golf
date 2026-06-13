@@ -123,10 +123,10 @@ export class PhysicsEngine {
 
             // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards
             if (z > 5) {
-                baseHeight = 15.0; // Keeps the tee platform level at 15 units high
-            } else if (z >= -15) {
-                let t = (5 - z) / 20; // Drops steeply over 20 units (70 yards)
-                baseHeight = THREE.MathUtils.lerp(15.0, 0.0, t); // Modify this line
+                baseHeight = 37.5; // Modify this line: Set peak to match a 30-degree slope
+            } else if (z >= -60) { // Modify this line: Stretch hill to go for 180 yards (65 units)
+                let t = (5 - z) / 65; // Modify this line
+                baseHeight = THREE.MathUtils.lerp(37.5, 0.0, t); // Modify this line: Gradual slope calculation
             } else {
                 baseHeight = 0.0; // Flat bottom valley floor for the fairway and green
             }
