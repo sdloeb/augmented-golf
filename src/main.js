@@ -831,18 +831,11 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight -= THREE.MathUtils.lerp(0.0, 0.0, smoothGreenT);
             }
 
-            // Around Line 840 in src/main.js
             if (!insideWaterZone) {
-                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
-                let fW = physics.fairwayWidth; // Changed from const to let
+                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ); // Add this line
+                let fW = physics.fairwayWidth; // Add this line
 
-                // NEW: Fans the fairway width out smoothly from base width to 16 units as it approaches the green edge
-                if (currentHoleNumber === 2 && worldZ < -125) {
-                    let t = Math.min(1.0, Math.max(0.0, (-125 - worldZ) / 14.0)); // Interpolates over the last 14 units
-                    fW = THREE.MathUtils.lerp(physics.fairwayWidth, 16.0, t);
-                }
-
-                const fWEdge = fW + 3.5;
+                const fWEdge = fW + 3.5; // Keep this line
 
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
@@ -883,8 +876,7 @@ function resetEntireGame(advanceHole = false) {
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && approachDot > -activeR) ||
-                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || // Modify this line: Fairway cuts in at bottom of hill
-                        insideSandZone ||
+                        (currentHoleNumber === 2 && worldZ > -60) || // Add this line: Keeps downhill slope all rough
                         (distanceToPath > fWEdge);
 
                     if (shouldHide) {
@@ -2082,7 +2074,7 @@ function init() {
     scene.add(new THREE.AmbientLight(0x666666));
 
     // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 300, 800);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -2102,7 +2094,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 300, 800);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
