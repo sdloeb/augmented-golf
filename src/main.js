@@ -987,8 +987,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        const isHouse = Math.random() <= 0.4; // Add this line: Pre-determine type to enforce placement rules
-        // Modify this line: If it's a house, snap it strictly to outer out-of-bounds limits; otherwise let background trees scatter
+        const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
@@ -1064,6 +1063,8 @@ function resetEntireGame(advanceHole = false) {
         obstacleAttempts = 275;
     }
 
+    if (currentHoleNumber === 2) obstacleAttempts = 320;
+
     for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
@@ -1100,10 +1101,14 @@ function resetEntireGame(advanceHole = false) {
         if (insideWaterHazard) continue;
 
         // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
-        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ); // Modify this line
+        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ);
 
-        // FIXED: Expanded clearance cushion to 6.8 units to clear the smooth transition grass and prevent branches from overlapping the fairway
-        if (fairwayDistance <= (physics.fairwayWidth + 6.8) || fairwayDistance > 35.0) { // Modify this line: Changed 9.0 to check against dynamic width plus a tree cushion
+        // Allow trees to extend much further out on the right side to climb the new hillside ridge
+        let maxTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? 55.0 : 35.0;
+        let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (physics.fairwayWidth + 6.8); // Add this line: Shifts trees further right on Hole 2
+
+        // FIXED: Expanded clearance cushion to clear the smooth transition grass and prevent branches from overlapping the fairway
+        if (fairwayDistance <= minTreeDist || fairwayDistance > maxTreeDist) { // Modify this line: Changed clearance to use our new minTreeDist variable
             continue;
         }
 
@@ -1111,15 +1116,15 @@ function resetEntireGame(advanceHole = false) {
         const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
         sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-        let generateAsTree = Math.random() < 0.6; // 60% Trees, 40% Bushes configuration ratio
+        let generateAsTree = currentHoleNumber === 2 ? (Math.random() < 0.95) : (Math.random() < 0.6); // Modify this line: 95% trees for Green Lakes look
         if (generateAsTree) {
             let randomScale = 3.5 + Math.random() * 1.3;
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
 
-            // Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
-            let treeVersion = Math.floor(Math.random() * 3);
+            /// Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
+            let treeVersion = currentHoleNumber === 2 ? 3 : Math.floor(Math.random() * 3); // Modify this line: Force towering pine trees for Hole 2
 
             // Core trunk base used by all tree archetypes
             let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
@@ -1225,7 +1230,7 @@ function resetEntireGame(advanceHole = false) {
             // ==========================================
             // VERSION 2: ASYMMETRIC BENT TREE (WINDSWEPT CANOPY)
             // ==========================================
-            else {
+            else if (treeVersion === 2) { // Change this line from "else {" to "else if (treeVersion === 2) {"
                 // Massive horizontal crooked side limb reaching out far right
                 let heavyLimbGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.3, calculatedTrunkRad * 0.5, calculatedTrunkH * 0.8, 8);
                 let heavyLimb = new THREE.Mesh(heavyLimbGeo, trunkMat);
@@ -1256,7 +1261,26 @@ function resetEntireGame(advanceHole = false) {
                 });
 
                 finalizedFoliageRadius = calculatedFoliageRad * 1.2; // Wider footprint due to heavy leaning limb
-            }
+            } else if (treeVersion === 3) { // Add this block 
+                let pineLayers = [
+                    { bottomH: calculatedTrunkH * 0.9, radius: calculatedFoliageRad * 1.1, height: calculatedFoliageRad * 1.3 },
+                    { bottomH: calculatedTrunkH + calculatedFoliageRad * 0.6, radius: calculatedFoliageRad * 0.85, height: calculatedFoliageRad * 1.1 },
+                    { bottomH: calculatedTrunkH + calculatedFoliageRad * 1.2, radius: calculatedFoliageRad * 0.6, height: calculatedFoliageRad * 0.9 }
+                ];
+                const evergreenMat = new THREE.MeshStandardMaterial({ color: 0x113318, roughness: 0.8 });
+                pineLayers.forEach(layer => {
+                    let coneGeo = new THREE.ConeGeometry(layer.radius, layer.height, 8);
+                    let coneMesh = new THREE.Mesh(coneGeo, evergreenMat);
+                    coneMesh.position.y = layer.bottomH + (layer.height / 2);
+                    sceneryGroup.add(coneMesh);
+                });
+                finalizedFoliageRadius = calculatedFoliageRad * 1.1;
+                finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
+            } // Add this block
+
+
+
+
 
             // Push the customized boundary data values down to the collision tracker matrix cleanly
             physics.obstacles.push({

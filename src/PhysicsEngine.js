@@ -132,13 +132,14 @@ export class PhysicsEngine {
             }
 
 
-            // 2. Right side is all bumpy rough hills that are significantly higher than the fairway below
-            if (x > this.fairwayWidth && z < -15 && z > -124) {
-                let roughMounds = (Math.sin(x * 0.45) * Math.cos(z * 0.35) * 1.5) + 1.8;
-                baseHeight += roughMounds;
-            }
+            // 2. Right side is a smooth rising hill that goes up to the right side of the screen
+            if (x > this.fairwayWidth && z < 15 && z > -145) { // Update this line
+                let hillIncline = (x - this.fairwayWidth) * 0.25; // Add this line: Continuous upward slope going right
+                baseHeight += hillIncline; // Add this line
+            } // Update this line
 
             let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6));
+            if (x > 0) xFade = Math.min(1, Math.max(0, (60 - x) / 10)); // Add this line: Expands map limits so the right hill doesn't flatten out early
             // Removed teeFade so your custom 4.5 baseline peak elevation stays locked at the tee box
             return Math.max(0.001, baseHeight * xFade);
         }
