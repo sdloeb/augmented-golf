@@ -133,8 +133,12 @@ export class PhysicsEngine {
 
 
             // 2. Right side is a smooth rising hill that goes up to the right side of the screen
-            if (x > this.fairwayWidth && z < 15 && z > -145) { // Update this line
+            if (x > this.fairwayWidth && z < 15 && z > -118) { // Update this line
                 let hillIncline = (x - this.fairwayWidth) * 0.25; // Add this line: Continuous upward slope going right
+                if (z < -100) {
+                    let fade = (z - (-118)) / (-100 - (-118)); // Smoothly interpolates from 1.0 down to 0.0
+                    hillIncline *= Math.max(0, Math.min(1, fade));
+                }
                 baseHeight += hillIncline; // Add this line
             } // Update this line
 
@@ -212,8 +216,12 @@ export class PhysicsEngine {
             this.sandTraps.forEach(sand => {
                 const dxS = x - sand.position.x;
                 const dzS = z - sand.position.z;
-                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+
+                // Add these lines below to distort the physical wall border
+                const angle = Math.atan2(dzS, dxS);
+                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp;
                 const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
 
                 if (distToSand < sandRadius) {

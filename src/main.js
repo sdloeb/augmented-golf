@@ -797,15 +797,18 @@ function resetEntireGame(advanceHole = false) {
             });
 
             // Scan active sand trap footprint borders using correct userData properties
-            let insideSandZone = false;
-            let activeSandDepth = 0; // Fixes the ReferenceError crash!
+           let insideSandZone = false;
+            let activeSandDepth = 0; 
             sandTraps.forEach(sand => {
                 const dxS = worldX - sand.position.x;
                 const dzS = worldZ - sand.position.z;
-                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6;
+                let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                // Added the missing condition check
+                // Add these lines below to distort the visual border based on the angle
+                const angle = Math.atan2(dzS, dxS);
+                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
+                const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6) * shapeWarp;
+
                 if (distToSand < sandRadius) {
                     insideSandZone = true;
                     const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
@@ -874,20 +877,34 @@ function resetEntireGame(advanceHole = false) {
                     // Forces the fairway to stop in a clean straight cut right at the green entrance line
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && approachDot > -activeR) ||
-                        (currentHoleNumber === 2 && worldZ > -60) || // Add this line: Keeps downhill slope all rough
+                        (isCustomHole && distToGreenCenter < fringeOuterR) || // Modify this line: Cut to the circular green instead of a straight line
+                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
+                        insideSandZone ||
                         (distanceToPath > fWEdge);
 
                     if (shouldHide) {
                         // FIXED: Automatically pulls hidden cuts deeper underground (-1.5) to neutralize triangle bleeding
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
                     } else if (distanceToPath <= fW) {
-                        calculatedHeight += 0.06; // Crucial elevation cushion that prevents texture flickering
+                        // Add these lines: Smoothly dips the fairway height under the green fringe level
+                        let cushion = 0.06;
+                        if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                            let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
+                            cushion = THREE.MathUtils.lerp(-0.02, 0.06, Math.max(0, Math.min(1, tFade)));
+                        }
+                        calculatedHeight += cushion; // Modify this line
                     } else {
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                        const visibleHeight = calculatedHeight + 0.06;
+                        // Add these lines: Mirror the dip for outer blended edges
+                        let cushion = 0.06;
+                        if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                            let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
+                            cushion = THREE.MathUtils.lerp(-0.02, 0.06, Math.max(0, Math.min(1, tFade)));
+                        }
+
+                        const visibleHeight = calculatedHeight + cushion; // Modify this line
                         const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
@@ -979,6 +996,9 @@ function resetEntireGame(advanceHole = false) {
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
+        if (currentHoleNumber === 2 && !isHouse) {
+            continue;
+        }
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
@@ -1058,6 +1078,9 @@ function resetEntireGame(advanceHole = false) {
 
     for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
+        if (currentHoleNumber === 2 && sampleX > 0) {
+            sampleX += 35.0; // Pushes right-side trees/bushes further right
+        }
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
 
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
