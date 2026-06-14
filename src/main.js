@@ -50,11 +50,12 @@ const HOLES_CONFIG = {
             new THREE.Vector3(11, 0, -139)   // 87 Yard Approach Green Center
         ],
         // The 4 distinct bunkers matching your description and map positions
+        // The 4 distinct bunkers matching your description and map positions
         hazards: [
-            { type: 'sand', x: 4.0, z: -126.0, radius: 3.5, depth: 0.6 }, // Short and Left in the rough
-            { type: 'sand', x: 17.0, z: -128.0, radius: 3.8, depth: 0.6 }, // Short and Right in the rough
-            { type: 'sand', x: 2.0, z: -148.0, radius: 3.4, depth: 0.5 },  // Modify this line: Pulls trap safely off the Back Left green edge
-            { type: 'sand', x: 20.0, z: -147.0, radius: 3.6, depth: 0.5 }  // Modify this line: Pulls trap safely off the Back Right green edge
+            { type: 'sand', x: -6.5, z: -124.0, radius: 3.5, depth: 0.6 }, // Modify this line: Moved out into left rough
+            { type: 'sand', x: 22.5, z: -126.0, radius: 3.8, depth: 0.6 }, // Modify this line: Moved out into right rough
+            { type: 'sand', x: -1.0, z: -147.0, radius: 3.4, depth: 0.5 }, // Modify this line: Moved out into back-left rough
+            { type: 'sand', x: 24.5, z: -146.0, radius: 3.6, depth: 0.5 }  // Modify this line: Moved out into back-right rough
         ]
     },
     3: { // Long S-Curve Double Dogleg Hole
