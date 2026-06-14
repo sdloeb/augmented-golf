@@ -39,25 +39,25 @@ const HOLES_CONFIG = {
             new THREE.Vector3(0, 0, -55)
         ]
     },
-    // Around Line 42 in src/main.js (Inside HOLES_CONFIG -> 2)
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
         par: 4,
         fairwayWidth: 9.5,
         greenRadius: 9.0,
         waypoints: [
             new THREE.Vector3(0, 0, 10),     // High Tee Box Point
-            new THREE.Vector3(0, 0, -108),   // 327 Yard Elbow (Ground has flattened out)
+            new THREE.Vector3(0, 0, -118),   // Modify this line: Pushes the turn further down the line
             new THREE.Vector3(11, 0, -139)   // 87 Yard Approach Green Center
         ],
         // The 4 distinct bunkers matching your description and map positions
         // The 4 distinct bunkers matching your description and map positions
         hazards: [
-            { type: 'sand', x: -6.5, z: -124.0, radius: 3.5, depth: 0.6 }, // Modify this line: Moved out into left rough
-            { type: 'sand', x: 22.5, z: -126.0, radius: 3.8, depth: 0.6 }, // Modify this line: Moved out into right rough
-            { type: 'sand', x: -1.0, z: -147.0, radius: 3.4, depth: 0.5 }, // Modify this line: Moved out into back-left rough
-            { type: 'sand', x: 24.5, z: -146.0, radius: 3.6, depth: 0.5 }  // Modify this line: Moved out into back-right rough
+            { type: 'sand', x: -11.0, z: -124.0, radius: 3.5, depth: 0.6 }, // Modify this line: Moved further out into left rough
+            { type: 'sand', x: 22.5, z: -126.0, radius: 3.8, depth: 0.6 }, // Keep this line
+            { type: 'sand', x: -1.0, z: -147.0, radius: 3.4, depth: 0.5 }, // Keep this line
+            { type: 'sand', x: 24.5, z: -146.0, radius: 3.6, depth: 0.5 }  // Keep this line
         ]
     },
+
     3: { // Long S-Curve Double Dogleg Hole
         par: 5,
         waypoints: [
@@ -661,9 +661,8 @@ function resetEntireGame(advanceHole = false) {
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
-        const generatedWidth = 8.5 + Math.random() * 20; // Add this line: Produces a random width from 8.0 to 21.0
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenEndpoint.x, greenCenterZ, generatedWidth); // Modify this line: Added generatedWidth parameter
-
+        const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20); // Modify this line
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenEndpoint.x, greenCenterZ, generatedWidth);
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
@@ -2080,17 +2079,19 @@ function init() {
     const rCanvas = document.createElement('canvas');
     rCanvas.width = 64; rCanvas.height = 64;
     const rCtx = rCanvas.getContext('2d');
-    rCtx.fillStyle = '#a5a5a5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
+    rCtx.fillStyle = '#c5c5c5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
     for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
-        rCtx.fillStyle = Math.random > 0.5 ? '#ffffff' : '#686868';
+        rCtx.fillStyle = Math.random > 0.5 ? '#ffffff' : '#909090';
         rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
     }
     const roughTexture = new THREE.CanvasTexture(rCanvas);
     roughTexture.wrapS = THREE.RepeatWrapping;
     roughTexture.wrapT = THREE.RepeatWrapping;
-    roughTexture.repeat.set(90, 600); // Tightly repeats noise to keep blades look micro-fine (Add this line)
+    roughTexture.repeat.set(90, 600);
 
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, map: roughTexture }); // Update this line (added roughness and map)
+    // Modify this line to add the emissive property:
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture }); // Modify this line
+
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
