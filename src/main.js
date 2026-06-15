@@ -1407,20 +1407,24 @@ function animate() {
     // FIXED: Re-added your Water Hazard tracker check
     if (physics && physics.hitWater) {
         physics.hitWater = false;
-        strokeCount++; // Add this line: Assess the 1-stroke penalty
-        document.getElementById('strokeText').innerText = strokeCount; // Add this line: Update the UI text display
+        strokeCount++;
+        document.getElementById('strokeText').innerText = strokeCount;
 
-        setTimeout(() => { // Add this line
-            alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`); // Modify this line
+        setTimeout(() => {
+            alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`);
 
-            // Reset ball position directly to where this shot was struck from
-            ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0; // Add this line
-            ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10; // Add this line
-            ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25; // Add this line
-            ball.visible = true; // Add this line
+            ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
+            ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
+            ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+            ball.visible = true;
+
+            // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
+            if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
+                teeBox.visible = true;
+            }
 
             // Re-align the camera safely behind the ball looking toward the hole cup
-            const dirX = holePosition.x - ball.position.x; // Add this line
+            const dirX = holePosition.x - ball.position.x;
             const dirZ = holePosition.z - ball.position.z; // Add this line
             const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
             const backX = -(dirX / length) * 7.5; // Add this line
