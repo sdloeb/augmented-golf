@@ -136,9 +136,10 @@ export class PhysicsEngine {
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
-            if (x > (pathCenter + this.fairwayWidth + 2.5)) {
+            // MODIFIED: Added a z boundary constraint (z <= -78.5) so the physics engine only applies the cliff drop-off where the ocean actually begins
+            if (x > (pathCenter + this.fairwayWidth + 2.5) && z <= -78.5) {
                 return 0.001; // Plunges vertically down to sea level instantly
-            } else if (x > (pathCenter + this.fairwayWidth - 0.5)) {
+            } else if (x > (pathCenter + this.fairwayWidth - 0.5) && z <= -78.5) {
                 // Smoothly round the grass edge right at the cliff edge lip
                 let lipFade = (x - (pathCenter + this.fairwayWidth - 0.5)) / 3.0;
                 lipFade = Math.max(0, Math.min(1, lipFade));

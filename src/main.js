@@ -69,17 +69,37 @@ const HOLES_CONFIG = {
             new THREE.Vector3(16, 0, -180)   // Elevated Clifftop Green bluff center
         ],
         hazards: [
-            // Left fairway bunker string before the hill ascent
-            { type: 'sand', x: -10.5, z: -52.0, radius: 3.2, depth: 0.65 },
-            { type: 'sand', x: -11.5, z: -64.0, radius: 3.8, depth: 0.70 },
-            { type: 'sand', x: -9.0, z: -76.0, radius: 3.0, depth: 0.60 },
-            // Mid-hill climbing face bunker transition
-            { type: 'sand', x: 3.0, z: -140.0, radius: 4.0, depth: 0.80 },
-            // Green-side protective bunkers flanking the left bluff edge
-            { type: 'sand', x: 8.0, z: -176.0, radius: 3.4, depth: 0.75 },
-            { type: 'sand', x: 12.0, z: -186.0, radius: 3.2, depth: 0.65 },
-            // The massive rectangular Pacific Ocean layout on the right side
-            { type: 'ocean', x: 70.0, z: -90.0, width: 105.0, length: 250.0 }
+            // MODIFIED: Placed the 5 distinct rough bunkers on the right side before the hill ascent
+            // MODIFIED: Re-shaped and resized to match the asymmetrical Google Earth layout profiles
+            { type: 'sand', x: -11.5, z: -92.0, radius: 3.4, depth: 0.55 }, // Bunker 1: Large fat base bunker pocket
+
+            // Bunker 2: Two overlapping entries to authentically draw that wide, horizontal "bean" shape
+            { type: 'sand', x: -10.5, z: -100.5, radius: 2.2, depth: 0.50 },
+            { type: 'sand', x: -7.5, z: -100.0, radius: 1.9, depth: 0.50 },
+
+            // Bunker 3 & 4 Cluster: Small detached left pocket flanking a larger center-right mound defense
+            { type: 'sand', x: -12.5, z: -108.5, radius: 1.4, depth: 0.45 }, // Small outer left dot
+            { type: 'sand', x: -8.5, z: -109.0, radius: 2.6, depth: 0.60 }, // Main inner lobed hazard
+
+            { type: 'sand', x: -7.5, z: -118.0, radius: 3.0, depth: 0.60 }, // Bunker 5: Top-most kidney shape near hill face
+
+            // MODIFIED: Chained 3 overlapping bunkers to create 1 continuous long hazard stretching 3/4 up the hill face and 40% down the upper fairway
+            { type: 'sand', x: 23.0, z: -147.0, radius: 2.5, depth: 0.60 },
+            { type: 'sand', x: 24.5, z: -154.0, radius: 2.8, depth: 0.60 },
+            { type: 'sand', x: 26.0, z: -161.0, radius: 2.5, depth: 0.60 },
+
+            // MODIFIED: Placed the standalone rough bunker sitting just after the long chain
+            { type: 'sand', x: 27.5, z: -170.0, radius: 3.0, depth: 0.60 },
+
+            // MODIFIED: Placed the protective bunker right next to the right side of the green
+            { type: 'sand', x: 28.5, z: -181.0, radius: 3.2, depth: 0.60 },
+
+            // MODIFIED: Placed the 2 green bunkers on the opposite (left/ocean) side of the putting green surface
+            { type: 'sand', x: 3.5, z: -175.0, radius: 2.2, depth: 0.50 },
+            { type: 'sand', x: 4.0, z: -184.0, radius: 2.4, depth: 0.50 },
+
+            // Keeps the massive rectangular Pacific Ocean layout intact on the right edge
+            { type: 'ocean', x: 70.0, z: -153.5, width: 105.0, length: 150.0 }
         ]
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
@@ -764,16 +784,27 @@ function resetEntireGame(advanceHole = false) {
                 scene.add(oceanMesh);
                 waterHazards.push(oceanMesh);
 
-                // Build a dark procedural cliff face stone wall block to seal the terrain profile gap
-                // MODIFIED: Changed the box length from hz.length to 95.0 so the wall asset doesn't extend forward into the flat tee box view
-                const wallGeo = new THREE.BoxGeometry(6.0, 50.0, 95.0);
+                // MODIFIED: Replaced the single block with a segmented slice loop so the rock face contours perfectly to the rising hill slope
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.95 });
-                const cliffWall = new THREE.Mesh(wallGeo, wallMat);
-                // Placed right underneath the cliff edge lip boundary
-                // MODIFIED: Shifted the Z position to -167.5 so the wall only spans from z = -120 down to the back of the green bluff where the high cliff face actually exists
-                cliffWall.position.set(hz.x - hz.width / 2, -11.0, -167.5);
-                scene.add(cliffWall);
-                waterShores.push(cliffWall);
+                const wallX = hz.x - hz.width / 2;
+                const sliceLength = 2.0; // Thickness of each rock face slice
+                const startZ = -120.0;   // Where the hill begins to climb
+                const endZ = -215.0;     // Back edge of the green bluff
+
+                for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
+                    // Query the terrain engine to find out exactly how high the grass is at this specific slice
+                    const localGroundHeight = physics.getCourseHeight(wallX, currentZ);
+
+                    // Add 0.1 to thickness to create a tiny overlap, preventing any flickering gaps between slices
+                    const wallGeo = new THREE.BoxGeometry(6.0, 50.0, sliceLength + 0.1);
+                    const cliffWall = new THREE.Mesh(wallGeo, wallMat);
+
+                    // Setting the center position Y to (height - 25) means the top of this 50-unit tall wall aligns perfectly flush with the grass lip!
+                    cliffWall.position.set(wallX, localGroundHeight - 25.0, currentZ - sliceLength / 2);
+
+                    scene.add(cliffWall);
+                    waterShores.push(cliffWall);
+                }
             }
         });
 
