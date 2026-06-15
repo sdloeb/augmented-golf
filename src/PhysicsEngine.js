@@ -312,7 +312,10 @@ export class PhysicsEngine {
         for (let sand of this.sandTraps) {
             const dx = this.ball.position.x - sand.position.x;
             const dz = this.ball.position.z - sand.position.z;
-            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+
+            const angle = Math.atan2(dz, dx); // Add this line
+            const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
+            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
             if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
                 inSand = true;
                 break;

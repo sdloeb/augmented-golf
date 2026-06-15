@@ -797,8 +797,8 @@ function resetEntireGame(advanceHole = false) {
             });
 
             // Scan active sand trap footprint borders using correct userData properties
-           let insideSandZone = false;
-            let activeSandDepth = 0; 
+            let insideSandZone = false;
+            let activeSandDepth = 0;
             sandTraps.forEach(sand => {
                 const dxS = worldX - sand.position.x;
                 const dzS = worldZ - sand.position.z;
@@ -807,7 +807,8 @@ function resetEntireGame(advanceHole = false) {
                 // Add these lines below to distort the visual border based on the angle
                 const angle = Math.atan2(dzS, dxS);
                 const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.6) * shapeWarp;
+                const padding = (targetMesh === floor || targetMesh === fairway) ? 1.6 : 0.0; // Add this line
+                const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding) * shapeWarp; // Modify this line
 
                 if (distToSand < sandRadius) {
                     insideSandZone = true;
@@ -2328,7 +2329,9 @@ function init() {
             const dx = ball.position.x - sand.position.x;
             const dz = ball.position.z - sand.position.z;
 
-            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+            const angle = Math.atan2(dz, dx); // Add this line
+            const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
+            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
             if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
                 launchedFromSand = true;
                 break;
