@@ -304,6 +304,11 @@ export class PhysicsEngine {
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
         const groundY = 0.25 + greenHeightOffset;
 
+        // Add this block: Ground-snapping stickiness to keep the ball hugging downhill slopes
+        if (this.ball.position.y > groundY && this.ball.position.y <= groundY + 0.4 && this.velocity.y <= 0.01) {
+            this.ball.position.y = groundY;
+        } // End of added block
+
         const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
         const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
