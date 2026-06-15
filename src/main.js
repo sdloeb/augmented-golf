@@ -2105,7 +2105,7 @@ function init() {
     const rCtx = rCanvas.getContext('2d');
     rCtx.fillStyle = '#c5c5c5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
     for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
-        rCtx.fillStyle = Math.random > 0.5 ? '#ffffff' : '#909090';
+        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#909090'; // Modify this line
         rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
     }
     const roughTexture = new THREE.CanvasTexture(rCanvas);
@@ -2295,7 +2295,7 @@ function init() {
 
     // 6.6. Add Club Landing Destination Ring for Overhead View
     const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: false });
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: true }); // Modify this line
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
     clubLandingRing.renderOrder = 9999;
     clubLandingRing.rotation.x = -Math.PI / 2;

@@ -586,7 +586,14 @@ export class PhysicsEngine {
             this.hasLanded = true;
 
             for (let water of this.waterHazards) {
-                // ... water hazard bounds check stays completely unchanged here ...
+                const dxW = this.ball.position.x - water.position.x; // Add this line
+                const dzW = this.ball.position.z - water.position.z; // Add this line
+                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW); // Add this line
+                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5; // Add this line
+                if (distToWater < lakeRadius) { // Add this line
+                    this.hitWater = true; // Add this line
+                    break; // Add this line
+                } // Add this line
             }
 
             if (Math.abs(this.velocity.y) > 0.05) {
