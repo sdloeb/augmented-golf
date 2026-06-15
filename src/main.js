@@ -1591,34 +1591,16 @@ function animate() {
                 const backX = -(dirX / length) * 5.5;
                 const backZ = -(dirZ / length) * 5.5;
 
-                // Smoothly tracks target positioning vectors forward through 3D space
-                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+                const moveCamX = ball.position.x + backX; // Add this line
+                const moveCamZ = ball.position.z + backZ; // Add this line
+                const moveCamGroundY = physics.getGroundHeight(moveCamX, moveCamZ); // Add this line: Samples ground directly beneath moving camera
+                const moveCamY = Math.max(ball.position.y + 1.8, moveCamGroundY + 1.8); // Add this line: Keeps camera safely above hill during flight
+
+                cameraTargetPos.set(moveCamX, moveCamY, moveCamZ); // Modify this line
                 cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
             }
-        } else if (!isOverheadActive) {
-            // NEW: Continuous short-shot follow camera tracking out in the open field
-            const activeClub = input ? input.getClubInfo() : null;
-            if (activeClub === null || activeClub.name !== 'Putter') {
-                const dirX = holePosition.x - ball.position.x;
-                const dirZ = holePosition.z - ball.position.z;
-                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-                // Back away 8.2 units and elevate 3.5 units to open up the view and keep ball size beautifully proportional
-                const shortCamDist = 8.2;
-                const shortCamHeight = 3.5;
-
-                cameraTargetPos.set(
-                    ball.position.x - (dirX / length) * shortCamDist,
-                    ball.position.y + shortCamHeight,
-                    ball.position.z - (dirZ / length) * shortCamDist
-                );
-                cameraLookAt.set(
-                    ball.position.x + (dirX / length) * 6.0,
-                    ball.position.y - 0.10,
-                    ball.position.z + (dirZ / length) * 6.0
-                );
-            }
-        }
+        } else if (!isOverheadActive) { }
     } else {
         if (wasMoving) {
             wasMoving = false;
@@ -1649,19 +1631,35 @@ function animate() {
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
-            if (teeBox && teeBox.visible && currentHoleConfig) { // Modify this line
-                const firstLeg = currentHoleConfig.waypoints[1]; // Modify this line
+            if (teeBox && teeBox.visible && currentHoleConfig) {
+                const firstLeg = currentHoleConfig.waypoints[1];
                 if (firstLeg) { baseTargetX = firstLeg.x; baseTargetZ = firstLeg.z; }
             }
             const dX = baseTargetX - ball.position.x;
             const dZ = baseTargetZ - ball.position.z;
             let angle = Math.atan2(dX, dZ);
-            if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Adjusts camera base angle by dragging offset
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
 
+            // Look for these lines to find your spot:
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
-            cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
-            cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+
+            const lookTargetX = ball.position.x + aimDirX * lookDist;
+            const lookTargetZ = ball.position.z + aimDirZ * lookDist;
+            let lookTargetY = physics.getGroundHeight(lookTargetX, lookTargetZ); // Modify this line: Changed 'const' to 'let'
+
+            // Add this block: Overrides the downward tilt at the tee box so the 2D club overlay aligns perfectly
+            if (teeBox && teeBox.visible) {
+                lookTargetY = ball.position.y - 0.37;
+            }
+
+            const camX = ball.position.x - aimDirX * camDist; // Add this line
+            const camZ = ball.position.z - aimDirZ * camDist; // Add this line
+            const camGroundY = physics.getGroundHeight(camX, camZ); // Add this line: Samples the hill height behind the ball
+            const camY = Math.max(ball.position.y + camHeight, camGroundY + camHeight); // Add this line: Keeps camera safely above the rising slope
+
+            cameraTargetPos.set(camX, camY, camZ); // Modify this line
+            cameraLookAt.set(lookTargetX, lookTargetY + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
         }
     }
 
@@ -1905,6 +1903,13 @@ function animate() {
             if (!physics.isMoving && !isSinking && !isOverheadActive) {
                 const activeClub = input.getClubInfo();
 
+                // Add these lines: Calculates the ball's real-time 2D screen percentage height
+                const tempProj = new THREE.Vector3();
+                ball.getWorldPosition(tempProj);
+                tempProj.project(camera);
+                const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
+                const dynamicBottom = ballBottomPercent - 4.0; // Automatically tracks ball equator with calibration offset
+
                 // Establish base club layout shapes
                 let clubTypeClass = 'iron';
                 if (activeClub.name === 'Putter') {
@@ -1914,35 +1919,36 @@ function animate() {
                 }
 
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
-                const cX = ball.position.x - (green ? green.position.x : 0); // Add this line
-                const cZ = ball.position.z - greenCenterZ; // Add this line
-                const activeRadiusOffset = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-                const ballOnGreen = Math.sqrt(cX * cX + cZ * cZ) < activeRadiusOffset; // Add this line
-                const putterBaseBottom = ballOnGreen ? 21.8 : 31.0; // Modify this line
+                const cX = ball.position.x - (green ? green.position.x : 0);
+                const cZ = ball.position.z - greenCenterZ;
+                const activeRadiusOffset = window.activeGreenRadius || GREEN_RADIUS;
+                const ballOnGreen = Math.sqrt(cX * cX + cZ * cZ) < activeRadiusOffset;
+                // Delete the old static putterBaseBottom line from here
 
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`; // Modify this line: Appended ${aimClass} to fix the idle mode visibility
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`;
+
+                    clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important'); // Add this line: Locks ALL clubs to follow ball height
 
                     if (activeClub.name === 'Putter') {
-                        clubSwipeElement.style.setProperty('bottom', `${putterBaseBottom}%`, 'important');
+                        // Delete the old inline style bottom line from here
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
                         clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.4 : 1.10})`, 'important');
                     } else {
-                        clubSwipeElement.style.bottom = '';
+                        // Delete clubSwipeElement.style.bottom = ''; from here
                         clubSwipeElement.style.left = '';
-                        clubSwipeElement.style.transform = ''; // Keep this line here
+                        clubSwipeElement.style.transform = '';
                     }
-                    // The duplicate transform wipe line has been deleted from here
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}${aimClass}`;
 
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
                         const ratio = input.pullRatio || 0;
-                        const currentBottom = putterBaseBottom - (6.0 * ratio);
+                        const currentBottom = dynamicBottom - (6.0 * ratio); // Modify this line: Pull back relative to dynamic hill height
                         const currentLeft = putterCenteredLeft;
                         const currentRotate = 0;
 
@@ -1955,11 +1961,12 @@ function animate() {
                         clubSwipeElement.style.left = '';
                         clubSwipeElement.style.transform = '';
                     }
-                } // Keep this line
+                }
 
             } else {
                 // Clear all classes to hide the club entirely when the ball is in motion
                 clubSwipeElement.className = '';
+                clubSwipeElement.style.bottom = ''; // Add this line: Clean up alignment tracking style variables when hidden
             }
         }
     }

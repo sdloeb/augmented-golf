@@ -142,8 +142,8 @@ export class PhysicsEngine {
                 baseHeight += hillIncline; // Add this line
             } // Update this line
 
-            let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6));
-            if (x > 0) xFade = Math.min(1, Math.max(0, (60 - x) / 10)); // Add this line: Expands map limits so the right hill doesn't flatten out early
+            let xFade = Math.min(1, Math.max(0, (60 - Math.abs(x)) / 10)); // Modify this line: Expand left rough boundary to eliminate the steep cliff edge
+            if (x > 0) xFade = Math.min(1, Math.max(0, (60 - x) / 10)); // Keep this line
             // Removed teeFade so your custom 4.5 baseline peak elevation stays locked at the tee box
             return Math.max(0.001, baseHeight * xFade);
         }
@@ -363,7 +363,7 @@ export class PhysicsEngine {
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
-        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && this.ball.position.z <= -8.0 && !isPastFairway) { // Changed this.fairwayWidth to activeFW
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0) && !isPastFairway) { // Modify this line: Match physical fairway start to the visual hill layout on Hole 2
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             currentFriction = 0.91;
             currentBounceHeight = 0.36;
@@ -483,8 +483,14 @@ export class PhysicsEngine {
             // Boost gravity pull dynamically inside sand hazards so they trickle down to the flat basin
             const gravityRollPower = currentlyInSand ? 0.18 : 1.0;
 
-            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * timeScale;
-            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * timeScale;
+            // Add this block: Cuts down gravity acceleration on slopes by 65% when stuck in thick rough grass
+            let slopeGravityModifier = 1.0;
+            if (!onGreen && !currentlyInSand && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) > activeFW) {
+                slopeGravityModifier = 0.35;
+            }
+
+            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * slopeGravityModifier * timeScale; // Modify this line
+            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * slopeGravityModifier * timeScale; // Modify this line
         }
 
         // 2. MOVE THE BALL 
