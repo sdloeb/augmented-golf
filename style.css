@@ -400,7 +400,7 @@ html {
     right: auto !important;
     transform: rotate(0deg) scale(1.4) !important;
     opacity: 1 !important;
-    transition: opacity 0.2s ease, bottom 0.2s ease, left 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.1s ease, bottom 0.1s ease, left 0.1s ease, transform 0.1s ease;
 }
 
 /* NEW: Club tracking backwards and fading out of view as the user pulls back the power gauge */

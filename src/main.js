@@ -1456,7 +1456,7 @@ function animate() {
             const trueWorldSpeed = rawSpeed * currentScale;
 
             // A uniform physical threshold standard (0.24) applied equally to both chips and putts
-            const maxWorldSinkSpeed = 0.24;
+            const maxWorldSinkSpeed = 0.07;
 
             // Realism Lip-out simulation based on true physical ground speed limits
             if (trueWorldSpeed > maxWorldSinkSpeed) {
