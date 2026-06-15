@@ -98,7 +98,7 @@ const HOLES_CONFIG = {
             { type: 'sand', x: 7.0, z: -187.0, radius: 2.0, depth: 0.50 },
 
             // Keeps the massive rectangular Pacific Ocean layout intact on the right edge
-            { type: 'ocean', x: 70.0, z: -103.5, width: 105.0, length: 100.0 }
+            { type: 'ocean', x: 60.0, z: -153.5, width: 130.0, length: 150.0 }
         ]
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
@@ -783,36 +783,45 @@ function resetEntireGame(advanceHole = false) {
                 scene.add(oceanMesh);
                 waterHazards.push(oceanMesh);
 
-                // MODIFIED: Updated slice loop to dynamically curve the X positions so the wall follows the zig-zag cliff line perfectly
+                // MODIFIED: Fully synchronized path metrics and expanded boundaries to perfectly clear the putting green radius cleanly
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.95 });
-                const sliceLength = 2.0;
-                const startZ = -78.5;   // MODIFIED: Start the wall right where the ocean water line begins 245 yards out
+                const sliceLength = 0.4;
+                const startZ = -125.0;
                 const endZ = -215.0;
-                const fairwayWidth = 8.0; // Matches HOLES_CONFIG width tracking
 
                 for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
-                    // Replicate the exact winding centerline path math used by the physics engine to calculate the cliff edge X coordinate
                     let pathCenter = 0;
                     if (currentZ >= -125) {
                         let t = (10 - currentZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -12.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
                     } else {
                         let t = (-125 - currentZ) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-12.0, 12.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                     }
 
-                    // Calculate the exact edge boundary line where the rough drops off into the ocean cliff
-                    const dynamicWallX = pathCenter + fairwayWidth + 2.3;
+                    // Align the wall crest precisely with the expanded physics engine edge limits
+                    const cliffEdgeLimit = pathCenter + 10.5;
+                    // MODIFIED: Swapped coordinates to pathCenter so the wall queries the high hilltop fairway plateau before any cliff fading happens
+                    const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
 
-                    // Query the terrain engine for the elevation at this precise curved coordinate point
-                    const localGroundHeight = physics.getCourseHeight(dynamicWallX, currentZ);
+                    const rockWidth = 5.0 + (Math.sin(currentZ * 1.5) * 0.3);
+                    const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12;
 
-                    const wallGeo = new THREE.BoxGeometry(6.0, 50.0, sliceLength + 0.1);
+                    const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, sliceLength + 0.08);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
 
-                    // Snap the slice perfectly to the curved edge coordinates and height profile
-                    cliffWall.position.set(dynamicWallX + 2.5, localGroundHeight - 25.0, currentZ - sliceLength / 2);
+                    cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03;
+                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04;
+
+                    // Position the rock face flush against the outer boundaries
+                    const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset;
+
+                    cliffWall.position.set(
+                        positionX,
+                        trueCrestHeight - 25.0,
+                        currentZ - sliceLength / 2
+                    );
 
                     scene.add(cliffWall);
                     waterShores.push(cliffWall);
@@ -894,9 +903,20 @@ function resetEntireGame(advanceHole = false) {
             // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
             waterHazards.forEach(water => {
-                // MODIFIED: Added a check for our custom rectangular ocean hazard so vertices cut off cleanly at the cliffside
+                // MODIFIED: Updated visual vertex check to respect our curved centerline path limits
                 if (water.userData && water.userData.isRectangular) {
-                    if (worldX >= water.position.x - water.userData.w / 2 && worldX <= water.position.x + water.userData.w / 2 &&
+                    let pathCenter = 0;
+                    if (worldZ >= -125) {
+                        let t = (10 - worldZ) / 135;
+                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                    } else {
+                        let t = (-125 - worldZ) / 55;
+                        t = Math.min(1.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                    }
+                    const cliffEdgeLimit = pathCenter + 10.5;
+
+                    if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
                         worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
                         insideWaterZone = true;
                     }

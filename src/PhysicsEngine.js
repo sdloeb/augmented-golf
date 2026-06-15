@@ -128,26 +128,25 @@ export class PhysicsEngine {
             }
 
             // 2. Track the dynamic center line path to build the right-side cliff face line
-            // MODIFIED: Re-routed path to slide diagonally left initially to clear the cove, then cut back right over the hill toward the water
+            // MODIFIED: Balanced track routing so the cliff lines up cleanly along the right side without blockading your fairway view
             let pathCenter = 0;
             if (z >= -125) {
-                // Drifts from x = 0 at the tee down to x = -12.0 at the base of the hill
                 let t = (10 - z) / 135;
-                pathCenter = THREE.MathUtils.lerp(0, -12.0, t);
+                pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
             } else {
-                // Swings back from x = -12.0 at the hill base up to x = 12.0 at the back of the green
                 let t = (-125 - z) / 55;
                 t = Math.min(1.0, t);
-                pathCenter = THREE.MathUtils.lerp(-12.0, 12.0, t);
+                pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
-            // MODIFIED: Added a z boundary constraint (z <= -78.5) so the physics engine only applies the cliff drop-off where the ocean actually begins
-            if (x > (pathCenter + this.fairwayWidth + 2.5) && z <= -51.75) {
+            // MODIFIED: Expanded the edge limits to a clean pathCenter + 10.5 padding. This cleanly wraps the cliff around your green instead of cutting through it!
+            const cliffEdgeLimit = pathCenter + 10.5;
+            if (x > cliffEdgeLimit && z <= -51.75) {
                 return 0.001; // Plunges vertically down to sea level instantly
-            } else if (x > (pathCenter + this.fairwayWidth - 0.5) && z <= -51.75) {
+            } else if (x > (cliffEdgeLimit - 3.0) && z <= -51.75) {
                 // Smoothly round the grass edge right at the cliff edge lip
-                let lipFade = (x - (pathCenter + this.fairwayWidth - 0.5)) / 3.0;
+                let lipFade = (x - (cliffEdgeLimit - 3.0)) / 3.0;
                 lipFade = Math.max(0, Math.min(1, lipFade));
                 baseHeight = THREE.MathUtils.lerp(baseHeight, 0.0, lipFade * lipFade);
             }
@@ -219,19 +218,11 @@ export class PhysicsEngine {
 
         const activeRadius = window.activeGreenRadius || 12.0; // Add this line
 
-        let baseHeight = 0;
-        if (distFromGreen < activeRadius) { // Modify this line
-            // MODIFIED: Added this.getCourseHeight(x, z) so the putting green correctly stacks on top of our 14.0 unit high cliff table
-            baseHeight = this.getGreenHeight(x, z) + this.getCourseHeight(x, z);
-        } else {
-            const courseHeight = this.getCourseHeight(x, z);
-            if (distFromGreen < activeRadius + 4.0) { // Modify this line
-                // Between the green radius and transition zone out, blend smoothly from 0 to course height
-                const blend = (distFromGreen - activeRadius) / 4.0; // Modify this line
-                baseHeight = courseHeight * blend;
-            } else {
-                baseHeight = courseHeight;
-            }
+        // MODIFIED: Base height is always the course elevation. If inside the green radius, we seamlessly stack the green contours on top.
+        // This completely eliminates the pedestal drop-off and seals the giant canyon hole behind the green.
+        let baseHeight = this.getCourseHeight(x, z);
+        if (distFromGreen < activeRadius) {
+            baseHeight += this.getGreenHeight(x, z);
 
 
         }
@@ -239,9 +230,20 @@ export class PhysicsEngine {
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
         if (this.waterHazards && this.waterHazards.length > 0) {
             this.waterHazards.forEach(water => {
-                // MODIFIED: Added a bounding check for our custom rectangular ocean hazard so physics samples sea level correctly
+                // MODIFIED: Constrained the rectangular ocean check to only apply to coordinates past our curved cliff face line
                 if (water.userData && water.userData.isRectangular) {
-                    if (x >= water.position.x - water.userData.w / 2 && x <= water.position.x + water.userData.w / 2 &&
+                    let pathCenter = 0;
+                    if (z >= -125) {
+                        let t = (10 - z) / 135;
+                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                    } else {
+                        let t = (-125 - z) / 55;
+                        t = Math.min(1.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                    }
+                    const cliffEdgeLimit = pathCenter + 10.5;
+
+                    if (x > cliffEdgeLimit && x <= water.position.x + water.userData.w / 2 &&
                         z >= water.position.z - water.userData.l / 2 && z <= water.position.z + water.userData.l / 2) {
                         baseHeight = water.position.y - 0.01;
                     }
