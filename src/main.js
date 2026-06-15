@@ -152,7 +152,8 @@ function updateDistanceDisplay() {
         // FIXED: Check if the ball is on the green surface container footprint instead of clamping to a raw radius proximity
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
         const greenCheckZ = ball.position.z - greenCenterZ;
-        const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < GREEN_RADIUS;
+        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+        const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
 
         if (isOnGreenSurface) {
             const feet = Math.round(gameDistance * 1.50);
@@ -185,7 +186,8 @@ function updateDistanceDisplay() {
         // FIXED: Check distance to the green's center instead of the hole cup
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
         const greenCheckZ = ball.position.z - greenCenterZ;
-        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < GREEN_RADIUS;
+        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
 
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
@@ -1625,8 +1627,10 @@ function animate() {
             updateDistanceDisplay();
         }
 
-        const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+        const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < activeR; // Modify this line
 
+        // Detect if screen width is mobile or portrait orientation at top of block
         // Detect if screen width is mobile or portrait orientation at top of block
         const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
 
@@ -1785,8 +1789,9 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
+    const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
 
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < GREEN_RADIUS && !isOverheadActive) {
+    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < activeR && !isOverheadActive) { // Modify this line
         // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
         const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
         const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
@@ -1909,7 +1914,12 @@ function animate() {
                 }
 
                 // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
-                const putterBaseBottom = 21.8;
+                const cX = ball.position.x - (green ? green.position.x : 0); // Add this line
+                const cZ = ball.position.z - greenCenterZ; // Add this line
+                const activeRadiusOffset = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+                const ballOnGreen = Math.sqrt(cX * cX + cZ * cZ) < activeRadiusOffset; // Add this line
+                const putterBaseBottom = ballOnGreen ? 21.8 : 25.8; // Modify this line
+
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
@@ -2361,27 +2371,26 @@ function init() {
         // FIXED: Measures from the green's center to scale the hitting power multiplier accurately
         const gX = ball.position.x - (green ? green.position.x : 0);
         const gZ = ball.position.z - greenCenterZ;
-        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
+        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < activeR; // Modify this line
         let finalPower = power;
         if (isOnGreen) {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
             finalPower *= 1.25;
         }
 
+        const club = input.getClubInfo(); // Add this line: Moved club info to the top of launch
+        const isPuttingStroke = isOnGreen || club.name === 'Putter'; // Add this line: Safe check preventing division by zero
 
-
-        physics.applyImpulse(finalPower, angle, forward, right, isOnGreen, spin, loft);
-
-
+        physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
 
         if (sounds) {
-            if (isOnGreen) {
+            if (isPuttingStroke) { // Modify this line
                 sounds.play('putt'); // Add this line: Triggers the crisp short tap audio file when putting
             } else {
                 sounds.play('swing'); // Add this line: Keeps standard big club windy whoosh audio for standard shots
             }
         }
-        const club = input.getClubInfo();
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
             // Capture the exact position where the pullback stopped for the putter
@@ -2423,9 +2432,10 @@ function init() {
         // FIXED: Tracks the green boundaries accurately from the true center point during click-drags
         const gX = ball.position.x - (green ? green.position.x : 0);
         const gZ = ball.position.z - greenCenterZ;
-        return Math.sqrt(gX * gX + gZ * gZ) < GREEN_RADIUS;
+        return Math.sqrt(gX * gX + gZ * gZ) < (window.activeGreenRadius || GREEN_RADIUS); // Modify this line
     }, () => {
         // Add this third callback function here to return current distance in yards
+
         const dx = ball.position.x - holePosition.x;
         const dz = ball.position.z - holePosition.z;
         return Math.sqrt(dx * dx + dz * dz) * 2.76923;
@@ -2567,14 +2577,14 @@ function updateGreenGrid() {
 
     const dxB = ball.position.x - gX;
     const dzB = ball.position.z - gZ;
-    const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-    const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < activeR; // Modify this line
+    const activeR = window.activeGreenRadius || GREEN_RADIUS;
+    const isBallOnGreenOrFringe = Math.sqrt(dxB * dxB + dzB * dzB) < (activeR + 1.5); // Modify this line
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
 
     // Grid safely stays hidden when swinging
     const isAiming = input && input.isAimMode;
 
-    if (!isBallOnGreen || isAirborne || physics.hitWater || isSinking || !isAiming) {
+    if (!isBallOnGreenOrFringe || isAirborne || physics.hitWater || isSinking || !isAiming) { // Modify this line
         gridTexture.needsUpdate = true;
         return;
     }

@@ -586,14 +586,17 @@ export class PhysicsEngine {
             this.hasLanded = true;
 
             for (let water of this.waterHazards) {
-                const dxW = this.ball.position.x - water.position.x; // Add this line
-                const dzW = this.ball.position.z - water.position.z; // Add this line
-                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW); // Add this line
-                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5; // Add this line
-                if (distToWater < lakeRadius) { // Add this line
-                    this.hitWater = true; // Add this line
-                    break; // Add this line
-                } // Add this line
+                const dxW = this.ball.position.x - water.position.x;
+                const dzW = this.ball.position.z - water.position.z;
+                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+                if (distToWater < lakeRadius) {
+                    this.hitWater = true;
+                    this.velocity.set(0, 0, 0); // Add this line: Stops all movement instantly
+                    this.isMoving = false; // Add this line: Turns off active physics tracking
+                    if (this.sounds) this.sounds.play('water'); // Add this line: Triggers the splash audio
+                    return; // Modify this line: Exits function immediately to block bounce sounds
+                }
             }
 
             if (Math.abs(this.velocity.y) > 0.05) {

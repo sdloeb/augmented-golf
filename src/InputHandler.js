@@ -9,7 +9,8 @@ const CLUBS = [
     { name: '8 Iron', maxYards: 160, isGreen: false, loft: 0.057 },
     { name: '9 Iron', maxYards: 150, isGreen: false, loft: 0.059 },
     { name: 'PW Iron', maxYards: 140, isGreen: false, loft: 0.061 },
-    { name: 'SW Iron', maxYards: 120, isGreen: false, loft: 0.063 }
+    { name: 'SW Iron', maxYards: 120, isGreen: false, loft: 0.063 },
+    { name: 'Putter', maxYards: 50, isGreen: true, loft: 0.000 }
 ];
 
 
