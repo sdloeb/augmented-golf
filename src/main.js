@@ -58,13 +58,28 @@ const HOLES_CONFIG = {
         ]
     },
 
-    3: { // Long S-Curve Double Dogleg Hole
+    3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
         par: 5,
+        fairwayWidth: 8.0,
+        greenRadius: 8.5, // Authentic compact clifftop green layout
         waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(-20, 0, -50),
-            new THREE.Vector3(20, 0, -110),
-            new THREE.Vector3(0, 0, -170)
+            new THREE.Vector3(0, 0, 10),     // Tee Box
+            new THREE.Vector3(0, 0, -65),    // Flat Fairway Landing Zone (before the hill)
+            new THREE.Vector3(8, 0, -125),   // Climbing the massive cliff slope
+            new THREE.Vector3(16, 0, -180)   // Elevated Clifftop Green bluff center
+        ],
+        hazards: [
+            // Left fairway bunker string before the hill ascent
+            { type: 'sand', x: -10.5, z: -52.0, radius: 3.2, depth: 0.65 },
+            { type: 'sand', x: -11.5, z: -64.0, radius: 3.8, depth: 0.70 },
+            { type: 'sand', x: -9.0, z: -76.0, radius: 3.0, depth: 0.60 },
+            // Mid-hill climbing face bunker transition
+            { type: 'sand', x: 3.0, z: -140.0, radius: 4.0, depth: 0.80 },
+            // Green-side protective bunkers flanking the left bluff edge
+            { type: 'sand', x: 8.0, z: -176.0, radius: 3.4, depth: 0.75 },
+            { type: 'sand', x: 12.0, z: -186.0, radius: 3.2, depth: 0.65 },
+            // The massive rectangular Pacific Ocean layout on the right side
+            { type: 'ocean', x: 70.0, z: -90.0, width: 105.0, length: 250.0 }
         ]
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
@@ -98,7 +113,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 2;
+let currentHoleNumber = 3;
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -247,10 +262,22 @@ function updateDistanceDisplay() {
             }
         });
 
+        // Create an informative text badge between the arrows showing the currently highlighted club
+        const clubLabel = document.createElement('span');
+        clubLabel.style.color = '#ffffff';
+        clubLabel.style.fontSize = '14px';
+        clubLabel.style.fontWeight = 'bold';
+        clubLabel.style.minWidth = '100px';
+        clubLabel.style.textAlign = 'center';
+        clubLabel.innerText = clubList[currentIdx].name;
+
         // Append all three nodes to create the smooth inline selection row
         container.appendChild(leftBtn);
+        container.appendChild(clubLabel);
         container.appendChild(rightBtn);
     }
+
+
 }
 
 function generateNewWind() {
@@ -457,6 +484,9 @@ function generateHazards() {
         scene.add(sandMesh);
         sandTraps.push(sandMesh);
     }
+
+
+
 
     if (physics) {
         physics.sandTraps = sandTraps;
@@ -707,10 +737,43 @@ function resetEntireGame(advanceHole = false) {
                     })
                 );
                 sandMesh.rotation.x = -Math.PI / 2;
+
+                // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
                 sandMesh.position.set(x, 0, z);
                 sandMesh.userData = { radius: r, depth: sandDepth };
                 scene.add(sandMesh);
                 sandTraps.push(sandMesh);
+            }
+            // NEW: Render the custom rectangular Pacific Ocean body & protective vertical cliff wall geometry
+            else if (hz.type === 'ocean') {
+                const oceanGeo = new THREE.PlaneGeometry(hz.width, hz.length, 30, 60);
+                const oceanMesh = new THREE.Mesh(
+                    oceanGeo,
+                    new THREE.MeshPhongMaterial({
+                        color: 0x0c3b5e, // Beautiful deep Pacific coastal blue
+                        specular: 0xffffff,
+                        shininess: 140,
+                        flatShading: true,
+                        side: THREE.DoubleSide
+                    })
+                );
+                oceanMesh.rotation.x = -Math.PI / 2;
+                // Positioned flush at sea-level surface line
+                oceanMesh.position.set(hz.x, 0.05, hz.z);
+                oceanMesh.userData = { isRectangular: true, w: hz.width, l: hz.length };
+                scene.add(oceanMesh);
+                waterHazards.push(oceanMesh);
+
+                // Build a dark procedural cliff face stone wall block to seal the terrain profile gap
+                // MODIFIED: Changed the box length from hz.length to 95.0 so the wall asset doesn't extend forward into the flat tee box view
+                const wallGeo = new THREE.BoxGeometry(6.0, 50.0, 95.0);
+                const wallMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.95 });
+                const cliffWall = new THREE.Mesh(wallGeo, wallMat);
+                // Placed right underneath the cliff edge lip boundary
+                // MODIFIED: Shifted the Z position to -167.5 so the wall only spans from z = -120 down to the back of the green bluff where the high cliff face actually exists
+                cliffWall.position.set(hz.x - hz.width / 2, -11.0, -167.5);
+                scene.add(cliffWall);
+                waterShores.push(cliffWall);
             }
         });
 
@@ -718,23 +781,23 @@ function resetEntireGame(advanceHole = false) {
             physics.sandTraps = sandTraps;
             physics.waterHazards = waterHazards;
         }
-    }
-
-    // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
+    } // This bracket cleanly closes the outer "else" statement of the hazard checker
 
 
     // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
-    const specificPinCupY = physics.getGreenHeight(holePosition.x, holePosition.z);
+    // MODIFIED: Changed from getGreenHeight to getGroundHeight so the pin objects snap to the clifftop table
+    const specificPinCupY = physics.getGroundHeight(holePosition.x, holePosition.z);
 
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
     if (pin) pin.position.set(holePosition.x, 1.5 + specificPinCupY, holePosition.z);
     if (flag) flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
     if (holeCup) { // Change this line
         const cupDelta = 0.1; // Add this line: Resolution boundary for sampling local slopes
-        const cL = physics.getGreenHeight(holePosition.x - cupDelta, holePosition.z); // Add this line
-        const cR = physics.getGreenHeight(holePosition.x + cupDelta, holePosition.z); // Add this line
-        const cB = physics.getGreenHeight(holePosition.x, holePosition.z - cupDelta); // Add this line
-        const cF = physics.getGreenHeight(holePosition.x, holePosition.z + cupDelta); // Add this line
+        // MODIFIED: Swapped slope anchors to getGroundHeight to align the contour angles with the cliff table
+        const cL = physics.getGroundHeight(holePosition.x - cupDelta, holePosition.z); // Add this line
+        const cR = physics.getGroundHeight(holePosition.x + cupDelta, holePosition.z); // Add this line
+        const cB = physics.getGroundHeight(holePosition.x, holePosition.z - cupDelta); // Add this line
+        const cF = physics.getGroundHeight(holePosition.x, holePosition.z + cupDelta); // Add this line
         const cupSlopeX = (cL - cR) / (2 * cupDelta); // Add this line
         const cupSlopeZ = (cB - cF) / (2 * cupDelta); // Add this line
 
@@ -754,10 +817,9 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * targetMesh.scale.x + targetMesh.position.x;
             const worldZ = -localY * targetMesh.scale.y + targetMesh.position.z;
 
-            // Fringe mesh collar sits outside the main green mound, so it should follow the ground height directly
-            let calculatedHeight = (targetMesh === greenFringe)
-                ? physics.getGroundHeight(worldX, worldZ)
-                : physics.getGreenHeight(worldX, worldZ);
+            // MODIFIED: Changed all targets to use getGroundHeight so that the putting green and grid layers 
+            // correctly combine contour modifications with our elevated clifftop base height table
+            let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
             // Removed the old sand check block here to stop bunkers from eating cuts out of the green edges
             if (targetMesh === green) calculatedHeight += 0.02;
@@ -789,12 +851,20 @@ function resetEntireGame(advanceHole = false) {
             // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
             waterHazards.forEach(water => {
-                const dxW = worldX - water.position.x;
-                const dzW = worldZ - water.position.z;
-                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                const lakeRadius = water.userData.radius || 5;
-                if (distToWater < lakeRadius + 0.6) {
-                    insideWaterZone = true;
+                // MODIFIED: Added a check for our custom rectangular ocean hazard so vertices cut off cleanly at the cliffside
+                if (water.userData && water.userData.isRectangular) {
+                    if (worldX >= water.position.x - water.userData.w / 2 && worldX <= water.position.x + water.userData.w / 2 &&
+                        worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
+                        insideWaterZone = true;
+                    }
+                } else {
+                    const dxW = worldX - water.position.x;
+                    const dzW = worldZ - water.position.z;
+                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = water.userData.radius || 5;
+                    if (distToWater < lakeRadius + 0.6) {
+                        insideWaterZone = true;
+                    }
                 }
             });
 
@@ -878,10 +948,12 @@ function resetEntireGame(advanceHole = false) {
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
                     // Forces the fairway to stop in a clean straight cut right at the green entrance line
+                    // MODIFIED: Added specific constraint for Hole 3 to hide the fairway between z=-125 and z=-155, making the hill rough grass
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && distToGreenCenter < fringeOuterR) || // Modify this line: Cut to the circular green instead of a straight line
+                        (isCustomHole && distToGreenCenter < fringeOuterR) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -125 && worldZ >= -155))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
@@ -999,9 +1071,7 @@ function resetEntireGame(advanceHole = false) {
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
-        if (currentHoleNumber === 2 && !isHouse) {
-            continue;
-        }
+
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
 
@@ -1360,8 +1430,12 @@ function animate() {
                 if (speed > 0.0001) {
                     // FIXED: Generate a single true world-space axle vector perpendicular to current motion
                     const axle = new THREE.Vector3(vz, 0, -vx).normalize();
-                    // Determine rotation angle proportional to distance traveled (speed / ball radius 0.25)
-                    const angle = speed / 0.25;
+
+                    // Fetch the airborne/ground timeScale modifier from the engine dynamically
+                    const currentTS = (ball.position.y > (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z)) || physics.velocity.y > 0) ? 0.6 : 1.0;
+
+                    // Determine rotation angle proportional to actual distance traveled per calculation step
+                    const angle = (speed * currentTS) / 0.25;
 
                     // Rotate directly on the world-space axis to prevent wobbly Euler angle loops
                     ball.rotateOnWorldAxis(axle, angle);
@@ -1846,10 +1920,15 @@ function animate() {
 
         const lookAheadDist = 6.0;
 
+        // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
+        // This keeps the camera steady behind the initial hitting zone while letting the ball smoothly roll away down the green.
+        const camBaseX = physics.isPutting ? refX : ball.position.x;
+        const camBaseZ = physics.isPutting ? refZ : ball.position.z;
+
         cameraTargetPos.set(
-            ball.position.x - dirX * rigidCamDist,
+            camBaseX - dirX * rigidCamDist,
             ball.position.y + rigidCamHeight,
-            ball.position.z - dirZ * rigidCamDist
+            camBaseZ - dirZ * rigidCamDist
         );
 
         cameraLookAt.set(
@@ -1861,7 +1940,7 @@ function animate() {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? 0.04 : 0.08;
+        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.04) : 0.08;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;

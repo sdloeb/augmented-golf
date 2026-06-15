@@ -100,7 +100,19 @@ export const globalCourseData = {
                 intensity: 1.6       // Severe ridge height modifier
             }
         ]
+    },
+    hole3: {
+        name: "Pebble Beach Hole 6",
+        par: 5,
+        teePosition: { x: 0, y: 0, z: 10 },
+        holePosition: { x: 16, y: 14.0, z: -180 }, // MODIFIED: Updated pin elevation target to match new 14.0 table
+        fairwayWidth: 8.0,
+        greenRadius: 8.5,
+        waypoints: [
+            { x: 0, y: 0, z: 10 },
+            { x: 0, y: 0, z: -65 },
+            { x: 8, y: 0.0, z: -125 }, // MODIFIED: Keeps track level up to 150 yards out
+            { x: 16, y: 14.0, z: -180 } // MODIFIED: Sets clifftop table profile target to 14.0
+        ]
     }
-
-
 };

@@ -111,6 +111,44 @@ export class PhysicsEngine {
 
     // NEW: Analytical height function for fairway and rough contours
     getCourseHeight(x, z) {
+        // MODIFIED: Analytical terrain mapping for Pebble Beach Hole 6 cliff face and ocean drop-off
+        if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
+            let baseHeight = 0.0;
+
+            // 1. Model the dramatic uphill elevation incline along the Z axis (Hole 3 Pebble Beach 6)
+            // MODIFIED: Shifted hill start to 150 yards out (-125) and lowered peak height to 14.0 for a gentle slope
+            if (z <= -125 && z >= -155) {
+                let t = (-125 - z) / 30; // Smoothly climbs over a 30-unit distance span
+                let smoothSlope = t * t * (3 - 2 * t);
+                baseHeight = smoothSlope * 14.0;      // Way less steep clifftop bluff table
+            } else if (z < -155) {
+                baseHeight = 14.0; // Flat upper clifftop table space
+            } else {
+                baseHeight = 0.0;  // Level initial driving fairway floor area
+            }
+
+            // 2. Track the dynamic center line path to build the right-side cliff face line
+            let pathCenter = 0;
+            if (z <= -65 && z >= -125) {
+                pathCenter = ((-65 - z) / 60) * 8.0;
+            } else if (z < -125) {
+                pathCenter = 8.0 + (Math.min(1.0, (-125 - z) / 55)) * 8.0;
+            }
+
+            // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
+            if (x > (pathCenter + this.fairwayWidth + 2.5)) {
+                return 0.001; // Plunges vertically down to sea level instantly
+            } else if (x > (pathCenter + this.fairwayWidth - 0.5)) {
+                // Smoothly round the grass edge right at the cliff edge lip
+                let lipFade = (x - (pathCenter + this.fairwayWidth - 0.5)) / 3.0;
+                lipFade = Math.max(0, Math.min(1, lipFade));
+                baseHeight = THREE.MathUtils.lerp(baseHeight, 0.0, lipFade * lipFade);
+            }
+
+            // Smooth out the left rough boundary map lines to prevent clipping gaps
+            let leftSideFade = Math.min(1, Math.max(0, (80 - Math.abs(x)) / 15));
+            return Math.max(0.001, baseHeight * leftSideFade);
+        }
         const dxTee = x - 0;
         const dzTee = z - 10;
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
@@ -176,7 +214,8 @@ export class PhysicsEngine {
 
         let baseHeight = 0;
         if (distFromGreen < activeRadius) { // Modify this line
-            baseHeight = this.getGreenHeight(x, z);
+            // MODIFIED: Added this.getCourseHeight(x, z) so the putting green correctly stacks on top of our 14.0 unit high cliff table
+            baseHeight = this.getGreenHeight(x, z) + this.getCourseHeight(x, z);
         } else {
             const courseHeight = this.getCourseHeight(x, z);
             if (distFromGreen < activeRadius + 4.0) { // Modify this line
@@ -193,20 +232,28 @@ export class PhysicsEngine {
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
         if (this.waterHazards && this.waterHazards.length > 0) {
             this.waterHazards.forEach(water => {
-                const dxW = x - water.position.x;
-                const dzW = z - water.position.z;
-                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
-                const centerLakeHeight = water.position.y - 0.01;
-
-                if (distToWater < lakeRadius + 0.6) {
-                    baseHeight = centerLakeHeight;
-                    if (distToWater < lakeRadius - 0.4) {
-                        baseHeight -= 1.2;
+                // MODIFIED: Added a bounding check for our custom rectangular ocean hazard so physics samples sea level correctly
+                if (water.userData && water.userData.isRectangular) {
+                    if (x >= water.position.x - water.userData.w / 2 && x <= water.position.x + water.userData.w / 2 &&
+                        z >= water.position.z - water.userData.l / 2 && z <= water.position.z + water.userData.l / 2) {
+                        baseHeight = water.position.y - 0.01;
                     }
-                } else if (distToWater < lakeRadius + 2.5) {
-                    const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9;
-                    baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, blendFactor);
+                } else {
+                    const dxW = x - water.position.x;
+                    const dzW = z - water.position.z;
+                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+                    const centerLakeHeight = water.position.y - 0.01;
+
+                    if (distToWater < lakeRadius + 0.6) {
+                        baseHeight = centerLakeHeight;
+                        if (distToWater < lakeRadius - 0.4) {
+                            baseHeight -= 1.2;
+                        }
+                    } else if (distToWater < lakeRadius + 2.5) {
+                        const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9;
+                        baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, blendFactor);
+                    }
                 }
             });
         }
@@ -363,8 +410,10 @@ export class PhysicsEngine {
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
-        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0) && !isPastFairway) { // Modify this line: Match physical fairway start to the visual hill layout on Hole 2
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
+            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -41.64 && this.ball.position.z > -125) || this.ball.position.z < -155) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
+            // MODIFIED: Added this.ball.position.z <= -41.64 so the first 143 yards off the tee on Hole 3 trigger rough physics, while the flat landing landing zone maintains fairway physics
             currentFriction = 0.91;
             currentBounceHeight = 0.36;
             currentBounceForwardLoss = 0.52;   // Preserves strong forward kinetic velocity
@@ -597,16 +646,28 @@ export class PhysicsEngine {
             this.hasLanded = true;
 
             for (let water of this.waterHazards) {
-                const dxW = this.ball.position.x - water.position.x;
-                const dzW = this.ball.position.z - water.position.z;
-                const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
-                if (distToWater < lakeRadius) {
-                    this.hitWater = true;
-                    this.velocity.set(0, 0, 0); // Add this line: Stops all movement instantly
-                    this.isMoving = false; // Add this line: Turns off active physics tracking
-                    if (this.sounds) this.sounds.play('water'); // Add this line: Triggers the splash audio
-                    return; // Modify this line: Exits function immediately to block bounce sounds
+                // MODIFIED: Check if this is the rectangular ocean box to register a cliffside splash penalty
+                if (water.userData && water.userData.isRectangular) {
+                    if (this.ball.position.x >= water.position.x - water.userData.w / 2 && this.ball.position.x <= water.position.x + water.userData.w / 2 &&
+                        this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {
+                        this.hitWater = true;
+                        this.velocity.set(0, 0, 0);
+                        this.isMoving = false;
+                        if (this.sounds) this.sounds.play('water');
+                        return;
+                    }
+                } else {
+                    const dxW = this.ball.position.x - water.position.x;
+                    const dzW = this.ball.position.z - water.position.z;
+                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+                    if (distToWater < lakeRadius) {
+                        this.hitWater = true;
+                        this.velocity.set(0, 0, 0);
+                        this.isMoving = false;
+                        if (this.sounds) this.sounds.play('water');
+                        return;
+                    }
                 }
             }
 
