@@ -105,14 +105,16 @@ export const globalCourseData = {
         name: "Pebble Beach Hole 6",
         par: 5,
         teePosition: { x: 0, y: 0, z: 10 },
-        holePosition: { x: 16, y: 14.0, z: -180 }, // MODIFIED: Updated pin elevation target to match new 14.0 table
+        // MODIFIED: Shifted the target hole X position from 16 to 12.0 to match the new physics path center line
+        holePosition: { x: 12.0, y: 14.0, z: -180 },
         fairwayWidth: 8.0,
         greenRadius: 8.5,
+        // MODIFIED: Updated waypoint coordinates to bend the visual fairway mesh to match our diagonal path pathing
         waypoints: [
-            { x: 0, y: 0, z: 10 },
-            { x: 0, y: 0, z: -65 },
-            { x: 8, y: 0.0, z: -125 }, // MODIFIED: Keeps track level up to 150 yards out
-            { x: 16, y: 14.0, z: -180 } // MODIFIED: Sets clifftop table profile target to 14.0
+            { x: 0, y: 0, z: 10 },       // Tee Box
+            { x: -6.0, y: 0, z: -57.5 },  // Mid-way left drift point
+            { x: -12.0, y: 0.0, z: -125 }, // Bottom of the hill (max left extent)
+            { x: 12.0, y: 14.0, z: -180 }  // Clifftop green center (swung back right)
         ]
     }
 };

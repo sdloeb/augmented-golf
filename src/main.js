@@ -69,37 +69,36 @@ const HOLES_CONFIG = {
             new THREE.Vector3(16, 0, -180)   // Elevated Clifftop Green bluff center
         ],
         hazards: [
-            // MODIFIED: Placed the 5 distinct rough bunkers on the right side before the hill ascent
-            // MODIFIED: Re-shaped and resized to match the asymmetrical Google Earth layout profiles
-            { type: 'sand', x: -11.5, z: -92.0, radius: 3.4, depth: 0.55 }, // Bunker 1: Large fat base bunker pocket
+            // MODIFIED: Shifted X coordinates further left to perfectly align with the new outer rough boundary of the curved fairway track
+            { type: 'sand', x: -21.5, z: -92.0, radius: 3.4, depth: 0.55 }, // Bunker 1: Large fat base bunker pocket
 
             // Bunker 2: Two overlapping entries to authentically draw that wide, horizontal "bean" shape
-            { type: 'sand', x: -10.5, z: -100.5, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: -7.5, z: -100.0, radius: 1.9, depth: 0.50 },
+            { type: 'sand', x: -20.5, z: -100.5, radius: 2.2, depth: 0.50 },
+            { type: 'sand', x: -17.5, z: -100.0, radius: 1.9, depth: 0.50 },
 
             // Bunker 3 & 4 Cluster: Small detached left pocket flanking a larger center-right mound defense
-            { type: 'sand', x: -12.5, z: -108.5, radius: 1.4, depth: 0.45 }, // Small outer left dot
-            { type: 'sand', x: -8.5, z: -109.0, radius: 2.6, depth: 0.60 }, // Main inner lobed hazard
+            { type: 'sand', x: -22.5, z: -108.5, radius: 1.4, depth: 0.45 }, // Small outer left dot
+            { type: 'sand', x: -18.5, z: -109.0, radius: 2.6, depth: 0.60 }, // Main inner lobed hazard
 
-            { type: 'sand', x: -7.5, z: -118.0, radius: 3.0, depth: 0.60 }, // Bunker 5: Top-most kidney shape near hill face
+            { type: 'sand', x: -17.5, z: -118.0, radius: 3.0, depth: 0.60 }, // Bunker 5: Top-most kidney shape near hill face
 
-            // MODIFIED: Chained 3 overlapping bunkers to create 1 continuous long hazard stretching 3/4 up the hill face and 40% down the upper fairway
-            { type: 'sand', x: 23.0, z: -147.0, radius: 2.5, depth: 0.60 },
-            { type: 'sand', x: 24.5, z: -154.0, radius: 2.8, depth: 0.60 },
-            { type: 'sand', x: 26.0, z: -161.0, radius: 2.5, depth: 0.60 },
+            // MODIFIED: Re-anchored the long chain to the left rough of the upper climbing hill path
+            { type: 'sand', x: -10.0, z: -147.0, radius: 2.4, depth: 0.60 },
+            { type: 'sand', x: -8.0, z: -154.0, radius: 2.6, depth: 0.60 },
+            { type: 'sand', x: -5.0, z: -161.0, radius: 2.4, depth: 0.60 },
 
-            // MODIFIED: Placed the standalone rough bunker sitting just after the long chain
-            { type: 'sand', x: 27.5, z: -170.0, radius: 3.0, depth: 0.60 },
+            // MODIFIED: Placed the standalone rough bunker just past the hill crest on the left fairway cut
+            { type: 'sand', x: -1.0, z: -170.0, radius: 2.8, depth: 0.60 },
 
-            // MODIFIED: Placed the protective bunker right next to the right side of the green
-            { type: 'sand', x: 28.5, z: -181.0, radius: 3.2, depth: 0.60 },
+            // MODIFIED: Placed the bunker protecting the front-right entry of the green near the cliff edge lip
+            { type: 'sand', x: 19.5, z: -174.0, radius: 2.5, depth: 0.55 },
 
-            // MODIFIED: Placed the 2 green bunkers on the opposite (left/ocean) side of the putting green surface
-            { type: 'sand', x: 3.5, z: -175.0, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: 4.0, z: -184.0, radius: 2.4, depth: 0.50 },
+            // MODIFIED: Placed the 2 long bunkers guarding the left/back side of the upper clifftop putting green table
+            { type: 'sand', x: 5.5, z: -182.0, radius: 2.2, depth: 0.50 },
+            { type: 'sand', x: 7.0, z: -187.0, radius: 2.0, depth: 0.50 },
 
             // Keeps the massive rectangular Pacific Ocean layout intact on the right edge
-            { type: 'ocean', x: 70.0, z: -153.5, width: 105.0, length: 150.0 }
+            { type: 'ocean', x: 70.0, z: -103.5, width: 105.0, length: 100.0 }
         ]
     },
     4: { // Sharp 90-Degree Dogleg Right Hole

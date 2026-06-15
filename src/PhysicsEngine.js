@@ -128,18 +128,24 @@ export class PhysicsEngine {
             }
 
             // 2. Track the dynamic center line path to build the right-side cliff face line
+            // MODIFIED: Re-routed path to slide diagonally left initially to clear the cove, then cut back right over the hill toward the water
             let pathCenter = 0;
-            if (z <= -65 && z >= -125) {
-                pathCenter = ((-65 - z) / 60) * 8.0;
-            } else if (z < -125) {
-                pathCenter = 8.0 + (Math.min(1.0, (-125 - z) / 55)) * 8.0;
+            if (z >= -125) {
+                // Drifts from x = 0 at the tee down to x = -12.0 at the base of the hill
+                let t = (10 - z) / 135;
+                pathCenter = THREE.MathUtils.lerp(0, -12.0, t);
+            } else {
+                // Swings back from x = -12.0 at the hill base up to x = 12.0 at the back of the green
+                let t = (-125 - z) / 55;
+                t = Math.min(1.0, t);
+                pathCenter = THREE.MathUtils.lerp(-12.0, 12.0, t);
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
             // MODIFIED: Added a z boundary constraint (z <= -78.5) so the physics engine only applies the cliff drop-off where the ocean actually begins
-            if (x > (pathCenter + this.fairwayWidth + 2.5) && z <= -78.5) {
+            if (x > (pathCenter + this.fairwayWidth + 2.5) && z <= -51.75) {
                 return 0.001; // Plunges vertically down to sea level instantly
-            } else if (x > (pathCenter + this.fairwayWidth - 0.5) && z <= -78.5) {
+            } else if (x > (pathCenter + this.fairwayWidth - 0.5) && z <= -51.75) {
                 // Smoothly round the grass edge right at the cliff edge lip
                 let lipFade = (x - (pathCenter + this.fairwayWidth - 0.5)) / 3.0;
                 lipFade = Math.max(0, Math.min(1, lipFade));
