@@ -783,23 +783,36 @@ function resetEntireGame(advanceHole = false) {
                 scene.add(oceanMesh);
                 waterHazards.push(oceanMesh);
 
-                // MODIFIED: Replaced the single block with a segmented slice loop so the rock face contours perfectly to the rising hill slope
+                // MODIFIED: Updated slice loop to dynamically curve the X positions so the wall follows the zig-zag cliff line perfectly
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.95 });
-                const wallX = hz.x - hz.width / 2;
-                const sliceLength = 2.0; // Thickness of each rock face slice
-                const startZ = -120.0;   // Where the hill begins to climb
-                const endZ = -215.0;     // Back edge of the green bluff
+                const sliceLength = 2.0;
+                const startZ = -78.5;   // MODIFIED: Start the wall right where the ocean water line begins 245 yards out
+                const endZ = -215.0;
+                const fairwayWidth = 8.0; // Matches HOLES_CONFIG width tracking
 
                 for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
-                    // Query the terrain engine to find out exactly how high the grass is at this specific slice
-                    const localGroundHeight = physics.getCourseHeight(wallX, currentZ);
+                    // Replicate the exact winding centerline path math used by the physics engine to calculate the cliff edge X coordinate
+                    let pathCenter = 0;
+                    if (currentZ >= -125) {
+                        let t = (10 - currentZ) / 135;
+                        pathCenter = THREE.MathUtils.lerp(0, -12.0, t);
+                    } else {
+                        let t = (-125 - currentZ) / 55;
+                        t = Math.min(1.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-12.0, 12.0, t);
+                    }
 
-                    // Add 0.1 to thickness to create a tiny overlap, preventing any flickering gaps between slices
+                    // Calculate the exact edge boundary line where the rough drops off into the ocean cliff
+                    const dynamicWallX = pathCenter + fairwayWidth + 2.3;
+
+                    // Query the terrain engine for the elevation at this precise curved coordinate point
+                    const localGroundHeight = physics.getCourseHeight(dynamicWallX, currentZ);
+
                     const wallGeo = new THREE.BoxGeometry(6.0, 50.0, sliceLength + 0.1);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
 
-                    // Setting the center position Y to (height - 25) means the top of this 50-unit tall wall aligns perfectly flush with the grass lip!
-                    cliffWall.position.set(wallX, localGroundHeight - 25.0, currentZ - sliceLength / 2);
+                    // Snap the slice perfectly to the curved edge coordinates and height profile
+                    cliffWall.position.set(dynamicWallX + 2.5, localGroundHeight - 25.0, currentZ - sliceLength / 2);
 
                     scene.add(cliffWall);
                     waterShores.push(cliffWall);
