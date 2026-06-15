@@ -1454,12 +1454,18 @@ function animate() {
 
             // Realism Lip-out simulation based on true physical ground speed limits
             if (trueWorldSpeed > maxWorldSinkSpeed) {
+                if (trueWorldSpeed > 0.48) return; // Add this line: Smashed putts roll straight over the cup
+
                 const perpX = -dz / distanceToHole;
                 const perpZ = dx / distanceToHole;
 
                 // Centripetal sling wraps the ball around the lip edge based on velocity
-                physics.velocity.x = (physics.velocity.x * 0.3) + (perpX * rawSpeed * 0.6);
-                physics.velocity.z = (physics.velocity.z * 0.3) + (perpZ * rawSpeed * 0.6);
+                const slingX = (physics.velocity.x * 0.4) + (perpX * rawSpeed * 0.6); // Add this line
+                const slingZ = (physics.velocity.z * 0.4) + (perpZ * rawSpeed * 0.6); // Add this line
+                const slingLen = Math.sqrt(slingX * slingX + slingZ * slingZ) || 1; // Add this line
+
+                physics.velocity.x = (slingX / slingLen) * rawSpeed; // Modify this line: Maintains full ball speed
+                physics.velocity.z = (slingZ / slingLen) * rawSpeed; // Modify this line: Maintains full ball speed
                 return;
             }
             isSinking = true;
@@ -2561,7 +2567,8 @@ function updateGreenGrid() {
 
     const dxB = ball.position.x - gX;
     const dzB = ball.position.z - gZ;
-    const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < GREEN_RADIUS;
+    const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+    const isBallOnGreen = Math.sqrt(dxB * dxB + dzB * dzB) < activeR; // Modify this line
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
 
     // Grid safely stays hidden when swinging
@@ -2572,22 +2579,23 @@ function updateGreenGrid() {
         return;
     }
 
-    const dx = holePosition.x - ball.position.x;
-    const dz = holePosition.z - ball.position.z;
-    const pathLen = Math.sqrt(dx * dx + dz * dz) || 1;
+    const dxHole = holePosition.x - ball.position.x; // Modify this line
+    const dzHole = holePosition.z - ball.position.z; // Modify this line
+    const pathLen = Math.sqrt(dxHole * dxHole + dzHole * dzHole) || 1; // Modify this line
 
-    const dirX = dx / pathLen;
-    const dirZ = dz / pathLen;
+    let angle = Math.atan2(dxHole, dzHole); // Add this line
+    if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Add this line
+    const dirX = Math.sin(angle); // Modify this line
+    const dirZ = Math.cos(angle); // Modify this line
 
     // Fixed step intervals ensure uniform, consistent arrow spacing across the entire path
     const travelSteps = Math.max(1, Math.floor(pathLen / 2.2));
     const delta = 0.1;
-
     for (let s = 0; s <= travelSteps; s++) {
         let baseT = s / travelSteps;
         baseT = Math.max(0, Math.min(1, baseT));
-        const sampleWx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, baseT);
-        const sampleWz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, baseT);
+        const sampleWx = ball.position.x + dirX * (baseT * pathLen); // Modify this line
+        const sampleWz = ball.position.z + dirZ * (baseT * pathLen);
 
         // Sample slope values to determine local speed and forward/backward flow vectors
         const localSlopeX = (physics.getGreenHeight(sampleWx - delta, sampleWz) - physics.getGreenHeight(sampleWx + delta, sampleWz)) / (2 * delta);
@@ -2615,13 +2623,13 @@ function updateGreenGrid() {
         const t = baseT + (localShift - 0.5) / travelSteps;
         if (t < 0 || t > 1) continue;
 
-        const wx = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
-        const wz = THREE.MathUtils.lerp(ball.position.z, holePosition.z, t);
+        const wx = ball.position.x + dirX * (t * pathLen); // Modify this line: Replaced lerp with directional projection
+        const wz = ball.position.z + dirZ * (t * pathLen); // Modify this line: Replaced lerp with directional projection
 
         // Keep texture maps safely contained inside the visual boundary circles
-        if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < GREEN_RADIUS - 0.3) {
-            const cx = 512 * ((wx - gX) / (GREEN_RADIUS * 2) + 0.5);
-            const cy = 512 * ((wz - gZ) / (GREEN_RADIUS * 2) + 0.5);
+        if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < activeR - 0.3) { // Modify this line: Replaced GREEN_RADIUS with activeR
+            const cx = 512 * ((wx - gX) / (activeR * 2) + 0.5); // Modify this line: Replaced GREEN_RADIUS with activeR
+            const cy = 512 * ((wz - gZ) / (activeR * 2) + 0.5); // Modify this line: Replaced GREEN_RADIUS with activeR
 
             const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
             const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
@@ -2629,11 +2637,8 @@ function updateGreenGrid() {
             ctx.save();
             ctx.translate(cx, cy);
 
-            const toHoleX = holePosition.x - wx;
-            const toHoleZ = holePosition.z - wz;
-            const distToHole = Math.sqrt(toHoleX * toHoleX + toHoleZ * toHoleZ) || 1;
-            const unitHoleX = toHoleX / distToHole;
-            const unitHoleZ = toHoleZ / distToHole;
+            const unitHoleX = dirX; // Modify this line: Simplified to use your rotatable direction variable
+            const unitHoleZ = dirZ; // Modify this line: Simplified to use your rotatable direction variable
 
             const perpX = -unitHoleZ;
             const perpZ = unitHoleX;
