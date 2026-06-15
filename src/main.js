@@ -1918,19 +1918,24 @@ function animate() {
                 const cZ = ball.position.z - greenCenterZ; // Add this line
                 const activeRadiusOffset = window.activeGreenRadius || GREEN_RADIUS; // Add this line
                 const ballOnGreen = Math.sqrt(cX * cX + cZ * cZ) < activeRadiusOffset; // Add this line
-                const putterBaseBottom = ballOnGreen ? 21.8 : 25.8; // Modify this line
+                const putterBaseBottom = ballOnGreen ? 21.8 : 31.0; // Modify this line
 
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
                 if (input.state === 'IDLE') {
                     clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`; // Modify this line: Appended ${aimClass} to fix the idle mode visibility
-                    // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
-                    // Clean out dynamic inline properties when resting at address
-                    clubSwipeElement.style.bottom = activeClub.name === 'Putter' ? `${putterBaseBottom}%` : '';
-                    clubSwipeElement.style.left = activeClub.name === 'Putter' ? putterCenteredLeft : '';
-                    clubSwipeElement.style.transform = '';
+
+                    if (activeClub.name === 'Putter') {
+                        clubSwipeElement.style.setProperty('bottom', `${putterBaseBottom}%`, 'important');
+                        clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.4 : 1.10})`, 'important');
+                    } else {
+                        clubSwipeElement.style.bottom = '';
+                        clubSwipeElement.style.left = '';
+                        clubSwipeElement.style.transform = ''; // Keep this line here
+                    }
+                    // The duplicate transform wipe line has been deleted from here
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass}${aimClass}`;
 
@@ -1943,7 +1948,7 @@ function animate() {
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', currentLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(1.4)`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${ballOnGreen ? 1.4 : 1.10})`, 'important');
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
