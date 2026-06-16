@@ -109,7 +109,6 @@ export class PhysicsEngine {
         return minDist;
     }
 
-    /* Add this entire block below */
     getCourseHeight(x, z) {
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
             let baseHeight = 0.0;
@@ -118,7 +117,8 @@ export class PhysicsEngine {
             if (z <= -125 && z >= -155) {
                 let t = (-125 - z) / 30; // Smoothly climbs over a 30-unit distance span
                 let smoothSlope = t * t * (3 - 2 * t);
-                baseHeight = smoothSlope * 14.0;      // Way less steep clifftop bluff table
+                // MODIFIED: Starts slope at the 0.3 fairway baseline and scales up to 14.0 to seal the water leak gap
+                baseHeight = 0.3 + (smoothSlope * 13.7);
             } else if (z < -155) {
                 baseHeight = 14.0; // Flat upper clifftop table space
             } else {
