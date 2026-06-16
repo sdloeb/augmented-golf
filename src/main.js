@@ -133,7 +133,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -802,7 +802,6 @@ function resetEntireGame(advanceHole = false) {
                         color: 0x0000ff,
                         specular: 0xffffff,
                         shininess: 150,
-
                         side: THREE.DoubleSide
                     })
                 );
@@ -830,19 +829,31 @@ function resetEntireGame(advanceHole = false) {
                         pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                     }
 
-                    // Align the wall crest precisely with the expanded physics engine edge limits
-                    const cliffEdgeLimit = pathCenter + (currentZ <= -125 ? 10.5 : 15.5); // Modify this line: Dynamically tracks the water edge shift
-                    // MODIFIED: Swapped coordinates to pathCenter so the wall queries the high hilltop fairway plateau before any cliff fading happens
+                    // FIXED: Replaced the sharp toggle jump with the exact smooth padding transition formula from your physics engine equations
+                    let cliffPadding = 15.5;
+                    if (currentZ < -115) {
+                        cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - currentZ) / 10.0)));
+                    }
+                    const cliffEdgeLimit = pathCenter + cliffPadding;
+
                     const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
 
-                    const rockWidth = 5.0 + (Math.sin(currentZ * 1.5) * 0.3);
-                    const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12;
+                    // FIXED: Seamlessly taper down rock ruggedness and rotations on the flat fairway section so it functions as a smooth retaining curb
+                    let ruggedIntensity = 1.0;
+                    if (currentZ >= -125) {
+                        ruggedIntensity = 0.0; // Perfectly smooth and flush alongside the low fairway turf
+                    } else if (currentZ > -135) {
+                        ruggedIntensity = (-125 - currentZ) / 10.0; // Gracefully blends rock fracturing back in as it climbs up the hill crest
+                    }
+
+                    const rockWidth = 5.0 + (Math.sin(currentZ * 1.5) * 0.3 * ruggedIntensity);
+                    const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12 * ruggedIntensity;
 
                     const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, sliceLength + 0.08);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
 
-                    cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03;
-                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04;
+                    cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03 * ruggedIntensity;
+                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04 * ruggedIntensity;
 
                     // Position the rock face flush against the outer boundaries
                     const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset;
@@ -2582,7 +2593,7 @@ function init() {
         let finalPower = power;
         if (isOnGreen) {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
-            finalPower *= 1.45;
+            finalPower *= 2.10;
         }
 
         const club = input.getClubInfo(); // Add this line: Moved club info to the top of launch
