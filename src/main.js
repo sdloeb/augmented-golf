@@ -2930,19 +2930,28 @@ function showScorecard() {
 
     overlay.style.display = 'flex';
 
-    const proceedToNextHole = (e) => { // Modify this line to include (e)
+    const nextHoleBtn = document.getElementById('nextHoleBtn');
+
+    const proceedToNextHole = (e) => {
         if (e) e.stopPropagation();
         if (e && e.type === 'touchstart') e.preventDefault();
-        overlay.removeEventListener('click', proceedToNextHole);
-        overlay.removeEventListener('touchstart', proceedToNextHole);
+
+        // Unbind listeners from the button to keep memory clean
+        if (nextHoleBtn) {
+            nextHoleBtn.removeEventListener('click', proceedToNextHole);
+            nextHoleBtn.removeEventListener('touchstart', proceedToNextHole);
+        }
+
         overlay.style.display = 'none';
         resetEntireGame(true);
     };
 
+    // Bind interaction triggers ONLY to the button instead of the full background layout
     setTimeout(() => {
-        overlay.addEventListener('click', proceedToNextHole);
-        overlay.addEventListener('touchstart', proceedToNextHole);
-
+        if (nextHoleBtn) {
+            nextHoleBtn.addEventListener('click', proceedToNextHole);
+            nextHoleBtn.addEventListener('touchstart', proceedToNextHole);
+        }
     }, 10);
 }
 
