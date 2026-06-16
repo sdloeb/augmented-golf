@@ -2318,8 +2318,8 @@ function init() {
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x666666));
 
-    // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 60, 160);
+    // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -2341,7 +2341,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 60, 160);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
