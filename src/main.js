@@ -132,7 +132,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -769,10 +769,10 @@ function resetEntireGame(advanceHole = false) {
                 const oceanMesh = new THREE.Mesh(
                     oceanGeo,
                     new THREE.MeshPhongMaterial({
-                        color: 0x0c3b5e, // Beautiful deep Pacific coastal blue
+                        color: 0x0000ff,
                         specular: 0xffffff,
-                        shininess: 140,
-                        flatShading: true,
+                        shininess: 150,
+
                         side: THREE.DoubleSide
                     })
                 );
@@ -786,7 +786,7 @@ function resetEntireGame(advanceHole = false) {
                 // MODIFIED: Fully synchronized path metrics and expanded boundaries to perfectly clear the putting green radius cleanly
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.95 });
                 const sliceLength = 0.4;
-                const startZ = -125.0;
+                const startZ = -51.75;
                 const endZ = -215.0;
 
                 for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
@@ -801,7 +801,7 @@ function resetEntireGame(advanceHole = false) {
                     }
 
                     // Align the wall crest precisely with the expanded physics engine edge limits
-                    const cliffEdgeLimit = pathCenter + 10.5;
+                    const cliffEdgeLimit = pathCenter + (currentZ <= -125 ? 10.5 : 15.5); // Modify this line: Dynamically tracks the water edge shift
                     // MODIFIED: Swapped coordinates to pathCenter so the wall queries the high hilltop fairway plateau before any cliff fading happens
                     const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
 
@@ -819,7 +819,7 @@ function resetEntireGame(advanceHole = false) {
 
                     cliffWall.position.set(
                         positionX,
-                        trueCrestHeight - 25.0,
+                        trueCrestHeight - 25.15,
                         currentZ - sliceLength / 2
                     );
 
@@ -914,7 +914,11 @@ function resetEntireGame(advanceHole = false) {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                     }
-                    const cliffEdgeLimit = pathCenter + 10.5;
+
+                    // Modify these lines to match the smooth visual transition:
+                    let cliffPadding = 15.5;
+                    if (worldZ < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))); }
+                    const cliffEdgeLimit = pathCenter + cliffPadding;
 
                     if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
                         worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
@@ -968,12 +972,15 @@ function resetEntireGame(advanceHole = false) {
                 const smoothGreenT = THREE.MathUtils.smoothstep(greenT, 0, 1);
                 calculatedHeight -= THREE.MathUtils.lerp(0.0, 0.0, smoothGreenT);
             }
-
             if (!insideWaterZone) {
-                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ); // Add this line
-                let fW = physics.fairwayWidth; // Add this line
+                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
+                let fW = physics.fairwayWidth;
 
-                const fWEdge = fW + 3.5; // Keep this line
+                if (currentHoleNumber === 3 && worldZ <= -41.64 && worldZ >= -125) { // Update this line
+                    fW = 18.0; // Keep this line
+                } // Keep this line
+
+                const fWEdge = fW + 3.5;
 
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
@@ -1016,7 +1023,7 @@ function resetEntireGame(advanceHole = false) {
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && distToGreenCenter < fringeOuterR) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -125 && worldZ >= -155))) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -125.5 && worldZ >= -155))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 

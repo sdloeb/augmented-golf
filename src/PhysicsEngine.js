@@ -109,14 +109,12 @@ export class PhysicsEngine {
         return minDist;
     }
 
-    // NEW: Analytical height function for fairway and rough contours
+    /* Add this entire block below */
     getCourseHeight(x, z) {
-        // MODIFIED: Analytical terrain mapping for Pebble Beach Hole 6 cliff face and ocean drop-off
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
             let baseHeight = 0.0;
 
             // 1. Model the dramatic uphill elevation incline along the Z axis (Hole 3 Pebble Beach 6)
-            // MODIFIED: Shifted hill start to 150 yards out (-125) and lowered peak height to 14.0 for a gentle slope
             if (z <= -125 && z >= -155) {
                 let t = (-125 - z) / 30; // Smoothly climbs over a 30-unit distance span
                 let smoothSlope = t * t * (3 - 2 * t);
@@ -124,11 +122,10 @@ export class PhysicsEngine {
             } else if (z < -155) {
                 baseHeight = 14.0; // Flat upper clifftop table space
             } else {
-                baseHeight = 0.0;  // Level initial driving fairway floor area
+                baseHeight = 0.3;  // Lift initial fairway above water level for a clean drop-off ledge
             }
 
             // 2. Track the dynamic center line path to build the right-side cliff face line
-            // MODIFIED: Balanced track routing so the cliff lines up cleanly along the right side without blockading your fairway view
             let pathCenter = 0;
             if (z >= -125) {
                 let t = (10 - z) / 135;
@@ -140,22 +137,35 @@ export class PhysicsEngine {
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
-            // MODIFIED: Expanded the edge limits to a clean pathCenter + 10.5 padding. This cleanly wraps the cliff around your green instead of cutting through it!
-            const cliffEdgeLimit = pathCenter + 10.5;
+            // Add these two lines here to smoothly transition the padding:
+            let cliffPadding = 15.5;
+            if (z < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 10.0))); }
+
+            const cliffEdgeLimit = pathCenter + cliffPadding; // Replace your old line with this one
             if (x > cliffEdgeLimit && z <= -51.75) {
-                return 0.001; // Plunges vertically down to sea level instantly
-            } else if (x > (cliffEdgeLimit - 3.0) && z <= -51.75) {
+                if (z <= -125) {
+                    return 0.001; // Plunges vertically down to sea level instantly on the hill face
+                } else {
+                    return 0.05;  // Small drop-off right to the water's edge before the hill
+                }
+            } else if (x > (cliffEdgeLimit - 4.0) && z <= -51.75) {
                 // Smoothly round the grass edge right at the cliff edge lip
-                let lipFade = (x - (cliffEdgeLimit - 3.0)) / 3.0;
+                let lipFade = (x - (cliffEdgeLimit - 4.0)) / 4.0;
                 lipFade = Math.max(0, Math.min(1, lipFade));
-                baseHeight = THREE.MathUtils.lerp(baseHeight, 0.0, lipFade * lipFade);
+                if (z <= -125) {
+                    baseHeight = THREE.MathUtils.lerp(baseHeight, 0.0, lipFade * lipFade);
+                } else {
+                    baseHeight = THREE.MathUtils.lerp(0.3, 0.05, lipFade); // Slopes grass down smoothly before the small drop
+                }
             }
 
             // Smooth out the left rough boundary map lines to prevent clipping gaps
             let leftSideFade = Math.min(1, Math.max(0, (80 - Math.abs(x)) / 15));
             return Math.max(0.001, baseHeight * leftSideFade);
         }
-        const dxTee = x - 0;
+        /* End of added block */
+
+        const dxTee = x - 0; // This line should naturally sit directly below the block
         const dzTee = z - 10;
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
@@ -241,7 +251,11 @@ export class PhysicsEngine {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                     }
-                    const cliffEdgeLimit = pathCenter + 10.5;
+
+                    // Modify these lines to blend the edge limit smoothly:
+                    let cliffPadding = 15.5;
+                    if (z < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 20.0))); }
+                    const cliffEdgeLimit = pathCenter + cliffPadding;
 
                     if (x > cliffEdgeLimit && x <= water.position.x + water.userData.w / 2 &&
                         z >= water.position.z - water.userData.l / 2 && z <= water.position.z + water.userData.l / 2) {
@@ -390,12 +404,13 @@ export class PhysicsEngine {
         const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
         const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
 
-        // CHIP & DRIVE TERRAIN PROFILE MATRIX
-        let activeFW = this.fairwayWidth;
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
             activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t); // Matches fanning physics
         }
+        if (this.greenCenterZ < -165 && this.greenCenterZ > -185 && this.ball.position.z <= -41.64 && this.ball.position.z >= -125) { // Update this line
+            activeFW = 18.0; // Keep this line
+        } // Keep this line
 
         if (inSand) {
             currentFriction = 0.72;
@@ -657,7 +672,20 @@ export class PhysicsEngine {
             for (let water of this.waterHazards) {
                 // MODIFIED: Check if this is the rectangular ocean box to register a cliffside splash penalty
                 if (water.userData && water.userData.isRectangular) {
-                    if (this.ball.position.x >= water.position.x - water.userData.w / 2 && this.ball.position.x <= water.position.x + water.userData.w / 2 &&
+                    // Add these lines below:
+                    let pathCenter = 0;
+                    if (this.ball.position.z >= -125) {
+                        let t = (10 - this.ball.position.z) / 135;
+                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                    } else {
+                        let t = (-125 - this.ball.position.z) / 55;
+                        t = Math.min(1.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                    }
+                    const cliffEdgeLimit = pathCenter + (this.ball.position.z <= -125 ? 10.5 : 15.5);
+                    // End of added lines
+
+                    if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 && // Modify this line: Replaced left boundary check with cliffEdgeLimit
                         this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {
                         this.hitWater = true;
                         this.velocity.set(0, 0, 0);
