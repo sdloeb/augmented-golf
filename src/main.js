@@ -127,12 +127,13 @@ let clubLandingRing;
 let clubLandingBeacon;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
-
+let completedHoles = [];   // Add this line: Keeps track of completed scorecard historical statistics
+let currentHoleYards = 0;
 let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1472,7 +1473,12 @@ function resetEntireGame(advanceHole = false) {
 
     generateNewWind();
     updateDistanceDisplay();
+
+    const totalDx = ball.position.x - holePosition.x;
+    const totalDz = ball.position.z - holePosition.z;
+    currentHoleYards = Math.round(Math.sqrt(totalDx * totalDx + totalDz * totalDz) * 2.76923);
 }
+
 
 function animate() {
     requestAnimationFrame(animate);
@@ -1657,8 +1663,14 @@ function animate() {
 
             // Give the browser 30ms to fully render the final subterranean frame before alerting
             setTimeout(() => {
-                alert(`Sunk it! 🎉 ${standardTermCelebration}`);
-                resetEntireGame(true); // Advance layout tracking systems to the next hole number configuration
+                // Add this block: Submits current metrics to historical ledger array and invokes card interface layout
+                completedHoles.push({
+                    hole: currentHoleNumber,
+                    par: currentPar,
+                    yards: currentHoleYards,
+                    score: strokeCount
+                });
+                showScorecard();
             }, 30);
             return;
         }
@@ -2840,4 +2852,63 @@ function updateGreenGrid() {
         }
     }
     gridTexture.needsUpdate = true;
+
+    // Add this entire function block at the very bottom of src/main.js
+    function showScorecard() {
+        const overlay = document.getElementById('scorecardOverlay');
+        const table = document.getElementById('scorecardTable');
+        if (!overlay || !table) return;
+
+        let totalYards = 0;
+        let totalPar = 0;
+        let totalScore = 0;
+
+        let holeHtml = '<th>HOLE</th>';
+        let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
+        let parHtml = '<tr><td><strong>PAR</strong></td>';
+        let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
+
+        completedHoles.forEach(h => {
+            totalYards += h.yards;
+            totalPar += h.par;
+            totalScore += h.score;
+
+            holeHtml += `<th>${h.hole}</th>`;
+            yardsHtml += `<td>${h.yards}</td>`;
+            parHtml += `<td>${h.par}</td>`;
+
+            let scoreClass = (h.score <= h.par) ? ' class="scorecard-highlight"' : '';
+            scoreHtml += `<td${scoreClass}>${h.score}</td>`;
+        });
+
+        holeHtml += '<th>TOTAL</th>';
+        yardsHtml += `<td><strong>${totalYards}</strong></td></tr>`;
+        parHtml += `<td><strong>${totalPar}</strong></td></tr>`;
+
+        let totalScoreClass = (totalScore <= totalPar) ? ' class="scorecard-highlight"' : '';
+        scoreHtml += `<td${totalScoreClass}><strong>${totalScore}</strong></td></tr>`;
+
+        table.innerHTML = `
+        <thead><tr>${holeHtml}</tr></thead>
+        <tbody>
+            ${yardsHtml}
+            ${parHtml}
+            ${scoreHtml}
+        </tbody>
+    `;
+
+        overlay.style.display = 'flex';
+
+        const proceedToNextHole = (e) => { // Modify this line to include (e)
+            if (e) e.stopPropagation();
+            overlay.removeEventListener('click', proceedToNextHole);
+            overlay.removeEventListener('touchstart', proceedToNextHole);
+            resetEntireGame(true);
+        };
+
+        setTimeout(() => {
+            overlay.addEventListener('click', proceedToNextHole);
+            overlay.addEventListener('touchstart', proceedToNextHole);
+        }, 150);
+    }
 }

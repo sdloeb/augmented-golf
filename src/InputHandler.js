@@ -119,6 +119,7 @@ export class InputHandler {
 
     onTouchStart(e) {
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
+        if (e.target.closest('#scorecardOverlay')) return;
         if (this.isOverheadActive) return;
 
         if (this.isAimMode) {
@@ -255,6 +256,7 @@ export class InputHandler {
     onMouseDown(e) {
         if (e.button !== 0) return;
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
+        if (e.target.closest('#scorecardOverlay')) return;
         if (this.isOverheadActive) return;
 
         if (this.isAimMode) {
