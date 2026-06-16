@@ -421,7 +421,7 @@ export class PhysicsEngine {
             // Receptive Green Landing: Base calibrations optimized for wedges
             currentBounceHeight = 0.22;
             currentBounceForwardLoss = 0.35;
-            currentFriction = 0.965;
+            currentFriction = 0.956;
 
             // NEW: If it's a full shot (not a putt) adjust behavior based on landing loft angle
             if (!this.isPutting && this.currentLoft) {
@@ -450,7 +450,7 @@ export class PhysicsEngine {
         }
 
         if (this.isPutting) {
-            currentFriction = 0.984; // Preserves your exact putting calibration constant
+            currentFriction = 0.979; // Preserves your exact putting calibration constant
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -562,8 +562,25 @@ export class PhysicsEngine {
                 slopeGravityModifier = 0.35;
             }
 
-            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * slopeGravityModifier * timeScale; // Modify this line
-            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * slopeGravityModifier * timeScale; // Modify this line
+            // NEW: Anti-infinite rolling capture mechanism on green slopes
+            // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
+            if (onGreen && slopeMagnitude < 0.14) {
+                const speed = this.velocity.length();
+                if (speed < 0.09) {
+                    // Smoothly scale gravity modifier down instead of a hard cut, letting the ball coast naturally
+                    let fade = (speed - 0.024) / (0.09 - 0.024);
+                    if (fade < 0) fade = 0;
+                    if (fade > 1) fade = 1;
+                    slopeGravityModifier = fade;
+
+                    // Soft extra dampening helper so it glides smoothly to a stop without an aggressive halt
+                    this.velocity.x *= 0.965;
+                    this.velocity.z *= 0.965;
+                }
+            }
+
+            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * slopeGravityModifier * timeScale;
+            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * slopeGravityModifier * timeScale;
         }
 
         // 2. MOVE THE BALL 

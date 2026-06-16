@@ -2582,7 +2582,7 @@ function init() {
         let finalPower = power;
         if (isOnGreen) {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
-            finalPower *= 1.25;
+            finalPower *= 1.45;
         }
 
         const club = input.getClubInfo(); // Add this line: Moved club info to the top of launch
