@@ -216,12 +216,6 @@ function updateDistanceDisplay() {
         }
     }
 
-    const clubText = document.getElementById('clubText');
-    if (clubText && input) {
-        const club = input.getClubInfo();
-        // CHANGED: Appends the max yards capacity directly after the club name string
-        clubText.innerText = `${club.name} (${club.maxYards} yds)`;
-    }
 
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
@@ -297,18 +291,38 @@ function updateDistanceDisplay() {
             }
         });
 
-        // Create an informative text badge between the arrows showing the currently highlighted club
-        const clubLabel = document.createElement('span');
-        clubLabel.style.color = '#ffffff';
-        clubLabel.style.fontSize = '14px';
-        clubLabel.style.fontWeight = 'bold';
-        clubLabel.style.minWidth = '65px';
-        clubLabel.style.textAlign = 'center';
-        clubLabel.innerText = clubList[currentIdx].name;
+        // Create a vertical flex container to perfectly stack name and yards between the arrows
+        const clubLabelWrapper = document.createElement('div');
+        clubLabelWrapper.style.display = 'flex';
+        clubLabelWrapper.style.flexDirection = 'column';
+        clubLabelWrapper.style.alignItems = 'center';
+        clubLabelWrapper.style.justifyContent = 'center';
+        clubLabelWrapper.style.minWidth = '85px'; // Slightly widened to keep layout rock-solid on longer names
+        clubLabelWrapper.style.textAlign = 'center';
 
-        // Append all three nodes to create the smooth inline selection row
+        // 1. The Club Name text sub-layer (Crisp White)
+        const nameSpan = document.createElement('span');
+        nameSpan.style.color = '#ffffff';
+        nameSpan.style.fontSize = '14px';
+        nameSpan.style.fontWeight = 'bold';
+        nameSpan.style.lineHeight = '1.2';
+        nameSpan.innerText = clubList[currentIdx].name;
+
+        // 2. The Club Max Capacity text sub-layer (Vibrant Light Blue)
+        const yardsSpan = document.createElement('span');
+        yardsSpan.style.color = '#00ffcc';
+        yardsSpan.style.fontSize = '12px'; // Slightly smaller font scale for perfect hierarchy
+        yardsSpan.style.fontWeight = 'bold';
+        yardsSpan.style.marginTop = '2px';
+        yardsSpan.innerText = `(${clubList[currentIdx].maxYards} yds)`;
+
+        // Append text elements into our new vertical sub-layout frame
+        clubLabelWrapper.appendChild(nameSpan);
+        clubLabelWrapper.appendChild(yardsSpan);
+
+        // Append the nodes in order to create the clean row layout
         container.appendChild(leftBtn);
-        container.appendChild(clubLabel);
+        container.appendChild(clubLabelWrapper);
         container.appendChild(rightBtn);
     }
 
