@@ -33,7 +33,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 // Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
 const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
-        par: 4,
+        par: 3,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
@@ -265,35 +265,35 @@ function updateDistanceDisplay() {
         leftBtn.innerText = '◀';
 
         // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === clubList.length - 1) { // Modify this line: Change 0 to clubList.length - 1
+        if (currentIdx === 0) {
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx < clubList.length - 1) { // Modify this line: Change > 0 to < clubList.length - 1
-                input.chosenClubIndex = cIdx + 1; // Modify this line: Change cIdx - 1 to cIdx + 1
-                updateDistanceDisplay(); // Refresh UI layout positions instantly
+            if (cIdx > 0) {
+                input.chosenClubIndex = cIdx - 1;
+                updateDistanceDisplay();
             }
         });
 
-        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to longer distance clubs)
+        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to shorter distance clubs)
         const rightBtn = document.createElement('button');
         rightBtn.className = 'club-option';
         rightBtn.innerText = '▶';
 
-        // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === 0) { // Modify this line: Check against index 0 limit
+        // Disable the arrow if we are already holding the shortest selectable non-putter club (SW Iron at index 10)
+        if (currentIdx === clubList.length - 2) {
             rightBtn.style.opacity = '0.3';
             rightBtn.style.pointerEvents = 'none';
         }
         rightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx > 0) { // Modify this line: Decrement index to select longer clubs
-                input.chosenClubIndex = cIdx - 1;
-                updateDistanceDisplay(); // Refresh UI layout positions instantly
+            if (cIdx < clubList.length - 2) {
+                input.chosenClubIndex = cIdx + 1;
+                updateDistanceDisplay();
             }
         });
 
