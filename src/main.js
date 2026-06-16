@@ -303,7 +303,7 @@ function updateDistanceDisplay() {
         // 1. The Club Name text sub-layer (Crisp White)
         const nameSpan = document.createElement('span');
         nameSpan.style.color = '#ffffff';
-        nameSpan.style.fontSize = '14px';
+        nameSpan.style.fontSize = '16px';
         nameSpan.style.fontWeight = 'bold';
         nameSpan.style.lineHeight = '1.2';
         nameSpan.innerText = clubList[currentIdx].name;
@@ -311,7 +311,7 @@ function updateDistanceDisplay() {
         // 2. The Club Max Capacity text sub-layer (Vibrant Light Blue)
         const yardsSpan = document.createElement('span');
         yardsSpan.style.color = '#00ffcc';
-        yardsSpan.style.fontSize = '12px'; // Slightly smaller font scale for perfect hierarchy
+        yardsSpan.style.fontSize = '16px'; // Slightly smaller font scale for perfect hierarchy
         yardsSpan.style.fontWeight = 'bold';
         yardsSpan.style.marginTop = '2px';
         yardsSpan.innerText = `(${clubList[currentIdx].maxYards} yds)`;
