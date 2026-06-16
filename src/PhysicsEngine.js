@@ -403,7 +403,7 @@ export class PhysicsEngine {
         const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ); // Add this line
         const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
         const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
-
+        let activeFW = this.fairwayWidth;
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
             activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t); // Matches fanning physics

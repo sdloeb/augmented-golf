@@ -2849,46 +2849,48 @@ function updateGreenGrid() {
             ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
             ctx.stroke();
             ctx.restore();
+            gridTexture.needsUpdate = true;
         }
-    }
+    } // Add this line to close the for loop
     gridTexture.needsUpdate = true;
+} // Add this line to close updateGreenGrid completely
 
-    // Add this entire function block at the very bottom of src/main.js
-    function showScorecard() {
-        const overlay = document.getElementById('scorecardOverlay');
-        const table = document.getElementById('scorecardTable');
-        if (!overlay || !table) return;
+// Add this entire function block at the very bottom of src/main.js
+function showScorecard() {
+    const overlay = document.getElementById('scorecardOverlay');
+    const table = document.getElementById('scorecardTable');
+    if (!overlay || !table) return;
 
-        let totalYards = 0;
-        let totalPar = 0;
-        let totalScore = 0;
+    let totalYards = 0;
+    let totalPar = 0;
+    let totalScore = 0;
 
-        let holeHtml = '<th>HOLE</th>';
-        let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
-        let parHtml = '<tr><td><strong>PAR</strong></td>';
-        let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
+    let holeHtml = '<th>HOLE</th>';
+    let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
+    let parHtml = '<tr><td><strong>PAR</strong></td>';
+    let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
 
-        completedHoles.forEach(h => {
-            totalYards += h.yards;
-            totalPar += h.par;
-            totalScore += h.score;
+    completedHoles.forEach(h => {
+        totalYards += h.yards;
+        totalPar += h.par;
+        totalScore += h.score;
 
-            holeHtml += `<th>${h.hole}</th>`;
-            yardsHtml += `<td>${h.yards}</td>`;
-            parHtml += `<td>${h.par}</td>`;
+        holeHtml += `<th>${h.hole}</th>`;
+        yardsHtml += `<td>${h.yards}</td>`;
+        parHtml += `<td>${h.par}</td>`;
 
-            let scoreClass = (h.score <= h.par) ? ' class="scorecard-highlight"' : '';
-            scoreHtml += `<td${scoreClass}>${h.score}</td>`;
-        });
+        let scoreClass = (h.score <= h.par) ? ' class="scorecard-highlight"' : '';
+        scoreHtml += `<td${scoreClass}>${h.score}</td>`;
+    });
 
-        holeHtml += '<th>TOTAL</th>';
-        yardsHtml += `<td><strong>${totalYards}</strong></td></tr>`;
-        parHtml += `<td><strong>${totalPar}</strong></td></tr>`;
+    holeHtml += '<th>TOTAL</th>';
+    yardsHtml += `<td><strong>${totalYards}</strong></td></tr>`;
+    parHtml += `<td><strong>${totalPar}</strong></td></tr>`;
 
-        let totalScoreClass = (totalScore <= totalPar) ? ' class="scorecard-highlight"' : '';
-        scoreHtml += `<td${totalScoreClass}><strong>${totalScore}</strong></td></tr>`;
+    let totalScoreClass = (totalScore <= totalPar) ? ' class="scorecard-highlight"' : '';
+    scoreHtml += `<td${totalScoreClass}><strong>${totalScore}</strong></td></tr>`;
 
-        table.innerHTML = `
+    table.innerHTML = `
         <thead><tr>${holeHtml}</tr></thead>
         <tbody>
             ${yardsHtml}
@@ -2897,18 +2899,21 @@ function updateGreenGrid() {
         </tbody>
     `;
 
-        overlay.style.display = 'flex';
+    overlay.style.display = 'flex';
 
-        const proceedToNextHole = (e) => { // Modify this line to include (e)
-            if (e) e.stopPropagation();
-            overlay.removeEventListener('click', proceedToNextHole);
-            overlay.removeEventListener('touchstart', proceedToNextHole);
-            resetEntireGame(true);
-        };
+    const proceedToNextHole = (e) => { // Modify this line to include (e)
+        if (e) e.stopPropagation();
+        if (e && e.type === 'touchstart') e.preventDefault();
+        overlay.removeEventListener('click', proceedToNextHole);
+        overlay.removeEventListener('touchstart', proceedToNextHole);
+        overlay.style.display = 'none';
+        resetEntireGame(true);
+    };
 
-        setTimeout(() => {
-            overlay.addEventListener('click', proceedToNextHole);
-            overlay.addEventListener('touchstart', proceedToNextHole);
-        }, 150);
-    }
+    setTimeout(() => {
+        overlay.addEventListener('click', proceedToNextHole);
+        overlay.addEventListener('touchstart', proceedToNextHole);
+
+    }, 10);
 }
+
