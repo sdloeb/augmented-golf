@@ -180,6 +180,21 @@ function updateDistanceDisplay() {
     const dz = ball.position.z - holePosition.z;
     const gameDistance = Math.sqrt(dx * dx + dz * dz);
 
+    const scoreToParEl = document.getElementById('scoreToParText');
+    if (scoreToParEl) {
+        let totalDiff = completedHoles.reduce((sum, h) => sum + (h.score - h.par), 0);
+        if (totalDiff === 0) {
+            scoreToParEl.innerText = "E";
+            scoreToParEl.style.color = '#44bb66'; // Add this line: Even Par Green
+        } else if (totalDiff > 0) {
+            scoreToParEl.innerText = "+" + totalDiff;
+            scoreToParEl.style.color = '#ffffff'; // Add this line: Over Par White
+        } else {
+            scoreToParEl.innerText = totalDiff;
+            scoreToParEl.style.color = '#ff4d4d'; // Add this line: Under Par Red
+        }
+    }
+
     const distanceText = document.getElementById('distanceText');
     const unitText = document.getElementById('unitText');
 
@@ -238,7 +253,7 @@ function updateDistanceDisplay() {
         container.style.flexDirection = 'row';
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center'; // CHANGED: Centers the arrows horizontally
-        container.style.gap = isMobileScreen ? '10px' : '20px'; // Modify this line: Tightens layout footprint on mobile screens
+        container.style.gap = isMobileScreen ? '10px' : '10px'; // Modify this line: Tightens layout footprint on mobile screens
         container.style.flexWrap = 'wrap'; // Add this line: Safely wraps the buttons instead of breaking outer layout bounds
 
         // Calculate what index is currently highlighted
@@ -287,7 +302,7 @@ function updateDistanceDisplay() {
         clubLabel.style.color = '#ffffff';
         clubLabel.style.fontSize = '14px';
         clubLabel.style.fontWeight = 'bold';
-        clubLabel.style.minWidth = '100px';
+        clubLabel.style.minWidth = '65px';
         clubLabel.style.textAlign = 'center';
         clubLabel.innerText = clubList[currentIdx].name;
 
