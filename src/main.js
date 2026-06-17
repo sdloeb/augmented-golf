@@ -91,9 +91,8 @@ const HOLES_CONFIG = {
             { type: 'sand', x: -1.0, z: -170.0, radius: 2.8, depth: 0.60 },
 
             // MODIFIED: Placed the bunker protecting the front-right entry of the green near the cliff edge lip
-            { type: 'sand', x: 16.0, z: -174.0, radius: 2.5, depth: 0.55 },
-            { type: 'sand', x: 15.0, z: -180.0, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: 14.0, z: -186.0, radius: 2.0, depth: 0.50 },
+            { type: 'sand', x: 5.0, z: -170.0, radius: 2.8, depth: 0.60 },
+            { type: 'sand', x: 8.0, z: -180.0, radius: 2.5, depth: 0.55 },
 
             // Keeps the massive rectangular Pacific Ocean layout intact on the right edge
             { type: 'ocean', x: 60.0, z: -153.5, width: 130.0, length: 150.0 }

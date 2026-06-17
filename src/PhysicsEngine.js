@@ -147,27 +147,30 @@ export class PhysicsEngine {
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
-            // Add these two lines here to smoothly transition the padding:
-            let cliffPadding = 15.5;
-            if (z < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 10.0))); }
+            let cliffEdgeLimit;
 
-            const cliffEdgeLimit = pathCenter + cliffPadding; // Replace your old line with this one
-            if (x > cliffEdgeLimit && z <= -51.75) {
-                if (z <= -125) {
-                    return 0.001; // Plunges vertically down to sea level instantly on the hill face
+            if (z < -115) {
+                // LOCK: Provide a wide shelf for bunkers by locking the edge to 20.0
+                cliffEdgeLimit = 20.0;
+            } else {
+                // STANDARD: Follow the path center with standard padding
+                let pathCenter = 0;
+                if (z >= -125) {
+                    let t = (10 - z) / 135;
+                    pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
                 } else {
-                    return 0.05;  // Small drop-off right to the water's edge before the hill
+                    let t = (-125 - z) / 55;
+                    t = Math.min(1.0, t);
+                    pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                 }
-            } else if (x > (cliffEdgeLimit - 4.0) && z <= -51.75) {
-                // Smoothly round the grass edge right at the cliff edge lip
-                let lipFade = (x - (cliffEdgeLimit - 4.0)) / 4.0;
-                lipFade = Math.max(0, Math.min(1, lipFade));
-                if (z <= -125) {
-                    baseHeight = THREE.MathUtils.lerp(baseHeight, 0.0, lipFade * lipFade);
-                } else {
-                    baseHeight = THREE.MathUtils.lerp(0.3, 0.05, lipFade); // Slopes grass down smoothly before the small drop
-                }
+                cliffEdgeLimit = pathCenter + 15.5;
             }
+
+            // Apply the drop-off to sea level
+            if (x > cliffEdgeLimit && z <= -51.75) {
+                return 0.001;
+            }
+
 
             // Smooth out the left rough boundary map lines to prevent clipping gaps
             let leftSideFade = Math.min(1, Math.max(0, (80 - Math.abs(x)) / 15));
