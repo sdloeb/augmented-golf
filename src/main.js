@@ -91,11 +91,9 @@ const HOLES_CONFIG = {
             { type: 'sand', x: -1.0, z: -170.0, radius: 2.8, depth: 0.60 },
 
             // MODIFIED: Placed the bunker protecting the front-right entry of the green near the cliff edge lip
-            { type: 'sand', x: 19.5, z: -174.0, radius: 2.5, depth: 0.55 },
-
-            // MODIFIED: Placed the 2 long bunkers guarding the left/back side of the upper clifftop putting green table
-            { type: 'sand', x: 5.5, z: -182.0, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: 7.0, z: -187.0, radius: 2.0, depth: 0.50 },
+            { type: 'sand', x: 16.0, z: -174.0, radius: 2.5, depth: 0.55 },
+            { type: 'sand', x: 15.0, z: -180.0, radius: 2.2, depth: 0.50 },
+            { type: 'sand', x: 14.0, z: -186.0, radius: 2.0, depth: 0.50 },
 
             // Keeps the massive rectangular Pacific Ocean layout intact on the right edge
             { type: 'ocean', x: 60.0, z: -153.5, width: 130.0, length: 150.0 }
@@ -711,18 +709,42 @@ function resetEntireGame(advanceHole = false) {
     holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
 
     // The circular putting green and its helper grid map layer align centered with the course layout track
+    // 1. Force the logic to use your courseData.js settings for Hole 3
+    if (currentHoleConfig && currentHoleConfig.holePosition) {
+        holePosition.x = currentHoleConfig.holePosition.x;
+        holePosition.z = currentHoleConfig.holePosition.z;
+    } else {
+        // Fallback for procedural holes
+        const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
+        holePosition.x = greenEndpoint.x;
+        holePosition.z = greenEndpoint.z;
+
+        // Only apply random pin variance if it's NOT a custom hole
+        const pinAngle = Math.random() * Math.PI * 2;
+        const pinRadius = Math.random() * (window.activeGreenRadius - 3.0);
+        holePosition.x += Math.cos(pinAngle) * pinRadius;
+        holePosition.z += Math.sin(pinAngle) * pinRadius;
+    }
+
+    // 2. THIS IS WHAT ACTUALLY MOVES THE GREEN VISUALLY
     if (green) {
-        green.position.x = greenEndpoint.x;
-        green.position.z = greenCenterZ;
+        green.position.x = holePosition.x;
+        green.position.z = holePosition.z;
     }
     if (greenGrid) {
-        greenGrid.position.x = greenEndpoint.x;
-        greenGrid.position.z = greenCenterZ;
+        greenGrid.position.x = holePosition.x;
+        greenGrid.position.z = holePosition.z;
     }
     if (greenFringe) {
-        greenFringe.position.x = greenEndpoint.x;
-        greenFringe.position.z = greenCenterZ;
-    } // Add this line
+        greenFringe.position.x = holePosition.x;
+        greenFringe.position.z = holePosition.z;
+    }
+
+    // Crucial: Update the physics engine with the new hole center
+    if (physics) {
+        physics.greenCenterX = holePosition.x;
+        physics.greenCenterZ = holePosition.z;
+    }
 
     // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
     const horizontalOptions = [0.0, 0.05, -0.05];
@@ -828,11 +850,9 @@ function resetEntireGame(advanceHole = false) {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                     }
-
-                    // FIXED: Replaced the sharp toggle jump with the exact smooth padding transition formula from your physics engine equations
-                    let cliffPadding = 15.5;
+                    let cliffPadding = 18.0; // Pushed wall 3 units further right
                     if (currentZ < -115) {
-                        cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - currentZ) / 10.0)));
+                        cliffPadding = THREE.MathUtils.lerp(18.0, 13.0, Math.max(0, Math.min(1, (-115 - currentZ) / 10.0)));
                     }
                     const cliffEdgeLimit = pathCenter + cliffPadding;
 
@@ -1064,7 +1084,7 @@ function resetEntireGame(advanceHole = false) {
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && distToGreenCenter < fringeOuterR) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -115 && worldZ >= -160))) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -115 && worldZ >= -172))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
