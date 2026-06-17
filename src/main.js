@@ -386,7 +386,7 @@ function generateHazards() {
 
     // Use a safe fallback if green hasn't initialized yet
     const targetGreenZ = green ? green.position.z : -55;
-    const targetGreenX = green ? green.position.x : 0;
+    const targetGreenX = holePosition.x;
 
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 7.0 + Math.random() * 4.5;
@@ -708,27 +708,39 @@ function resetEntireGame(advanceHole = false) {
     holePosition.x = greenEndpoint.x + Math.cos(pinAngle) * pinRadius;
     holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
 
-    // 1. FORCING THE DATA:
-    // This looks at your courseData.js file first. 
-    // If it finds holePosition, it MUST use it.
+    // --- 1. SET HOLE POSITION (PRIORITY: CUSTOM DATA) ---
+    // Clear out any old values first
+    holePosition.x = 0;
+    holePosition.z = 0;
+
     if (currentHoleConfig && currentHoleConfig.holePosition) {
+        // Use custom config
         holePosition.x = currentHoleConfig.holePosition.x;
         holePosition.z = currentHoleConfig.holePosition.z;
     } else {
-        // Fallback to random waypoints only if no holePosition is defined
+        // Fallback for procedural
         const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
         holePosition.x = greenEndpoint.x;
         holePosition.z = greenEndpoint.z;
+
+        // Add random pin variance only if NOT custom
+        const pinAngle = Math.random() * Math.PI * 2;
+        const pinRadius = Math.random() * (window.activeGreenRadius - 3.0);
+        holePosition.x += Math.cos(pinAngle) * pinRadius;
+        holePosition.z += Math.sin(pinAngle) * pinRadius;
     }
 
-    // 2. FORCING THE MOVEMENT:
-    // This physically sets the 3D meshes to the coordinates we just set above.
-    // If this code runs, the green WILL move.
+    greenCenterZ = holePosition.z; // Sync helper variable
+
+    // --- 2. PHYSICALLY MOVE THE MESHES ---
     if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
     if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
     if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
 
+    // --- 3. SYNC PHYSICS ENGINE ---
     if (physics) {
+        physics.greenCenterX = holePosition.x;
+        physics.greenCenterZ = holePosition.z;
         physics.updateGreenPosition(holePosition.x, holePosition.z);
     }
 
@@ -757,8 +769,8 @@ function resetEntireGame(advanceHole = false) {
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
-        const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20); // Modify this line
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenEndpoint.x, greenCenterZ, generatedWidth);
+        const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, holePosition.x, holePosition.z, generatedWidth);
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
