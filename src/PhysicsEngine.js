@@ -109,22 +109,30 @@ export class PhysicsEngine {
         return minDist;
     }
 
-    getCourseHeight(x, z) {
-       if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
-    let baseHeight = 0.3; // Default lower fairway height
 
-    // Hill starts at -115 and climbs gently over 45 units to -160
-    if (z <= -115 && z >= -160) {
-        let t = (-115 - z) / 45;
-        let smoothSlope = t * t * (3 - 2 * t);
-        // Changed multiplier from 8.2 (for 8.5 total height) 
-        // If you want a height of 8.5, baseHeight = 0.3 + (smoothSlope * 8.2)
-        baseHeight = 0.3 + (smoothSlope * 8.2); 
-    } else if (z < -160) {
-        baseHeight = 8.5; // CHANGED from 14.0 to 8.5 to lower the plateau
-    } else {
-        baseHeight = 0.3;  // Lift initial fairway above water level
+    updateGreenPosition(x, z) {
+        this.greenCenterX = x;
+        this.greenCenterZ = z;
     }
+
+
+
+    getCourseHeight(x, z) {
+        if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
+            let baseHeight = 0.3; // Default lower fairway height
+
+            // Hill starts at -115 and climbs gently over 45 units to -160
+            if (z <= -115 && z >= -160) {
+                let t = (-115 - z) / 45;
+                let smoothSlope = t * t * (3 - 2 * t);
+                // Changed multiplier from 8.2 (for 8.5 total height) 
+                // If you want a height of 8.5, baseHeight = 0.3 + (smoothSlope * 8.2)
+                baseHeight = 0.3 + (smoothSlope * 8.2);
+            } else if (z < -160) {
+                baseHeight = 8.5; // CHANGED from 14.0 to 8.5 to lower the plateau
+            } else {
+                baseHeight = 0.3;  // Lift initial fairway above water level
+            }
 
 
             // 2. Track the dynamic center line path to build the right-side cliff face line

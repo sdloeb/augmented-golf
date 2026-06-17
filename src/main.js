@@ -708,39 +708,32 @@ function resetEntireGame(advanceHole = false) {
     holePosition.x = greenEndpoint.x + Math.cos(pinAngle) * pinRadius;
     holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
 
-    // The circular putting green and its helper grid map layer align centered with the course layout track
-    // 1. Force the logic to use your courseData.js settings for Hole 3
+    // 1. FORCING THE DATA:
+    // This looks at your courseData.js file first. 
+    // If it finds holePosition, it MUST use it.
     if (currentHoleConfig && currentHoleConfig.holePosition) {
         holePosition.x = currentHoleConfig.holePosition.x;
         holePosition.z = currentHoleConfig.holePosition.z;
     } else {
-        // Fallback for procedural holes
+        // Fallback to random waypoints only if no holePosition is defined
         const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
         holePosition.x = greenEndpoint.x;
         holePosition.z = greenEndpoint.z;
-
-        // Only apply random pin variance if it's NOT a custom hole
-        const pinAngle = Math.random() * Math.PI * 2;
-        const pinRadius = Math.random() * (window.activeGreenRadius - 3.0);
-        holePosition.x += Math.cos(pinAngle) * pinRadius;
-        holePosition.z += Math.sin(pinAngle) * pinRadius;
     }
 
-    // 2. THIS IS WHAT ACTUALLY MOVES THE GREEN VISUALLY
-    if (green) {
-        green.position.x = holePosition.x;
-        green.position.z = holePosition.z;
-    }
-    if (greenGrid) {
-        greenGrid.position.x = holePosition.x;
-        greenGrid.position.z = holePosition.z;
-    }
-    if (greenFringe) {
-        greenFringe.position.x = holePosition.x;
-        greenFringe.position.z = holePosition.z;
+    // 2. FORCING THE MOVEMENT:
+    // This physically sets the 3D meshes to the coordinates we just set above.
+    // If this code runs, the green WILL move.
+    if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
+    if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
+    if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
+
+    if (physics) {
+        physics.updateGreenPosition(holePosition.x, holePosition.z);
     }
 
-    // Crucial: Update the physics engine with the new hole center
+    // 3. UPDATING THE PHYSICS ENGINE:
+    // This tells the ball physics where the new center is.
     if (physics) {
         physics.greenCenterX = holePosition.x;
         physics.greenCenterZ = holePosition.z;
