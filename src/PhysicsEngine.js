@@ -110,20 +110,22 @@ export class PhysicsEngine {
     }
 
     getCourseHeight(x, z) {
-        if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
-            let baseHeight = 0.0;
+       if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
+    let baseHeight = 0.3; // Default lower fairway height
 
-            // 1. Model the dramatic uphill elevation incline along the Z axis (Hole 3 Pebble Beach 6)
-            if (z <= -125 && z >= -155) {
-                let t = (-125 - z) / 30; // Smoothly climbs over a 30-unit distance span
-                let smoothSlope = t * t * (3 - 2 * t);
-                // MODIFIED: Starts slope at the 0.3 fairway baseline and scales up to 14.0 to seal the water leak gap
-                baseHeight = 0.3 + (smoothSlope * 13.7);
-            } else if (z < -155) {
-                baseHeight = 14.0; // Flat upper clifftop table space
-            } else {
-                baseHeight = 0.3;  // Lift initial fairway above water level for a clean drop-off ledge
-            }
+    // Hill starts at -115 and climbs gently over 45 units to -160
+    if (z <= -115 && z >= -160) {
+        let t = (-115 - z) / 45;
+        let smoothSlope = t * t * (3 - 2 * t);
+        // Changed multiplier from 8.2 (for 8.5 total height) 
+        // If you want a height of 8.5, baseHeight = 0.3 + (smoothSlope * 8.2)
+        baseHeight = 0.3 + (smoothSlope * 8.2); 
+    } else if (z < -160) {
+        baseHeight = 8.5; // CHANGED from 14.0 to 8.5 to lower the plateau
+    } else {
+        baseHeight = 0.3;  // Lift initial fairway above water level
+    }
+
 
             // 2. Track the dynamic center line path to build the right-side cliff face line
             let pathCenter = 0;

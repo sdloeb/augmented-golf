@@ -1064,7 +1064,7 @@ function resetEntireGame(advanceHole = false) {
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && distToGreenCenter < fringeOuterR) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -125.5 && worldZ >= -155))) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -115 && worldZ >= -160))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
