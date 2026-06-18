@@ -1200,11 +1200,11 @@ function resetEntireGame(advanceHole = false) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // Forces the fairway to stop in a clean straight cut right at the green entrance line
-                    // UPDATED: Opens fairway at z = -20.0, creates the short chasm rough, and restores the fairway at z = -132.0 up the hill
+                    // FIXED: Changed from fringeOuterR to (activeR - 2.0) to allow the fairway grid to run smoothly underneath the green fringe.
+                    // This lets the perfect circular geometry of the fringe mesh mask the edge flawlessly, hiding all jagged teeth.
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && distToGreenCenter < fringeOuterR) ||
+                        (isCustomHole && distToGreenCenter < activeR - 2.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132))) ||
                         insideSandZone ||
@@ -1214,22 +1214,22 @@ function resetEntireGame(advanceHole = false) {
                         // FIXED: Automatically pulls hidden cuts deeper underground (-1.5) to neutralize triangle bleeding
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
                     } else if (distanceToPath <= fW) {
-                        // Add these lines: Smoothly dips the fairway height under the green fringe level
+                        // FIXED: Deepened the underground cushion dip to -0.06 to guarantee zero triangle bleeding through the fringe mesh
                         let cushion = 0.06;
                         if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(-0.02, 0.06, Math.max(0, Math.min(1, tFade)));
+                            cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                         }
                         calculatedHeight += cushion; // Modify this line
                     } else {
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                        // Add these lines: Mirror the dip for outer blended edges
+                        // FIXED: Deepened the edge cushion dip to -0.06 to match the clean blend profile perfectly
                         let cushion = 0.06;
                         if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(-0.02, 0.06, Math.max(0, Math.min(1, tFade)));
+                            cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                         }
 
                         const visibleHeight = calculatedHeight + cushion; // Modify this line
@@ -1237,6 +1237,8 @@ function resetEntireGame(advanceHole = false) {
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
+
+
 
                 }
             } // This bracket ends the insideWaterZone check clean
@@ -2491,7 +2493,7 @@ function init() {
 
 
     // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -2513,7 +2515,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
