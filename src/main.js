@@ -1999,7 +1999,10 @@ function animate() {
             const camX = ball.position.x - aimDirX * camDist; // Add this line
             const camZ = ball.position.z - aimDirZ * camDist; // Add this line
             const camGroundY = physics.getGroundHeight(camX, camZ); // Add this line: Samples the hill height behind the ball
-            const camY = Math.max(ball.position.y + camHeight, camGroundY + camHeight); // Add this line: Keeps camera safely above the rising slope
+
+            // FIXED: Prevent the camera from plunging if the ball is sinking into the cup
+            const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
+            const camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
 
             cameraTargetPos.set(camX, camY, camZ); // Modify this line
             cameraLookAt.set(lookTargetX, lookTargetY + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
@@ -2190,18 +2193,20 @@ function animate() {
         const camBaseX = physics.isPutting ? refX : ball.position.x;
         const camBaseZ = physics.isPutting ? refZ : ball.position.z;
 
+        // FIXED: Establish a stable height anchor so the camera stays on the green surface while the ball sinks underground
+        const stableBallY = isSinking ? (physics.getGroundHeight(holePosition.x, holePosition.z) + 0.25) : ball.position.y;
+
         cameraTargetPos.set(
             camBaseX - dirX * rigidCamDist,
-            ball.position.y + rigidCamHeight,
+            stableBallY + rigidCamHeight,
             camBaseZ - dirZ * rigidCamDist
         );
 
         cameraLookAt.set(
-            ball.position.x + dirX * lookAheadDist,
-            ball.position.y + lookUpOffset,
-            ball.position.z + dirZ * lookAheadDist
+            (isSinking ? holePosition.x : ball.position.x) + dirX * lookAheadDist,
+            stableBallY + lookUpOffset,
+            (isSinking ? holePosition.z : ball.position.z) + dirZ * lookAheadDist
         );
-
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
