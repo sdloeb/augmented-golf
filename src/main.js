@@ -33,7 +33,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 // Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
 const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
-        par: 4,
+        par: 3,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
@@ -217,12 +217,6 @@ function updateDistanceDisplay() {
         }
     }
 
-    const clubText = document.getElementById('clubText');
-    if (clubText && input) {
-        const club = input.getClubInfo();
-        // CHANGED: Appends the max yards capacity directly after the club name string
-        clubText.innerText = `${club.name} (${club.maxYards} yds)`;
-    }
 
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
@@ -266,50 +260,70 @@ function updateDistanceDisplay() {
         leftBtn.innerText = '◀';
 
         // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === clubList.length - 1) { // Modify this line: Change 0 to clubList.length - 1
+        if (currentIdx === 0) {
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx < clubList.length - 1) { // Modify this line: Change > 0 to < clubList.length - 1
-                input.chosenClubIndex = cIdx + 1; // Modify this line: Change cIdx - 1 to cIdx + 1
-                updateDistanceDisplay(); // Refresh UI layout positions instantly
+            if (cIdx > 0) {
+                input.chosenClubIndex = cIdx - 1;
+                updateDistanceDisplay();
             }
         });
 
-        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to longer distance clubs)
+        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to shorter distance clubs)
         const rightBtn = document.createElement('button');
         rightBtn.className = 'club-option';
         rightBtn.innerText = '▶';
 
-        // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === 0) { // Modify this line: Check against index 0 limit
+        // Disable the arrow if we are already holding the shortest selectable non-putter club (SW Iron at index 10)
+        if (currentIdx === clubList.length - 2) {
             rightBtn.style.opacity = '0.3';
             rightBtn.style.pointerEvents = 'none';
         }
         rightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx > 0) { // Modify this line: Decrement index to select longer clubs
-                input.chosenClubIndex = cIdx - 1;
-                updateDistanceDisplay(); // Refresh UI layout positions instantly
+            if (cIdx < clubList.length - 2) {
+                input.chosenClubIndex = cIdx + 1;
+                updateDistanceDisplay();
             }
         });
 
-        // Create an informative text badge between the arrows showing the currently highlighted club
-        const clubLabel = document.createElement('span');
-        clubLabel.style.color = '#ffffff';
-        clubLabel.style.fontSize = '14px';
-        clubLabel.style.fontWeight = 'bold';
-        clubLabel.style.minWidth = '65px';
-        clubLabel.style.textAlign = 'center';
-        clubLabel.innerText = clubList[currentIdx].name;
+        // Create a vertical flex container to perfectly stack name and yards between the arrows
+        const clubLabelWrapper = document.createElement('div');
+        clubLabelWrapper.style.display = 'flex';
+        clubLabelWrapper.style.flexDirection = 'column';
+        clubLabelWrapper.style.alignItems = 'center';
+        clubLabelWrapper.style.justifyContent = 'center';
+        clubLabelWrapper.style.minWidth = '85px'; // Slightly widened to keep layout rock-solid on longer names
+        clubLabelWrapper.style.textAlign = 'center';
 
-        // Append all three nodes to create the smooth inline selection row
+        // 1. The Club Name text sub-layer (Crisp White)
+        const nameSpan = document.createElement('span');
+        nameSpan.style.color = '#ffffff';
+        nameSpan.style.fontSize = '16px';
+        nameSpan.style.fontWeight = 'bold';
+        nameSpan.style.lineHeight = '1.2';
+        nameSpan.innerText = clubList[currentIdx].name;
+
+        // 2. The Club Max Capacity text sub-layer (Vibrant Light Blue)
+        const yardsSpan = document.createElement('span');
+        yardsSpan.style.color = '#00ffcc';
+        yardsSpan.style.fontSize = '16px'; // Slightly smaller font scale for perfect hierarchy
+        yardsSpan.style.fontWeight = 'bold';
+        yardsSpan.style.marginTop = '2px';
+        yardsSpan.innerText = `(${clubList[currentIdx].maxYards} yds)`;
+
+        // Append text elements into our new vertical sub-layout frame
+        clubLabelWrapper.appendChild(nameSpan);
+        clubLabelWrapper.appendChild(yardsSpan);
+
+        // Append the nodes in order to create the clean row layout
         container.appendChild(leftBtn);
-        container.appendChild(clubLabel);
+        container.appendChild(clubLabelWrapper);
         container.appendChild(rightBtn);
     }
 
@@ -375,7 +389,7 @@ function generateHazards() {
 
     // Use a safe fallback if green hasn't initialized yet
     const targetGreenZ = green ? green.position.z : -55;
-    const targetGreenX = green ? green.position.x : 0;
+    const targetGreenX = holePosition.x;
 
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 7.0 + Math.random() * 4.5;
@@ -697,19 +711,48 @@ function resetEntireGame(advanceHole = false) {
     holePosition.x = greenEndpoint.x + Math.cos(pinAngle) * pinRadius;
     holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
 
-    // The circular putting green and its helper grid map layer align centered with the course layout track
-    if (green) {
-        green.position.x = greenEndpoint.x;
-        green.position.z = greenCenterZ;
+    // --- 1. SET HOLE POSITION (PRIORITY: CUSTOM DATA) ---
+    // Clear out any old values first
+    holePosition.x = 0;
+    holePosition.z = 0;
+
+    if (currentHoleConfig && currentHoleConfig.holePosition) {
+        // Use custom config
+        holePosition.x = currentHoleConfig.holePosition.x;
+        holePosition.z = currentHoleConfig.holePosition.z;
+    } else {
+        // Fallback for procedural
+        const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
+        holePosition.x = greenEndpoint.x;
+        holePosition.z = greenEndpoint.z;
+
+        // Add random pin variance only if NOT custom
+        const pinAngle = Math.random() * Math.PI * 2;
+        const pinRadius = Math.random() * (window.activeGreenRadius - 3.0);
+        holePosition.x += Math.cos(pinAngle) * pinRadius;
+        holePosition.z += Math.sin(pinAngle) * pinRadius;
     }
-    if (greenGrid) {
-        greenGrid.position.x = greenEndpoint.x;
-        greenGrid.position.z = greenCenterZ;
+
+    greenCenterZ = holePosition.z; // Sync helper variable
+
+    // --- 2. PHYSICALLY MOVE THE MESHES ---
+    if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
+    if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
+    if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
+
+    // --- 3. SYNC PHYSICS ENGINE ---
+    if (physics) {
+        physics.greenCenterX = holePosition.x;
+        physics.greenCenterZ = holePosition.z;
+        physics.updateGreenPosition(holePosition.x, holePosition.z);
     }
-    if (greenFringe) {
-        greenFringe.position.x = greenEndpoint.x;
-        greenFringe.position.z = greenCenterZ;
-    } // Add this line
+
+    // 3. UPDATING THE PHYSICS ENGINE:
+    // This tells the ball physics where the new center is.
+    if (physics) {
+        physics.greenCenterX = holePosition.x;
+        physics.greenCenterZ = holePosition.z;
+    }
 
     // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
     const horizontalOptions = [0.0, 0.05, -0.05];
@@ -729,8 +772,8 @@ function resetEntireGame(advanceHole = false) {
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
-        const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20); // Modify this line
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenEndpoint.x, greenCenterZ, generatedWidth);
+        const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, holePosition.x, holePosition.z, generatedWidth);
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
@@ -789,7 +832,6 @@ function resetEntireGame(advanceHole = false) {
                         color: 0x0000ff,
                         specular: 0xffffff,
                         shininess: 150,
-
                         side: THREE.DoubleSide
                     })
                 );
@@ -816,20 +858,30 @@ function resetEntireGame(advanceHole = false) {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                     }
+                    let cliffPadding = 18.0; // Pushed wall 3 units further right
+                    if (currentZ < -115) {
+                        cliffPadding = THREE.MathUtils.lerp(18.0, 13.0, Math.max(0, Math.min(1, (-115 - currentZ) / 10.0)));
+                    }
+                    const cliffEdgeLimit = pathCenter + cliffPadding;
 
-                    // Align the wall crest precisely with the expanded physics engine edge limits
-                    const cliffEdgeLimit = pathCenter + (currentZ <= -125 ? 10.5 : 15.5); // Modify this line: Dynamically tracks the water edge shift
-                    // MODIFIED: Swapped coordinates to pathCenter so the wall queries the high hilltop fairway plateau before any cliff fading happens
                     const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
 
-                    const rockWidth = 5.0 + (Math.sin(currentZ * 1.5) * 0.3);
-                    const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12;
+                    // FIXED: Seamlessly taper down rock ruggedness and rotations on the flat fairway section so it functions as a smooth retaining curb
+                    let ruggedIntensity = 1.0;
+                    if (currentZ >= -125) {
+                        ruggedIntensity = 0.0; // Perfectly smooth and flush alongside the low fairway turf
+                    } else if (currentZ > -135) {
+                        ruggedIntensity = (-125 - currentZ) / 10.0; // Gracefully blends rock fracturing back in as it climbs up the hill crest
+                    }
+
+                    const rockWidth = 5.0 + (Math.sin(currentZ * 1.5) * 0.3 * ruggedIntensity);
+                    const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12 * ruggedIntensity;
 
                     const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, sliceLength + 0.08);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
 
-                    cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03;
-                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04;
+                    cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03 * ruggedIntensity;
+                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04 * ruggedIntensity;
 
                     // Position the rock face flush against the outer boundaries
                     const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset;
@@ -1040,7 +1092,7 @@ function resetEntireGame(advanceHole = false) {
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && distToGreenCenter < fringeOuterR) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -125.5 && worldZ >= -155))) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -115 && worldZ >= -172))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
@@ -2305,8 +2357,8 @@ function init() {
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x666666));
 
-    // 5. Add Virtual Golf Green Floor
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 60, 160);
+    // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -2328,7 +2380,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 60, 160);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
@@ -2569,7 +2621,7 @@ function init() {
         let finalPower = power;
         if (isOnGreen) {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
-            finalPower *= 1.25;
+            finalPower *= 2.10;
         }
 
         const club = input.getClubInfo(); // Add this line: Moved club info to the top of launch
@@ -2917,19 +2969,28 @@ function showScorecard() {
 
     overlay.style.display = 'flex';
 
-    const proceedToNextHole = (e) => { // Modify this line to include (e)
+    const nextHoleBtn = document.getElementById('nextHoleBtn');
+
+    const proceedToNextHole = (e) => {
         if (e) e.stopPropagation();
         if (e && e.type === 'touchstart') e.preventDefault();
-        overlay.removeEventListener('click', proceedToNextHole);
-        overlay.removeEventListener('touchstart', proceedToNextHole);
+
+        // Unbind listeners from the button to keep memory clean
+        if (nextHoleBtn) {
+            nextHoleBtn.removeEventListener('click', proceedToNextHole);
+            nextHoleBtn.removeEventListener('touchstart', proceedToNextHole);
+        }
+
         overlay.style.display = 'none';
         resetEntireGame(true);
     };
 
+    // Bind interaction triggers ONLY to the button instead of the full background layout
     setTimeout(() => {
-        overlay.addEventListener('click', proceedToNextHole);
-        overlay.addEventListener('touchstart', proceedToNextHole);
-
+        if (nextHoleBtn) {
+            nextHoleBtn.addEventListener('click', proceedToNextHole);
+            nextHoleBtn.addEventListener('touchstart', proceedToNextHole);
+        }
     }, 10);
 }
 

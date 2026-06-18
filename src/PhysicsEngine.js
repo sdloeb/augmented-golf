@@ -109,21 +109,31 @@ export class PhysicsEngine {
         return minDist;
     }
 
-    /* Add this entire block below */
+
+    updateGreenPosition(x, z) {
+        this.greenCenterX = x;
+        this.greenCenterZ = z;
+    }
+
+
+
     getCourseHeight(x, z) {
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
-            let baseHeight = 0.0;
+            let baseHeight = 0.3; // Default lower fairway height
 
-            // 1. Model the dramatic uphill elevation incline along the Z axis (Hole 3 Pebble Beach 6)
-            if (z <= -125 && z >= -155) {
-                let t = (-125 - z) / 30; // Smoothly climbs over a 30-unit distance span
+            // Hill starts at -115 and climbs gently over 45 units to -160
+            if (z <= -115 && z >= -160) {
+                let t = (-115 - z) / 45;
                 let smoothSlope = t * t * (3 - 2 * t);
-                baseHeight = smoothSlope * 14.0;      // Way less steep clifftop bluff table
-            } else if (z < -155) {
-                baseHeight = 14.0; // Flat upper clifftop table space
+                // Changed multiplier from 8.2 (for 8.5 total height) 
+                // If you want a height of 8.5, baseHeight = 0.3 + (smoothSlope * 8.2)
+                baseHeight = 0.3 + (smoothSlope * 8.2);
+            } else if (z < -160) {
+                baseHeight = 8.5; // CHANGED from 14.0 to 8.5 to lower the plateau
             } else {
-                baseHeight = 0.3;  // Lift initial fairway above water level for a clean drop-off ledge
+                baseHeight = 0.3;  // Lift initial fairway above water level
             }
+
 
             // 2. Track the dynamic center line path to build the right-side cliff face line
             let pathCenter = 0;
@@ -137,27 +147,30 @@ export class PhysicsEngine {
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
-            // Add these two lines here to smoothly transition the padding:
-            let cliffPadding = 15.5;
-            if (z < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 10.0))); }
+            let cliffEdgeLimit;
 
-            const cliffEdgeLimit = pathCenter + cliffPadding; // Replace your old line with this one
-            if (x > cliffEdgeLimit && z <= -51.75) {
-                if (z <= -125) {
-                    return 0.001; // Plunges vertically down to sea level instantly on the hill face
+            if (z < -115) {
+                // LOCK: Provide a wide shelf for bunkers by locking the edge to 20.0
+                cliffEdgeLimit = 20.0;
+            } else {
+                // STANDARD: Follow the path center with standard padding
+                let pathCenter = 0;
+                if (z >= -125) {
+                    let t = (10 - z) / 135;
+                    pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
                 } else {
-                    return 0.05;  // Small drop-off right to the water's edge before the hill
+                    let t = (-125 - z) / 55;
+                    t = Math.min(1.0, t);
+                    pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
                 }
-            } else if (x > (cliffEdgeLimit - 4.0) && z <= -51.75) {
-                // Smoothly round the grass edge right at the cliff edge lip
-                let lipFade = (x - (cliffEdgeLimit - 4.0)) / 4.0;
-                lipFade = Math.max(0, Math.min(1, lipFade));
-                if (z <= -125) {
-                    baseHeight = THREE.MathUtils.lerp(baseHeight, 0.0, lipFade * lipFade);
-                } else {
-                    baseHeight = THREE.MathUtils.lerp(0.3, 0.05, lipFade); // Slopes grass down smoothly before the small drop
-                }
+                cliffEdgeLimit = pathCenter + 15.5;
             }
+
+            // Apply the drop-off to sea level
+            if (x > cliffEdgeLimit && z <= -51.75) {
+                return 0.001;
+            }
+
 
             // Smooth out the left rough boundary map lines to prevent clipping gaps
             let leftSideFade = Math.min(1, Math.max(0, (80 - Math.abs(x)) / 15));
@@ -421,7 +434,7 @@ export class PhysicsEngine {
             // Receptive Green Landing: Base calibrations optimized for wedges
             currentBounceHeight = 0.22;
             currentBounceForwardLoss = 0.35;
-            currentFriction = 0.965;
+            currentFriction = 0.956;
 
             // NEW: If it's a full shot (not a putt) adjust behavior based on landing loft angle
             if (!this.isPutting && this.currentLoft) {
@@ -450,7 +463,7 @@ export class PhysicsEngine {
         }
 
         if (this.isPutting) {
-            currentFriction = 0.984; // Preserves your exact putting calibration constant
+            currentFriction = 0.979; // Preserves your exact putting calibration constant
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -562,8 +575,25 @@ export class PhysicsEngine {
                 slopeGravityModifier = 0.35;
             }
 
-            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * slopeGravityModifier * timeScale; // Modify this line
-            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * slopeGravityModifier * timeScale; // Modify this line
+            // NEW: Anti-infinite rolling capture mechanism on green slopes
+            // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
+            if (onGreen && slopeMagnitude < 0.14) {
+                const speed = this.velocity.length();
+                if (speed < 0.09) {
+                    // Smoothly scale gravity modifier down instead of a hard cut, letting the ball coast naturally
+                    let fade = (speed - 0.024) / (0.09 - 0.024);
+                    if (fade < 0) fade = 0;
+                    if (fade > 1) fade = 1;
+                    slopeGravityModifier = fade;
+
+                    // Soft extra dampening helper so it glides smoothly to a stop without an aggressive halt
+                    this.velocity.x *= 0.965;
+                    this.velocity.z *= 0.965;
+                }
+            }
+
+            this.velocity.x += (currentlyInSand ? rawSlopeX : this.slopeX) * gravityRollPower * slopeGravityModifier * timeScale;
+            this.velocity.z += (currentlyInSand ? rawSlopeZ : this.slopeZ) * gravityRollPower * slopeGravityModifier * timeScale;
         }
 
         // 2. MOVE THE BALL 

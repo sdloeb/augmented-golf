@@ -525,6 +525,11 @@ html {
         font-size: 20px !important;
     }
 
+    /* NEW: Overrides the blanket 14px rule above to keep distance text larger on mobile */
+    #distanceLine {
+        font-size: 16px !important;
+    }
+
     #windText,
     #scoreContainer div {
         font-size: 14px !important;
@@ -701,8 +706,10 @@ html {
 }
 
 #scorecardPlacard {
-    width: 90%;
-    max-width: 650px;
+    width: 94%;
+    /* MODIFIED: Spreads out slightly closer to screen edges on small devices */
+    max-width: 860px;
+    /* MODIFIED: Increased from 650px to easily span 9 full holes landscape style */
     background: linear-gradient(135deg, #5c4033, #3d2b22);
     border: 4px solid #2b1e18;
     border-radius: 8px;
@@ -729,20 +736,27 @@ html {
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.2);
     padding: 6px;
+    /* NEW: Bypasses body constraints to allow horizontal touch swiping */
+    touch-action: pan-x !important;
+    /* NEW: Fluid, high-performance momentum drag support on iOS Safari wrappers */
+    -webkit-overflow-scrolling: touch;
 }
 
 #scorecardTable {
     width: 100%;
     border-collapse: collapse;
-    font-size: 16px;
+    font-size: 15px;
+    /* MODIFIED: Scaled down 1px to maximize data packing visibility */
 }
 
 #scorecardTable th,
 #scorecardTable td {
     border: 1px solid rgba(247, 231, 196, 0.25);
-    padding: 10px 8px;
     text-align: center;
-    min-width: 45px;
+    padding: 10px 4px;
+    /* MODIFIED: Cut horizontal space in half from 8px to 4px to pack cells tightly */
+    min-width: 32px;
+    /* MODIFIED: Compressed down from 45px so 9 holes stack into minimal screen space */
 }
 
 #scorecardTable th {
