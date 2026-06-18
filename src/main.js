@@ -1819,7 +1819,10 @@ function animate() {
 
     if (isSinking) {
         // Linearly drop the ball downward beneath the flat ground plane layout
-        ball.position.y -= 0.015;
+        // FIXED: Only subtract height if the ball hasn't reached its hidden subterranean resting limit yet
+        if (ball.position.y > -0.15) {
+            ball.position.y -= 0.015;
+        }
 
         // Once it drops safely inside the hole depth out of sight (Y <= -0.15)
         if (ball.position.y <= -0.15 && ball.position.y > -900) {
