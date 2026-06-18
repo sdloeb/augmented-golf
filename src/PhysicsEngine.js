@@ -227,7 +227,17 @@ export class PhysicsEngine {
             height += (this.bigFeatureScale || 0) * 1.8 * bigInfluence; // Change this line
         }
 
-        let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6)); // Add this line
+        // FIXED: Dynamically expand course width masking limits so wide 90-degree dogleg layouts (Holes 4 and 5) don't fall off into a flat zero-height void
+        let maxLayoutWidth = 30;
+        if (this.fairwayPoints && this.fairwayPoints.length > 0) {
+            this.fairwayPoints.forEach(p => {
+                const absX = Math.abs(p.x);
+                if (absX > maxLayoutWidth) maxLayoutWidth = absX;
+            });
+        }
+        const dynamicBoundary = maxLayoutWidth + (this.fairwayWidth || 9.0) + 12.0;
+
+        let xFade = Math.min(1, Math.max(0, (dynamicBoundary - Math.abs(x)) / 10)); 
         return Math.max(0.001, height * teeFade * xFade); // Change this line
     }
 

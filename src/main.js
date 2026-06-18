@@ -1312,6 +1312,9 @@ function resetEntireGame(advanceHole = false) {
     cameraLookAt.set(ball.position.x + startForwardX * 12, ball.position.y, ball.position.z + startForwardZ * 12);
     currentLookAt.copy(cameraLookAt);
 
+    // FIXED: Force the camera to instantly teleport to the new Tee Box coordinates instead of slowly floating through space from the previous green location
+    camera.position.copy(cameraTargetPos);
+
     sceneryObjects.forEach(obj => scene.remove(obj));
     sceneryObjects = [];
 
