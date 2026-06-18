@@ -499,9 +499,9 @@ export class PhysicsEngine {
         const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
         let timeScale = isAirborne ? 0.6 : 1.0;
 
-        // FIXED: Increased from 0.45 to 0.70. This makes the ball roll 55% faster visually (snappy out of the gate)
-        // while the math automatically preserves the exact 80ft calibrated distance limit.
-        const puttSpeedFactor = 0.70;
+        // FIXED: Set speed factor to 0.38 to visually slow down the rolling speed of the ball,
+        // giving it a realistic, smooth grass glide while preserving your distance calibration perfectly.
+        const puttSpeedFactor = 0.38;
         if (!isAirborne && this.isPutting) {
             timeScale *= puttSpeedFactor;
             currentFriction = 1.0 - puttSpeedFactor * (1.0 - currentFriction);
@@ -802,10 +802,9 @@ export class PhysicsEngine {
             }
         }
 
-        // 4. STOP CONSTANT LOOPS 
-        // UPDATED: Putts get a higher threshold (0.024) to simulate real grass blades capturing 
-        // the ball at low speeds, completely eliminating the unnatural micro-creeping at the end.
-        const stopThreshold = this.isPutting ? 0.024 : 0.012;
+        // FIXED: Adjusted the putting stop threshold to 0.014 to complement the slower visual roll speed,
+        // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
+        const stopThreshold = this.isPutting ? 0.014 : 0.012;
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
