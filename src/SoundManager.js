@@ -1,6 +1,6 @@
 export class SoundManager {
     constructor() {
-        // FIXED: Pre-allocate 4 separate channels for every track to support overlapping micro-bounces cleanly.
+        // Pre-allocate 4 separate channels for short, rapid action sound effects
         const poolSize = 4;
 
         this.sounds = {
@@ -10,8 +10,17 @@ export class SoundManager {
             water: Array.from({ length: poolSize }, () => new Audio('./sounds/water.wav')),
             putt: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')),
             sand: Array.from({ length: poolSize }, () => new Audio('./sounds/sand.wav')),
-            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')) // Fallback for the cup drop
+            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav'))
         };
+
+        // FIXED: Independent standalone container for background ambient loops
+        this.ambientSounds = {
+            birds: new Audio('./sounds/birds.wav')
+        };
+
+        // Configure background loop rules and lower the volume so it doesn't drown out hits
+        this.ambientSounds.birds.loop = true;
+        this.ambientSounds.birds.volume = 0.20; 
 
         // Ring buffer position index trackers
         this.poolIndices = {
@@ -24,7 +33,7 @@ export class SoundManager {
             sink: 0
         };
 
-        // Pre-adjust volumes across all channels to balance track levels nicely
+        // Pre-adjust short effect volumes
         this.sounds.swing.forEach(s => s.volume = 0.5);
         this.sounds.iron.forEach(s => s.volume = 0.5);
         this.sounds.bounce.forEach(s => s.volume = 0.5);
@@ -33,13 +42,16 @@ export class SoundManager {
         this.sounds.sand.forEach(s => s.volume = 0.6);
         this.sounds.sink.forEach(s => s.volume = 0.7);
 
-        // Force browser cache structures to load files immediately to eliminate launch stuttering
+        // Force browser cache structures to load files immediately
         Object.values(this.sounds).forEach(audioArray => {
             audioArray.forEach(sound => {
                 sound.preload = 'auto';
                 sound.load();
             });
         });
+        
+        this.ambientSounds.birds.preload = 'auto';
+        this.ambientSounds.birds.load();
     }
 
     play(soundName) {
@@ -54,6 +66,24 @@ export class SoundManager {
             }
 
             this.poolIndices[soundName] = (idx + 1) % audioArray.length;
+        }
+    }
+
+    // FIXED: Dedicated function to handle ambient loop tracks with built-in browser autoplay permissions fallback
+    playAmbient(soundName) {
+        const ambient = this.ambientSounds[soundName];
+        if (ambient) {
+            ambient.play().catch(err => {
+                // If browser blocks initial page-load autoplay, register an invisible one-time trigger 
+                // that plays the birds the very split second the user clicks or taps anywhere on screen.
+                const startOnInteraction = () => {
+                    ambient.play().catch(e => console.log(e));
+                    window.removeEventListener('click', startOnInteraction);
+                    window.removeEventListener('touchstart', startOnInteraction);
+                };
+                window.addEventListener('click', startOnInteraction);
+                window.addEventListener('touchstart', startOnInteraction);
+            });
         }
     }
 }

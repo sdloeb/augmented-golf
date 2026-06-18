@@ -2948,6 +2948,11 @@ function init() {
         lastTouchEnd = now;
     }, false);
 
+    // FIXED: Kick off your background ambient loop sequence when the game sets up
+    if (sounds) {
+        sounds.playAmbient('birds');
+    }
+
     animate();
 }
 

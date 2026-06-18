@@ -24,6 +24,9 @@ export class PhysicsEngine {
         this.fairwayPoints = [];
         this.hasLanded = false;
         this.fairwayWidth = 9.0;
+
+        // FIXED: Track the number of landing impacts to silence rolling hill ripples
+        this.bounceCount = 0;
     }
 
     // NEW: Receives the shuffled configurations from the map setup
@@ -390,8 +393,11 @@ export class PhysicsEngine {
             this.velocity.x *= horizontalAdjustment;
             this.velocity.z *= horizontalAdjustment;
         }
-        this.isPutting = isPutting;
+        his.isPutting = isPutting;
         this.isMoving = true;
+
+        // FIXED: Reset the bounce counter on every new stroke launch
+        this.bounceCount = 0;
     }
 
     update() {
@@ -794,14 +800,16 @@ export class PhysicsEngine {
             }
 
             if (Math.abs(this.velocity.y) > 0.05) {
-                // FIXED: Direct ground collision sounds based on landing context. High vertical drops 
-                // inside sand trap perimeters play sand.wav, while grass turf impacts play bounce.wav.
-                if (this.sounds && Math.abs(this.velocity.y) > 0.20 && !this.isPutting) {
+                // FIXED: Lowered threshold to 0.08 to capture the first landing immediately (no 2-second delay).
+                // Added a bounceCount cap of 3 to allow authentic landing bounces but eliminate 10 seconds of rolling hill chatter.
+                if (this.sounds && Math.abs(this.velocity.y) > 0.08 && !this.isPutting && this.bounceCount < 3) {
                     if (inSand) {
                         this.sounds.play('sand');
                     } else {
                         this.sounds.play('bounce');
                     }
+                    this.bounceCount++; // Increment count on each airborne landing hit
+
                 }
 
                 this.velocity.y = -this.velocity.y * currentBounceHeight;
