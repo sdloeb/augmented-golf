@@ -442,17 +442,19 @@ export class PhysicsEngine {
         // Modify this block: Calculates if the ball is inside the green fringe circle or behind the green center
         const relX = this.ball.position.x - this.greenCenterX;
         const relZ = this.ball.position.z - this.greenCenterZ;
-        const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ); // Add this line
+        const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
         const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
-        const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
+        const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0);
         let activeFW = this.fairwayWidth;
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
-            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t); // Matches fanning physics
+            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t);
         }
-        if (this.greenCenterZ < -165 && this.greenCenterZ > -185 && this.ball.position.z <= -41.64 && this.ball.position.z >= -125) { // Update this line
-            activeFW = 18.0; // Keep this line
-        } // Keep this line
+
+        // UPDATED: Synchronizes physics width map to match our visual starting line (-20.0 to -115)
+        if (this.greenCenterZ < -165 && this.greenCenterZ > -185 && this.ball.position.z <= -20.0 && this.ball.position.z >= -115) {
+            activeFW = 18.0;
+        }
 
         if (inSand) {
             currentFriction = 0.72;
@@ -460,24 +462,19 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.25;
         }
         else if (onGreen) {
-            // Receptive Green Landing: Base calibrations optimized for wedges
             currentBounceHeight = 0.22;
             currentBounceForwardLoss = 0.35;
             currentFriction = 0.956;
 
-            // NEW: If it's a full shot (not a putt) adjust behavior based on landing loft angle
             if (!this.isPutting && this.currentLoft) {
-                // A lower loft value (Driver = 0.040) means less vertical check, more forward skid
-                // A higher loft value (SW = 0.063) naturally preserves your high biting check-up settings
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
-
-                // Low loft clubs get higher bounce resilience and much less forward speed loss (skidding out)
                 currentBounceHeight = 0.22 * (2.0 - loftRatio);
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
+        // UPDATED: Matches roll physics boundaries directly to the updated visual cuts
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
-            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -41.64 && this.ball.position.z > -125) || this.ball.position.z < -155) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
+            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || this.ball.position.z < -132.0) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             // MODIFIED: Added this.ball.position.z <= -41.64 so the first 143 yards off the tee on Hole 3 trigger rough physics, while the flat landing landing zone maintains fairway physics
             currentFriction = 0.91;

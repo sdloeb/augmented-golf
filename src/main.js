@@ -70,23 +70,32 @@ const HOLES_CONFIG = {
             new THREE.Vector3(-3, 0, -180)
         ],
         hazards: [
-            // Bunkers on the left
-            { type: 'sand', x: -21.5, z: -92.0, radius: 3.4, depth: 0.55 },
-            { type: 'sand', x: -20.5, z: -100.5, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: -17.5, z: -100.0, radius: 1.9, depth: 0.50 },
-            { type: 'sand', x: -22.5, z: -108.5, radius: 1.4, depth: 0.45 },
-            { type: 'sand', x: -18.5, z: -109.0, radius: 2.6, depth: 0.60 },
-            { type: 'sand', x: -17.5, z: -118.0, radius: 3.0, depth: 0.60 },
-            // 1. Clean continuous single-polygon sand trap with uniform depth
+            // Bunkers on the left (Shifted back to flank the lower driver landing zone precisely)
+            { type: 'sand', x: -21.5, z: -72.0, radius: 3.4, depth: 0.55 },
+            { type: 'sand', x: -20.5, z: -80.5, radius: 2.2, depth: 0.50 },
+            { type: 'sand', x: -17.5, z: -80.0, radius: 1.9, depth: 0.50 },
+            { type: 'sand', x: -22.5, z: -88.5, radius: 1.4, depth: 0.45 },
+            { type: 'sand', x: -18.5, z: -89.0, radius: 2.6, depth: 0.60 },
+            { type: 'sand', x: -17.5, z: -98.0, radius: 3.0, depth: 0.60 },
+            // 1. Narrower continuous single-polygon sand trap with smooth radius edges
             {
                 type: 'sand',
                 shape: 'polygon',
                 depth: 0.55,
                 points: [
-                    { x: -25.2, z: -131.0 }, // Top-left corner bounding the old track
-                    { x: -19.2, z: -135.0 }, // Top-right corner 
-                    { x: -11.5, z: -157.0 }, // Bottom-right corner 
-                    { x: -17.5, z: -153.0 }  // Bottom-left corner running smoothly down the rough
+                    // Top rounded end (Arc sweeping across the top tip)
+                    { x: -25.2, z: -134.8 }, // Top-Left outer edge
+                    { x: -23.8, z: -130.8 }, // Top-Left curve point
+                    { x: -20.5, z: -129.4 }, // Top Apex Center (rounded cap)
+                    { x: -17.2, z: -130.6 }, // Top-Right curve point
+                    { x: -16.8, z: -132.2 }, // Top-Right outer edge
+
+                    // Bottom rounded end (Arc sweeping across the bottom tip)
+                    { x: -9.3, z: -152.4 }, // Bottom-Right outer edge
+                    { x: -10.0, z: -156.8 }, // Bottom-Right curve point
+                    { x: -13.2, z: -158.4 }, // Bottom Apex Center (rounded cap)
+                    { x: -16.5, z: -157.2 }, // Bottom-Left curve point
+                    { x: -17.7, z: -155.6 }  // Bottom-Left outer edge
                 ]
             },
             // 2. The single intermediate bunker in the left rough before the green
@@ -390,11 +399,12 @@ function createSnakingBunker(path, spacing, radius, depth) {
 
 function addPolygonSandTrap(points, depth) {
     const shape = new THREE.Shape();
-    shape.moveTo(points[0].x, points[0].z);
+    // FIXED: Invert the Z coordinates to counteract the -Math.PI / 2 mesh rotation flip
+    shape.moveTo(points[0].x, -points[0].z);
     for (let i = 1; i < points.length; i++) {
-        shape.lineTo(points[i].x, points[i].z);
+        shape.lineTo(points[i].x, -points[i].z);
     }
-    shape.lineTo(points[0].x, points[0].z); // Close the path
+    shape.lineTo(points[0].x, -points[0].z); // Close the path
 
     const geometry = new THREE.ShapeGeometry(shape);
     const material = new THREE.MeshStandardMaterial({
@@ -828,9 +838,16 @@ function resetEntireGame(advanceHole = false) {
     const verticalOptions = [0.03, -0.03, 0.0];
 
     // Build the 3 distinct randomized tier zones configuration blocks
-    const backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
-    const midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
-    const frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    let backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    let midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    let frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+
+    // FIXED OVERRIDE: Forces Hole 3 to mimic the real left-to-right severe slope breaking toward the ocean cliff
+    if (currentHoleNumber === 3) {
+        backZoneProfile = { rx: -0.04, rz: 0.01 };
+        midZoneProfile = { rx: -0.05, rz: 0.00 };
+        frontZoneProfile = { rx: -0.03, rz: -0.02 };
+    }
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
@@ -1077,20 +1094,39 @@ function resetEntireGame(advanceHole = false) {
             let insideSandZone = false;
             let activeSandDepth = 0;
             sandTraps.forEach(sand => {
-                const dxS = worldX - sand.position.x;
-                const dzS = worldZ - sand.position.z;
-                let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+                if (sand.userData && sand.userData.isPolygon) {
+                    // High-performance Point-in-Polygon check to carve visual grass/fairway meshes
+                    const points = sand.userData.points;
+                    let inside = false;
+                    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                        const xi = points[i].x, zi = points[i].z;
+                        const xj = points[j].x, zj = points[j].z;
+                        const intersect = ((zi > worldZ) !== (zj > worldZ))
+                            && (worldX < (xj - xi) * (worldZ - zi) / (zj - zi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    if (inside) {
+                        insideSandZone = true;
+                        const depth = sand.userData.depth || 0.6;
+                        if (depth > activeSandDepth) activeSandDepth = depth;
+                    }
+                } else {
+                    // Preserves original circle geometry setup unmodified
+                    const dxS = worldX - sand.position.x;
+                    const dzS = worldZ - sand.position.z;
+                    let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                // Add these lines below to distort the visual border based on the angle
-                const angle = Math.atan2(dzS, dxS);
-                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                const padding = (targetMesh === floor || targetMesh === fairway) ? 1.6 : 0.0; // Add this line
-                const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding) * shapeWarp; // Modify this line
+                    // Add these lines below to distort the visual border based on the angle
+                    const angle = Math.atan2(dzS, dxS);
+                    const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
+                    const padding = (targetMesh === floor || targetMesh === fairway) ? 1.6 : 0.0; // Add this line
+                    const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding) * shapeWarp; // Modify this line
 
-                if (distToSand < sandRadius) {
-                    insideSandZone = true;
-                    const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
-                    if (depth > activeSandDepth) activeSandDepth = depth;
+                    if (distToSand < sandRadius) {
+                        insideSandZone = true;
+                        const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
+                        if (depth > activeSandDepth) activeSandDepth = depth;
+                    }
                 }
             });
 
@@ -1114,9 +1150,10 @@ function resetEntireGame(advanceHole = false) {
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
                 let fW = physics.fairwayWidth;
 
-                if (currentHoleNumber === 3 && worldZ <= -41.64 && worldZ >= -125) { // Update this line
-                    fW = 18.0; // Keep this line
-                } // Keep this line
+                // UPDATED: Expands the landing track width across the full updated visibility zone (from -20.0 down to -115)
+                if (currentHoleNumber === 3 && worldZ <= -20.0 && worldZ >= -115) {
+                    fW = 18.0;
+                }
 
                 const fWEdge = fW + 3.5;
 
@@ -1139,11 +1176,9 @@ function resetEntireGame(advanceHole = false) {
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
-                    // NEW: Bury the rough floor mesh underground inside the fringe radius to eliminate Z-fighting gaps
                     if (distToGreen < fringeOuterR) {
                         calculatedHeight -= 1.5;
                     }
-                    // FIXED: Clearance cushion automatically scales deeper to completely neutralize triangle bridging
                     if (insideSandZone) {
                         calculatedHeight -= (0.15 + activeSandDepth * 0.35);
                     }
@@ -1151,17 +1186,15 @@ function resetEntireGame(advanceHole = false) {
 
                 // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    // FIXED: Uses global currentHoleConfig to avoid ReferenceError crashes
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // Forces the fairway to stop in a clean straight cut right at the green entrance line
-                    // MODIFIED: Added specific constraint for Hole 3 to hide the fairway between z=-125 and z=-155, making the hill rough grass
+                    // UPDATED: Opens up driver zone at z = -20.0, creates the chasm, and opens secondary path next to the bunker at z = -132.0
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && distToGreenCenter < fringeOuterR) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -115 && worldZ >= -172))) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
