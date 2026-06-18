@@ -137,11 +137,11 @@ export class PhysicsEngine {
             let pathCenter = 0;
             if (z >= -125) {
                 let t = (10 - z) / 135;
-                pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Recalculates course altitude lines relative to left fairway extension
             } else {
                 let t = (-125 - z) / 55;
                 t = Math.min(1.0, t);
-                pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates course altitude lines relative to left fairway extension
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
@@ -155,11 +155,11 @@ export class PhysicsEngine {
                 let pathCenter = 0;
                 if (z >= -125) {
                     let t = (10 - z) / 135;
-                    pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                    pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
                 } else {
                     let t = (-125 - z) / 55;
                     t = Math.min(1.0, t);
-                    pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                    pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
                 }
                 cliffEdgeLimit = pathCenter + 15.5;
             }
@@ -256,11 +256,11 @@ export class PhysicsEngine {
                     let pathCenter = 0;
                     if (z >= -125) {
                         let t = (10 - z) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
                     } else {
                         let t = (-125 - z) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
                     }
 
                     // Modify these lines to blend the edge limit smoothly:
@@ -449,9 +449,16 @@ export class PhysicsEngine {
             activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t);
         }
 
-        // UPDATED: Synchronizes physics width map to match our visual starting line (-20.0 to -115)
-        if (this.greenCenterZ < -165 && this.greenCenterZ > -185 && this.ball.position.z <= -20.0 && this.ball.position.z >= -115) {
-            activeFW = 18.0;
+        // UPDATED: Keeps physics fairway wide up the hill climb, tapering smoothly before the bunkers
+        if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
+            if (this.ball.position.z <= -20.0 && this.ball.position.z >= -160.0) {
+                activeFW = 18.0;
+            } else if (this.ball.position.z < -160.0 && this.ball.position.z >= -172.0) {
+                let tTaper = (-160.0 - this.ball.position.z) / 12.0;
+                activeFW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
+            } else {
+                activeFW = 8.0;
+            }
         }
 
         if (inSand) {
@@ -470,9 +477,9 @@ export class PhysicsEngine {
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
-        // UPDATED: Matches roll physics boundaries directly to the updated visual cuts
+        // UPDATED: Matches roll physics boundaries directly to the updated visual cuts and hill climb extension
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
-            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || this.ball.position.z < -132.0) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
+            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             // MODIFIED: Added this.ball.position.z <= -41.64 so the first 143 yards off the tee on Hole 3 trigger rough physics, while the flat landing landing zone maintains fairway physics
             currentFriction = 0.91;
@@ -741,15 +748,14 @@ export class PhysicsEngine {
             for (let water of this.waterHazards) {
                 // MODIFIED: Check if this is the rectangular ocean box to register a cliffside splash penalty
                 if (water.userData && water.userData.isRectangular) {
-                    // Add these lines below:
                     let pathCenter = 0;
                     if (this.ball.position.z >= -125) {
                         let t = (10 - this.ball.position.z) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
                     } else {
                         let t = (-125 - this.ball.position.z) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
                     }
                     const cliffEdgeLimit = pathCenter + (this.ball.position.z <= -125 ? 10.5 : 15.5);
                     // End of added lines

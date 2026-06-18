@@ -66,36 +66,40 @@ const HOLES_CONFIG = {
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -65),
-            new THREE.Vector3(0, 0, -125),
+            new THREE.Vector3(-14, 0, -125), // CHANGED: Shifted from 0 to -14 to curve the end of the 1st fairway out to the left
             new THREE.Vector3(-3, 0, -180)
         ],
         hazards: [
             // Bunkers on the left (Shifted back to flank the lower driver landing zone precisely)
-            { type: 'sand', x: -21.5, z: -72.0, radius: 3.4, depth: 0.55 },
-            { type: 'sand', x: -20.5, z: -80.5, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: -17.5, z: -80.0, radius: 1.9, depth: 0.50 },
-            { type: 'sand', x: -22.5, z: -88.5, radius: 1.4, depth: 0.45 },
-            { type: 'sand', x: -18.5, z: -89.0, radius: 2.6, depth: 0.60 },
-            { type: 'sand', x: -17.5, z: -98.0, radius: 3.0, depth: 0.60 },
-            // 1. Narrower continuous single-polygon sand trap with smooth radius edges
+            { type: 'sand', x: -27.5, z: -85.0, radius: 3.8, depth: 0.55 },
+
+            { type: 'sand', x: -36.5, z: -100.0, radius: 1.9, depth: 0.50 },  //left bunker
+            { type: 'sand', x: -27.5, z: -101.5, radius: 1.4, depth: 0.45 },
+            { type: 'sand', x: -30.5, z: -102.0, radius: 3.8, depth: 0.60 },
+            { type: 'sand', x: -31.5, z: -111.0, radius: 3.0, depth: 0.60 },
+            // Lower driving zone bunker cluster converted into a single long, wide polygon with rounded caps
             {
                 type: 'sand',
                 shape: 'polygon',
                 depth: 0.55,
                 points: [
-                    // Top rounded end (Arc sweeping across the top tip)
-                    { x: -25.2, z: -134.8 }, // Top-Left outer edge
-                    { x: -23.8, z: -130.8 }, // Top-Left curve point
-                    { x: -20.5, z: -129.4 }, // Top Apex Center (rounded cap)
-                    { x: -17.2, z: -130.6 }, // Top-Right curve point
-                    { x: -16.8, z: -132.2 }, // Top-Right outer edge
+                    // Top straight boundary line
+                    { x: -34.5, z: -89.5 },  // Top-Left straight edge
+                    { x: -29.5, z: -89.5 },  // Top-Right straight edge
 
-                    // Bottom rounded end (Arc sweeping across the bottom tip)
-                    { x: -9.3, z: -152.4 }, // Bottom-Right outer edge
-                    { x: -10.0, z: -156.8 }, // Bottom-Right curve point
-                    { x: -13.2, z: -158.4 }, // Bottom Apex Center (rounded cap)
-                    { x: -16.5, z: -157.2 }, // Bottom-Left curve point
-                    { x: -17.7, z: -155.6 }  // Bottom-Left outer edge
+                    // Right rounded cap (Shifted far left to clear the wide 18-unit fairway edge)
+                    { x: -27.5, z: -91.0 },  // Right upper turn point
+                    { x: -27.0, z: -92.5 },  // Right Apex Center (Safely in the rough)
+                    { x: -29.0, z: -94.5 },  // Right lower turn point
+
+                    // Bottom straight boundary line
+                    { x: -39.5, z: -96.5 },  // Bottom-Right straight edge
+                    { x: -44.5, z: -96.5 },  // Bottom-Left straight edge
+
+                    // Left rounded cap (facing deep out into the left rough)
+                    { x: -46.5, z: -95.0 },  // Left lower turn point
+                    { x: -47.0, z: -93.5 },  // Left Apex Center
+                    { x: -45.0, z: -91.5 }   // Left upper turn point
                 ]
             },
             // 2. The single intermediate bunker in the left rough before the green
@@ -938,11 +942,11 @@ function resetEntireGame(advanceHole = false) {
                     let pathCenter = 0;
                     if (currentZ >= -125) {
                         let t = (10 - currentZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Aligns visual cliff walls with the leftward fairway curve
                     } else {
                         let t = (-125 - currentZ) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Starts from -14.0 and sweeps back towards the right green
                     }
                     let cliffPadding = 18.0; // Pushed wall 3 units further right
                     if (currentZ < -115) {
@@ -1063,11 +1067,11 @@ function resetEntireGame(advanceHole = false) {
                     let pathCenter = 0;
                     if (worldZ >= -125) {
                         let t = (10 - worldZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Prevents visual ocean mesh from bleeding onto the new left path extension
                     } else {
                         let t = (-125 - worldZ) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Prevents visual ocean mesh from bleeding onto the new left path extension
                     }
 
                     // Modify these lines to match the smooth visual transition:
@@ -1150,11 +1154,17 @@ function resetEntireGame(advanceHole = false) {
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
                 let fW = physics.fairwayWidth;
 
-                // UPDATED: Expands the landing track width across the full updated visibility zone (from -20.0 down to -115)
-                if (currentHoleNumber === 3 && worldZ <= -20.0 && worldZ >= -115) {
-                    fW = 18.0;
+                if (currentHoleNumber === 3) {
+                    if (worldZ <= -20.0 && worldZ >= -160.0) {
+                        fW = 18.0; // Keeps the fairway wide across both the driving area and the hill climb
+                    } else if (worldZ < -160.0 && worldZ >= -172.0) {
+                        // Smoothly taper the fairway width down from 18.0 to 8.0 just before the bunkers
+                        let tTaper = (-160.0 - worldZ) / 12.0;
+                        fW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
+                    } else if (worldZ < -172.0) {
+                        fW = 8.0; // Clean tight approach into the green entrance
+                    }
                 }
-
                 const fWEdge = fW + 3.5;
 
                 const relX = worldX - (green ? green.position.x : 0);
@@ -1189,7 +1199,8 @@ function resetEntireGame(advanceHole = false) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // UPDATED: Opens up driver zone at z = -20.0, creates the chasm, and opens secondary path next to the bunker at z = -132.0
+                    // Forces the fairway to stop in a clean straight cut right at the green entrance line
+                    // UPDATED: Opens fairway at z = -20.0, creates the short chasm rough, and restores the fairway at z = -132.0 up the hill
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
                         (isCustomHole && distToGreenCenter < fringeOuterR) ||
@@ -1311,6 +1322,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
+        if (currentHoleNumber === 3) continue; // Add this line: Skips background foliage/houses on Hole 3 entirely
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
@@ -1389,6 +1401,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     if (currentHoleNumber === 2) obstacleAttempts = 320;
+    if (currentHoleNumber === 3) obstacleAttempts = 0;
 
     for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
