@@ -90,8 +90,9 @@ const HOLES_CONFIG = {
             // MODIFIED: Placed the standalone rough bunker just past the hill crest on the left fairway cut
             { type: 'sand', x: -1.0, z: -170.0, radius: 2.8, depth: 0.60 },
 
-            // MODIFIED: Placed the bunker protecting the front-right entry of the green near the cliff edge lip
-            { type: 'sand', x: 19.5, z: -174.0, radius: 2.5, depth: 0.55 },
+            // MODIFIED: Bunkers now on the right side of the green (x: -4)
+            { type: 'sand', x: 2.0, z: -170.0, radius: 2.5, depth: 0.60 },
+            { type: 'sand', x: 5.0, z: -180.0, radius: 2.2, depth: 0.55 },
 
             // MODIFIED: Placed the 2 long bunkers guarding the left/back side of the upper clifftop putting green table
             { type: 'sand', x: 5.5, z: -182.0, radius: 2.2, depth: 0.50 },
@@ -133,7 +134,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -647,11 +648,11 @@ function resetEntireGame(advanceHole = false) {
             holeConfig = {
                 par: 5,
                 waypoints: [
-                    new THREE.Vector3(0, 0, 10),
-                    new THREE.Vector3(0, 0, elbowZ1),
-                    new THREE.Vector3(elbowX2, 0, elbowZ2),
-                    new THREE.Vector3(greenX, 0, greenZ)
-                ]
+                    new THREE.Vector3(0, 0, 10),     // Tee Box
+                    new THREE.Vector3(0, 0, -65),    // Flat Fairway
+                    new THREE.Vector3(0, 0, -125),   // Shifted left (x: 8 -> 0)
+                    new THREE.Vector3(-4, 0, -180)   // Shifted green significantly left (x: 16 -> -4)
+                ],
             };
         }
     }
@@ -2932,3 +2933,36 @@ function showScorecard() {
     }, 10);
 }
 
+// ==========================================
+// DEV DEBUG TOOL: Get exact 3D coordinates
+// ==========================================
+window.addEventListener('click', (event) => {
+    if (!event.shiftKey) return;
+
+    // We must stop the game from processing this click so it doesn't trigger a swing
+    event.stopPropagation();
+
+    const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        const p = intersects[0].point;
+        const debugObj = {
+            type: 'sand',
+            x: parseFloat(p.x.toFixed(1)),
+            z: parseFloat(p.z.toFixed(1)),
+            radius: 3.0,
+            depth: 0.6
+        };
+
+        console.log("--- COORDINATE CAPTURED ---");
+        console.log(JSON.stringify(debugObj, null, 4));
+        console.log(`Height: ${physics.getGroundHeight(p.x, p.z).toFixed(2)}`);
+    }
+}, { capture: true }); // <--- THIS IS THE KEY CHANGE
