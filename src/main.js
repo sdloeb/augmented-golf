@@ -44,9 +44,10 @@ const HOLES_CONFIG = {
         fairwayWidth: 9.5,
         greenRadius: 9.0,
         waypoints: [
-            new THREE.Vector3(0, 0, 10),     // High Tee Box Point
-            new THREE.Vector3(0, 0, -118),   // Modify this line: Pushes the turn further down the line
-            new THREE.Vector3(11, 0, -139)   // 87 Yard Approach Green Center
+            new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -65),
+            new THREE.Vector3(0, 0, -125),
+            new THREE.Vector3(2, 0, -180)
         ],
         // The 4 distinct bunkers matching your description and map positions
         // The 4 distinct bunkers matching your description and map positions
@@ -61,44 +62,38 @@ const HOLES_CONFIG = {
     3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
         par: 5,
         fairwayWidth: 8.0,
-        greenRadius: 8.5, // Authentic compact clifftop green layout
+        greenRadius: 8.5,
         waypoints: [
-            new THREE.Vector3(0, 0, 10),     // Tee Box
-            new THREE.Vector3(0, 0, -65),    // Flat Fairway Landing Zone (before the hill)
-            new THREE.Vector3(8, 0, -125),   // Climbing the massive cliff slope
-            new THREE.Vector3(16, 0, -180)   // Elevated Clifftop Green bluff center
+            new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -65),
+            new THREE.Vector3(0, 0, -125),
+            new THREE.Vector3(-3, 0, -180)
         ],
         hazards: [
-            // MODIFIED: Shifted X coordinates further left to perfectly align with the new outer rough boundary of the curved fairway track
-            { type: 'sand', x: -21.5, z: -92.0, radius: 3.4, depth: 0.55 }, // Bunker 1: Large fat base bunker pocket
-
-            // Bunker 2: Two overlapping entries to authentically draw that wide, horizontal "bean" shape
+            // Bunkers on the left
+            { type: 'sand', x: -21.5, z: -92.0, radius: 3.4, depth: 0.55 },
             { type: 'sand', x: -20.5, z: -100.5, radius: 2.2, depth: 0.50 },
             { type: 'sand', x: -17.5, z: -100.0, radius: 1.9, depth: 0.50 },
+            { type: 'sand', x: -22.5, z: -108.5, radius: 1.4, depth: 0.45 },
+            { type: 'sand', x: -18.5, z: -109.0, radius: 2.6, depth: 0.60 },
+            { type: 'sand', x: -17.5, z: -118.0, radius: 3.0, depth: 0.60 },
+            // 1. The long snaking bunker in the left rough (made with 6 overlapping circles)
+            { type: 'sand', x: -22.0, z: -134.0, radius: 2.8, depth: 0.55 },
+            { type: 'sand', x: -20.5, z: -138.0, radius: 2.9, depth: 0.55 },
+            { type: 'sand', x: -19.0, z: -142.0, radius: 2.9, depth: 0.55 },
+            { type: 'sand', x: -17.5, z: -146.0, radius: 2.9, depth: 0.55 },
+            { type: 'sand', x: -16.0, z: -150.0, radius: 2.9, depth: 0.55 },
+            { type: 'sand', x: -14.5, z: -154.0, radius: 2.8, depth: 0.55 },
+            // 2. The single intermediate bunker in the left rough before the green
+            { type: 'sand', x: -14.5, z: -163.0, radius: 2.3, depth: 0.60 },
 
-            // Bunker 3 & 4 Cluster: Small detached left pocket flanking a larger center-right mound defense
-            { type: 'sand', x: -22.5, z: -108.5, radius: 1.4, depth: 0.45 }, // Small outer left dot
-            { type: 'sand', x: -18.5, z: -109.0, radius: 2.6, depth: 0.60 }, // Main inner lobed hazard
+            // 3. The green-side bunker positioned tightly to the left of your x: -3 green
+            { type: 'sand', x: -15.5, z: -183.0, radius: 2.5, depth: 0.60 },
 
-            { type: 'sand', x: -17.5, z: -118.0, radius: 3.0, depth: 0.60 }, // Bunker 5: Top-most kidney shape near hill face
+            // Exactly 2 right-side bunkers adjusted to perfectly hug your new x: -3 green edge
+            { type: 'sand', x: 8.3, z: -174.0, radius: 2.1, depth: 0.60 },
+            { type: 'sand', x: 9.8, z: -181.5, radius: 2.0, depth: 0.60 },
 
-            // MODIFIED: Re-anchored the long chain to the left rough of the upper climbing hill path
-            { type: 'sand', x: -10.0, z: -147.0, radius: 2.4, depth: 0.60 },
-            { type: 'sand', x: -8.0, z: -154.0, radius: 2.6, depth: 0.60 },
-            { type: 'sand', x: -5.0, z: -161.0, radius: 2.4, depth: 0.60 },
-
-            // MODIFIED: Placed the standalone rough bunker just past the hill crest on the left fairway cut
-            { type: 'sand', x: -1.0, z: -170.0, radius: 2.8, depth: 0.60 },
-
-            // MODIFIED: Bunkers now on the right side of the green (x: -4)
-            { type: 'sand', x: 2.0, z: -170.0, radius: 2.5, depth: 0.60 },
-            { type: 'sand', x: 5.0, z: -180.0, radius: 2.2, depth: 0.55 },
-
-            // MODIFIED: Placed the 2 long bunkers guarding the left/back side of the upper clifftop putting green table
-            { type: 'sand', x: 5.5, z: -182.0, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: 7.0, z: -187.0, radius: 2.0, depth: 0.50 },
-
-            // Keeps the massive rectangular Pacific Ocean layout intact on the right edge
             { type: 'ocean', x: 60.0, z: -153.5, width: 130.0, length: 150.0 }
         ]
     },
@@ -2357,6 +2352,11 @@ function init() {
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x666666));
 
+    // --- NEW: GRID HELPER ---
+    const grid = new THREE.GridHelper(500, 50, 0xff0000, 0xff0000);
+    grid.position.y = 0.05;
+    scene.add(grid);
+
     // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
     const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
 
@@ -2994,36 +2994,3 @@ function showScorecard() {
     }, 10);
 }
 
-// ==========================================
-// DEV DEBUG TOOL: Get exact 3D coordinates
-// ==========================================
-window.addEventListener('click', (event) => {
-    if (!event.shiftKey) return;
-
-    // We must stop the game from processing this click so it doesn't trigger a swing
-    event.stopPropagation();
-
-    const mouse = new THREE.Vector2(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        -(event.clientY / window.innerHeight) * 2 + 1
-    );
-
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(scene.children, true);
-
-    if (intersects.length > 0) {
-        const p = intersects[0].point;
-        const debugObj = {
-            type: 'sand',
-            x: parseFloat(p.x.toFixed(1)),
-            z: parseFloat(p.z.toFixed(1)),
-            radius: 3.0,
-            depth: 0.6
-        };
-
-        console.log("--- COORDINATE CAPTURED ---");
-        console.log(JSON.stringify(debugObj, null, 4));
-        console.log(`Height: ${physics.getGroundHeight(p.x, p.z).toFixed(2)}`);
-    }
-}, { capture: true }); // <--- THIS IS THE KEY CHANGE
