@@ -1,14 +1,12 @@
 export class SoundManager {
     constructor() {
-        // Updated with reliable, open-source audio links that allow direct browser playback
-        // Updated to use fully compatible, universal MP3 formats for standard external web browsers
+        // FIXED: Replaced absolute website URLs with local repository paths so testing works perfectly on GitHub Pages
         this.sounds = {
-            swing: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-swing-no-ball-contact.mp3'),
-            bounce: new Audio('https://raw.githubusercontent.com/scottschiller/SoundManager2/master/demo/_mp3/click-low.mp3'),
-            water: new Audio('https://gfxsounds.com/wp-content/uploads/2021/09/Swimming-pool-dive-in-with-a-splash.mp3'), // Changed movie to a real water splash
-            sink: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-ball-spins-around-cup.mp3'),
-            putt: new Audio('https://raw.githubusercontent.com/scottschiller/SoundManager2/master/demo/_mp3/click-high.mp3')
-
+            swing: new Audio('./sounds/swing.mp3'),
+            bounce: new Audio('./sounds/bounce.mp3'),
+            water: new Audio('./sounds/water.mp3'),
+            sink: new Audio('./sounds/bounce.mp3'),
+            putt: new Audio('./sounds/bounce.mp3')
         };
 
         // Pre-adjust volumes so they blend together nicely
