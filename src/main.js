@@ -355,6 +355,52 @@ function generateNewWind() {
     );
 }
 
+/**
+ * Helper to generate a snaking bunker by placing circles along a path
+ * @param {Array} path - Array of {x, z} points
+ * @param {number} spacing - Distance between circles (smaller = smoother, higher count)
+ * @param {number} radius - Radius of each circle
+ * @param {number} depth - Depth of the bunker
+ */
+function createSnakingBunker(path, spacing, radius, depth) {
+    for (let i = 0; i < path.length - 1; i++) {
+        const p1 = path[i];
+        const p2 = path[i + 1];
+        const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.z - p1.z) ** 2);
+        const steps = Math.floor(dist / spacing);
+
+        for (let s = 0; s <= steps; s++) {
+            const t = s / steps;
+            const x = p1.x + (p2.x - p1.x) * t;
+            const z = p1.z + (p2.z - p1.z) * t;
+
+            // Add the bunker circle to the scene and the tracking array
+            // This reuses your existing circle logic
+            addSandTrap(x, z, radius, depth);
+        }
+    }
+}
+
+function addSandTrap(x, z, r, depth) {
+    const sandMesh = new THREE.Mesh(
+        new THREE.RingGeometry(0, r, 32, 6),
+        new THREE.MeshStandardMaterial({
+            color: 0xd9c59e,
+            roughness: 0.95,
+            metalness: 0.0,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -4
+        })
+    );
+    sandMesh.rotation.x = -Math.PI / 2;
+    sandMesh.position.set(x, 0, z);
+    sandMesh.userData = { radius: r, depth: depth };
+    scene.add(sandMesh);
+    sandTraps.push(sandMesh);
+}
+
+
 function generateHazards() {
     sandTraps.forEach(mesh => scene.remove(mesh));
     waterHazards.forEach(mesh => scene.remove(mesh));
@@ -508,26 +554,9 @@ function generateHazards() {
 
         // NEW: Select a variable depth profile between a shallow bunker (0.4) and a deep pot trap (1.0)
         const sandDepth = 0.5 + Math.random() * 2.6;
+        addSandTrap(x, z, r, sandDepth);
 
-        const sandMesh = new THREE.Mesh(
-            // FIXED: Changed to RingGeometry(0, ...) to give the mesh interior rows to bend over slopes!
-            new THREE.RingGeometry(0, r, 32, 6),
-            new THREE.MeshStandardMaterial({
-                color: 0xd9c59e, // Clean realistic sand coloring
-                roughness: 0.95,
-                metalness: 0.0,
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -4
-            })
-        );
-        sandMesh.rotation.x = -Math.PI / 2;
 
-        // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
-        sandMesh.position.set(x, 0, z);
-        sandMesh.userData = { radius: r, depth: sandDepth };
-        scene.add(sandMesh);
-        sandTraps.push(sandMesh);
     }
 
 
