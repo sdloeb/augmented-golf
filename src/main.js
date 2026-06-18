@@ -44,18 +44,15 @@ const HOLES_CONFIG = {
         fairwayWidth: 9.5,
         greenRadius: 9.0,
         waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -65),
-            new THREE.Vector3(0, 0, -125),
-            new THREE.Vector3(2, 0, -180)
+            new THREE.Vector3(0, 0, 10),       // Flat Tee Box zone
+            new THREE.Vector3(0, 0, -108),     // 327 Yard Elbow (Hill descent ends here)
+            new THREE.Vector3(11, 0, -139)     // 87 Yard Approach Green
         ],
-        // The 4 distinct bunkers matching your description and map positions
-        // The 4 distinct bunkers matching your description and map positions
         hazards: [
-            { type: 'sand', x: -11.0, z: -124.0, radius: 3.5, depth: 0.6 }, // Modify this line: Moved further out into left rough
-            { type: 'sand', x: 22.5, z: -126.0, radius: 3.8, depth: 0.6 }, // Keep this line
-            { type: 'sand', x: -1.0, z: -147.0, radius: 3.4, depth: 0.5 }, // Keep this line
-            { type: 'sand', x: 24.5, z: -146.0, radius: 3.6, depth: 0.5 }  // Keep this line
+            { type: 'sand', x: -6.5, z: -124.0, radius: 4.2, depth: 0.5 },
+            { type: 'sand', x: 22.5, z: -126.0, radius: 4.0, depth: 0.6 },
+            { type: 'sand', x: -1.0, z: -147.0, radius: 3.8, depth: 0.6 },
+            { type: 'sand', x: 24.5, z: -146.0, radius: 3.5, depth: 0.6 }
         ]
     },
 
@@ -147,7 +144,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 2; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
