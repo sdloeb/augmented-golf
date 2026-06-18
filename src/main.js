@@ -407,6 +407,26 @@ function addPolygonSandTrap(points, depth) {
     sandTraps.push(mesh);
 }
 
+function addSandTrap(x, z, r, depth) {
+    const sandMesh = new THREE.Mesh(
+        new THREE.RingGeometry(0, r, 64, 6), // 64 segments for smoothness
+        new THREE.MeshStandardMaterial({
+            color: 0xd9c59e,
+            roughness: 0.95,
+            metalness: 0.0,
+            flatShading: false,    // This smooths the lighting
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -4
+        })
+    );
+    sandMesh.rotation.x = -Math.PI / 2;
+    sandMesh.position.set(x, 0.01, z); // Slightly raised to avoid z-fighting
+    sandMesh.userData = { radius: r, depth: depth };
+    scene.add(sandMesh);
+    sandTraps.push(sandMesh);
+}
+
 function generateHazards() {
     sandTraps.forEach(mesh => scene.remove(mesh));
     waterHazards.forEach(mesh => scene.remove(mesh));
@@ -558,9 +578,16 @@ function generateHazards() {
             currentSandGroundY += 0.035;
         }
 
-        // NEW: Select a variable depth profile between a shallow bunker (0.4) and a deep pot trap (1.0)
-        const sandDepth = 0.5 + Math.random() * 2.6;
-        addSandTrap(x, z, r, sandDepth);
+        const path = [
+            { x: x, z: z },
+            { x: x + 2, z: z - 5 },  // Curve point 1
+            { x: x + 5, z: z - 10 }, // Curve point 2
+            { x: x + 8, z: z - 15 }  // Curve point 3
+        ];
+
+        // Now call the function with the path and a very tight spacing
+        // Spacing 0.8 with a Radius 2.9 makes the circles overlap by a lot
+        createSnakingBunker(path, 0.8, r, sandDepth)
 
 
     }
