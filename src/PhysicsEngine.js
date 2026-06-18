@@ -121,15 +121,13 @@ export class PhysicsEngine {
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
             let baseHeight = 0.3; // Default lower fairway height
 
-            // Hill starts at -115 and climbs gently over 45 units to -160
-            if (z <= -115 && z >= -160) {
-                let t = (-115 - z) / 45;
+            // Hill starts at -115 and completes its full climb over 21.5 units to finish at -136.5 (~120 yards out)
+            if (z <= -115 && z >= -136.5) {
+                let t = (-115 - z) / 21.5;
                 let smoothSlope = t * t * (3 - 2 * t);
-                // Changed multiplier from 8.2 (for 8.5 total height) 
-                // If you want a height of 8.5, baseHeight = 0.3 + (smoothSlope * 8.2)
                 baseHeight = 0.3 + (smoothSlope * 8.2);
-            } else if (z < -160) {
-                baseHeight = 8.5; // CHANGED from 14.0 to 8.5 to lower the plateau
+            } else if (z < -136.5) {
+                baseHeight = 8.5; // Flat plateau from 120 yards out all the way to the putting green
             } else {
                 baseHeight = 0.3;  // Lift initial fairway above water level
             }
