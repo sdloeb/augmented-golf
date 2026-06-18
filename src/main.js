@@ -1162,11 +1162,17 @@ function resetEntireGame(advanceHole = false) {
                 }
                 const fWEdge = fW + 3.5;
 
+                // FIXED: Replaced undefined greenCenterX with your safe horizontal green positioning reference
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
                 const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
+
+                // FIXED: Added 'physics.' prefix to approachDirX and approachDirZ to fix the blank screen ReferenceError crash
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
-                const isPastFairway = (distToGreenCenter < fringeOuterR) || (approachDot > 0);
+
+                // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
+                const activeRadius = window.activeGreenRadius || 12.0;
+                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;

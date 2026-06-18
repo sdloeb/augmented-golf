@@ -434,12 +434,14 @@ export class PhysicsEngine {
             }
         }
 
-        // Modify this block: Calculates if the ball is inside the green fringe circle or behind the green center
+        // FIXED: Balanced ball physics boundaries to perfectly mirror the new clean front apron green visual limits
         const relX = this.ball.position.x - this.greenCenterX;
         const relZ = this.ball.position.z - this.greenCenterZ;
         const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
         const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
-        const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0);
+
+        const activeRadius = window.activeGreenRadius || 12.0;
+        const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
         let activeFW = this.fairwayWidth;
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
