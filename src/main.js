@@ -1928,17 +1928,21 @@ function animate() {
                 const dirZ = holePosition.z - ball.position.z;
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-                // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-                const backX = -(dirX / length) * 5.5;
-                const backZ = -(dirZ / length) * 5.5;
+                // ADJUSTED: Pushed horizontal cushion back to 20.0 to stay further behind the ball
+                const backX = -(dirX / length) * 20.0;
+                const backZ = -(dirZ / length) * 20.0;
 
                 const moveCamX = ball.position.x + backX; // Add this line
                 const moveCamZ = ball.position.z + backZ; // Add this line
                 const moveCamGroundY = physics.getGroundHeight(moveCamX, moveCamZ); // Add this line: Samples ground directly beneath moving camera
-                const moveCamY = Math.max(ball.position.y + 1.8, moveCamGroundY + 1.8); // Add this line: Keeps camera safely above hill during flight
+
+                // ADJUSTED: Raised vertical cushion to 5.5 to keep a higher, clear blimp-style angle
+                const moveCamY = Math.max(ball.position.y + 5.5, moveCamGroundY + 5.5);
 
                 cameraTargetPos.set(moveCamX, moveCamY, moveCamZ); // Modify this line
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+
+                // ADJUSTED: Framed slightly forward (4.5) to tilt the camera view down the fairway path
+                cameraLookAt.set(ball.position.x + (dirX / length) * 4.5, ball.position.y, ball.position.z + (dirZ / length) * 4.5);
             }
 
         } else if (!isOverheadActive) { }
@@ -2020,9 +2024,9 @@ function animate() {
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
     let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
 
-    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    // FIXED: Responsive chase speed (0.035 instead of 0.005) allows camera to slow down precisely WITH the ball on bounce impact
     if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.005;
+        activeCameraSpeed = 0.035;
     }
 
 
