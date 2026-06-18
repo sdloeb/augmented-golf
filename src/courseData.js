@@ -105,14 +105,23 @@ export const globalCourseData = {
         name: "Pebble Beach Hole 6",
         par: 5,
         teePosition: { x: 0, y: 0, z: 10 },
-        holePosition: { x: -5.0, y: 8.5, z: -180 }, // Centered with the fairway approach
+        holePosition: { x: -5.0, y: 8.5, z: -180 },
         fairwayWidth: 8.0,
         greenRadius: 8.5,
         waypoints: [
             { x: 0, y: 0, z: 10 },
             { x: -2.5, y: 0, z: -57.5 },
             { x: -5.0, y: 0.0, z: -125 },
-            { x: -5.0, y: 8.5, z: -180 } // Aligned straight with holePosition.x
+            { x: -5.0, y: 8.5, z: -180 }
+        ],
+        // ADD THIS: Define your bunkers as polygons for total control
+        hazards: [
+            {
+                type: 'sand',
+                shape: 'polygon',
+                points: [{ x: -20, z: -130 }, { x: -25, z: -140 }, { x: -15, z: -150 }], // Define custom points here
+                depth: 0.6
+            }
         ]
     }
 };

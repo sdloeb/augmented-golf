@@ -381,25 +381,31 @@ function createSnakingBunker(path, spacing, radius, depth) {
     }
 }
 
-function addSandTrap(x, z, r, depth) {
-    const sandMesh = new THREE.Mesh(
-        new THREE.RingGeometry(0, r, 32, 6),
-        new THREE.MeshStandardMaterial({
-            color: 0xd9c59e,
-            roughness: 0.95,
-            metalness: 0.0,
-            polygonOffset: true,
-            polygonOffsetFactor: -1,
-            polygonOffsetUnits: -4
-        })
-    );
-    sandMesh.rotation.x = -Math.PI / 2;
-    sandMesh.position.set(x, 0, z);
-    sandMesh.userData = { radius: r, depth: depth };
-    scene.add(sandMesh);
-    sandTraps.push(sandMesh);
-}
 
+
+function addPolygonSandTrap(points, depth) {
+    const shape = new THREE.Shape();
+    shape.moveTo(points[0].x, points[0].z);
+    for (let i = 1; i < points.length; i++) {
+        shape.lineTo(points[i].x, points[i].z);
+    }
+    shape.lineTo(points[0].x, points[0].z); // Close the path
+
+    const geometry = new THREE.ShapeGeometry(shape);
+    const material = new THREE.MeshStandardMaterial({
+        color: 0xd9c59e,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -4
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.userData = { points: points, depth: depth, isPolygon: true };
+    scene.add(mesh);
+    sandTraps.push(mesh);
+}
 
 function generateHazards() {
     sandTraps.forEach(mesh => scene.remove(mesh));
@@ -829,7 +835,7 @@ function resetEntireGame(advanceHole = false) {
             if (hz.type === 'sand') {
                 const sandDepth = hz.depth || 0.6;
                 const sandMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(0, r, 32, 6),
+                    new THREE.RingGeometry(0, r, 64, 6),
                     new THREE.MeshStandardMaterial({
                         color: 0xd9c59e,
                         roughness: 0.95,
@@ -2381,10 +2387,7 @@ function init() {
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x666666));
 
-    // --- NEW: GRID HELPER ---
-    const grid = new THREE.GridHelper(500, 50, 0xff0000, 0xff0000);
-    grid.position.y = 0.05;
-    scene.add(grid);
+
 
     // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
     const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
