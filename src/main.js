@@ -2715,6 +2715,10 @@ function init() {
     input = new InputHandler((power, angle, spin, loft) => {
         isOverheadActive = false;
         if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
+
+        // FIXED: Capture if the ball is struck off the tee box before hiding its template mesh structure
+        const isOffTee = teeBox && teeBox.visible;
+
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
@@ -2764,13 +2768,18 @@ function init() {
 
         physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
 
+        // FIXED: Dynamically differentiate swing audios. Tee box launches play swing.wav,
+        // putting strokes play putt.wav, and fairway/rough lies trigger your new iron.wav.
         if (sounds) {
-            if (isPuttingStroke) { // Modify this line
-                sounds.play('putt'); // Add this line: Triggers the crisp short tap audio file when putting
+            if (isPuttingStroke) {
+                sounds.play('putt');
+            } else if (isOffTee) {
+                sounds.play('swing');
             } else {
-                sounds.play('swing'); // Add this line: Keeps standard big club windy whoosh audio for standard shots
+                sounds.play('iron');
             }
         }
+
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
             // Capture the exact position where the pullback stopped for the putter

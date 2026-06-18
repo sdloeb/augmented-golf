@@ -237,7 +237,7 @@ export class PhysicsEngine {
         }
         const dynamicBoundary = maxLayoutWidth + (this.fairwayWidth || 9.0) + 12.0;
 
-        let xFade = Math.min(1, Math.max(0, (dynamicBoundary - Math.abs(x)) / 10)); 
+        let xFade = Math.min(1, Math.max(0, (dynamicBoundary - Math.abs(x)) / 10));
         return Math.max(0.001, height * teeFade * xFade); // Change this line
     }
 
@@ -507,7 +507,8 @@ export class PhysicsEngine {
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
-        const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
+        // FIXED: Putting strokes are strictly locked to the ground turf to prevent micro-airborne calculations and chattering artifacts
+        const isAirborne = !this.isPutting && (this.ball.position.y > groundY || this.velocity.y > 0);
         let timeScale = isAirborne ? 0.6 : 1.0;
 
         // FIXED: Set speed factor to 0.38 to visually slow down the rolling speed of the ball,
@@ -793,11 +794,14 @@ export class PhysicsEngine {
             }
 
             if (Math.abs(this.velocity.y) > 0.05) {
-                if (this.sounds) this.sounds.play('bounce');
-
-                // NEW: Trigger explosive sand spray on high-impact landings
-                if (inSand && typeof window.triggerSandSpray === 'function') {
-                    window.triggerSandSpray(this.ball.position.x, this.ball.position.y, this.ball.position.z, 15, 1.0);
+                // FIXED: Direct ground collision sounds based on landing context. High vertical drops 
+                // inside sand trap perimeters play sand.wav, while grass turf impacts play bounce.wav.
+                if (this.sounds && Math.abs(this.velocity.y) > 0.20 && !this.isPutting) {
+                    if (inSand) {
+                        this.sounds.play('sand');
+                    } else {
+                        this.sounds.play('bounce');
+                    }
                 }
 
                 this.velocity.y = -this.velocity.y * currentBounceHeight;
