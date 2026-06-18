@@ -2,11 +2,11 @@ export class SoundManager {
     constructor() {
         // FIXED: Replaced absolute website URLs with local repository paths so testing works perfectly on GitHub Pages
         this.sounds = {
-            swing: new Audio('./sounds/swing.mp3'),
-            bounce: new Audio('./sounds/bounce.mp3'),
-            water: new Audio('./sounds/water.mp3'),
-            sink: new Audio('./sounds/bounce.mp3'),
-            putt: new Audio('./sounds/bounce.mp3')
+            swing: new Audio('./sounds/swing.wav'),
+            bounce: new Audio('./sounds/bounce.wav'),
+            water: new Audio('./sounds/water.wav'),
+            sink: new Audio('./sounds/bounce.wav'),
+            putt: new Audio('./sounds/bounce.wav')
         };
 
         // Pre-adjust volumes so they blend together nicely
