@@ -77,13 +77,18 @@ const HOLES_CONFIG = {
             { type: 'sand', x: -22.5, z: -108.5, radius: 1.4, depth: 0.45 },
             { type: 'sand', x: -18.5, z: -109.0, radius: 2.6, depth: 0.60 },
             { type: 'sand', x: -17.5, z: -118.0, radius: 3.0, depth: 0.60 },
-            // 1. The long snaking bunker in the left rough (made with 6 overlapping circles)
-            { type: 'sand', x: -22.0, z: -134.0, radius: 2.8, depth: 0.55 },
-            { type: 'sand', x: -20.5, z: -138.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -19.0, z: -142.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -17.5, z: -146.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -16.0, z: -150.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -14.5, z: -154.0, radius: 2.8, depth: 0.55 },
+            // 1. Clean continuous single-polygon sand trap with uniform depth
+            {
+                type: 'sand',
+                shape: 'polygon',
+                depth: 0.55,
+                points: [
+                    { x: -25.2, z: -131.0 }, // Top-left corner bounding the old track
+                    { x: -19.2, z: -135.0 }, // Top-right corner 
+                    { x: -11.5, z: -157.0 }, // Bottom-right corner 
+                    { x: -17.5, z: -153.0 }  // Bottom-left corner running smoothly down the rough
+                ]
+            },
             // 2. The single intermediate bunker in the left rough before the green
             { type: 'sand', x: -14.5, z: -163.0, radius: 2.3, depth: 0.60 },
 
@@ -861,24 +866,31 @@ function resetEntireGame(advanceHole = false) {
 
             if (hz.type === 'sand') {
                 const sandDepth = hz.depth || 0.6;
-                const sandMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(0, r, 64, 6),
-                    new THREE.MeshStandardMaterial({
-                        color: 0xd9c59e,
-                        roughness: 0.95,
-                        metalness: 0.0,
-                        polygonOffset: true,
-                        polygonOffsetFactor: -1,
-                        polygonOffsetUnits: -4
-                    })
-                );
-                sandMesh.rotation.x = -Math.PI / 2;
 
-                // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
-                sandMesh.position.set(x, 0, z);
-                sandMesh.userData = { radius: r, depth: sandDepth };
-                scene.add(sandMesh);
-                sandTraps.push(sandMesh);
+                // Route to polygon generator if configuration matches
+                if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {
+                    addPolygonSandTrap(hz.points, sandDepth);
+                } else {
+                    // Preserves original circle geometry setup unmodified
+                    const sandMesh = new THREE.Mesh(
+                        new THREE.RingGeometry(0, r, 64, 6),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xd9c59e,
+                            roughness: 0.95,
+                            metalness: 0.0,
+                            polygonOffset: true,
+                            polygonOffsetFactor: -1,
+                            polygonOffsetUnits: -4
+                        })
+                    );
+                    sandMesh.rotation.x = -Math.PI / 2;
+
+                    // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
+                    sandMesh.position.set(x, 0, z);
+                    sandMesh.userData = { radius: r, depth: sandDepth };
+                    scene.add(sandMesh);
+                    sandTraps.push(sandMesh);
+                }
             }
             // NEW: Render the custom rectangular Pacific Ocean body & protective vertical cliff wall geometry
             else if (hz.type === 'ocean') {

@@ -119,8 +119,13 @@ export const globalCourseData = {
             {
                 type: 'sand',
                 shape: 'polygon',
-                points: [{ x: -20, z: -130 }, { x: -25, z: -140 }, { x: -15, z: -150 }], // Define custom points here
-                depth: 0.6
+                points: [
+                    { x: -16.5, z: -130.0 }, // Top right corner
+                    { x: -19.0, z: -130.0 }, // Top left corner (2.5 units wide)
+                    { x: -19.0, z: -160.0 }, // Bottom left corner (running down 30 units long)
+                    { x: -16.5, z: -160.0 }  // Bottom right corner
+                ],
+                depth: 0.55
             }
         ]
     }

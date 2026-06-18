@@ -297,31 +297,44 @@ export class PhysicsEngine {
         // 2. Apply sand trap 3D parabolic depressions to carve smooth, seamless craters into the heightmap
         if (this.sandTraps && this.sandTraps.length > 0) {
             this.sandTraps.forEach(sand => {
-                const dxS = x - sand.position.x;
-                const dzS = z - sand.position.z;
-                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+                if (sand.userData && sand.userData.isPolygon) {
+                    // High-performance Point-in-Polygon ray casting check
+                    const points = sand.userData.points;
+                    let inside = false;
+                    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                        const xi = points[i].x, zi = points[i].z;
+                        const xj = points[j].x, zj = points[j].z;
+                        const intersect = ((zi > z) !== (zj > z))
+                            && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    if (inside) {
+                        const sandDepth = sand.userData.depth || 0.6;
+                        baseHeight -= sandDepth; // Locks a perfectly flat uniform floor across the entire polygon shape
+                    }
+                } else {
+                    // Preserves circular sloped trap height deformations completely unmodified
+                    const dxS = x - sand.position.x;
+                    const dzS = z - sand.position.z;
+                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                // Add these lines below to distort the physical wall border
-                const angle = Math.atan2(dzS, dxS);
-                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp;
-                const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
+                    // Add these lines below to distort the physical wall border
+                    const angle = Math.atan2(dzS, dxS);
+                    const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
+                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp;
+                    const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
 
-                if (distToSand < sandRadius) {
-                    // EASY TUNING: Controls what percentage of the inner bunker is completely flat maximum depth.
-                    // 0.45 means the inner 45% of the radius spreads out perfectly flat before sloping up.
-                    const floorFraction = 0.60;
-                    const flatRadius = sandRadius * floorFraction;
+                    if (distToSand < sandRadius) {
+                        const floorFraction = 0.60;
+                        const flatRadius = sandRadius * floorFraction;
 
-                    if (distToSand <= flatRadius) {
-                        // Stays completely flat at maximum depth across the center floor space
-                        baseHeight -= sandDepth;
-                    } else {
-                        // Linearly maps and smoothsteps the slope only across the remaining outer distance
-                        const t = (distToSand - flatRadius) / (sandRadius - flatRadius);
-                        const smoothSlope = t * t * (3 - 2 * t); // Smooth S-curve transition
-
-                        baseHeight -= THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
+                        if (distToSand <= flatRadius) {
+                            baseHeight -= sandDepth;
+                        } else {
+                            const t = (distToSand - flatRadius) / (sandRadius - flatRadius);
+                            const smoothSlope = t * t * (3 - 2 * t);
+                            baseHeight -= THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
+                        }
                     }
                 }
             });
@@ -398,15 +411,31 @@ export class PhysicsEngine {
 
         let inSand = false;
         for (let sand of this.sandTraps) {
-            const dx = this.ball.position.x - sand.position.x;
-            const dz = this.ball.position.z - sand.position.z;
+            if (sand.userData && sand.userData.isPolygon) {
+                const points = sand.userData.points;
+                let inside = false;
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                    const xi = points[i].x, zi = points[i].z;
+                    const xj = points[j].x, zj = points[j].z;
+                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                    if (intersect) inside = !inside;
+                }
+                if (inside) {
+                    inSand = true;
+                    break;
+                }
+            } else {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
 
-            const angle = Math.atan2(dz, dx); // Add this line
-            const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
-            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
-            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                inSand = true;
-                break;
+                const angle = Math.atan2(dz, dx); // Add this line
+                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
+                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                    inSand = true;
+                    break;
+                }
             }
         }
 
@@ -539,11 +568,26 @@ export class PhysicsEngine {
             let currentlyInSand = false;
             if (this.sandTraps) {
                 this.sandTraps.forEach(sand => {
-                    const dxS = this.ball.position.x - sand.position.x;
-                    const dzS = this.ball.position.z - sand.position.z;
-                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
-                        currentlyInSand = true;
+                    if (sand.userData && sand.userData.isPolygon) {
+                        const points = sand.userData.points;
+                        let inside = false;
+                        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                            const xi = points[i].x, zi = points[i].z;
+                            const xj = points[j].x, zj = points[j].z;
+                            const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                                && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                            if (intersect) inside = !inside;
+                        }
+                        if (inside) {
+                            currentlyInSand = true;
+                        }
+                    } else {
+                        const dxS = this.ball.position.x - sand.position.x;
+                        const dzS = this.ball.position.z - sand.position.z;
+                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                        if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
+                            currentlyInSand = true;
+                        }
                     }
                 });
             }
