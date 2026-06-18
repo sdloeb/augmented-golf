@@ -49,10 +49,10 @@ const HOLES_CONFIG = {
             new THREE.Vector3(11, 0, -139)     // 87 Yard Approach Green
         ],
         hazards: [
-            { type: 'sand', x: -6.5, z: -124.0, radius: 4.2, depth: 0.5 },
-            { type: 'sand', x: 22.5, z: -126.0, radius: 4.0, depth: 0.6 },
-            { type: 'sand', x: -1.0, z: -147.0, radius: 3.8, depth: 0.6 },
-            { type: 'sand', x: 24.5, z: -146.0, radius: 3.5, depth: 0.6 }
+            { type: 'sand', x: -14.5, z: -115.0, radius: 4.2, depth: 0.5 },
+            { type: 'sand', x: 18.5, z: -126.0, radius: 4.0, depth: 0.6 },
+            { type: 'sand', x: 20.0, z: -155.0, radius: 3.8, depth: 0.6 },
+            { type: 'sand', x: 28.5, z: -140.0, radius: 3.5, depth: 0.6 }
         ]
     },
 
@@ -1117,11 +1117,9 @@ function resetEntireGame(advanceHole = false) {
                     const dzS = worldZ - sand.position.z;
                     let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                    // Add these lines below to distort the visual border based on the angle
-                    const angle = Math.atan2(dzS, dxS);
-                    const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                    const padding = (targetMesh === floor || targetMesh === fairway) ? 1.6 : 0.0; // Add this line
-                    const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding) * shapeWarp; // Modify this line
+                    // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
+                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.2 : 0.0;
+                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
 
                     if (distToSand < sandRadius) {
                         insideSandZone = true;

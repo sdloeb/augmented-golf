@@ -316,10 +316,8 @@ export class PhysicsEngine {
                     const dzS = z - sand.position.z;
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                    // Add these lines below to distort the physical wall border
-                    const angle = Math.atan2(dzS, dxS);
-                    const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp;
+                    // FIXED: Removed irregular shapeWarp to match physics heights cleanly to the visual circular traps
+                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                     const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
 
                     if (distToSand < sandRadius) {
