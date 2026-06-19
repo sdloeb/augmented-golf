@@ -17,7 +17,7 @@ export class SoundManager {
         // FIXED: Independent standalone container for background ambient loops
         this.ambientSounds = {
             birds: new Audio('./sounds/birds.wav'),
-            rain: new Audio('./sounds/rain.wav')
+            rain: new Audio('./sounds/rain.mp3')
         };
 
         // Configure background loop rules and lower the volume so it doesn't drown out hits
