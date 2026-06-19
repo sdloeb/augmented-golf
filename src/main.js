@@ -144,7 +144,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1293,6 +1293,7 @@ function resetEntireGame(advanceHole = false) {
     wasMoving = false;
     if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
+    if (ball) ball.isSunk = false;
     isOverheadActive = false;
     ballTargetScale = 1.0;
     ball.scale.set(1, 1, 1);
@@ -1830,8 +1831,8 @@ function animate() {
         }
 
         // Once it drops safely inside the hole depth out of sight (Y <= localCupFloor)
-        if (ball.position.y <= localCupFloor && ball.position.y > -900) { // Modify this line
-            ball.position.y = -999;
+        if (ball.position.y <= localCupFloor && !ball.isSunk) { // Update this line
+            ball.isSunk = true; // Add this line: Prevents the loop from firing multiple times
             if (sounds) sounds.play('sink');
 
             // NEW: Calculate the descriptive contextual score terminology card
@@ -1852,8 +1853,9 @@ function animate() {
                 standardTermCelebration = `Double Bogey (+${scoreDifferential}). ❌ Shrug it off!`;
             }
 
-            // Give the browser 30ms to fully render the final subterranean frame before alerting
+            // Give the browser 2000ms to observe the ball resting inside the hole structure
             setTimeout(() => {
+                ball.position.y = -999; // Add this line: Hide the ball when scorecard appears
                 // Add this block: Submits current metrics to historical ledger array and invokes card interface layout
                 completedHoles.push({
                     hole: currentHoleNumber,
@@ -1862,7 +1864,7 @@ function animate() {
                     score: strokeCount
                 });
                 showScorecard();
-            }, 30);
+            }, 2000); // Update this line: Set to 2 full seconds
             return;
         }
     }
