@@ -22,7 +22,7 @@ export class SoundManager {
 
         // Configure background loop rules and lower the volume so it doesn't drown out hits
         this.ambientSounds.birds.loop = true;
-        this.ambientSounds.birds.volume = 0.40;
+        this.ambientSounds.birds.volume = 0.90;
         this.ambientSounds.rain.loop = true;
         this.ambientSounds.rain.volume = 0.60;
 
@@ -46,7 +46,7 @@ export class SoundManager {
         this.sounds.putt.forEach(s => s.volume = 0.65);
         this.sounds.sand.forEach(s => s.volume = 0.4);
         this.sounds.sink.forEach(s => s.volume = 0.7);
-        this.sounds.rain.forEach(s => s.volume = 0.7);
+
 
         // Force browser cache structures to load files immediately
         Object.values(this.sounds).forEach(audioArray => {
