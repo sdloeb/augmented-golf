@@ -1793,7 +1793,7 @@ function animate() {
             const trueWorldSpeed = rawSpeed * currentScale;
 
             // A uniform physical threshold standard (0.24) applied equally to both chips and putts
-            const maxWorldSinkSpeed = 0.07;
+            const maxWorldSinkSpeed = 0.14;
 
             // Realism Lip-out simulation based on true physical ground speed limits
             if (trueWorldSpeed > maxWorldSinkSpeed) {
@@ -1807,8 +1807,8 @@ function animate() {
                 const slingZ = (physics.velocity.z * 0.4) + (perpZ * rawSpeed * 0.6); // Add this line
                 const slingLen = Math.sqrt(slingX * slingX + slingZ * slingZ) || 1; // Add this line
 
-                physics.velocity.x = (slingX / slingLen) * rawSpeed; // Modify this line: Maintains full ball speed
-                physics.velocity.z = (slingZ / slingLen) * rawSpeed; // Modify this line: Maintains full ball speed
+                physics.velocity.x = (slingX / slingLen) * rawSpeed * 0.60; // Modify this line: Maintains full ball speed
+                physics.velocity.z = (slingZ / slingLen) * rawSpeed * 0.60; // Modify this line: Maintains full ball speed
                 return;
             }
             isSinking = true;
