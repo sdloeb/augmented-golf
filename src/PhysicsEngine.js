@@ -802,7 +802,7 @@ export class PhysicsEngine {
             if (Math.abs(this.velocity.y) > 0.05) {
                 // FIXED: Lowered threshold to 0.08 to capture the first landing immediately (no 2-second delay).
                 // Added a bounceCount cap of 3 to allow authentic landing bounces but eliminate 10 seconds of rolling hill chatter.
-                if (this.sounds && Math.abs(this.velocity.y) > 0.08 && !this.isPutting && this.bounceCount < 1) { // Modify this line
+                if (this.sounds && Math.abs(this.velocity.y) > 0.08 && !this.isPutting && this.bounceCount < 3) { // Modify this line
                     if (inSand) {
                         this.sounds.play('sand');
                     } else {
