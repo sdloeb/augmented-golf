@@ -596,15 +596,26 @@ function generateHazards() {
             currentSandGroundY += 0.035;
         }
 
+        // Calculate a vector pointing straight out away from the green center
+        const toSandX = x - targetGreenX;
+        const toSandZ = z - (green ? green.position.z : -55);
+        const toSandLen = Math.sqrt(toSandX * toSandX + toSandZ * toSandZ) || 1;
+        const dirAwayX = toSandX / toSandLen;
+        const dirAwayZ = toSandZ / toSandLen;
+
+        // Tangent perpendicular vector to maintain a natural, curved snake contour shape
+        const tanX = -dirAwayZ;
+        const tanZ = dirAwayX;
+
+        // Build the path so it winds outward into the rough and avoids the green entirely
         const path = [
             { x: x, z: z },
-            { x: x + 2, z: z - 5 },  // Curve point 1
-            { x: x + 5, z: z - 10 }, // Curve point 2
-            { x: x + 8, z: z - 15 }  // Curve point 3
+            { x: x + dirAwayX * 3.0 + tanX * 1.5, z: z + dirAwayZ * 3.0 + tanZ * 1.5 },
+            { x: x + dirAwayX * 6.0 - tanX * 1.0, z: z + dirAwayZ * 6.0 - tanZ * 1.0 },
+            { x: x + dirAwayX * 9.0, z: z + dirAwayZ * 9.0 }
         ];
 
         // Now call the function with the path and a very tight spacing
-        // Spacing 0.8 with a Radius 2.9 makes the circles overlap by a lot
         const sandDepth = 0.6;
         createSnakingBunker(path, 0.8, r, sandDepth)
 
@@ -1209,7 +1220,15 @@ function resetEntireGame(advanceHole = false) {
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
                     if (distToGreen < fringeOuterR) {
-                        calculatedHeight -= 1.5;
+                        // Safety buffer zone: Stay perfectly flush at the fringe circle, slope down smoothly underneath it
+                        const transitionZone = 2.0;
+                        if (distToGreen < fringeOuterR - transitionZone) {
+                            calculatedHeight -= 1.5;
+                        } else {
+                            const tFloor = (fringeOuterR - distToGreen) / transitionZone;
+                            const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
+                            calculatedHeight -= smoothTFloor * 1.5;
+                        }
                     }
                     if (insideSandZone) {
                         calculatedHeight -= (0.15 + activeSandDepth * 0.35);
@@ -1221,19 +1240,49 @@ function resetEntireGame(advanceHole = false) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // FIXED: Changed from fringeOuterR to (activeR - 2.0) to allow the fairway grid to run smoothly underneath the green fringe.
-                    // This lets the perfect circular geometry of the fringe mesh mask the edge flawlessly, hiding all jagged teeth.
-                    const shouldHide = (!isCustomHole && worldZ > -8.0) ||
-                        (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && distToGreenCenter < activeR - 2.0) ||
-                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132))) ||
-                        insideSandZone ||
-                        (distanceToPath > fWEdge);
+                    // Universal check: If we are past the front entrance apron and outside the green radius, hide the fairway
+                    const isOnGreenSidesOrBack = (approachDot > -activeR + 1.0) && (distToGreenCenter >= activeR - 2.0);
 
-                    if (shouldHide) {
-                        // FIXED: Automatically pulls hidden cuts deeper underground (-1.5) to neutralize triangle bleeding
+                    // Isolate boundary/sand hiding rules from green-blending rules
+                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));
+
+                    if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
+                    } else if (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack) {
+                        // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
+                        const transitionStart = activeR;
+                        const transitionEnd = activeR - 2.0;
+                        if (distToGreenCenter <= transitionEnd) {
+                            calculatedHeight = floorHeight - 1.5;
+                        } else {
+                            const tFairway = (transitionStart - distToGreenCenter) / (transitionStart - transitionEnd);
+                            const smoothTFairway = Math.max(0, Math.min(1, tFairway * tFairway * (3 - 2 * tFairway)));
+
+                            // Track what the normal fairway height should have been
+                            let normalFairwayHeight = calculatedHeight;
+                            if (distanceToPath <= fW) {
+                                let cushion = 0.06;
+                                if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                                    let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
+                                    cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
+                                }
+                                normalFairwayHeight += cushion;
+                            } else {
+                                const t = (distanceToPath - fW) / 3.5;
+                                const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
+                                let cushion = 0.06;
+                                if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                                    let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
+                                    cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
+                                }
+                                const visibleHeight = calculatedHeight + cushion;
+                                const hiddenHeight = floorHeight - 1.5;
+                                normalFairwayHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
+                            }
+
+                            // Blend the normal height cleanly down into the subterranean clearance zone
+                            calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, floorHeight - 1.5, smoothTFairway);
+                        }
                     } else if (distanceToPath <= fW) {
                         // FIXED: Deepened the underground cushion dip to -0.06 to guarantee zero triangle bleeding through the fringe mesh
                         let cushion = 0.06;
