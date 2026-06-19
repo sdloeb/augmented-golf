@@ -827,7 +827,7 @@ export class PhysicsEngine {
 
         // FIXED: Adjusted the putting stop threshold to 0.014 to complement the slower visual roll speed,
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
-        const stopThreshold = this.isPutting ? 0.005 : 0.012;
+        const stopThreshold = this.isPutting ? 0.003 : 0.012;
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
