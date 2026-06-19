@@ -132,9 +132,6 @@ export class InputHandler {
         this.startX = touch.clientX;
         this.startY = touch.clientY;
 
-        e.preventDefault();         // Add this line
-        this.lastTouchX = currentX; // Add this line
-        this.lastTouchY = currentY;
 
         const touchedClub = e.target.closest('#clubSwipe');
         if (touchedClub) {
@@ -252,13 +249,6 @@ export class InputHandler {
     onTouchEnd() {
         this.isAimDragging = false;
         this.isSwingingFromClub = false;
-
-        // Add this block
-        if (this.isSwinging && this.state === 'FORWARD') {
-            this.executeLaunch(this.lastTouchX || this.startX, this.lastTouchY || this.startY);
-            return;
-        }
-
         if (this.isSwinging && this.state !== 'IDLE') {
             this.resetSwing();
         }
