@@ -39,7 +39,7 @@ export class SoundManager {
         this.sounds.bounce.forEach(s => s.volume = 0.5);
         this.sounds.water.forEach(s => s.volume = 0.6);
         this.sounds.putt.forEach(s => s.volume = 0.65);
-        this.sounds.sand.forEach(s => s.volume = 0.6);
+        this.sounds.sand.forEach(s => s.volume = 0.4);
         this.sounds.sink.forEach(s => s.volume = 0.7);
 
         // Force browser cache structures to load files immediately

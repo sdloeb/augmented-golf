@@ -1737,17 +1737,15 @@ function animate() {
     }
 
     // FIXED: Re-added your Out of Bounds course boundary tracking check
-    if (Math.abs(ball.position.x) > 120 || ball.position.z < holePosition.z - 40) {
+    if (!isSinking && (Math.abs(ball.position.x) > 120 || ball.position.z < holePosition.z - 40)) { // Modify this line
         alert(`Out of Bounds! Ball flew off the course.`);
         resetEntireGame(false);
         return;
     }
 
     // FIXED: Re-added your Water Hazard tracker check
-    if (physics && physics.hitWater) {
+    if (!isSinking && physics && physics.hitWater) { // Modify this line
         physics.hitWater = false;
-        strokeCount++;
-        document.getElementById('strokeText').innerText = strokeCount;
 
         setTimeout(() => {
             alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`);
@@ -1826,12 +1824,13 @@ function animate() {
     if (isSinking) {
         // Linearly drop the ball downward beneath the flat ground plane layout
         // FIXED: Only subtract height if the ball hasn't reached its hidden subterranean resting limit yet
-        if (ball.position.y > -0.15) {
+        const localCupFloor = physics.getGroundHeight(holePosition.x, holePosition.z) - 0.15; // Add this line
+        if (ball.position.y > localCupFloor) { // Modify this line
             ball.position.y -= 0.015;
         }
 
-        // Once it drops safely inside the hole depth out of sight (Y <= -0.15)
-        if (ball.position.y <= -0.15 && ball.position.y > -900) {
+        // Once it drops safely inside the hole depth out of sight (Y <= localCupFloor)
+        if (ball.position.y <= localCupFloor && ball.position.y > -900) { // Modify this line
             ball.position.y = -999;
             if (sounds) sounds.play('sink');
 
