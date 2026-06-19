@@ -6,7 +6,7 @@ export class SoundManager {
         this.sounds = {
             swing: Array.from({ length: poolSize }, () => new Audio('./sounds/swing.wav')),
             iron: Array.from({ length: poolSize }, () => new Audio('./sounds/iron.wav')),
-            bounce: Array.from({ length: poolSize }, () => new Audio('./sounds/bounce.wav')),
+            bounce: Array.from({ length: poolSize }, () => new Audio('./sounds/bounce.mp3')),
             water: Array.from({ length: poolSize }, () => new Audio('./sounds/water.wav')),
             putt: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')),
             sand: Array.from({ length: poolSize }, () => new Audio('./sounds/sand.wav')),
@@ -20,7 +20,7 @@ export class SoundManager {
 
         // Configure background loop rules and lower the volume so it doesn't drown out hits
         this.ambientSounds.birds.loop = true;
-        this.ambientSounds.birds.volume = 0.20; 
+        this.ambientSounds.birds.volume = 0.20;
 
         // Ring buffer position index trackers
         this.poolIndices = {
@@ -49,7 +49,7 @@ export class SoundManager {
                 sound.load();
             });
         });
-        
+
         this.ambientSounds.birds.preload = 'auto';
         this.ambientSounds.birds.load();
     }
