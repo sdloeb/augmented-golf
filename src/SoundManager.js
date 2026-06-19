@@ -10,7 +10,7 @@ export class SoundManager {
             water: Array.from({ length: poolSize }, () => new Audio('./sounds/water.wav')),
             putt: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')),
             sand: Array.from({ length: poolSize }, () => new Audio('./sounds/sand.wav')),
-            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav'))
+            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/ballincup.wav'))
         };
 
         // FIXED: Independent standalone container for background ambient loops
