@@ -138,7 +138,9 @@ let clubLandingRing;
 let clubLandingBeacon;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
-let completedHoles = [];   // Add this line: Keeps track of completed scorecard historical statistics
+let completedHoles = [];
+let isRaining = false;
+let rainParticles = [];
 let currentHoleYards = 0;
 let sandTraps = [];
 let waterHazards = [];
@@ -641,6 +643,21 @@ function updateWindArrowDisplay() {
 function resetEntireGame(advanceHole = false) {
     if (advanceHole) {
         currentHoleNumber++;
+    }
+
+    if (rainParticles) {
+        rainParticles.forEach(p => scene.remove(p));
+        rainParticles = [];
+    }
+    isRaining = Math.random() < 0.35; // 35% chance of rain on any given hole
+    if (sounds) {
+        if (isRaining) {
+            sounds.stopAmbient('birds');
+            sounds.playAmbient('rain');
+        } else {
+            sounds.stopAmbient('rain');
+            sounds.playAmbient('birds');
+        }
     }
 
     strokeCount = 0;
@@ -2437,6 +2454,33 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
+    // Add this block: Procedural 3D Rain Generation and Particle Recycling Simulation
+    if (isRaining && rainParticles.length < 120 && scene) {
+        const rGeo = new THREE.BoxGeometry(0.015, 0.4, 0.015);
+        const rMat = new THREE.MeshBasicMaterial({ color: 0x8cc4f4, transparent: true, opacity: 0.35 });
+        for (let i = 0; i < 3; i++) {
+            const rMesh = new THREE.Mesh(rGeo, rMat);
+            rMesh.position.set(
+                ball.position.x + (Math.random() - 0.5) * 55,
+                ball.position.y + 10 + Math.random() * 8,
+                ball.position.z + (Math.random() - 0.5) * 55
+            );
+            scene.add(rMesh);
+            rainParticles.push(rMesh);
+        }
+    }
+    for (let i = rainParticles.length - 1; i >= 0; i--) {
+        const p = rainParticles[i];
+        p.position.y -= 0.38; // Speed of falling drops
+        const currentFloor = physics ? physics.getGroundHeight(p.position.x, p.position.z) : 0;
+        if (p.position.y < currentFloor) {
+            // Recycle drops back into the sky boundary context box following the ball to save memory
+            p.position.y = ball.position.y + 11 + Math.random() * 5;
+            p.position.x = ball.position.x + (Math.random() - 0.5) * 55;
+            p.position.z = ball.position.z + (Math.random() - 0.5) * 55;
+        }
+    }
+
     // --- NEW: ANIMATE AND UPDATE SAND SPRAY PARTICLES ---
     for (let i = sandParticles.length - 1; i >= 0; i--) {
         const p = sandParticles[i];
@@ -2952,7 +2996,11 @@ function init() {
 
     // FIXED: Kick off your background ambient loop sequence when the game sets up
     if (sounds) {
-        sounds.playAmbient('birds');
+        if (isRaining) {
+            sounds.playAmbient('rain'); // Update this line
+        } else {
+            sounds.playAmbient('birds'); // Update this line
+        }
     }
 
     animate();

@@ -11,16 +11,21 @@ export class SoundManager {
             putt: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')),
             sand: Array.from({ length: poolSize }, () => new Audio('./sounds/sand.wav')),
             sink: Array.from({ length: poolSize }, () => new Audio('./sounds/ballincup.wav'))
+
         };
 
         // FIXED: Independent standalone container for background ambient loops
         this.ambientSounds = {
-            birds: new Audio('./sounds/birds.wav')
+            birds: new Audio('./sounds/birds.wav'),
+            rain: new Audio('./sounds/rain.wav')
         };
 
         // Configure background loop rules and lower the volume so it doesn't drown out hits
         this.ambientSounds.birds.loop = true;
-        this.ambientSounds.birds.volume = 0.20;
+        this.ambientSounds.birds.volume = 0.40;
+        this.ambientSounds.rain.loop = true;
+        this.ambientSounds.rain.volume = 0.60;
+
 
         // Ring buffer position index trackers
         this.poolIndices = {
@@ -41,6 +46,7 @@ export class SoundManager {
         this.sounds.putt.forEach(s => s.volume = 0.65);
         this.sounds.sand.forEach(s => s.volume = 0.4);
         this.sounds.sink.forEach(s => s.volume = 0.7);
+        this.sounds.rain.forEach(s => s.volume = 0.7);
 
         // Force browser cache structures to load files immediately
         Object.values(this.sounds).forEach(audioArray => {
@@ -52,6 +58,8 @@ export class SoundManager {
 
         this.ambientSounds.birds.preload = 'auto';
         this.ambientSounds.birds.load();
+        this.ambientSounds.rain.preload = 'auto';
+        this.ambientSounds.rain.load();
     }
 
     play(soundName) {
@@ -86,4 +94,11 @@ export class SoundManager {
             });
         }
     }
+    stopAmbient(soundName) { // Add this method block
+        const ambient = this.ambientSounds[soundName];
+        if (ambient) {
+            ambient.pause();
+        }
+    }
+
 }
