@@ -185,7 +185,7 @@ export class PhysicsEngine {
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
         // --- CUSTOM HOLE 2 RUNOUT AND HIGHER BUMPY ROUGH ---
-        if (this.greenCenterZ < -135 && this.greenCenterZ > -145) {
+        if (this.greenCenterZ < -128 && this.greenCenterZ > -152) {
             let baseHeight = 0.0;
 
 
@@ -459,7 +459,7 @@ export class PhysicsEngine {
         const activeRadius = window.activeGreenRadius || 12.0;
         const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
         let activeFW = this.fairwayWidth;
-        if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
+        if (this.greenCenterZ < -128 && this.greenCenterZ > -152 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
             activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t);
         }
@@ -492,9 +492,9 @@ export class PhysicsEngine {
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
-        // UPDATED: Matches roll physics boundaries directly to the updated visual cuts and hill climb extension
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
-            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
+            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) { // Update this line: Changed -135 to -128
+            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             // MODIFIED: Added this.ball.position.z <= -41.64 so the first 143 yards off the tee on Hole 3 trigger rough physics, while the flat landing landing zone maintains fairway physics
             currentFriction = 0.91;
