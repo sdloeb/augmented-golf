@@ -393,7 +393,7 @@ export class PhysicsEngine {
             this.velocity.x *= horizontalAdjustment;
             this.velocity.z *= horizontalAdjustment;
         }
-        his.isPutting = isPutting;
+        this.isPutting = isPutting;
         this.isMoving = true;
 
         // FIXED: Reset the bounce counter on every new stroke launch
