@@ -398,7 +398,7 @@ html {
     bottom: 30.5% !important;
     left: 48.25% !important;
     right: auto !important;
-    transform: rotate(0deg) scale(1.4) !important;
+    transform: rotate(0deg) scale(1.2) !important;
     opacity: 1 !important;
     transition: opacity 0.1s ease, bottom 0.1s ease, left 0.1s ease, transform 0.1s ease;
 }
@@ -408,7 +408,7 @@ html {
     bottom: -100px !important;
     left: 51% !important;
     right: auto !important;
-    transform: rotate(30deg) scale(1.7) !important;
+    transform: rotate(30deg) scale(1.5) !important;
     opacity: 0 !important;
     transition: opacity 0.25s ease, bottom 0.25s ease, left 0.25s ease, transform 0.25s ease;
 }

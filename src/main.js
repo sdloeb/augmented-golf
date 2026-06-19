@@ -347,14 +347,27 @@ function generateNewWind() {
     currentWindAngle = Math.random() * Math.PI * 2;
 
     let windSpeed = 0;
+    const windRoll = Math.random();
 
-    // 33% chance to trigger high winds (13 to 20 mph)
-    if (Math.random() < 0.33) {
-        windSpeed = 13 + Math.floor(Math.random() * 8); // Picks an integer from 13 up to 20
+
+    // 20% chance: Calm / Light (0 – 3 MPH)
+    if (windRoll < 0.20) {
+        windSpeed = Math.floor(Math.random() * 4); // Generates 0, 1, 2, or 3
     }
-    // 67% chance to trigger low/moderate winds (0 to 12 mph)
+    // 60% chance: Moderate (4 – 10 MPH) 
+    // (Handles the 20% to 80% range -> 0.80 - 0.20 = 0.60)
+    else if (windRoll < 0.80) {
+        windSpeed = 4 + Math.floor(Math.random() * 7); // Generates 4, 5, 6, 7, 8, 9, or 10
+    }
+    // 15% chance: Strong (11 – 15 MPH)
+    // (Handles the 80% to 95% range -> 0.95 - 0.80 = 0.15)
+    else if (windRoll < 0.95) {
+        windSpeed = 11 + Math.floor(Math.random() * 5); // Generates 11, 12, 13, 14, or 15
+    }
+    // 5% chance: Extreme (16 – 25 MPH)
+    // (Handles the final remainder from 95% to 100%)
     else {
-        windSpeed = Math.floor(Math.random() * 13); // Picks an integer from 0 up to 12
+        windSpeed = 16 + Math.floor(Math.random() * 10); // Generates 16 through 25
     }
 
     currentWindSpeed = windSpeed;
