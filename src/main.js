@@ -1887,12 +1887,14 @@ function animate() {
             physics.isMoving = false;
             wasMoving = false;
 
-            ball.position.x = holePosition.x;
-            ball.position.z = holePosition.z;
+            // REMOVED instant horizontal teleportation to allow a smooth gravitational dropping profile
         }
     }
-
     if (isSinking) {
+        // Smoothly pull the ball horizontally toward the exact center of the cup while it drops to create a natural gravity effect
+        ball.position.x = THREE.MathUtils.lerp(ball.position.x, holePosition.x, 0.18);
+        ball.position.z = THREE.MathUtils.lerp(ball.position.z, holePosition.z, 0.18);
+
         // Linearly drop the ball downward beneath the flat ground plane layout
         // FIXED: Only subtract height if the ball hasn't reached its hidden subterranean resting limit yet
         const localCupFloor = physics.getGroundHeight(holePosition.x, holePosition.z) - 0.15; // Add this line
