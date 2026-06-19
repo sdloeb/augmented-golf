@@ -44,18 +44,15 @@ const HOLES_CONFIG = {
         fairwayWidth: 9.5,
         greenRadius: 9.0,
         waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -65),
-            new THREE.Vector3(0, 0, -125),
-            new THREE.Vector3(2, 0, -180)
+            new THREE.Vector3(0, 0, 10),       // Flat Tee Box zone
+            new THREE.Vector3(0, 0, -108),     // 327 Yard Elbow (Hill descent ends here)
+            new THREE.Vector3(11, 0, -139)     // 87 Yard Approach Green
         ],
-        // The 4 distinct bunkers matching your description and map positions
-        // The 4 distinct bunkers matching your description and map positions
         hazards: [
-            { type: 'sand', x: -11.0, z: -124.0, radius: 3.5, depth: 0.6 }, // Modify this line: Moved further out into left rough
-            { type: 'sand', x: 22.5, z: -126.0, radius: 3.8, depth: 0.6 }, // Keep this line
-            { type: 'sand', x: -1.0, z: -147.0, radius: 3.4, depth: 0.5 }, // Keep this line
-            { type: 'sand', x: 24.5, z: -146.0, radius: 3.6, depth: 0.5 }  // Keep this line
+            { type: 'sand', x: -14.5, z: -115.0, radius: 4.2, depth: 0.5 },
+            { type: 'sand', x: 18.5, z: -126.0, radius: 4.0, depth: 0.6 },
+            { type: 'sand', x: 20.0, z: -155.0, radius: 3.8, depth: 0.6 },
+            { type: 'sand', x: 28.5, z: -140.0, radius: 3.5, depth: 0.6 }
         ]
     },
 
@@ -66,26 +63,44 @@ const HOLES_CONFIG = {
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -65),
-            new THREE.Vector3(0, 0, -125),
+            new THREE.Vector3(-14, 0, -125), // CHANGED: Shifted from 0 to -14 to curve the end of the 1st fairway out to the left
             new THREE.Vector3(-3, 0, -180)
         ],
         hazards: [
-            // Bunkers on the left
-            { type: 'sand', x: -21.5, z: -92.0, radius: 3.4, depth: 0.55 },
-            { type: 'sand', x: -20.5, z: -100.5, radius: 2.2, depth: 0.50 },
-            { type: 'sand', x: -17.5, z: -100.0, radius: 1.9, depth: 0.50 },
-            { type: 'sand', x: -22.5, z: -108.5, radius: 1.4, depth: 0.45 },
-            { type: 'sand', x: -18.5, z: -109.0, radius: 2.6, depth: 0.60 },
-            { type: 'sand', x: -17.5, z: -118.0, radius: 3.0, depth: 0.60 },
-            // 1. The long snaking bunker in the left rough (made with 6 overlapping circles)
-            { type: 'sand', x: -22.0, z: -134.0, radius: 2.8, depth: 0.55 },
-            { type: 'sand', x: -20.5, z: -138.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -19.0, z: -142.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -17.5, z: -146.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -16.0, z: -150.0, radius: 2.9, depth: 0.55 },
-            { type: 'sand', x: -14.5, z: -154.0, radius: 2.8, depth: 0.55 },
+            // Bunkers on the left (Shifted back to flank the lower driver landing zone precisely)
+            { type: 'sand', x: -27.5, z: -85.0, radius: 3.8, depth: 0.55 },
+
+            { type: 'sand', x: -36.5, z: -100.0, radius: 1.9, depth: 0.50 },  //left bunker
+            { type: 'sand', x: -27.5, z: -101.5, radius: 1.4, depth: 0.45 },
+            { type: 'sand', x: -30.5, z: -102.0, radius: 3.8, depth: 0.60 },
+            { type: 'sand', x: -31.5, z: -111.0, radius: 3.0, depth: 0.60 },
+            // Lower driving zone bunker cluster converted into a single long, wide polygon with rounded caps
+            {
+                type: 'sand',
+                shape: 'polygon',
+                depth: 0.55,
+                points: [
+                    // Top straight boundary line
+                    { x: -34.5, z: -89.5 },  // Top-Left straight edge
+                    { x: -29.5, z: -89.5 },  // Top-Right straight edge
+
+                    // Right rounded cap (Shifted far left to clear the wide 18-unit fairway edge)
+                    { x: -27.5, z: -91.0 },  // Right upper turn point
+                    { x: -27.0, z: -92.5 },  // Right Apex Center (Safely in the rough)
+                    { x: -29.0, z: -94.5 },  // Right lower turn point
+
+                    // Bottom straight boundary line
+                    { x: -39.5, z: -96.5 },  // Bottom-Right straight edge
+                    { x: -44.5, z: -96.5 },  // Bottom-Left straight edge
+
+                    // Left rounded cap (facing deep out into the left rough)
+                    { x: -46.5, z: -95.0 },  // Left lower turn point
+                    { x: -47.0, z: -93.5 },  // Left Apex Center
+                    { x: -45.0, z: -91.5 }   // Left upper turn point
+                ]
+            },
             // 2. The single intermediate bunker in the left rough before the green
-            { type: 'sand', x: -14.5, z: -163.0, radius: 2.3, depth: 0.60 },
+            { type: 'sand', x: -30.5, z: -163.0, radius: 2.3, depth: 0.60 },
 
             // 3. The green-side bunker positioned tightly to the left of your x: -3 green
             { type: 'sand', x: -15.5, z: -183.0, radius: 2.5, depth: 0.60 },
@@ -129,7 +144,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 2; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -385,11 +400,12 @@ function createSnakingBunker(path, spacing, radius, depth) {
 
 function addPolygonSandTrap(points, depth) {
     const shape = new THREE.Shape();
-    shape.moveTo(points[0].x, points[0].z);
+    // FIXED: Invert the Z coordinates to counteract the -Math.PI / 2 mesh rotation flip
+    shape.moveTo(points[0].x, -points[0].z);
     for (let i = 1; i < points.length; i++) {
-        shape.lineTo(points[i].x, points[i].z);
+        shape.lineTo(points[i].x, -points[i].z);
     }
-    shape.lineTo(points[0].x, points[0].z); // Close the path
+    shape.lineTo(points[0].x, -points[0].z); // Close the path
 
     const geometry = new THREE.ShapeGeometry(shape);
     const material = new THREE.MeshStandardMaterial({
@@ -823,9 +839,16 @@ function resetEntireGame(advanceHole = false) {
     const verticalOptions = [0.03, -0.03, 0.0];
 
     // Build the 3 distinct randomized tier zones configuration blocks
-    const backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
-    const midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
-    const frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    let backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    let midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    let frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+
+    // FIXED OVERRIDE: Forces Hole 3 to mimic the real left-to-right severe slope breaking toward the ocean cliff
+    if (currentHoleNumber === 3) {
+        backZoneProfile = { rx: -0.04, rz: 0.01 };
+        midZoneProfile = { rx: -0.05, rz: 0.00 };
+        frontZoneProfile = { rx: -0.03, rz: -0.02 };
+    }
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
@@ -861,24 +884,31 @@ function resetEntireGame(advanceHole = false) {
 
             if (hz.type === 'sand') {
                 const sandDepth = hz.depth || 0.6;
-                const sandMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(0, r, 64, 6),
-                    new THREE.MeshStandardMaterial({
-                        color: 0xd9c59e,
-                        roughness: 0.95,
-                        metalness: 0.0,
-                        polygonOffset: true,
-                        polygonOffsetFactor: -1,
-                        polygonOffsetUnits: -4
-                    })
-                );
-                sandMesh.rotation.x = -Math.PI / 2;
 
-                // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
-                sandMesh.position.set(x, 0, z);
-                sandMesh.userData = { radius: r, depth: sandDepth };
-                scene.add(sandMesh);
-                sandTraps.push(sandMesh);
+                // Route to polygon generator if configuration matches
+                if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {
+                    addPolygonSandTrap(hz.points, sandDepth);
+                } else {
+                    // Preserves original circle geometry setup unmodified
+                    const sandMesh = new THREE.Mesh(
+                        new THREE.RingGeometry(0, r, 64, 6),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xd9c59e,
+                            roughness: 0.95,
+                            metalness: 0.0,
+                            polygonOffset: true,
+                            polygonOffsetFactor: -1,
+                            polygonOffsetUnits: -4
+                        })
+                    );
+                    sandMesh.rotation.x = -Math.PI / 2;
+
+                    // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
+                    sandMesh.position.set(x, 0, z);
+                    sandMesh.userData = { radius: r, depth: sandDepth };
+                    scene.add(sandMesh);
+                    sandTraps.push(sandMesh);
+                }
             }
             // NEW: Render the custom rectangular Pacific Ocean body & protective vertical cliff wall geometry
             else if (hz.type === 'ocean') {
@@ -909,11 +939,11 @@ function resetEntireGame(advanceHole = false) {
                     let pathCenter = 0;
                     if (currentZ >= -125) {
                         let t = (10 - currentZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Aligns visual cliff walls with the leftward fairway curve
                     } else {
                         let t = (-125 - currentZ) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Starts from -14.0 and sweeps back towards the right green
                     }
                     let cliffPadding = 18.0; // Pushed wall 3 units further right
                     if (currentZ < -115) {
@@ -1034,11 +1064,11 @@ function resetEntireGame(advanceHole = false) {
                     let pathCenter = 0;
                     if (worldZ >= -125) {
                         let t = (10 - worldZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Prevents visual ocean mesh from bleeding onto the new left path extension
                     } else {
                         let t = (-125 - worldZ) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Prevents visual ocean mesh from bleeding onto the new left path extension
                     }
 
                     // Modify these lines to match the smooth visual transition:
@@ -1065,20 +1095,37 @@ function resetEntireGame(advanceHole = false) {
             let insideSandZone = false;
             let activeSandDepth = 0;
             sandTraps.forEach(sand => {
-                const dxS = worldX - sand.position.x;
-                const dzS = worldZ - sand.position.z;
-                let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+                if (sand.userData && sand.userData.isPolygon) {
+                    // High-performance Point-in-Polygon check to carve visual grass/fairway meshes
+                    const points = sand.userData.points;
+                    let inside = false;
+                    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                        const xi = points[i].x, zi = points[i].z;
+                        const xj = points[j].x, zj = points[j].z;
+                        const intersect = ((zi > worldZ) !== (zj > worldZ))
+                            && (worldX < (xj - xi) * (worldZ - zi) / (zj - zi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    if (inside) {
+                        insideSandZone = true;
+                        const depth = sand.userData.depth || 0.6;
+                        if (depth > activeSandDepth) activeSandDepth = depth;
+                    }
+                } else {
+                    // Preserves original circle geometry setup unmodified
+                    const dxS = worldX - sand.position.x;
+                    const dzS = worldZ - sand.position.z;
+                    let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                // Add these lines below to distort the visual border based on the angle
-                const angle = Math.atan2(dzS, dxS);
-                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                const padding = (targetMesh === floor || targetMesh === fairway) ? 1.6 : 0.0; // Add this line
-                const sandRadius = ((sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding) * shapeWarp; // Modify this line
+                    // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
+                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.2 : 0.0;
+                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
 
-                if (distToSand < sandRadius) {
-                    insideSandZone = true;
-                    const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
-                    if (depth > activeSandDepth) activeSandDepth = depth;
+                    if (distToSand < sandRadius) {
+                        insideSandZone = true;
+                        const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
+                        if (depth > activeSandDepth) activeSandDepth = depth;
+                    }
                 }
             });
 
@@ -1102,17 +1149,30 @@ function resetEntireGame(advanceHole = false) {
                 const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
                 let fW = physics.fairwayWidth;
 
-                if (currentHoleNumber === 3 && worldZ <= -41.64 && worldZ >= -125) { // Update this line
-                    fW = 18.0; // Keep this line
-                } // Keep this line
-
+                if (currentHoleNumber === 3) {
+                    if (worldZ <= -20.0 && worldZ >= -160.0) {
+                        fW = 18.0; // Keeps the fairway wide across both the driving area and the hill climb
+                    } else if (worldZ < -160.0 && worldZ >= -172.0) {
+                        // Smoothly taper the fairway width down from 18.0 to 8.0 just before the bunkers
+                        let tTaper = (-160.0 - worldZ) / 12.0;
+                        fW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
+                    } else if (worldZ < -172.0) {
+                        fW = 8.0; // Clean tight approach into the green entrance
+                    }
+                }
                 const fWEdge = fW + 3.5;
 
+                // FIXED: Replaced undefined greenCenterX with your safe horizontal green positioning reference
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
                 const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
+
+                // FIXED: Added 'physics.' prefix to approachDirX and approachDirZ to fix the blank screen ReferenceError crash
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
-                const isPastFairway = (distToGreenCenter < fringeOuterR) || (approachDot > 0);
+
+                // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
+                const activeRadius = window.activeGreenRadius || 12.0;
+                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
@@ -1127,11 +1187,9 @@ function resetEntireGame(advanceHole = false) {
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
-                    // NEW: Bury the rough floor mesh underground inside the fringe radius to eliminate Z-fighting gaps
                     if (distToGreen < fringeOuterR) {
                         calculatedHeight -= 1.5;
                     }
-                    // FIXED: Clearance cushion automatically scales deeper to completely neutralize triangle bridging
                     if (insideSandZone) {
                         calculatedHeight -= (0.15 + activeSandDepth * 0.35);
                     }
@@ -1139,17 +1197,16 @@ function resetEntireGame(advanceHole = false) {
 
                 // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
-                    // FIXED: Uses global currentHoleConfig to avoid ReferenceError crashes
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
 
-                    // Forces the fairway to stop in a clean straight cut right at the green entrance line
-                    // MODIFIED: Added specific constraint for Hole 3 to hide the fairway between z=-125 and z=-155, making the hill rough grass
+                    // FIXED: Changed from fringeOuterR to (activeR - 2.0) to allow the fairway grid to run smoothly underneath the green fringe.
+                    // This lets the perfect circular geometry of the fringe mesh mask the edge flawlessly, hiding all jagged teeth.
                     const shouldHide = (!isCustomHole && worldZ > -8.0) ||
                         (!isCustomHole && isPastFairway) ||
-                        (isCustomHole && distToGreenCenter < fringeOuterR) ||
+                        (isCustomHole && distToGreenCenter < activeR - 2.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -41.64 || (worldZ <= -115 && worldZ >= -172))) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132))) ||
                         insideSandZone ||
                         (distanceToPath > fWEdge);
 
@@ -1157,22 +1214,22 @@ function resetEntireGame(advanceHole = false) {
                         // FIXED: Automatically pulls hidden cuts deeper underground (-1.5) to neutralize triangle bleeding
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
                     } else if (distanceToPath <= fW) {
-                        // Add these lines: Smoothly dips the fairway height under the green fringe level
+                        // FIXED: Deepened the underground cushion dip to -0.06 to guarantee zero triangle bleeding through the fringe mesh
                         let cushion = 0.06;
                         if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(-0.02, 0.06, Math.max(0, Math.min(1, tFade)));
+                            cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                         }
                         calculatedHeight += cushion; // Modify this line
                     } else {
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                        // Add these lines: Mirror the dip for outer blended edges
+                        // FIXED: Deepened the edge cushion dip to -0.06 to match the clean blend profile perfectly
                         let cushion = 0.06;
                         if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(-0.02, 0.06, Math.max(0, Math.min(1, tFade)));
+                            cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                         }
 
                         const visibleHeight = calculatedHeight + cushion; // Modify this line
@@ -1180,6 +1237,8 @@ function resetEntireGame(advanceHole = false) {
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
+
+
 
                 }
             } // This bracket ends the insideWaterZone check clean
@@ -1255,6 +1314,9 @@ function resetEntireGame(advanceHole = false) {
     cameraLookAt.set(ball.position.x + startForwardX * 12, ball.position.y, ball.position.z + startForwardZ * 12);
     currentLookAt.copy(cameraLookAt);
 
+    // FIXED: Force the camera to instantly teleport to the new Tee Box coordinates instead of slowly floating through space from the previous green location
+    camera.position.copy(cameraTargetPos);
+
     sceneryObjects.forEach(obj => scene.remove(obj));
     sceneryObjects = [];
 
@@ -1266,6 +1328,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
+        if (currentHoleNumber === 3) continue; // Add this line: Skips background foliage/houses on Hole 3 entirely
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
@@ -1344,6 +1407,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     if (currentHoleNumber === 2) obstacleAttempts = 320;
+    if (currentHoleNumber === 3) obstacleAttempts = 0;
 
     for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
@@ -1761,7 +1825,10 @@ function animate() {
 
     if (isSinking) {
         // Linearly drop the ball downward beneath the flat ground plane layout
-        ball.position.y -= 0.015;
+        // FIXED: Only subtract height if the ball hasn't reached its hidden subterranean resting limit yet
+        if (ball.position.y > -0.15) {
+            ball.position.y -= 0.015;
+        }
 
         // Once it drops safely inside the hole depth out of sight (Y <= -0.15)
         if (ball.position.y <= -0.15 && ball.position.y > -900) {
@@ -1872,17 +1939,21 @@ function animate() {
                 const dirZ = holePosition.z - ball.position.z;
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
-                // Target coordinates 5.5 units horizontally behind the ball's moving flight path
-                const backX = -(dirX / length) * 5.5;
-                const backZ = -(dirZ / length) * 5.5;
+                // ADJUSTED: Pushed horizontal cushion back to 20.0 to stay further behind the ball
+                const backX = -(dirX / length) * 20.0;
+                const backZ = -(dirZ / length) * 20.0;
 
                 const moveCamX = ball.position.x + backX; // Add this line
                 const moveCamZ = ball.position.z + backZ; // Add this line
                 const moveCamGroundY = physics.getGroundHeight(moveCamX, moveCamZ); // Add this line: Samples ground directly beneath moving camera
-                const moveCamY = Math.max(ball.position.y + 1.8, moveCamGroundY + 1.8); // Add this line: Keeps camera safely above hill during flight
+
+                // ADJUSTED: Raised vertical cushion to 5.5 to keep a higher, clear blimp-style angle
+                const moveCamY = Math.max(ball.position.y + 5.5, moveCamGroundY + 5.5);
 
                 cameraTargetPos.set(moveCamX, moveCamY, moveCamZ); // Modify this line
-                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+
+                // ADJUSTED: Framed slightly forward (4.5) to tilt the camera view down the fairway path
+                cameraLookAt.set(ball.position.x + (dirX / length) * 4.5, ball.position.y, ball.position.z + (dirZ / length) * 4.5);
             }
 
         } else if (!isOverheadActive) { }
@@ -1941,7 +2012,10 @@ function animate() {
             const camX = ball.position.x - aimDirX * camDist; // Add this line
             const camZ = ball.position.z - aimDirZ * camDist; // Add this line
             const camGroundY = physics.getGroundHeight(camX, camZ); // Add this line: Samples the hill height behind the ball
-            const camY = Math.max(ball.position.y + camHeight, camGroundY + camHeight); // Add this line: Keeps camera safely above the rising slope
+
+            // FIXED: Prevent the camera from plunging if the ball is sinking into the cup
+            const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
+            const camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
 
             cameraTargetPos.set(camX, camY, camZ); // Modify this line
             cameraLookAt.set(lookTargetX, lookTargetY + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
@@ -1961,9 +2035,9 @@ function animate() {
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
     let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
 
-    // 2. ISOLATED CHASE SPEED: Only slow the camera to 0.01 if a long shot is actively airborne and past its 2-second wait window
+    // FIXED: Responsive chase speed (0.035 instead of 0.005) allows camera to slow down precisely WITH the ball on bounce impact
     if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.005;
+        activeCameraSpeed = 0.035;
     }
 
 
@@ -2132,18 +2206,20 @@ function animate() {
         const camBaseX = physics.isPutting ? refX : ball.position.x;
         const camBaseZ = physics.isPutting ? refZ : ball.position.z;
 
+        // FIXED: Establish a stable height anchor so the camera stays on the green surface while the ball sinks underground
+        const stableBallY = isSinking ? (physics.getGroundHeight(holePosition.x, holePosition.z) + 0.25) : ball.position.y;
+
         cameraTargetPos.set(
             camBaseX - dirX * rigidCamDist,
-            ball.position.y + rigidCamHeight,
+            stableBallY + rigidCamHeight,
             camBaseZ - dirZ * rigidCamDist
         );
 
         cameraLookAt.set(
-            ball.position.x + dirX * lookAheadDist,
-            ball.position.y + lookUpOffset,
-            ball.position.z + dirZ * lookAheadDist
+            (isSinking ? holePosition.x : ball.position.x) + dirX * lookAheadDist,
+            stableBallY + lookUpOffset,
+            (isSinking ? holePosition.z : ball.position.z) + dirZ * lookAheadDist
         );
-
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
@@ -2417,7 +2493,7 @@ function init() {
 
 
     // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -2439,7 +2515,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 150, 400);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
@@ -2639,6 +2715,10 @@ function init() {
     input = new InputHandler((power, angle, spin, loft) => {
         isOverheadActive = false;
         if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
+
+        // FIXED: Capture if the ball is struck off the tee box before hiding its template mesh structure
+        const isOffTee = teeBox && teeBox.visible;
+
         if (teeBox) teeBox.visible = false;
         tracerPoints = [];
 
@@ -2688,13 +2768,18 @@ function init() {
 
         physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
 
+        // FIXED: Dynamically differentiate swing audios. Tee box launches play swing.wav,
+        // putting strokes play putt.wav, and fairway/rough lies trigger your new iron.wav.
         if (sounds) {
-            if (isPuttingStroke) { // Modify this line
-                sounds.play('putt'); // Add this line: Triggers the crisp short tap audio file when putting
+            if (isPuttingStroke) {
+                sounds.play('putt');
+            } else if (isOffTee) {
+                sounds.play('swing');
             } else {
-                sounds.play('swing'); // Add this line: Keeps standard big club windy whoosh audio for standard shots
+                sounds.play('iron');
             }
         }
+
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
             // Capture the exact position where the pullback stopped for the putter
@@ -2862,6 +2947,11 @@ function init() {
         }
         lastTouchEnd = now;
     }, false);
+
+    // FIXED: Kick off your background ambient loop sequence when the game sets up
+    if (sounds) {
+        sounds.playAmbient('birds');
+    }
 
     animate();
 }

@@ -24,6 +24,9 @@ export class PhysicsEngine {
         this.fairwayPoints = [];
         this.hasLanded = false;
         this.fairwayWidth = 9.0;
+
+        // FIXED: Track the number of landing impacts to silence rolling hill ripples
+        this.bounceCount = 0;
     }
 
     // NEW: Receives the shuffled configurations from the map setup
@@ -121,15 +124,13 @@ export class PhysicsEngine {
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
             let baseHeight = 0.3; // Default lower fairway height
 
-            // Hill starts at -115 and climbs gently over 45 units to -160
-            if (z <= -115 && z >= -160) {
-                let t = (-115 - z) / 45;
+            // Hill starts at -115 and completes its full climb over 21.5 units to finish at -136.5 (~120 yards out)
+            if (z <= -115 && z >= -136.5) {
+                let t = (-115 - z) / 21.5;
                 let smoothSlope = t * t * (3 - 2 * t);
-                // Changed multiplier from 8.2 (for 8.5 total height) 
-                // If you want a height of 8.5, baseHeight = 0.3 + (smoothSlope * 8.2)
                 baseHeight = 0.3 + (smoothSlope * 8.2);
-            } else if (z < -160) {
-                baseHeight = 8.5; // CHANGED from 14.0 to 8.5 to lower the plateau
+            } else if (z < -136.5) {
+                baseHeight = 8.5; // Flat plateau from 120 yards out all the way to the putting green
             } else {
                 baseHeight = 0.3;  // Lift initial fairway above water level
             }
@@ -139,11 +140,11 @@ export class PhysicsEngine {
             let pathCenter = 0;
             if (z >= -125) {
                 let t = (10 - z) / 135;
-                pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Recalculates course altitude lines relative to left fairway extension
             } else {
                 let t = (-125 - z) / 55;
                 t = Math.min(1.0, t);
-                pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates course altitude lines relative to left fairway extension
             }
 
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
@@ -157,11 +158,11 @@ export class PhysicsEngine {
                 let pathCenter = 0;
                 if (z >= -125) {
                     let t = (10 - z) / 135;
-                    pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                    pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
                 } else {
                     let t = (-125 - z) / 55;
                     t = Math.min(1.0, t);
-                    pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                    pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
                 }
                 cliffEdgeLimit = pathCenter + 15.5;
             }
@@ -229,7 +230,17 @@ export class PhysicsEngine {
             height += (this.bigFeatureScale || 0) * 1.8 * bigInfluence; // Change this line
         }
 
-        let xFade = Math.min(1, Math.max(0, (30 - Math.abs(x)) / 6)); // Add this line
+        // FIXED: Dynamically expand course width masking limits so wide 90-degree dogleg layouts (Holes 4 and 5) don't fall off into a flat zero-height void
+        let maxLayoutWidth = 30;
+        if (this.fairwayPoints && this.fairwayPoints.length > 0) {
+            this.fairwayPoints.forEach(p => {
+                const absX = Math.abs(p.x);
+                if (absX > maxLayoutWidth) maxLayoutWidth = absX;
+            });
+        }
+        const dynamicBoundary = maxLayoutWidth + (this.fairwayWidth || 9.0) + 12.0;
+
+        let xFade = Math.min(1, Math.max(0, (dynamicBoundary - Math.abs(x)) / 10));
         return Math.max(0.001, height * teeFade * xFade); // Change this line
     }
 
@@ -258,11 +269,11 @@ export class PhysicsEngine {
                     let pathCenter = 0;
                     if (z >= -125) {
                         let t = (10 - z) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
                     } else {
                         let t = (-125 - z) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
                     }
 
                     // Modify these lines to blend the edge limit smoothly:
@@ -297,31 +308,42 @@ export class PhysicsEngine {
         // 2. Apply sand trap 3D parabolic depressions to carve smooth, seamless craters into the heightmap
         if (this.sandTraps && this.sandTraps.length > 0) {
             this.sandTraps.forEach(sand => {
-                const dxS = x - sand.position.x;
-                const dzS = z - sand.position.z;
-                const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+                if (sand.userData && sand.userData.isPolygon) {
+                    // High-performance Point-in-Polygon ray casting check
+                    const points = sand.userData.points;
+                    let inside = false;
+                    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                        const xi = points[i].x, zi = points[i].z;
+                        const xj = points[j].x, zj = points[j].z;
+                        const intersect = ((zi > z) !== (zj > z))
+                            && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    if (inside) {
+                        const sandDepth = sand.userData.depth || 0.6;
+                        baseHeight -= sandDepth; // Locks a perfectly flat uniform floor across the entire polygon shape
+                    }
+                } else {
+                    // Preserves circular sloped trap height deformations completely unmodified
+                    const dxS = x - sand.position.x;
+                    const dzS = z - sand.position.z;
+                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
-                // Add these lines below to distort the physical wall border
-                const angle = Math.atan2(dzS, dxS);
-                const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp;
-                const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
+                    // FIXED: Removed irregular shapeWarp to match physics heights cleanly to the visual circular traps
+                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
 
-                if (distToSand < sandRadius) {
-                    // EASY TUNING: Controls what percentage of the inner bunker is completely flat maximum depth.
-                    // 0.45 means the inner 45% of the radius spreads out perfectly flat before sloping up.
-                    const floorFraction = 0.60;
-                    const flatRadius = sandRadius * floorFraction;
+                    if (distToSand < sandRadius) {
+                        const floorFraction = 0.60;
+                        const flatRadius = sandRadius * floorFraction;
 
-                    if (distToSand <= flatRadius) {
-                        // Stays completely flat at maximum depth across the center floor space
-                        baseHeight -= sandDepth;
-                    } else {
-                        // Linearly maps and smoothsteps the slope only across the remaining outer distance
-                        const t = (distToSand - flatRadius) / (sandRadius - flatRadius);
-                        const smoothSlope = t * t * (3 - 2 * t); // Smooth S-curve transition
-
-                        baseHeight -= THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
+                        if (distToSand <= flatRadius) {
+                            baseHeight -= sandDepth;
+                        } else {
+                            const t = (distToSand - flatRadius) / (sandRadius - flatRadius);
+                            const smoothSlope = t * t * (3 - 2 * t);
+                            baseHeight -= THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
+                        }
                     }
                 }
             });
@@ -371,8 +393,11 @@ export class PhysicsEngine {
             this.velocity.x *= horizontalAdjustment;
             this.velocity.z *= horizontalAdjustment;
         }
-        this.isPutting = isPutting;
+        his.isPutting = isPutting;
         this.isMoving = true;
+
+        // FIXED: Reset the bounce counter on every new stroke launch
+        this.bounceCount = 0;
     }
 
     update() {
@@ -398,32 +423,58 @@ export class PhysicsEngine {
 
         let inSand = false;
         for (let sand of this.sandTraps) {
-            const dx = this.ball.position.x - sand.position.x;
-            const dz = this.ball.position.z - sand.position.z;
+            if (sand.userData && sand.userData.isPolygon) {
+                const points = sand.userData.points;
+                let inside = false;
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                    const xi = points[i].x, zi = points[i].z;
+                    const xj = points[j].x, zj = points[j].z;
+                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                    if (intersect) inside = !inside;
+                }
+                if (inside) {
+                    inSand = true;
+                    break;
+                }
+            } else {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
 
-            const angle = Math.atan2(dz, dx); // Add this line
-            const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
-            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
-            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                inSand = true;
-                break;
+                // FIXED: Removed shapeWarp so ball friction state matches the clean circular visual mesh perfectly
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                    inSand = true;
+                    break;
+                }
             }
         }
 
-        // Modify this block: Calculates if the ball is inside the green fringe circle or behind the green center
+        // FIXED: Balanced ball physics boundaries to perfectly mirror the new clean front apron green visual limits
         const relX = this.ball.position.x - this.greenCenterX;
         const relZ = this.ball.position.z - this.greenCenterZ;
-        const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ); // Add this line
+        const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
         const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
-        const isPastFairway = (distToGreenCenter < 11.0) || (approachDot > 0); // Modify this line
+
+        const activeRadius = window.activeGreenRadius || 12.0;
+        const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
         let activeFW = this.fairwayWidth;
         if (this.greenCenterZ < -135 && this.greenCenterZ > -145 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
-            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t); // Matches fanning physics
+            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t);
         }
-        if (this.greenCenterZ < -165 && this.greenCenterZ > -185 && this.ball.position.z <= -41.64 && this.ball.position.z >= -125) { // Update this line
-            activeFW = 18.0; // Keep this line
-        } // Keep this line
+
+        // UPDATED: Keeps physics fairway wide up the hill climb, tapering smoothly before the bunkers
+        if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
+            if (this.ball.position.z <= -20.0 && this.ball.position.z >= -160.0) {
+                activeFW = 18.0;
+            } else if (this.ball.position.z < -160.0 && this.ball.position.z >= -172.0) {
+                let tTaper = (-160.0 - this.ball.position.z) / 12.0;
+                activeFW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
+            } else {
+                activeFW = 8.0;
+            }
+        }
 
         if (inSand) {
             currentFriction = 0.72;
@@ -431,24 +482,19 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.25;
         }
         else if (onGreen) {
-            // Receptive Green Landing: Base calibrations optimized for wedges
             currentBounceHeight = 0.22;
             currentBounceForwardLoss = 0.35;
             currentFriction = 0.956;
 
-            // NEW: If it's a full shot (not a putt) adjust behavior based on landing loft angle
             if (!this.isPutting && this.currentLoft) {
-                // A lower loft value (Driver = 0.040) means less vertical check, more forward skid
-                // A higher loft value (SW = 0.063) naturally preserves your high biting check-up settings
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
-
-                // Low loft clubs get higher bounce resilience and much less forward speed loss (skidding out)
                 currentBounceHeight = 0.22 * (2.0 - loftRatio);
                 currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
             }
         }
+        // UPDATED: Matches roll physics boundaries directly to the updated visual cuts and hill climb extension
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
-            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -41.64 && this.ball.position.z > -125) || this.ball.position.z < -155) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
+            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -135 ? -60.0 : -8.0)))) {
             // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
             // MODIFIED: Added this.ball.position.z <= -41.64 so the first 143 yards off the tee on Hole 3 trigger rough physics, while the flat landing landing zone maintains fairway physics
             currentFriction = 0.91;
@@ -467,12 +513,13 @@ export class PhysicsEngine {
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
-        const isAirborne = this.ball.position.y > groundY || this.velocity.y > 0;
+        // FIXED: Putting strokes are strictly locked to the ground turf to prevent micro-airborne calculations and chattering artifacts
+        const isAirborne = !this.isPutting && (this.ball.position.y > groundY || this.velocity.y > 0);
         let timeScale = isAirborne ? 0.6 : 1.0;
 
-        // FIXED: Increased from 0.45 to 0.70. This makes the ball roll 55% faster visually (snappy out of the gate)
-        // while the math automatically preserves the exact 80ft calibrated distance limit.
-        const puttSpeedFactor = 0.70;
+        // FIXED: Set speed factor to 0.38 to visually slow down the rolling speed of the ball,
+        // giving it a realistic, smooth grass glide while preserving your distance calibration perfectly.
+        const puttSpeedFactor = 0.38;
         if (!isAirborne && this.isPutting) {
             timeScale *= puttSpeedFactor;
             currentFriction = 1.0 - puttSpeedFactor * (1.0 - currentFriction);
@@ -539,11 +586,26 @@ export class PhysicsEngine {
             let currentlyInSand = false;
             if (this.sandTraps) {
                 this.sandTraps.forEach(sand => {
-                    const dxS = this.ball.position.x - sand.position.x;
-                    const dzS = this.ball.position.z - sand.position.z;
-                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
-                        currentlyInSand = true;
+                    if (sand.userData && sand.userData.isPolygon) {
+                        const points = sand.userData.points;
+                        let inside = false;
+                        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                            const xi = points[i].x, zi = points[i].z;
+                            const xj = points[j].x, zj = points[j].z;
+                            const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                                && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                            if (intersect) inside = !inside;
+                        }
+                        if (inside) {
+                            currentlyInSand = true;
+                        }
+                    } else {
+                        const dxS = this.ball.position.x - sand.position.x;
+                        const dzS = this.ball.position.z - sand.position.z;
+                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                        if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
+                            currentlyInSand = true;
+                        }
                     }
                 });
             }
@@ -702,15 +764,14 @@ export class PhysicsEngine {
             for (let water of this.waterHazards) {
                 // MODIFIED: Check if this is the rectangular ocean box to register a cliffside splash penalty
                 if (water.userData && water.userData.isRectangular) {
-                    // Add these lines below:
                     let pathCenter = 0;
                     if (this.ball.position.z >= -125) {
                         let t = (10 - this.ball.position.z) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -5.0, t);
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
                     } else {
                         let t = (-125 - this.ball.position.z) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-5.0, 14.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
                     }
                     const cliffEdgeLimit = pathCenter + (this.ball.position.z <= -125 ? 10.5 : 15.5);
                     // End of added lines
@@ -739,11 +800,16 @@ export class PhysicsEngine {
             }
 
             if (Math.abs(this.velocity.y) > 0.05) {
-                if (this.sounds) this.sounds.play('bounce');
+                // FIXED: Lowered threshold to 0.08 to capture the first landing immediately (no 2-second delay).
+                // Added a bounceCount cap of 3 to allow authentic landing bounces but eliminate 10 seconds of rolling hill chatter.
+                if (this.sounds && Math.abs(this.velocity.y) > 0.08 && !this.isPutting && this.bounceCount < 3) {
+                    if (inSand) {
+                        this.sounds.play('sand');
+                    } else {
+                        this.sounds.play('bounce');
+                    }
+                    this.bounceCount++; // Increment count on each airborne landing hit
 
-                // NEW: Trigger explosive sand spray on high-impact landings
-                if (inSand && typeof window.triggerSandSpray === 'function') {
-                    window.triggerSandSpray(this.ball.position.x, this.ball.position.y, this.ball.position.z, 15, 1.0);
                 }
 
                 this.velocity.y = -this.velocity.y * currentBounceHeight;
@@ -759,10 +825,9 @@ export class PhysicsEngine {
             }
         }
 
-        // 4. STOP CONSTANT LOOPS 
-        // UPDATED: Putts get a higher threshold (0.024) to simulate real grass blades capturing 
-        // the ball at low speeds, completely eliminating the unnatural micro-creeping at the end.
-        const stopThreshold = this.isPutting ? 0.024 : 0.012;
+        // FIXED: Adjusted the putting stop threshold to 0.014 to complement the slower visual roll speed,
+        // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
+        const stopThreshold = this.isPutting ? 0.014 : 0.012;
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;

@@ -1,37 +1,89 @@
 export class SoundManager {
     constructor() {
-        // Updated with reliable, open-source audio links that allow direct browser playback
-        // Updated to use fully compatible, universal MP3 formats for standard external web browsers
-        this.sounds = {
-            swing: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-swing-no-ball-contact.mp3'),
-            bounce: new Audio('https://raw.githubusercontent.com/scottschiller/SoundManager2/master/demo/_mp3/click-low.mp3'),
-            water: new Audio('https://gfxsounds.com/wp-content/uploads/2021/09/Swimming-pool-dive-in-with-a-splash.mp3'), // Changed movie to a real water splash
-            sink: new Audio('https://gfxsounds.com/wp-content/uploads/2021/10/Golf-ball-spins-around-cup.mp3'),
-            putt: new Audio('https://raw.githubusercontent.com/scottschiller/SoundManager2/master/demo/_mp3/click-high.mp3')
+        // Pre-allocate 4 separate channels for short, rapid action sound effects
+        const poolSize = 4;
 
+        this.sounds = {
+            swing: Array.from({ length: poolSize }, () => new Audio('./sounds/swing.wav')),
+            iron: Array.from({ length: poolSize }, () => new Audio('./sounds/iron.wav')),
+            bounce: Array.from({ length: poolSize }, () => new Audio('./sounds/bounce.wav')),
+            water: Array.from({ length: poolSize }, () => new Audio('./sounds/water.wav')),
+            putt: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')),
+            sand: Array.from({ length: poolSize }, () => new Audio('./sounds/sand.wav')),
+            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav'))
         };
 
-        // Pre-adjust volumes so they blend together nicely
-        this.sounds.swing.volume = 0.5;
-        this.sounds.bounce.volume = 0.5;
-        this.sounds.water.volume = 0.6;
-        this.sounds.sink.volume = 0.7;
-        this.sounds.putt.volume = 0.65;
+        // FIXED: Independent standalone container for background ambient loops
+        this.ambientSounds = {
+            birds: new Audio('./sounds/birds.wav')
+        };
 
-        Object.values(this.sounds).forEach(sound => {
-            sound.preload = 'auto';
-            sound.load();
+        // Configure background loop rules and lower the volume so it doesn't drown out hits
+        this.ambientSounds.birds.loop = true;
+        this.ambientSounds.birds.volume = 0.20; 
+
+        // Ring buffer position index trackers
+        this.poolIndices = {
+            swing: 0,
+            iron: 0,
+            bounce: 0,
+            water: 0,
+            putt: 0,
+            sand: 0,
+            sink: 0
+        };
+
+        // Pre-adjust short effect volumes
+        this.sounds.swing.forEach(s => s.volume = 0.5);
+        this.sounds.iron.forEach(s => s.volume = 0.5);
+        this.sounds.bounce.forEach(s => s.volume = 0.5);
+        this.sounds.water.forEach(s => s.volume = 0.6);
+        this.sounds.putt.forEach(s => s.volume = 0.65);
+        this.sounds.sand.forEach(s => s.volume = 0.6);
+        this.sounds.sink.forEach(s => s.volume = 0.7);
+
+        // Force browser cache structures to load files immediately
+        Object.values(this.sounds).forEach(audioArray => {
+            audioArray.forEach(sound => {
+                sound.preload = 'auto';
+                sound.load();
+            });
         });
+        
+        this.ambientSounds.birds.preload = 'auto';
+        this.ambientSounds.birds.load();
     }
 
     play(soundName) {
-        const sound = this.sounds[soundName];
-        if (sound) {
-            // Change this line: Reset the track timeline instantly on every play invoke
-            sound.currentTime = 0;
+        const audioArray = this.sounds[soundName];
+        if (audioArray && audioArray.length > 0) {
+            const idx = this.poolIndices[soundName];
+            const sound = audioArray[idx];
 
-            // Browsers require a user click before playing audio, catch prevents console errors
-            sound.play().catch(err => console.log("Audio playback waiting for user click:", err));
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(err => console.log("Audio playback waiting for user interaction:", err));
+            }
+
+            this.poolIndices[soundName] = (idx + 1) % audioArray.length;
+        }
+    }
+
+    // FIXED: Dedicated function to handle ambient loop tracks with built-in browser autoplay permissions fallback
+    playAmbient(soundName) {
+        const ambient = this.ambientSounds[soundName];
+        if (ambient) {
+            ambient.play().catch(err => {
+                // If browser blocks initial page-load autoplay, register an invisible one-time trigger 
+                // that plays the birds the very split second the user clicks or taps anywhere on screen.
+                const startOnInteraction = () => {
+                    ambient.play().catch(e => console.log(e));
+                    window.removeEventListener('click', startOnInteraction);
+                    window.removeEventListener('touchstart', startOnInteraction);
+                };
+                window.addEventListener('click', startOnInteraction);
+                window.addEventListener('touchstart', startOnInteraction);
+            });
         }
     }
 }
