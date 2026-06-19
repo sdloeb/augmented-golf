@@ -603,6 +603,7 @@ function generateHazards() {
 
         // Now call the function with the path and a very tight spacing
         // Spacing 0.8 with a Radius 2.9 makes the circles overlap by a lot
+        const sandDepth = 0.6;
         createSnakingBunker(path, 0.8, r, sandDepth)
 
 
