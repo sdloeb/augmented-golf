@@ -146,7 +146,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -954,7 +954,8 @@ function resetEntireGame(advanceHole = false) {
                 const endZ = -215.0;
 
                 for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
-                    let pathCenter = 0;
+                    let pathCenter = 0; // Keep this single declaration line!
+
                     if (currentZ >= -125) {
                         let t = (10 - currentZ) / 135;
                         pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Aligns visual cliff walls with the leftward fairway curve
@@ -964,22 +965,12 @@ function resetEntireGame(advanceHole = false) {
                         pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Starts from -14.0 and sweeps back towards the right green
                     }
 
-                    let pathCenter = 0;
-                    if (currentZ >= -125) {
-                        let t = (10 - currentZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Aligns visual cliff walls with the leftward fairway curve
-                    } else {
-                        let t = (-125 - currentZ) / 55;
-                        t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Starts from -14.0 and sweeps back towards the right green
+                    // FIXED: Ensure there is NO "let pathCenter = 0;" here anymore!
+                    let cliffPadding = 15.5;
+                    if (currentZ < -115) {
+                        cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - currentZ) / 20.0)));
                     }
-                    let cliffPadding = 15.5; // Update this line: Restored complete value matching your terrain mesh
-                    if (currentZ < -115) {   // Add this line
-                        cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - currentZ) / 20.0))); // Add this line
-                    }                        // Add this line
-                    const cliffEdgeLimit = pathCenter + cliffPadding; // Add this line: Re-allocates the missing variable to stop the crash
-
-                    const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
+                    const cliffEdgeLimit = pathCenter + cliffPadding;
 
                     const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
 
