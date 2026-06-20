@@ -499,8 +499,8 @@ html {
 
     /* Adjust map to sit safely on the left under the wind container, avoiding club options collisions */
     #holeMapContainer {
-        top: 95px !important;
-        left: 20px !important;
+        top: 85px !important;
+        left: 15px !important;
         right: auto !important;
         width: 140px !important;
         padding: 8px !important;
@@ -537,8 +537,8 @@ html {
 
     #overheadBtn {
         position: absolute;
-        top: 165px;
-        left: 20px;
+        top: 155px;
+        left: 15px;
         background: rgba(0, 0, 0, 0.6);
         border: 2px solid #ffffff;
         border-radius: 5px;
