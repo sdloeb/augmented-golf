@@ -2579,7 +2579,50 @@ function animate() {
 
     updateWindArrowDisplay();
 
-    renderer.render(scene, camera);
+    // --- ADD THIS BLOCK: X-RAY GHOST OBSTRUCTION FADER ---
+    if (sceneryObjects && sceneryObjects.length > 0 && camera && ball && !isOverheadActive) { // Modify this line: Target the 3D meshes instead of physics data[cite: 2]
+        // Create a raycaster pointing from the camera directly to the center of the ball
+        const raycaster = new THREE.Raycaster();
+        const camToBallDir = new THREE.Vector3().subVectors(ball.position, camera.position);
+        const distanceToBall = camToBallDir.length();
+        camToBallDir.normalize();
+        raycaster.set(camera.position, camToBallDir);
+
+        // Raycast straight against your active 3D world models array
+        const intersects = raycaster.intersectObjects(sceneryObjects, true); // Modify this line: Target sceneryObjects directly[cite: 2]
+
+        // Reset all obstacles back to fully solid by default
+        sceneryObjects.forEach(mesh => { // Modify this line: Target sceneryObjects directly[cite: 2]
+            mesh.traverse(child => {
+                if (child.isMesh && child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => { mat.transparent = false; mat.opacity = 1.0; });
+                    } else {
+                        child.material.transparent = false;
+                        child.material.opacity = 1.0;
+                    }
+                }
+            });
+        });
+
+        // If any obstacles cut directly between the camera lens and the ball, drop their opacity to 0.20
+        intersects.forEach(hit => {
+            if (hit.distance < distanceToBall) {
+                hit.object.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => { mat.transparent = true; mat.opacity = 0.20; });
+                        } else {
+                            child.material.transparent = true;
+                            child.material.opacity = 0.20;
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    renderer.render(scene, camera); // Preserved: Main renderer pipeline stays intact[cite: 2]
 }
 
 function init() {
