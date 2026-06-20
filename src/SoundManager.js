@@ -6,12 +6,14 @@ export class SoundManager {
         this.sounds = {
             swing: Array.from({ length: poolSize }, () => new Audio('./sounds/swing.wav')),
             iron: Array.from({ length: poolSize }, () => new Audio('./sounds/iron.wav')),
-            bounce: Array.from({ length: poolSize }, () => new Audio('./sounds/bounce.mp3')),
             water: Array.from({ length: poolSize }, () => new Audio('./sounds/water.wav')),
             putt: Array.from({ length: poolSize }, () => new Audio('./sounds/putt.wav')),
             sand: Array.from({ length: poolSize }, () => new Audio('./sounds/sand.wav')),
-            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/ballincup.wav'))
-
+            sink: Array.from({ length: poolSize }, () => new Audio('./sounds/ballincup.wav')),
+            // SURFACE EXPLICIT AUDIO CHANNELS: Allocated for independent landing responses
+            fairway: Array.from({ length: poolSize }, () => new Audio('./sounds/fairway.wav')), // Add this line
+            rough: Array.from({ length: poolSize }, () => new Audio('./sounds/rough.wav')),     // Add this line
+            green: Array.from({ length: poolSize }, () => new Audio('./sounds/green.wav'))      // Add this line
         };
 
         // FIXED: Independent standalone container for background ambient loops
@@ -31,21 +33,25 @@ export class SoundManager {
         this.poolIndices = {
             swing: 0,
             iron: 0,
-            bounce: 0,
             water: 0,
             putt: 0,
             sand: 0,
-            sink: 0
+            sink: 0,
+            fairway: 0, // Add this line
+            rough: 0,   // Add this line
+            green: 0    // Add this line
         };
 
         // Pre-adjust short effect volumes
         this.sounds.swing.forEach(s => s.volume = 0.5);
         this.sounds.iron.forEach(s => s.volume = 0.5);
-        this.sounds.bounce.forEach(s => s.volume = 0.5);
         this.sounds.water.forEach(s => s.volume = 0.6);
         this.sounds.putt.forEach(s => s.volume = 0.65);
         this.sounds.sand.forEach(s => s.volume = 0.4);
         this.sounds.sink.forEach(s => s.volume = 0.7);
+        this.sounds.fairway.forEach(s => s.volume = 0.5); // Add this line
+        this.sounds.rough.forEach(s => s.volume = 0.5);   // Add this line
+        this.sounds.green.forEach(s => s.volume = 0.5);
 
 
         // Force browser cache structures to load files immediately

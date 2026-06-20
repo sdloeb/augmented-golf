@@ -792,17 +792,21 @@ export class PhysicsEngine {
             if (Math.abs(this.velocity.y) > 0.05) {
                 // FIXED: Lowered threshold to 0.08 to capture the first landing immediately (no 2-second delay).
                 // Added a bounceCount cap of 3 to allow authentic landing bounces but eliminate 10 seconds of rolling hill chatter.
-                if (this.sounds && Math.abs(this.velocity.y) > 0.08 && !this.isPutting && this.bounceCount < 3) { // Modify this line
+                if (this.sounds && Math.abs(this.velocity.y) > 0.08 && !this.isPutting && this.bounceCount < 3) { // Preserved
                     if (inSand) {
-                        this.sounds.play('sand');
+                        this.sounds.play('sand'); // Preserved: Sand path remains clean
+                    } else if (onGreen) {
+                        this.sounds.play('green'); // Add this line: Triggers on green grass bounce
+                    } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
+                        ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
+                        this.sounds.play('fairway'); // Add this line: Triggers on fairway track bounce
                     } else {
-                        this.sounds.play('bounce');
+                        this.sounds.play('rough'); // Add this line: Triggers on deep course rough bounce
                     }
-                    this.bounceCount++; // Increment count on each airborne landing hit
-
+                    this.bounceCount++; // Preserved: Increment count on each airborne landing hit
                 }
 
-                this.velocity.y = -this.velocity.y * currentBounceHeight;
+                this.velocity.y = -this.velocity.y * currentBounceHeight; // Preserved
                 this.velocity.x *= currentBounceForwardLoss;
                 this.velocity.z *= currentBounceForwardLoss;
             } else {
