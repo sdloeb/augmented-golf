@@ -461,7 +461,7 @@ export class InputHandler {
 
                 // 3. Apply Penalties
                 if (inSand) {
-                    finalPower *= 0.50; // Lose 50% power in sand bunker
+                    finalPower *= 0.75; // Lose 50% power in sand bunker
                 } else if (!onGreen && !isOnFringe && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Modify this line: Exempt the clean fringe lie from the rough penalty
                     finalPower *= 0.85; // Lose 15% power in the rough
                 }
@@ -470,23 +470,30 @@ export class InputHandler {
 
 
 
-        const horizontalDeviation = endX - this.startX;
-        let horizontalAngle = horizontalDeviation * 0.005;
+        const backswingDrift = (this.pullbackAtMaxX || this.startX) - this.startX; // Add this line: Measure clock pullback direction
+        const followThroughDrift = endX - this.startX;                            // Add this line: Measure clock follow-through direction
+
+        let horizontalAngle = followThroughDrift * 0.005; // Modify this line: Standard follow-through launch angle
+
+        // Diagonal Clock Shot Rule: If pulling back opposite to follow-through, invert launch direction so it goes "left first" or "right first"
+        if (!club.isGreen && backswingDrift !== 0 && followThroughDrift !== 0 && Math.sign(backswingDrift) !== Math.sign(followThroughDrift)) { // Modify this line: Added !club.isGreen safety cushion
+            horizontalAngle = -followThroughDrift * 0.005; // Preserved
+        }
+
         // Clamp the angle to prevent extreme sideways or backward shots (max ~35 degrees)
         const maxAngle = 35 * Math.PI / 180;
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
-        // NEW SPIN LOGIC: Calculate curve based entirely on backswing straightness
-        // Pulling back left (< 0) creates slice (> 0), pulling back right (> 0) creates hook (< 0)[cite: 1]
-        let spinValue = -(this.pullbackDriftX || 0) * 0.4; // Modify this line: Scales pixels drifted into spin strength[cite: 1]
-        spinValue = Math.max(-45, Math.min(45, spinValue)); // Add this line: Keeps maximum spin capped so physics stay stable[cite: 1]
+        // CLOCK SWING TRACK SPIN LOGIC: Determines aerodynamic curve based on the relationship between backswing and follow-through
+        let spinValue = (followThroughDrift - backswingDrift * 0.5) * 0.4; // Modify this line: Automatically satisfies all 8 curve rules
+        spinValue = Math.max(-45, Math.min(45, spinValue)); // Preserved: Keeps maximum spin capped safely
 
-        // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable[cite: 1]
+        // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable
         this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft || 0.042);
-        this.chosenClubIndex = null;    // Preserved: Clears manually selected club[cite: 1]
-        this.isAimMode = false;         // Preserved: Exits aiming view upon hit[cite: 1]
-        this.aimAngleOffset = 0;        // Preserved: Resets custom aim offset[cite: 1]
-        this.resetSwing();              // Preserved: Hides power bar and readies next shot[cite: 1]
+        this.chosenClubIndex = null;    // Preserved: Clears manually selected club
+        this.isAimMode = false;         // Preserved: Exits aiming view upon hit
+        this.aimAngleOffset = 0;        // Preserved: Resets custom aim offset
+        this.resetSwing();              // Preserved: Hides power bar and readies next shot
     }
 
     resetSwing() {

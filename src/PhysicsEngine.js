@@ -525,26 +525,24 @@ export class PhysicsEngine {
             this.velocity.x *= 0.993;
             this.velocity.z *= 0.993;
 
-            // CALCULATE TRUE PERPENDICULAR AERODYNAMIC SPIN (Magnus Effect)
             if (this.spin && this.spin !== 0) {
                 const horizSpeed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.z * this.velocity.z);
                 if (horizSpeed > 0.01) {
                     // Generates a vector pointing exactly 90-degrees perpendicular to the current flight path
-                    const perpX = -this.velocity.z / horizSpeed;
-                    const perpZ = this.velocity.x / horizSpeed;
+                    const perpX = -this.velocity.z / horizSpeed; // Preserved
+                    const perpZ = this.velocity.x / horizSpeed; // Preserved
 
-                    // FIXED: Increased Slice from 0.00034 to 0.00048. 
-                    // This gives the ball enough mid-air aerodynamic pull to overcome the initial leftward push 
-                    // and carry the ball completely past the straight center line onto the right side!
-                    const curveCoeff = this.spin < 0 ? 0.00062 : 0.00092;
-                    const sideForceMagnitude = this.spin * curveCoeff * horizSpeed;
+                    // CLOCK SYSTEM AERODYNAMICS: Uniform curve coefficients for smooth intentional shot shaping
+                    const curveCoeff = 0.00085; // Modify this line: Creates perfectly symmetric, smooth hooks and slices
+                    const sideForceMagnitude = this.spin * curveCoeff * horizSpeed; // Preserved
 
-                    this.velocity.x += perpX * sideForceMagnitude * timeScale;
-                    this.velocity.z += perpZ * sideForceMagnitude * timeScale;
+                    this.velocity.x += perpX * sideForceMagnitude * timeScale; // Preserved
+                    this.velocity.z += perpZ * sideForceMagnitude * timeScale; // Preserved
                 }
 
                 // Spin decay rate keeps spin active through the descent
-                this.spin *= 0.975;
+                this.spin *= 0.982; // Modify this line: Sustains the spin slightly longer so curves show clearly on descent
+
             }
 
             if (!this.isPutting) {
