@@ -216,22 +216,14 @@ export class InputHandler {
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            const screenCenter = window.innerWidth / 2;
-            const ballPathWidth = 120;
-            let shotModifier = "";
-
-            if (this.startX < screenCenter - ballPathWidth / 2) {
-                shotModifier = " (Fade)";
-            } else if (this.startX > screenCenter + ballPathWidth / 2) {
-                shotModifier = " (Slice)";
-            }
+            // Removed old fade/slice text modifier checks entirely[cite: 1]
 
             if (club.isGreen) {
                 const feet = Math.round(pullRatio * 80);
-                this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`; // Modify this line: Removed ${shotModifier}
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds${shotModifier}`;
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`; // Modify this line: Removed ${shotModifier}
             }
 
             if (currentY < this.maxPullY - 5) {
@@ -345,22 +337,14 @@ export class InputHandler {
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            const screenCenter = window.innerWidth / 2;
-            const ballPathWidth = 120;
-            let shotModifier = "";
-
-            if (this.startX < screenCenter - ballPathWidth / 2) {
-                shotModifier = " (Fade)";
-            } else if (this.startX > screenCenter + ballPathWidth / 2) {
-                shotModifier = " (Slice)";
-            }
+            // Removed old fade/slice text modifier checks entirely[cite: 1]
 
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 80); // Modify this line: Changed 50 to 80 to match true physics distance range
-                this.gaugeLabel.innerText = `${club.name}: ${feet} ft${shotModifier}`;
+                const feet = Math.round(pullRatio * 80); // Preserved: Matched distance scale range change
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`; // Modify this line: Removed ${shotModifier}
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds${shotModifier}`;
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`; // Modify this line: Removed ${shotModifier}
             }
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
@@ -492,29 +476,17 @@ export class InputHandler {
         const maxAngle = 35 * Math.PI / 180;
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
-        // FIXED LOGIC: Spin is now a flat constant depending only on the zone.
-        // Follow-through horizontal angle rules handle all aim control symmetrically.
-        const screenCenter = window.innerWidth / 2;
-        const ballPathWidth = 120;
-        let spinValue = 0;
+        // NEW SPIN LOGIC: Calculate curve based entirely on backswing straightness
+        // Pulling back left (< 0) creates slice (> 0), pulling back right (> 0) creates hook (< 0)[cite: 1]
+        let spinValue = -(this.pullbackDriftX || 0) * 0.4; // Modify this line: Scales pixels drifted into spin strength[cite: 1]
+        spinValue = Math.max(-45, Math.min(45, spinValue)); // Add this line: Keeps maximum spin capped so physics stay stable[cite: 1]
 
-        if (this.startX < screenCenter - ballPathWidth / 2) {
-            // LEFT SIDE: Uniform Fade Spin (always reliable, no matter how far left they touch)
-            spinValue = -45;
-        } else if (this.startX > screenCenter + ballPathWidth / 2) {
-            // RIGHT SIDE: Uniform Slice Spin (Set to 45 to perfectly mirror the fade magnitude)
-            spinValue = 45;
-        } else {
-            // STRAIGHT PATH: Inside the vertical center path of the ball
-            spinValue = 0;
-        }
-
-        // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable
+        // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable[cite: 1]
         this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft || 0.042);
-        this.chosenClubIndex = null;
-        this.isAimMode = false;
-        this.aimAngleOffset = 0;
-        this.resetSwing();
+        this.chosenClubIndex = null;    // Preserved: Clears manually selected club[cite: 1]
+        this.isAimMode = false;         // Preserved: Exits aiming view upon hit[cite: 1]
+        this.aimAngleOffset = 0;        // Preserved: Resets custom aim offset[cite: 1]
+        this.resetSwing();              // Preserved: Hides power bar and readies next shot[cite: 1]
     }
 
     resetSwing() {

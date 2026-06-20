@@ -362,15 +362,7 @@ export class PhysicsEngine {
 
         // 2. ROTATE THE INITIAL TRAJECTORY OUTWARDS
         let adjustedAngle = mouseAngle;
-        if (!isPutting && spin !== 0) {
-            if (spin < 0) {
-                // FADE (Negative spin): Pushes initial launch direction to the RIGHT
-                adjustedAngle = mouseAngle - (spin * 0.006);
-            } else {
-                // SLICE (Positive spin): Pushes initial launch direction significantly further LEFT at start
-                adjustedAngle = mouseAngle - (spin * 0.012);
-            }
-        }
+
 
         // Calculate horizontal components using our newly adjusted starting angle
         const forwardComponent = Math.cos(adjustedAngle) * totalPower;
