@@ -712,13 +712,12 @@ export class PhysicsEngine {
                         this.velocity.x = Math.cos(deflection) * speed;
                         this.velocity.z = Math.sin(deflection) * speed;
                     }
-
                     // Prevent sticky multi-frame trunk vibrations by snapping ball coordinates clear of the boundary
-                    let pushAngle = Math.atan2(dz, dx); // Add this line
-                    this.ball.position.x = obs.x + (obs.trunkRadius + 0.26) * Math.cos(pushAngle); // Add this line
-                    this.ball.position.z = obs.z + (obs.trunkRadius + 0.26) * Math.sin(pushAngle); // Add this line
+                    let pushAngle = Math.atan2(dz, dx); // Preserved
+                    this.ball.position.x = obs.x + (obs.trunkRadius + 0.26) * Math.cos(pushAngle); // Preserved
+                    this.ball.position.z = obs.z + (obs.trunkRadius + 0.26) * Math.sin(pushAngle); // Preserved
 
-                    if (this.sounds) this.sounds.play('bounce');
+                    if (this.sounds) this.sounds.play('rough'); // Modify this line: Redirected from bounce to rough to prevent code crashes
                     break;
                 }
 
