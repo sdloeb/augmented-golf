@@ -480,9 +480,10 @@ export class PhysicsEngine {
 
             if (!this.isPutting && this.currentLoft) {
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
-                currentBounceHeight = 0.22 * (2.0 - loftRatio);
-                currentBounceForwardLoss = THREE.MathUtils.lerp(0.75, 0.35, (loftRatio - 0.6) / 0.9);
+                currentBounceHeight = 0.34 * (2.0 - loftRatio);                                    // Modify this line
+                currentBounceForwardLoss = THREE.MathUtils.lerp(0.86, 0.58, (loftRatio - 0.4) / 1.1); // Modify this line
             }
+
         }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) { // Update this line: Changed -135 to -128
@@ -500,7 +501,7 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.30;   // Strongly strips forward speed on ground contact
         }
 
-        if (this.isPutting) {
+        if (this.isPutting || onGreen) { // Modify this line
             currentFriction = 0.979; // Preserves your exact putting calibration constant
         }
 
@@ -511,7 +512,7 @@ export class PhysicsEngine {
 
         // FIXED: Set speed factor to 0.38 to visually slow down the rolling speed of the ball,
         // giving it a realistic, smooth grass glide while preserving your distance calibration perfectly.
-        const puttSpeedFactor = 0.38;
+        const puttSpeedFactor = 0.28;
         if (!isAirborne && this.isPutting) {
             timeScale *= puttSpeedFactor;
             currentFriction = 1.0 - puttSpeedFactor * (1.0 - currentFriction);
@@ -820,7 +821,7 @@ export class PhysicsEngine {
 
         // FIXED: Adjusted the putting stop threshold to 0.014 to complement the slower visual roll speed,
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
-        const stopThreshold = this.isPutting ? 0.003 : 0.012;
+        const stopThreshold = (this.isPutting || onGreen) ? 0.003 : 0.012; // Modify this line
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
