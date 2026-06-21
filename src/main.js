@@ -146,7 +146,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 4; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1523,6 +1523,11 @@ function resetEntireGame(advanceHole = false) {
     if (currentHoleNumber === 2) obstacleAttempts = 320;
     if (currentHoleNumber === 3) obstacleAttempts = 0;
 
+    // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
+    if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
+        obstacleAttempts = Math.max(obstacleAttempts, 450);                                 // Add this line
+    }
+
     for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
         let sampleX = (Math.random() - 0.5) * 220;
         if (currentHoleNumber === 2 && sampleX > 0) {
@@ -1591,10 +1596,24 @@ function resetEntireGame(advanceHole = false) {
 
         // Allow trees to extend much further out on the right side to climb the new hillside ridge
         let maxTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? 55.0 : 35.0;
-        let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (physics.fairwayWidth + 6.8); // Add this line: Shifts trees further right on Hole 2
+        let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (physics.fairwayWidth + 6.8);
+
+        let isShortcutZone = false; // Add this line
+        // Enforce the forest barrier constraint exclusively on procedural dogleg gaps (Hole 4+)
+        if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
+            const tee = currentHoleConfig.waypoints[0];                                          // Add this line
+            const greenPt = currentHoleConfig.waypoints[currentHoleConfig.waypoints.length - 1]; // Add this line
+            const minX = Math.min(tee.x, greenPt.x) - 15.0;                                      // Add this line
+            const maxX = Math.max(tee.x, greenPt.x) + 15.0;                                      // Add this line
+            const minZ = Math.min(tee.z, greenPt.z) - 15.0;                                      // Add this line
+            const maxZ = Math.max(tee.z, greenPt.z) + 15.0;                                      // Add this line
+            if (sampleX >= minX && sampleX <= maxX && sampleZ >= minZ && sampleZ <= maxZ) {      // Add this line
+                isShortcutZone = true;                                                           // Add this line
+            }                                                                                    // Add this line
+        }                                                                                        // Add this line
 
         // FIXED: Expanded clearance cushion to clear the smooth transition grass and prevent branches from overlapping the fairway
-        if (fairwayDistance <= minTreeDist || fairwayDistance > maxTreeDist) { // Modify this line: Changed clearance to use our new minTreeDist variable
+        if (fairwayDistance <= minTreeDist || (fairwayDistance > maxTreeDist && !isShortcutZone)) { // Modify this line
             continue;
         }
 
@@ -1602,9 +1621,12 @@ function resetEntireGame(advanceHole = false) {
         const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
         sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-        let generateAsTree = currentHoleNumber === 2 ? (Math.random() < 0.95) : (Math.random() < 0.6); // Modify this line: 95% trees for Green Lakes look
+        let generateAsTree = currentHoleNumber === 2 ? (Math.random() < 0.95) : (Math.random() < 0.6);
+        if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
+
         if (generateAsTree) {
             let randomScale = 3.5 + Math.random() * 1.3;
+            if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
