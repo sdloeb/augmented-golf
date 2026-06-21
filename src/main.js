@@ -579,6 +579,7 @@ function generateHazards() {
     for (let i = 0; i < numSand; i++) {
         let x, z, r = 4.5 + Math.random() * 2.5;
         let sandAttempts = 0;
+        let endX = 0, endZ = 0; // Add this line
         do {
             if (Math.random() > 0.3 && physics.fairwayPoints && physics.fairwayPoints.length > 0) {
                 const basePt = physics.fairwayPoints[Math.floor(Math.random() * physics.fairwayPoints.length)];
@@ -592,12 +593,23 @@ function generateHazards() {
                 x = targetGreenX + Math.cos(angle) * offsetDist;
                 z = targetGreenZ + Math.sin(angle) * offsetDist;
             }
+
+            // Pre-calculate where the snaking path body ends to check overlap metrics cleanly
+            const tsX = x - targetGreenX;                                         // Add this line
+            const tsZ = z - targetGreenZ;                                         // Add this line
+            const tsLen = Math.sqrt(tsX * tsX + tsZ * tsZ) || 1;                  // Add this line
+            endX = x + (tsX / tsLen) * 9.0;                                        // Add this line
+            endZ = z + (tsZ / tsLen) * 9.0;                                        // Add this line
+
             sandAttempts++;
             if (sandAttempts > 100) break;
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
+            checkOverlap(endX, endZ, r, waterHazards, 3.0) || // Add this line
+            checkOverlap(endX, endZ, r, sandTraps) ||         // Add this line
             Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 0.5) ||
+            Math.sqrt((endX - targetGreenX) * (endX - targetGreenX) + (endZ - targetGreenZ) * (endZ - targetGreenZ)) < (12 + r + 0.5) || // Add this line
             (physics && physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5)) ||
             (z > -15 && Math.abs(x) < 15)
         );
@@ -1205,7 +1217,7 @@ function resetEntireGame(advanceHole = false) {
                         fW = 8.0; // Clean tight approach into the green entrance
                     }
                 }
-                const fWEdge = fW + 3.5;
+
 
                 // FIXED: Replaced undefined greenCenterX with your safe horizontal green positioning reference
                 const relX = worldX - (green ? green.position.x : 0);
@@ -1215,9 +1227,25 @@ function resetEntireGame(advanceHole = false) {
                 // FIXED: Added 'physics.' prefix to approachDirX and approachDirZ to fix the blank screen ReferenceError crash
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
 
-                // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
                 const activeRadius = window.activeGreenRadius || 12.0;
-                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
+
+                // Universal procedural apron taper logic for all standard and random holes
+                if (currentHoleNumber !== 3) {                                          // Add this line
+                    const apronStart = -activeRadius - 12.0;                             // Add this line
+                    const apronEnd = -activeRadius;                                      // Add this line
+                    if (approachDot > apronStart && approachDot <= apronEnd) {           // Add this line
+                        let tApron = (approachDot - apronStart) / 12.0;                  // Add this line
+                        const targetApronWidth = Math.min(physics.fairwayWidth, activeRadius * 0.72); // Add this line
+                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, tApron);    // Add this line
+                    } else if (approachDot > apronEnd) {                                 // Add this line
+                        fW = Math.min(physics.fairwayWidth, activeRadius * 0.72);        // Add this line
+                    }                                                                    // Add this line
+                }                                                                        // Add this line
+
+                const fWEdge = fW + 3.5; // Re-placed here safely so fWEdge uses your tapered fairway variables
+
+                // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
+                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > 0); // Modify this line
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
@@ -1244,7 +1272,7 @@ function resetEntireGame(advanceHole = false) {
                         }
                     }
                     if (insideSandZone) {
-                        calculatedHeight -= (0.15 + activeSandDepth * 0.35);
+                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 1.5; // Modify this line
                     }
                 }
 
@@ -1260,7 +1288,9 @@ function resetEntireGame(advanceHole = false) {
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));
 
                     if (insideSandZone || isOutsideFairwayBounds) {
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 1.5) : (floorHeight - 1.5); // Modify this line
+                    } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) { // Add this line
+                        calculatedHeight = floorHeight - 1.5;                          // Add this line
                     } else if (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack) {
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
                         const transitionStart = activeR;
@@ -1514,16 +1544,41 @@ function resetEntireGame(advanceHole = false) {
         } // Keep this line
 
         // Prevent spawning inside sand traps (+1.0 unit buffer padding)
-        let insideSandTrap = sandTraps.some(sandMesh => { // Add this line
-            let dxS = sampleX - sandMesh.position.x; // Add this line
-            let dzS = sampleZ - sandMesh.position.z; // Add this line
+        let insideSandTrap = sandTraps.some(sandMesh => {
+            if (sandMesh.userData && sandMesh.userData.isPolygon) { // Add this line
+                const points = sandMesh.userData.points;            // Add this line
+                let inside = false;                                 // Add this line
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) { // Add this line
+                    const xi = points[i].x, zi = points[i].z;       // Add this line
+                    const xj = points[j].x, zj = points[j].z;       // Add this line
+                    const intersect = ((zi > sampleZ) !== (zj > sampleZ)) && (sampleX < (xj - xi) * (sampleZ - zi) / (zj - zi) + xi); // Add this line
+                    if (intersect) inside = !inside;                // Add this line
+                }                                                   // Add this line
+                return inside;                                      // Add this line
+            }                                                       // Add this line
+            let dxS = sampleX - sandMesh.position.x;
+            let dzS = sampleZ - sandMesh.position.z;
             // FIXED: Look up our live userData radius property, and add a +1.5 buffer cushion to clear foliage limbs
-            let sandRadius = (sandMesh.userData && sandMesh.userData.radius ? sandMesh.userData.radius : 5) + 1.5; return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0); // Add this line
-        }); // Add this line
-        if (insideSandTrap) continue; // Add this line
+            let sandRadius = (sandMesh.userData && sandMesh.userData.radius ? sandMesh.userData.radius : 5) + 1.5; return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0);
+        });
+        if (insideSandTrap) continue;
 
         // Prevent spawning inside water hazards (+1.5 unit buffer padding)
         let insideWaterHazard = waterHazards.some(waterMesh => {
+            if (waterMesh.userData && waterMesh.userData.isRectangular) { // Add this line
+                let pathCenter = 0;                                       // Add this line
+                if (sampleZ >= -125) {                                    // Add this line
+                    let t = (10 - sampleZ) / 135;                         // Add this line
+                    pathCenter = THREE.MathUtils.lerp(0, -14.0, t);       // Add this line
+                } else {                                                  // Add this line
+                    let t = (-125 - sampleZ) / 55;                        // Add this line
+                    t = Math.min(1.0, t);                                 // Add this line
+                    pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);    // Add this line
+                }                                                         // Add this line
+                let cliffPadding = sampleZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - sampleZ) / 20.0))) : 15.5; // Add this line
+                const cliffEdgeLimit = pathCenter + cliffPadding;         // Add this line
+                return sampleX > (cliffEdgeLimit - 1.5);                  // Add this line
+            }                                                             // Add this line
             let dxW = sampleX - waterMesh.position.x;
             let dzW = sampleZ - waterMesh.position.z;
             let waterRadius = waterMesh.userData.radius || 0;
