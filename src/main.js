@@ -3246,13 +3246,14 @@ function updateGreenGrid() {
         const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
         const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
 
+        // --- PUT THIS NEW CALIBRATED BLOCK IN ITS PLACE ---
         const perpX = -dirZ;
         const perpZ = dirX;
         const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
 
-        // FIXED: Simulates momentum build-up to guarantee a beautiful continuous mathematical curve
-        sideVelocity += curveIntensity * 0.12; // Add this line: Adjusts how dramatically the path breaks sideways
-        cumulativeDrift += sideVelocity;       // Add this line
+        // FIXED: Calibrated from 0.12 down to 0.0045 to perfectly mirror the physics engine's subtle gravity adjustments
+        sideVelocity += curveIntensity * 0.0045;
+        cumulativeDrift += sideVelocity;
 
         const finalWx = wx + perpX * cumulativeDrift;
         const finalWz = wz + perpZ * cumulativeDrift;
