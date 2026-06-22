@@ -558,7 +558,7 @@ function generateHazards() {
         scene.add(shoreMesh);
         waterShores.push(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
-        const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 2.0, 64, 1, true); // Add this line
+        const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 50.0, 64, 1, true); // Add this line
         const wallMesh = new THREE.Mesh( // Add this line
             wallGeo, // Add this line
             new THREE.MeshStandardMaterial({ // Add this line
@@ -570,7 +570,7 @@ function generateHazards() {
         );
 
         // FIXED: Shifted down to match the new 0.015 shore reference line perfectly
-        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 1.0, z);
+        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 25.0, z);
         scene.add(wallMesh);
         waterShores.push(wallMesh);
 
@@ -641,9 +641,9 @@ function generateHazards() {
         ];
 
         // Now call the function with the path and a very tight spacing
-        let sandDepth = 0.3 + Math.random() * 0.45;                    // Modify this line: Randomizes depth from shallow to deep
-        const maxDepthCap = r * 0.085;                                 // Add this line: Dynamically scales max depth by radius
-        sandDepth = Math.min(sandDepth, maxDepthCap);                  // Add this line: Caps depth if the bunker is small
+        let sandDepth = 0.3 + Math.random() * 0.45;           // Modify this line
+        const maxDepthCap = r * 0.085;                        // Add this line
+        sandDepth = Math.min(sandDepth, maxDepthCap);          // Add this line
         createSnakingBunker(path, 0.8, r, sandDepth)
 
 
@@ -939,10 +939,9 @@ function resetEntireGame(advanceHole = false) {
             const r = hz.radius || 5.0;
 
             if (hz.type === 'sand') {
-                // Change const to let and add the relative scale constraint limit below
-                let sandDepth = hz.depth || 0.6;
-                const maxCustomDepthCap = r * 0.085;
-                sandDepth = Math.min(sandDepth, maxCustomDepthCap);
+                let sandDepth = hz.depth || 0.6;              // Modify this line: Change const to let
+                const maxCustomDepthCap = r * 0.085;          // Add this line
+                sandDepth = Math.min(sandDepth, maxCustomDepthCap); // Add this line
 
                 // Route to polygon generator if configuration matches
                 if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {
@@ -1147,7 +1146,7 @@ function resetEntireGame(advanceHole = false) {
                     const dzW = worldZ - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                     const lakeRadius = water.userData.radius || 5;
-                    if (distToWater < lakeRadius + 0.6) {
+                    if (distToWater < lakeRadius + 0.55) {
                         insideWaterZone = true;
                     }
                 }
