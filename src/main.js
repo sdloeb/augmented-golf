@@ -1288,10 +1288,10 @@ function resetEntireGame(advanceHole = false) {
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));
 
                     if (insideSandZone || isOutsideFairwayBounds) {
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 1.5) : (floorHeight - 1.5); // Modify this line
-                    } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) { // Add this line
-                        calculatedHeight = floorHeight - 1.5;                          // Add this line
-                    } else if (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack) {
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 1.5) : (floorHeight - 1.5);
+                    } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
+                        calculatedHeight = floorHeight - 1.5;
+                    } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) { // Modify this line: Added !insideSandZone check
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
                         const transitionStart = activeR;
                         const transitionEnd = activeR - 2.0;
