@@ -2039,18 +2039,11 @@ function animate() {
     // 3. DYNAMIC CAMERA CONTROLLER
 
 
-    // 3. DYNAMIC CAMERA CONTROLLER
-
-
-
     if (physics.isMoving) {
         if (!wasMoving) {
             wasMoving = true;
             shotStartTime = performance.now(); // Record launch timestamp
 
-            // Add these two lines: Records where this specific shot was struck from
-            window.shotStartX = ball.position.x;
-            window.shotStartZ = ball.position.z;
 
             // Calculate initial distance to the hole pin in true game yards
             const dxHole = ball.position.x - holePosition.x;
@@ -2929,8 +2922,8 @@ function init() {
 
     // 6.6. Add Club Landing Destination Ring for Overhead View
     const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: true }); // Modify this line
-    clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: false }); // Modify this line
+    clubLandingRing = new THREE.Mesh(ringGeo, ringMat); // Add/Restore this line! (Must be right here)
     clubLandingRing.renderOrder = 9999;
     clubLandingRing.rotation.x = -Math.PI / 2;
     clubLandingRing.visible = false;
@@ -2951,6 +2944,8 @@ function init() {
     physics.sounds = sounds;
 
     input = new InputHandler((power, angle, spin, loft) => {
+        window.shotStartX = ball.position.x; // Add this line
+        window.shotStartZ = ball.position.z;
         isOverheadActive = false;
         if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
 
