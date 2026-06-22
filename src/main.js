@@ -2920,11 +2920,11 @@ function init() {
     holeCup.position.set(0, 0.03, -55); // Keep this line
     scene.add(holeCup); // Keep this line
 
-    // 6.6. Add Club Landing Destination Ring for Overhead View
-    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: false }); // Modify this line
-    clubLandingRing = new THREE.Mesh(ringGeo, ringMat); // Add/Restore this line! (Must be right here)
-    clubLandingRing.renderOrder = 9999;
+    // --- PUT THIS NEW SPECIFICATION IN ITS PLACE ---
+    // Increased geometric resolution (64, 4) to allow smooth hill molding profiles
+    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 64, 4);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
+    clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
     clubLandingRing.rotation.x = -Math.PI / 2;
     clubLandingRing.visible = false;
     scene.add(clubLandingRing);
