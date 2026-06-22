@@ -641,7 +641,9 @@ function generateHazards() {
         ];
 
         // Now call the function with the path and a very tight spacing
-        const sandDepth = 0.6;
+        let sandDepth = 0.3 + Math.random() * 0.45;                    // Modify this line: Randomizes depth from shallow to deep
+        const maxDepthCap = r * 0.085;                                 // Add this line: Dynamically scales max depth by radius
+        sandDepth = Math.min(sandDepth, maxDepthCap);                  // Add this line: Caps depth if the bunker is small
         createSnakingBunker(path, 0.8, r, sandDepth)
 
 
@@ -937,7 +939,10 @@ function resetEntireGame(advanceHole = false) {
             const r = hz.radius || 5.0;
 
             if (hz.type === 'sand') {
-                const sandDepth = hz.depth || 0.6;
+                // Change const to let and add the relative scale constraint limit below
+                let sandDepth = hz.depth || 0.6;
+                const maxCustomDepthCap = r * 0.085;
+                sandDepth = Math.min(sandDepth, maxCustomDepthCap);
 
                 // Route to polygon generator if configuration matches
                 if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {
