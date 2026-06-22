@@ -132,7 +132,6 @@ export class InputHandler {
         this.startX = touch.clientX;
         this.startY = touch.clientY;
 
-
         const touchedClub = e.target.closest('#clubSwipe');
         if (touchedClub) {
             // Delay touch swing activation until dragging starts
@@ -146,6 +145,7 @@ export class InputHandler {
         this.isSwinging = true;
         this.state = 'PULLBACK';
         this.maxPullY = touch.clientY;
+        this.pullbackStartTime = performance.now(); // Captures baseline immediate touch timestamp
         this.pullbackDriftX = 0;
         this.pullbackAtMaxX = touch.clientX;
 
@@ -190,6 +190,7 @@ export class InputHandler {
                 this.isSwinging = true;
                 this.state = 'PULLBACK';
                 this.maxPullY = this.startY;
+                this.pullbackStartTime = performance.now(); // Captures container swipe upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = touch.clientX;
 
@@ -216,19 +217,18 @@ export class InputHandler {
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            // Removed old fade/slice text modifier checks entirely[cite: 1]
-
             if (club.isGreen) {
                 const feet = Math.round(pullRatio * 80);
-                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`; // Modify this line: Removed ${shotModifier}
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`; // Modify this line: Removed ${shotModifier}
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
             }
 
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
                 this.forwardStartTime = performance.now();
+                this.backswingDuration = this.forwardStartTime - (this.pullbackStartTime || this.forwardStartTime); // Evaluates pure take-back duration
             }
         }
         else if (this.state === 'FORWARD') {
@@ -274,6 +274,7 @@ export class InputHandler {
         this.isSwinging = true;
         this.state = 'PULLBACK';
         this.maxPullY = e.clientY;
+        this.pullbackStartTime = performance.now(); // Captures baseline immediate click timestamp
         this.pullbackDriftX = 0;
         this.pullbackAtMaxX = e.clientX;
 
@@ -307,6 +308,7 @@ export class InputHandler {
                 this.isSwinging = true;
                 this.state = 'PULLBACK';
                 this.maxPullY = this.startY;
+                this.pullbackStartTime = performance.now(); // Captures handle-drag upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = e.clientX;
 
@@ -337,18 +339,17 @@ export class InputHandler {
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
             this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
-            // Removed old fade/slice text modifier checks entirely[cite: 1]
-
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 80); // Preserved: Matched distance scale range change
-                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`; // Modify this line: Removed ${shotModifier}
+                const feet = Math.round(pullRatio * 80);
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
-                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`; // Modify this line: Removed ${shotModifier}
+                this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
             }
             if (currentY < this.maxPullY - 5) {
                 this.state = 'FORWARD';
                 this.forwardStartTime = performance.now();
+                this.backswingDuration = this.forwardStartTime - (this.pullbackStartTime || this.forwardStartTime); // Evaluates pure take-back duration
             }
         }
 
@@ -368,7 +369,7 @@ export class InputHandler {
     }
 
     executeLaunch(endX, endY) {
-        const club = this.getClubInfo(); // <--- MOVED TO THE TOP LINE
+        const club = this.getClubInfo();
 
         const targetPullDistance = Math.min(club.isGreen ? 360 : 180, this.maxPullY - this.startY);
         const actualForwardDistance = this.maxPullY - endY;
@@ -377,9 +378,32 @@ export class InputHandler {
         const basePower = targetPullDistance * 0.05;
         let finalPower = basePower * powerMultiplier;
 
+        // Shared duration calculation to prevent identifier redeclaration conflicts
+        const forwardDuration = performance.now() - (this.forwardStartTime || performance.now());
 
+        // 1. SWING TEMPO RHYTHM & CONTINUOUS MOTION FLUIDITY EVALUATION
+        const backswingSpeed = targetPullDistance / Math.max(1, this.backswingDuration || 1);
+        const forwardSpeed = actualForwardDistance / Math.max(1, forwardDuration || 1);
+        const tempoRatio = backswingSpeed / Math.max(0.001, forwardSpeed);
+
+        // Modify this block below to reward fast downswings and only punish slow yardage-hunting
+        let tempoModifier = 1.0;
+        if (club.isGreen) {
+            tempoModifier = 1.0;
+        } else {
+            // If backswing duration takes longer than 650ms, they are creeping back slowly to find yardage
+            if (this.backswingDuration > 650) {
+                tempoModifier = Math.max(0.80, 1.0 - (this.backswingDuration - 650) * 0.005);
+            }
+            // Only apply a ratio penalty if the forward downswing is abnormally slow/lazy compared to backswing
+            if (tempoRatio > 1.8) {
+                tempoModifier *= Math.max(0.45, 1.8 / tempoRatio);
+            }
+        }
+        finalPower *= tempoModifier;
+
+        // 2. BASELINE RE-ACCELERATION DOWNSWING SPEED CHECK
         if (!club.isGreen) {
-            const forwardDuration = performance.now() - (this.forwardStartTime || performance.now());
             let speedMultiplier = 1.0;
             if (forwardDuration > 130) {
                 speedMultiplier = Math.max(0.4, 1.0 - (forwardDuration - 130) * 0.0025);

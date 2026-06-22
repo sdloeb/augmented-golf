@@ -146,7 +146,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
-let currentHoleNumber = 4; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1968,8 +1968,8 @@ function animate() {
                 const slingZ = (physics.velocity.z * 0.4) + (perpZ * rawSpeed * 0.6); // Add this line
                 const slingLen = Math.sqrt(slingX * slingX + slingZ * slingZ) || 1; // Add this line
 
-                physics.velocity.x = (slingX / slingLen) * rawSpeed * 0.60; // Modify this line: Maintains full ball speed
-                physics.velocity.z = (slingZ / slingLen) * rawSpeed * 0.60; // Modify this line: Maintains full ball speed
+                physics.velocity.x = (slingX / slingLen) * rawSpeed * 0.95; // Modify this line: Maintains full ball speed
+                physics.velocity.z = (slingZ / slingLen) * rawSpeed * 0.95; // Modify this line: Maintains full ball speed
                 return;
             }
             isSinking = true;
