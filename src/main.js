@@ -3296,34 +3296,99 @@ function showScorecard() {
     const table = document.getElementById('scorecardTable');
     if (!overlay || !table) return;
 
-    let totalYards = 0;
-    let totalPar = 0;
-    let totalScore = 0;
+    // Separate completed holes into Front 9 and Back 9 segments
+    const maxHolePlayed = completedHoles.reduce((max, h) => Math.max(max, h.hole), 0);
+    const showBack9 = maxHolePlayed >= 10 || currentHoleNumber >= 10;
 
-    let holeHtml = '<th>HOLE</th>';
+    let holeHtml = '<th style="z-index: 15;">HOLE</th>';
     let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
     let parHtml = '<tr><td><strong>PAR</strong></td>';
     let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
 
-    completedHoles.forEach(h => {
-        totalYards += h.yards;
-        totalPar += h.par;
-        totalScore += h.score;
+    // Accumulator metrics for Front 9
+    let fYards = 0, fPar = 0, fScore = 0, fPlayed = 0;
 
-        holeHtml += `<th>${h.hole}</th>`;
-        yardsHtml += `<td>${h.yards}</td>`;
-        parHtml += `<td>${h.par}</td>`;
+    // --- 1. RENDER FRONT 9 (HOLES 1-9) ---
+    for (let i = 1; i <= 9; i++) {
+        const hData = completedHoles.find(h => h.hole === i);
+        let yards = '---', par = '---', score = '---', scoreClass = '';
 
-        let scoreClass = (h.score <= h.par) ? ' class="scorecard-highlight"' : '';
-        scoreHtml += `<td${scoreClass}>${h.score}</td>`;
-    });
+        if (hData) {
+            yards = hData.yards; par = hData.par; score = hData.score;
+            fYards += hData.yards; fPar += hData.par; fScore += hData.score; fPlayed++;
+            if (score <= par) scoreClass = ' class="scorecard-highlight"';
+        } else if (HOLES_CONFIG[i]) {
+            par = HOLES_CONFIG[i].par || '---';
+            if (HOLES_CONFIG[i].waypoints) {
+                const wp = HOLES_CONFIG[i].waypoints;
+                const dx = wp[wp.length - 1].x - wp[0].x;
+                const dz = wp[wp.length - 1].z - wp[0].z;
+                yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
+            }
+        }
 
-    holeHtml += '<th>TOTAL</th>';
-    yardsHtml += `<td><strong>${totalYards}</strong></td></tr>`;
-    parHtml += `<td><strong>${totalPar}</strong></td></tr>`;
+        holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
+        yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
+        parHtml += `<td class="scorecard-hole-col">${par}</td>`;
+        scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
+    }
 
-    let totalScoreClass = (totalScore <= totalPar) ? ' class="scorecard-highlight"' : '';
-    scoreHtml += `<td${totalScoreClass}><strong>${totalScore}</strong></td></tr>`;
+    // Append Front 9 'OUT' Totals Column
+    holeHtml += `<th class="scorecard-total-col">OUT</th>`;
+    yardsHtml += `<td class="scorecard-total-col">${fYards || '0'}</td>`;
+    parHtml += `<td class="scorecard-total-col">${fPar || '0'}</td>`;
+    scoreHtml += `<td class="scorecard-total-col"><strong>${fPlayed > 0 ? fScore : '---'}</strong></td>`;
+
+    // Accumulator metrics for Back 9
+    let bYards = 0, bPar = 0, bScore = 0, bPlayed = 0;
+
+    // --- 2. RENDER BACK 9 (HOLES 10-18) IF REACHED ---
+    if (showBack9) {
+        for (let i = 10; i <= 18; i++) {
+            const hData = completedHoles.find(h => h.hole === i);
+            let yards = '---', par = '---', score = '---', scoreClass = '';
+
+            if (hData) {
+                yards = hData.yards; par = hData.par; score = hData.score;
+                bYards += hData.yards; bPar += hData.par; bScore += hData.score; bPlayed++;
+                if (score <= par) scoreClass = ' class="scorecard-highlight"';
+            } else if (HOLES_CONFIG[i]) {
+                par = HOLES_CONFIG[i].par || '---';
+                if (HOLES_CONFIG[i].waypoints) {
+                    const wp = HOLES_CONFIG[i].waypoints;
+                    const dx = wp[wp.length - 1].x - wp[0].x;
+                    const dz = wp[wp.length - 1].z - wp[0].z;
+                    yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
+                }
+            }
+
+            holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
+            yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
+            parHtml += `<td class="scorecard-hole-col">${par}</td>`;
+            scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
+        }
+
+        // Append Back 9 'IN' Totals Column
+        holeHtml += `<th class="scorecard-total-col">IN</th>`;
+        yardsHtml += `<td class="scorecard-total-col">${bYards || '0'}</td>`;
+        parHtml += `<td class="scorecard-total-col">${bPar || '0'}</td>`;
+        scoreHtml += `<td class="scorecard-total-col"><strong>${bPlayed > 0 ? bScore : '---'}</strong></td>`;
+
+        // Append Grand 'TOT' Column for full Round Summary
+        const grandYards = fYards + bYards;
+        const grandPar = fPar + bPar;
+        const grandScore = (fPlayed > 0 ? fScore : 0) + (bPlayed > 0 ? bScore : 0);
+        const totalPlayed = fPlayed + bPlayed;
+
+        holeHtml += `<th class="scorecard-total-col">TOT</th>`;
+        yardsHtml += `<td class="scorecard-total-col"><strong>${grandYards}</strong></td>`;
+        parHtml += `<td class="scorecard-total-col"><strong>${grandPar}</strong></td>`;
+        scoreHtml += `<td class="scorecard-total-col" style="color: #00ffcc;"><strong>${totalPlayed > 0 ? grandScore : '---'}</strong></td>`;
+    }
+
+    yardsHtml += '</tr>';
+    parHtml += '</tr>';
+    scoreHtml += '</tr>';
 
     table.innerHTML = `
         <thead><tr>${holeHtml}</tr></thead>
@@ -3337,12 +3402,10 @@ function showScorecard() {
     overlay.style.display = 'flex';
 
     const nextHoleBtn = document.getElementById('nextHoleBtn');
-
     const proceedToNextHole = (e) => {
         if (e) e.stopPropagation();
         if (e && e.type === 'touchstart') e.preventDefault();
 
-        // Unbind listeners from the button to keep memory clean
         if (nextHoleBtn) {
             nextHoleBtn.removeEventListener('click', proceedToNextHole);
             nextHoleBtn.removeEventListener('touchstart', proceedToNextHole);
@@ -3352,7 +3415,6 @@ function showScorecard() {
         resetEntireGame(true);
     };
 
-    // Bind interaction triggers ONLY to the button instead of the full background layout
     setTimeout(() => {
         if (nextHoleBtn) {
             nextHoleBtn.addEventListener('click', proceedToNextHole);
