@@ -1689,7 +1689,7 @@ function resetEntireGame(advanceHole = false) {
                 ];
 
                 positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 8, 8);
+                    let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
                     let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                     leafMesh.position.set(p[0], p[1], p[2]);
                     sceneryGroup.add(leafMesh);
@@ -1729,7 +1729,7 @@ function resetEntireGame(advanceHole = false) {
                 ];
 
                 positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
+                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
                     let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                     leafMesh.position.set(p[0], p[1], p[2]);
                     sceneryGroup.add(leafMesh);
@@ -1766,7 +1766,7 @@ function resetEntireGame(advanceHole = false) {
                 ];
 
                 positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 8, 8);
+                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
                     let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                     leafMesh.position.set(p[0], p[1], p[2]);
                     sceneryGroup.add(leafMesh);
@@ -1802,7 +1802,8 @@ function resetEntireGame(advanceHole = false) {
                 trunkRadius: calculatedTrunkRad,
                 trunkHeight: calculatedTrunkH,
                 foliageRadius: finalizedFoliageRadius,
-                totalHeight: finalizedTotalHeight
+                totalHeight: finalizedTotalHeight,
+                version: treeVersion
             });
 
         } else {

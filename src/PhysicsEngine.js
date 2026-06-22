@@ -474,35 +474,43 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.25;
         }
         else if (onGreen) {
-            currentBounceHeight = 0.22;
-            currentBounceForwardLoss = 0.35;
-            currentFriction = 0.956;
+            currentBounceHeight = 0.12;
+            currentBounceForwardLoss = 0.45;
+
+            // Sets a smooth friction glide for airborne approach shots, but protects your putting calibration
+            currentFriction = this.isPutting ? 0.956 : 0.996;
 
             if (!this.isPutting && this.currentLoft) {
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
-                currentBounceHeight = 0.34 * (2.0 - loftRatio);                                    // Modify this line
-                currentBounceForwardLoss = THREE.MathUtils.lerp(0.86, 0.58, (loftRatio - 0.4) / 1.1); // Modify this line
-            }
 
+                // Lowers vertical bounce so irons hit with a realistic turf "thud" instead of ballooning upwards
+                currentBounceHeight = 0.14 * (2.0 - loftRatio);
+
+                // Only applies heavy spin check on the very first hop; subsequent hops glide forward smoothly
+                if (this.bounceCount === 0) {
+                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.95, 0.76, (loftRatio - 0.4) / 1.1);
+                } else {
+                    currentBounceForwardLoss = 0.97;
+                }
+            }
         }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
-            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) { // Update this line: Changed -135 to -128
-            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
-            // Crisp Fairway Turf: True bouncing elasticity, predictable roll out
-            // MODIFIED: Added this.ball.position.z <= -41.64 so the first 143 yards off the tee on Hole 3 trigger rough physics, while the flat landing landing zone maintains fairway physics
+            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
+            // Crisp Fairway Turf
             currentFriction = 0.91;
             currentBounceHeight = 0.36;
-            currentBounceForwardLoss = 0.52;   // Preserves strong forward kinetic velocity
+            currentBounceForwardLoss = (this.bounceCount === 0) ? 0.52 : 0.95;
         }
         else {
-            // Deep Course Rough: Dense grass absorbs energy completely
-            currentFriction = 0.74;            // Heavy friction brakes rolling momentum fast
-            currentBounceHeight = 0.18;        // Deadened bounce height
-            currentBounceForwardLoss = 0.30;   // Strongly strips forward speed on ground contact
+            // Deep Course Rough
+            currentFriction = 0.74;
+            currentBounceHeight = 0.18;
+            currentBounceForwardLoss = 0.30;
         }
 
-        if (this.isPutting || onGreen) { // Modify this line
-            currentFriction = 0.979; // Preserves your exact putting calibration constant
+        // Cleaned up putting override loop so it doesn't break approach shot rollouts
+        if (this.isPutting) {
+            currentFriction = 0.979;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -723,11 +731,25 @@ export class PhysicsEngine {
                 }
 
                 // 2. Upper Leaves & Canopy Height Zone Collision Check
-                let canopyCenterY = obs.trunkHeight + (obs.foliageRadius * 0.7); // Add this line: Calculate the vertical center point of the canopy leaves sphere
-                let dyFoliage = this.ball.position.y - canopyCenterY; // Add this line: Get the vertical distance from the ball to the canopy center
-                let distance3D = Math.sqrt(dx * dx + dyFoliage * dyFoliage + dz * dz); // Add this line: Calculate true 3D straight-line distance to the canopy center
+                let isHit = false; // Add this line
+                if (obs.version === 3) { // Add this line: Perfect Cone Collision for Pine Trees
+                    if (this.ball.position.y > obs.trunkHeight && this.ball.position.y <= obs.totalHeight) {
+                        let t = (this.ball.position.y - obs.trunkHeight) / (obs.totalHeight - obs.trunkHeight);
+                        let allowedRadius = obs.foliageRadius * (1.0 - t);
+                        if (distance < (allowedRadius + 0.25)) {
+                            isHit = true;
+                        }
+                    }
+                } else { // Add this line: Sphere Canopy Collision for Oak/Fork/Bent Trees
+                    let canopyCenterY = obs.trunkHeight + (obs.foliageRadius * 0.7);
+                    let dyFoliage = this.ball.position.y - canopyCenterY;
+                    let distance3D = Math.sqrt(dx * dx + dyFoliage * dyFoliage + dz * dz);
+                    if (distance3D < (obs.foliageRadius + 0.25)) {
+                        isHit = true;
+                    }
+                } // Add this line
 
-                if (distance3D < (obs.foliageRadius + 0.25)) { // Modify this line: Replaced the flat cylinder bounds with a realistic 3D sphere check
+                if (isHit) { // Modify this line: Replaced the old distance3D check string
                     let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
                     let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
 
@@ -803,13 +825,18 @@ export class PhysicsEngine {
                     } else {
                         this.sounds.play('rough'); // Add this line: Triggers on deep course rough bounce
                     }
-                    this.bounceCount++; // Preserved: Increment count on each airborne landing hit
                 }
+                this.bounceCount++; // Preserved: Increment count on each airborne landing hit
+
 
                 this.velocity.y = -this.velocity.y * currentBounceHeight; // Preserved
                 this.velocity.x *= currentBounceForwardLoss;
                 this.velocity.z *= currentBounceForwardLoss;
             } else {
+
+
+
+
                 this.velocity.y = 0;
 
                 // NEW: Kick up micro sand particle trails while rolling through the bunker
