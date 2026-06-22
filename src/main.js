@@ -3234,85 +3234,65 @@ function updateGreenGrid() {
     const dirX = Math.sin(angle); // Modify this line
     const dirZ = Math.cos(angle); // Modify this line
 
-    // Fixed step intervals ensure uniform, consistent arrow spacing across the entire path
-    const travelSteps = Math.max(1, Math.floor(pathLen / 2.2));
+    // High density spacing for a continuous smooth pearl line
+    const travelSteps = Math.max(12, Math.floor(pathLen / 0.35));
     const delta = 0.1;
+
+    // Initialize running physics accumulators to blend slopes into a seamless trajectory arc
+    let cumulativeDrift = 0; // Add this line
+    let sideVelocity = 0;    // Add this line
+
     for (let s = 0; s <= travelSteps; s++) {
-        let baseT = s / travelSteps;
-        baseT = Math.max(0, Math.min(1, baseT));
-        const sampleWx = ball.position.x + dirX * (baseT * pathLen); // Modify this line
-        const sampleWz = ball.position.z + dirZ * (baseT * pathLen);
+        const t = s / travelSteps; // Modify this line: Locks dots directly to a fixed mathematical ratio
 
-        // Sample slope values to determine local speed and forward/backward flow vectors
-        const localSlopeX = (physics.getGreenHeight(sampleWx - delta, sampleWz) - physics.getGreenHeight(sampleWx + delta, sampleWz)) / (2 * delta);
-        const localSlopeZ = (physics.getGreenHeight(sampleWx, sampleWz - delta) - physics.getGreenHeight(sampleWx, sampleWz + delta)) / (2 * delta);
+        const wx = ball.position.x + dirX * (t * pathLen); // Modify this line
+        const wz = ball.position.z + dirZ * (t * pathLen); // Modify this line  
 
-        // FIXED: Multiplies by localSlopeZ instead of localPathSlope to prevent code crashes
-        const localPathSlope = (dirX * localSlopeX) + (dirZ * localSlopeZ);
+        const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
+        const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
 
-        let localShift = 0.5; // Perfectly centered resting point for static flat terrain slots
+        const perpX = -dirZ;
+        const perpZ = dirX;
+        const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
 
-        // If an active forward or backward slope exists, animate the streaming velocity
-        if (Math.abs(localPathSlope) > 0.0001) {
-            const flowDirection = localPathSlope >= 0 ? 1 : -1;
-            const velocityScale = 0.025;
-            let localVelocity = Math.abs(localPathSlope) * velocityScale * flowDirection;
-            localVelocity = Math.max(-0.003, Math.min(0.003, localVelocity));
+        // FIXED: Simulates momentum build-up to guarantee a beautiful continuous mathematical curve
+        sideVelocity += curveIntensity * 0.12; // Add this line: Adjusts how dramatically the path breaks sideways
+        cumulativeDrift += sideVelocity;       // Add this line
 
-            localShift = (performance.now() * localVelocity) % 1.0;
-            if (localShift < 0) {
-                localShift += 1.0;
-            }
+        const finalWx = wx + perpX * cumulativeDrift;
+        const finalWz = wz + perpZ * cumulativeDrift;
+
+        // Evaluate local path slope to determine dot color properties dynamically
+        const currentPathSlope = (dirX * arrowSlopeX) + (dirZ * arrowSlopeZ); // Add this line
+        let dotColor = '#2288ff'; // Modify this line: Ultra-light blue core for crisp uphill distinction
+        let glowColor = '#30adf5';
+
+        if (Math.abs(currentPathSlope) < 0.012) { // Flat threshold window
+            dotColor = '#ffffff'; // Add this line
+            glowColor = 'rgba(255, 255, 255, 0.4)'; // Add this line
+        } else if (currentPathSlope > 0.012) { // Downhill slope section
+            dotColor = '#ff4d4d'; // Add this line
+            glowColor = '#ff3333'; // Add this line
         }
 
-        // Apply slot coordinates smoothly down the putting line trajectory
-        const t = baseT + (localShift - 0.5) / travelSteps;
-        if (t < 0 || t > 1) continue;
+        if (Math.sqrt((finalWx - gX) * (finalWx - gX) + (finalWz - gZ) * (finalWz - gZ)) < activeR - 0.3) {
+            const cx = 512 * ((finalWx - gX) / (activeR * 2) + 0.5);
+            const cy = 512 * ((finalWz - gZ) / (activeR * 2) + 0.5);
 
-        const wx = ball.position.x + dirX * (t * pathLen); // Modify this line: Replaced lerp with directional projection
-        const wz = ball.position.z + dirZ * (t * pathLen); // Modify this line: Replaced lerp with directional projection
-
-        // Keep texture maps safely contained inside the visual boundary circles
-        if (Math.sqrt((wx - gX) * (wx - gX) + (wz - gZ) * (wz - gZ)) < activeR - 0.3) { // Modify this line: Replaced GREEN_RADIUS with activeR
-            const cx = 512 * ((wx - gX) / (activeR * 2) + 0.5); // Modify this line: Replaced GREEN_RADIUS with activeR
-            const cy = 512 * ((wz - gZ) / (activeR * 2) + 0.5); // Modify this line: Replaced GREEN_RADIUS with activeR
-
-            const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
-            const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
-
+            // Draw small, premium glowing circular beads with high-contrast visibility core
             ctx.save();
-            ctx.translate(cx, cy);
-
-            const unitHoleX = dirX; // Modify this line: Simplified to use your rotatable direction variable
-            const unitHoleZ = dirZ; // Modify this line: Simplified to use your rotatable direction variable
-
-            const perpX = -unitHoleZ;
-            const perpZ = unitHoleX;
-
-            // Sideways bending calculations to face the arrow left/right depending on contours
-            const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
-            const curveSensitivity = 15.0;
-
-            const arrowDirX = unitHoleX + perpX * curveIntensity * curveSensitivity;
-            const arrowDirZ = unitHoleZ + perpZ * curveIntensity * curveSensitivity;
-            ctx.rotate(Math.atan2(arrowDirZ, arrowDirX));
-
-            // Your exact custom drawing metrics are fully preserved here:
-            let arrowScale = 0.42;
-            ctx.strokeStyle = 'rgba(100, 200, 255, 0.95)';
-            ctx.lineWidth = 3.2;
-
             ctx.beginPath();
-            ctx.moveTo(-12 * arrowScale, -7 * arrowScale);
-            ctx.lineTo(4 * arrowScale, 0);
-            ctx.lineTo(-12 * arrowScale, 7 * arrowScale);
-            ctx.stroke();
+            ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = dotColor; // Modify this line
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = glowColor; // Modify this line
+            ctx.fill();
             ctx.restore();
-            gridTexture.needsUpdate = true;
         }
-    } // Add this line to close the for loop
+    }
     gridTexture.needsUpdate = true;
-} // Add this line to close updateGreenGrid completely
+}
+
 
 // Add this entire function block at the very bottom of src/main.js
 function showScorecard() {
