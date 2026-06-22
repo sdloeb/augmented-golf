@@ -1806,14 +1806,105 @@ function resetEntireGame(advanceHole = false) {
                 version: treeVersion
             });
 
+            // --- DELETE AND REPLACE THE ENTIRE "else" BUSH SCAFFOLD IN src/main.js ---
         } else {
             let randomBushRad = 0.7 + Math.random() * 1.2;
-            let bushGeo = new THREE.SphereGeometry(randomBushRad, 8, 8);
-            let customBushMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.8 });
-            let bushMesh = new THREE.Mesh(bushGeo, customBushMat);
-            bushMesh.position.y = randomBushRad * 0.2;
-            sceneryGroup.add(bushMesh);
 
+            // Create a base structural container group to combine twigs, shadow core, and leaf cards
+            const bushGroup = new THREE.Group();
+
+            // 1. BASE STEM STRUCTURE: Render exposed dark wood anchor branches at the floor line
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.95 });
+            const stemCount = 5 + Math.floor(Math.random() * 3);
+
+            for (let s = 0; s < stemCount; s++) {
+                const stemH = randomBushRad * 0.45;
+                const stemGeo = new THREE.CylinderGeometry(0.012, 0.03, stemH, 5);
+                const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+
+                const stemAngle = (s / stemCount) * Math.PI * 2;
+                const outwardTilt = 0.3 + Math.random() * 0.2;
+
+                stemMesh.position.set(
+                    Math.cos(stemAngle) * (randomBushRad * 0.12),
+                    stemH / 2 - 0.03,
+                    Math.sin(stemAngle) * (randomBushRad * 0.12)
+                );
+
+                stemMesh.rotation.z = Math.cos(stemAngle) * outwardTilt;
+                stemMesh.rotation.x = Math.sin(stemAngle) * outwardTilt;
+                bushGroup.add(stemMesh);
+            }
+
+            // 2. DARK INTERNAL CORE: Solid dark green center ball to block light and give internal depth
+            const shadowMat = new THREE.MeshStandardMaterial({ color: 0x0c260c, roughness: 0.95 });
+            const shadowGeo = new THREE.SphereGeometry(randomBushRad * 0.65, 8, 8);
+            const shadowCore = new THREE.Mesh(shadowGeo, shadowMat);
+            shadowCore.position.y = randomBushRad * 0.4;
+            shadowCore.scale.set(1, 0.8, 1); // Flatten slightly to match base dimensions
+            bushGroup.add(shadowCore);
+
+            // 3. CARTVECT ILLUSTRATED LEAF LAYER: Layout flat oval card plates facing outward
+            const foliageColors = [
+                0x144414, // Tier 0: Deep shadow backdrop green
+                0x1e5c1e, // Tier 1: Rich vector foliage mid-tone
+                0x2c821a, // Tier 2: Bright accent leaf blade green
+                0x5cb814  // Tier 3: Chartreuse sun highlight green
+            ];
+
+            // Dynamically scale leaf count by the overall random asset radius to protect performance
+            const leafCount = Math.floor(45 + (randomBushRad * 45));
+            // Standard circle mesh shape that we will squash and stretch into an organic leaf profile
+            const leafGeo = new THREE.CircleGeometry(randomBushRad * 0.22, 6);
+
+            for (let l = 0; l < leafCount; l++) {
+                // Mathematically distribute coordinates evenly across a upper hemisphere shell
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(Math.random() * 0.88); // Prioritizes standard outward/upward facings
+
+                const surfaceDist = randomBushRad * (0.82 + Math.random() * 0.24);
+                const pX = Math.sin(phi) * Math.cos(theta) * surfaceDist;
+                const pZ = Math.sin(phi) * Math.sin(theta) * surfaceDist;
+                const pY = Math.cos(phi) * surfaceDist * 0.85 + (randomBushRad * 0.12);
+
+                const normalizedHeight = pY / (randomBushRad * 1.1);
+                let colorIdx = 1;
+
+                if (normalizedHeight > 0.74) {
+                    colorIdx = Math.random() > 0.4 ? 3 : 2; // Bright highlights on crown clusters
+                } else if (normalizedHeight < 0.38) {
+                    colorIdx = 0; // Drop low hidden base foliage to shadow tier
+                } else {
+                    colorIdx = Math.random() > 0.5 ? 2 : 1; // Blend middle body leaves
+                }
+
+                const leafMat = new THREE.MeshStandardMaterial({
+                    color: foliageColors[colorIdx],
+                    roughness: 0.65,
+                    side: THREE.DoubleSide // Essential to allow two-way visibility during target rotations
+                });
+
+                const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+                leafMesh.position.set(pX, pY, pZ);
+
+                // Point the leaf face directly away from the root center core
+                leafMesh.lookAt(new THREE.Vector3(pX * 2, pY + 0.15, pZ * 2));
+                // Add a micro random spin twist to avoid computerized patterns
+                leafMesh.rotation.z += (Math.random() - 0.5) * 0.6;
+
+                // squash width and extend height to sculpt an illustrated leaf blade contour shape
+                leafMesh.scale.set(
+                    0.65 + Math.random() * 0.25,
+                    1.35 + Math.random() * 0.35,
+                    1.0
+                );
+
+                bushGroup.add(leafMesh);
+            }
+
+            sceneryGroup.add(bushGroup);
+
+            // Sync structural bounds with physical engine limits safely
             physics.obstacles.push({
                 type: 'bush',
                 x: sampleX,
