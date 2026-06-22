@@ -481,18 +481,22 @@ export class PhysicsEngine {
             currentFriction = this.isPutting ? 0.956 : 0.996;
 
             if (!this.isPutting && this.currentLoft) {
-                const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
+                const loftT = Math.max(0.0, Math.min(1.0, (this.currentLoft - 0.040) / (0.063 - 0.040)));
 
                 // Lowers vertical bounce so irons hit with a realistic turf "thud" instead of ballooning upwards
-                currentBounceHeight = 0.14 * (2.0 - loftRatio);
+                currentBounceHeight = 0.14 * (2.0 - (this.currentLoft / 0.063));
 
                 // Only applies heavy spin check on the very first hop; subsequent hops glide forward smoothly
                 if (this.bounceCount === 0) {
-                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.95, 0.76, (loftRatio - 0.4) / 1.1);
+                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.96, 0.65, loftT);
                 } else {
-                    currentBounceForwardLoss = 0.97;
+                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.98, 0.75, loftT);
                 }
+
+                // Dynamic rolling friction based on club loft so wedges check/bite and low-lofted woods roll out naturally
+                currentFriction = THREE.MathUtils.lerp(0.9975, 0.992, loftT);
             }
+
         }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
