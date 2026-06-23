@@ -1876,14 +1876,105 @@ function resetEntireGame(advanceHole = false) {
                 version: treeVersion
             });
 
+            // --- DELETE AND REPLACE THE ENTIRE "else" BUSH SCAFFOLD IN src/main.js ---
         } else {
             let randomBushRad = 0.7 + Math.random() * 1.2;
-            let bushGeo = new THREE.SphereGeometry(randomBushRad, 8, 8);
-            let customBushMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.8 });
-            let bushMesh = new THREE.Mesh(bushGeo, customBushMat);
-            bushMesh.position.y = randomBushRad * 0.2;
-            sceneryGroup.add(bushMesh);
 
+            // Create a base structural container group to combine twigs, shadow core, and leaf cards
+            const bushGroup = new THREE.Group();
+
+            // 1. BASE STEM STRUCTURE: Render exposed dark wood anchor branches at the floor line
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.95 });
+            const stemCount = 5 + Math.floor(Math.random() * 3);
+
+            for (let s = 0; s < stemCount; s++) {
+                const stemH = randomBushRad * 0.45;
+                const stemGeo = new THREE.CylinderGeometry(0.012, 0.03, stemH, 5);
+                const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+
+                const stemAngle = (s / stemCount) * Math.PI * 2;
+                const outwardTilt = 0.3 + Math.random() * 0.2;
+
+                stemMesh.position.set(
+                    Math.cos(stemAngle) * (randomBushRad * 0.12),
+                    stemH / 2 - 0.03,
+                    Math.sin(stemAngle) * (randomBushRad * 0.12)
+                );
+
+                stemMesh.rotation.z = Math.cos(stemAngle) * outwardTilt;
+                stemMesh.rotation.x = Math.sin(stemAngle) * outwardTilt;
+                bushGroup.add(stemMesh);
+            }
+
+            // 2. DARK INTERNAL CORE: Solid dark green center ball to block light and give internal depth
+            const shadowMat = new THREE.MeshStandardMaterial({ color: 0x0c260c, roughness: 0.95 });
+            const shadowGeo = new THREE.SphereGeometry(randomBushRad * 0.65, 8, 8);
+            const shadowCore = new THREE.Mesh(shadowGeo, shadowMat);
+            shadowCore.position.y = randomBushRad * 0.4;
+            shadowCore.scale.set(1, 0.8, 1); // Flatten slightly to match base dimensions
+            bushGroup.add(shadowCore);
+
+            // 3. CARTVECT ILLUSTRATED LEAF LAYER: Layout flat oval card plates facing outward
+            const foliageColors = [
+                0x144414, // Tier 0: Deep shadow backdrop green
+                0x1e5c1e, // Tier 1: Rich vector foliage mid-tone
+                0x2c821a, // Tier 2: Bright accent leaf blade green
+                0x5cb814  // Tier 3: Chartreuse sun highlight green
+            ];
+
+            // Dynamically scale leaf count by the overall random asset radius to protect performance
+            const leafCount = Math.floor(45 + (randomBushRad * 45));
+            // Standard circle mesh shape that we will squash and stretch into an organic leaf profile
+            const leafGeo = new THREE.CircleGeometry(randomBushRad * 0.22, 6);
+
+            for (let l = 0; l < leafCount; l++) {
+                // Mathematically distribute coordinates evenly across a upper hemisphere shell
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(Math.random() * 0.88); // Prioritizes standard outward/upward facings
+
+                const surfaceDist = randomBushRad * (0.82 + Math.random() * 0.24);
+                const pX = Math.sin(phi) * Math.cos(theta) * surfaceDist;
+                const pZ = Math.sin(phi) * Math.sin(theta) * surfaceDist;
+                const pY = Math.cos(phi) * surfaceDist * 0.85 + (randomBushRad * 0.12);
+
+                const normalizedHeight = pY / (randomBushRad * 1.1);
+                let colorIdx = 1;
+
+                if (normalizedHeight > 0.74) {
+                    colorIdx = Math.random() > 0.4 ? 3 : 2; // Bright highlights on crown clusters
+                } else if (normalizedHeight < 0.38) {
+                    colorIdx = 0; // Drop low hidden base foliage to shadow tier
+                } else {
+                    colorIdx = Math.random() > 0.5 ? 2 : 1; // Blend middle body leaves
+                }
+
+                const leafMat = new THREE.MeshStandardMaterial({
+                    color: foliageColors[colorIdx],
+                    roughness: 0.65,
+                    side: THREE.DoubleSide // Essential to allow two-way visibility during target rotations
+                });
+
+                const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+                leafMesh.position.set(pX, pY, pZ);
+
+                // Point the leaf face directly away from the root center core
+                leafMesh.lookAt(new THREE.Vector3(pX * 2, pY + 0.15, pZ * 2));
+                // Add a micro random spin twist to avoid computerized patterns
+                leafMesh.rotation.z += (Math.random() - 0.5) * 0.6;
+
+                // squash width and extend height to sculpt an illustrated leaf blade contour shape
+                leafMesh.scale.set(
+                    0.65 + Math.random() * 0.25,
+                    1.35 + Math.random() * 0.35,
+                    1.0
+                );
+
+                bushGroup.add(leafMesh);
+            }
+
+            sceneryGroup.add(bushGroup);
+
+            // Sync structural bounds with physical engine limits safely
             physics.obstacles.push({
                 type: 'bush',
                 x: sampleX,
@@ -2981,11 +3072,11 @@ function init() {
     holeCup.position.set(0, 0.03, -55); // Keep this line
     scene.add(holeCup); // Keep this line
 
-    // 6.6. Add Club Landing Destination Ring for Overhead View
-    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthTest: false }); // Modify this line
-    clubLandingRing = new THREE.Mesh(ringGeo, ringMat); // Add/Restore this line! (Must be right here)
-    clubLandingRing.renderOrder = 9999;
+    // --- PUT THIS NEW SPECIFICATION IN ITS PLACE ---
+    // Increased geometric resolution (64, 4) to allow smooth hill molding profiles
+    const ringGeo = new THREE.RingGeometry(3.0, 3.6, 64, 4);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
+    clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
     clubLandingRing.rotation.x = -Math.PI / 2;
     clubLandingRing.visible = false;
     scene.add(clubLandingRing);
@@ -3307,13 +3398,14 @@ function updateGreenGrid() {
         const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
         const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
 
+        // --- PUT THIS NEW CALIBRATED BLOCK IN ITS PLACE ---
         const perpX = -dirZ;
         const perpZ = dirX;
         const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
 
-        // FIXED: Simulates momentum build-up to guarantee a beautiful continuous mathematical curve
-        sideVelocity += curveIntensity * 0.12; // Add this line: Adjusts how dramatically the path breaks sideways
-        cumulativeDrift += sideVelocity;       // Add this line
+        // FIXED: Calibrated from 0.12 down to 0.0045 to perfectly mirror the physics engine's subtle gravity adjustments
+        sideVelocity += curveIntensity * 0.0045;
+        cumulativeDrift += sideVelocity;
 
         const finalWx = wx + perpX * cumulativeDrift;
         const finalWz = wz + perpZ * cumulativeDrift;
@@ -3356,34 +3448,99 @@ function showScorecard() {
     const table = document.getElementById('scorecardTable');
     if (!overlay || !table) return;
 
-    let totalYards = 0;
-    let totalPar = 0;
-    let totalScore = 0;
+    // Separate completed holes into Front 9 and Back 9 segments
+    const maxHolePlayed = completedHoles.reduce((max, h) => Math.max(max, h.hole), 0);
+    const showBack9 = maxHolePlayed >= 10 || currentHoleNumber >= 10;
 
-    let holeHtml = '<th>HOLE</th>';
+    let holeHtml = '<th style="z-index: 15;">HOLE</th>';
     let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
     let parHtml = '<tr><td><strong>PAR</strong></td>';
     let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
 
-    completedHoles.forEach(h => {
-        totalYards += h.yards;
-        totalPar += h.par;
-        totalScore += h.score;
+    // Accumulator metrics for Front 9
+    let fYards = 0, fPar = 0, fScore = 0, fPlayed = 0;
 
-        holeHtml += `<th>${h.hole}</th>`;
-        yardsHtml += `<td>${h.yards}</td>`;
-        parHtml += `<td>${h.par}</td>`;
+    // --- 1. RENDER FRONT 9 (HOLES 1-9) ---
+    for (let i = 1; i <= 9; i++) {
+        const hData = completedHoles.find(h => h.hole === i);
+        let yards = '---', par = '---', score = '---', scoreClass = '';
 
-        let scoreClass = (h.score <= h.par) ? ' class="scorecard-highlight"' : '';
-        scoreHtml += `<td${scoreClass}>${h.score}</td>`;
-    });
+        if (hData) {
+            yards = hData.yards; par = hData.par; score = hData.score;
+            fYards += hData.yards; fPar += hData.par; fScore += hData.score; fPlayed++;
+            if (score <= par) scoreClass = ' class="scorecard-highlight"';
+        } else if (HOLES_CONFIG[i]) {
+            par = HOLES_CONFIG[i].par || '---';
+            if (HOLES_CONFIG[i].waypoints) {
+                const wp = HOLES_CONFIG[i].waypoints;
+                const dx = wp[wp.length - 1].x - wp[0].x;
+                const dz = wp[wp.length - 1].z - wp[0].z;
+                yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
+            }
+        }
 
-    holeHtml += '<th>TOTAL</th>';
-    yardsHtml += `<td><strong>${totalYards}</strong></td></tr>`;
-    parHtml += `<td><strong>${totalPar}</strong></td></tr>`;
+        holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
+        yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
+        parHtml += `<td class="scorecard-hole-col">${par}</td>`;
+        scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
+    }
 
-    let totalScoreClass = (totalScore <= totalPar) ? ' class="scorecard-highlight"' : '';
-    scoreHtml += `<td${totalScoreClass}><strong>${totalScore}</strong></td></tr>`;
+    // Append Front 9 'OUT' Totals Column
+    holeHtml += `<th class="scorecard-total-col">OUT</th>`;
+    yardsHtml += `<td class="scorecard-total-col">${fYards || '0'}</td>`;
+    parHtml += `<td class="scorecard-total-col">${fPar || '0'}</td>`;
+    scoreHtml += `<td class="scorecard-total-col"><strong>${fPlayed > 0 ? fScore : '---'}</strong></td>`;
+
+    // Accumulator metrics for Back 9
+    let bYards = 0, bPar = 0, bScore = 0, bPlayed = 0;
+
+    // --- 2. RENDER BACK 9 (HOLES 10-18) IF REACHED ---
+    if (showBack9) {
+        for (let i = 10; i <= 18; i++) {
+            const hData = completedHoles.find(h => h.hole === i);
+            let yards = '---', par = '---', score = '---', scoreClass = '';
+
+            if (hData) {
+                yards = hData.yards; par = hData.par; score = hData.score;
+                bYards += hData.yards; bPar += hData.par; bScore += hData.score; bPlayed++;
+                if (score <= par) scoreClass = ' class="scorecard-highlight"';
+            } else if (HOLES_CONFIG[i]) {
+                par = HOLES_CONFIG[i].par || '---';
+                if (HOLES_CONFIG[i].waypoints) {
+                    const wp = HOLES_CONFIG[i].waypoints;
+                    const dx = wp[wp.length - 1].x - wp[0].x;
+                    const dz = wp[wp.length - 1].z - wp[0].z;
+                    yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
+                }
+            }
+
+            holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
+            yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
+            parHtml += `<td class="scorecard-hole-col">${par}</td>`;
+            scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
+        }
+
+        // Append Back 9 'IN' Totals Column
+        holeHtml += `<th class="scorecard-total-col">IN</th>`;
+        yardsHtml += `<td class="scorecard-total-col">${bYards || '0'}</td>`;
+        parHtml += `<td class="scorecard-total-col">${bPar || '0'}</td>`;
+        scoreHtml += `<td class="scorecard-total-col"><strong>${bPlayed > 0 ? bScore : '---'}</strong></td>`;
+
+        // Append Grand 'TOT' Column for full Round Summary
+        const grandYards = fYards + bYards;
+        const grandPar = fPar + bPar;
+        const grandScore = (fPlayed > 0 ? fScore : 0) + (bPlayed > 0 ? bScore : 0);
+        const totalPlayed = fPlayed + bPlayed;
+
+        holeHtml += `<th class="scorecard-total-col">TOT</th>`;
+        yardsHtml += `<td class="scorecard-total-col"><strong>${grandYards}</strong></td>`;
+        parHtml += `<td class="scorecard-total-col"><strong>${grandPar}</strong></td>`;
+        scoreHtml += `<td class="scorecard-total-col" style="color: #00ffcc;"><strong>${totalPlayed > 0 ? grandScore : '---'}</strong></td>`;
+    }
+
+    yardsHtml += '</tr>';
+    parHtml += '</tr>';
+    scoreHtml += '</tr>';
 
     table.innerHTML = `
         <thead><tr>${holeHtml}</tr></thead>
@@ -3397,12 +3554,10 @@ function showScorecard() {
     overlay.style.display = 'flex';
 
     const nextHoleBtn = document.getElementById('nextHoleBtn');
-
     const proceedToNextHole = (e) => {
         if (e) e.stopPropagation();
         if (e && e.type === 'touchstart') e.preventDefault();
 
-        // Unbind listeners from the button to keep memory clean
         if (nextHoleBtn) {
             nextHoleBtn.removeEventListener('click', proceedToNextHole);
             nextHoleBtn.removeEventListener('touchstart', proceedToNextHole);
@@ -3412,7 +3567,6 @@ function showScorecard() {
         resetEntireGame(true);
     };
 
-    // Bind interaction triggers ONLY to the button instead of the full background layout
     setTimeout(() => {
         if (nextHoleBtn) {
             nextHoleBtn.addEventListener('click', proceedToNextHole);

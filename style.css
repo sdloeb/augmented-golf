@@ -493,7 +493,49 @@ html {
 }
 
 
-/* Add this block below at the very end of the file */
+
+/* ==========================================================================
+   SCORECARD DYNAMIC COLUMN RESIZING & STICKY PARAMETERS
+   ========================================================================== */
+:root {
+    --header-col-width: 100px;
+    --total-col-width: 75px;
+    /* Desktop/Landscape calculation: 9 holes + 1 totals column fit perfectly at once */
+    --hole-col-width: calc((100% - var(--header-col-width) - var(--total-col-width)) / 9);
+}
+
+/* Fixed sticky left columns so label descriptors remain locked during horizontal swipes */
+#scorecardTable th:first-child,
+#scorecardTable td:first-child {
+    position: sticky;
+    left: 0;
+    background: #463026 !important;
+    /* Premium wood background fill to isolate overlay bleeding */
+    z-index: 12;
+    min-width: var(--header-col-width);
+    max-width: var(--header-col-width);
+    width: var(--header-col-width);
+    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+}
+
+/* Uniform structural limits for standard hole tracks */
+.scorecard-hole-col {
+    min-width: var(--hole-col-width);
+    max-width: var(--hole-col-width);
+    width: var(--hole-col-width);
+}
+
+/* Distinct shaded backgrounds for OUT, IN, and Grand TOT blocks */
+.scorecard-total-col {
+    min-width: var(--total-col-width);
+    max-width: var(--total-col-width);
+    width: var(--total-col-width);
+    background: rgba(0, 0, 0, 0.4) !important;
+    color: #ffcc66 !important;
+    font-weight: bold;
+}
+
 @media (orientation: portrait),
 (max-width: 768px) {
 
@@ -751,6 +793,10 @@ html {
 
 #scorecardTable th,
 #scorecardTable td {
+    /* Portrait specific scorecard variable overrides: Locks exactly 3 holes visible at once */
+    --header-col-width: 85px;
+    --total-col-width: 65px;
+    --hole-col-width: calc((100% - var(--header-col-width)) / 3.4);
     border: 1px solid rgba(247, 231, 196, 0.25);
     text-align: center;
     padding: 10px 4px;
