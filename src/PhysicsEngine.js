@@ -527,9 +527,16 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.30;
         }
 
+        // === PASTE THIS REPLACEMENT CODE BLOCK ===
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
         if (this.isPutting) {
-            currentFriction = 0.979;
+            if (!onGreen) {
+                // FIXED: If the putt rolls completely off the green complex, terminate putting status instantly.
+                // This forces the ball to plow into normal grass friction and use the standard, crisp stop threshold.
+                this.isPutting = false;
+            } else {
+                currentFriction = 0.979;
+            }
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height

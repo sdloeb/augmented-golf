@@ -162,6 +162,7 @@ let clubLandingRing;
 let clubLandingBeacon;
 let ballTracer, tracerPoints = [];
 let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
+let visualGuideBeads = [];
 let completedHoles = [];
 let isRaining = false;
 let rainParticles = [];
@@ -2362,8 +2363,10 @@ function animate() {
     const isBallInGreenCircle = bgDist < bgActiveR;
     const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
 
-    // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
-    let activeCameraSpeed = isCamOnGreen ? 0.05 : 0.05;
+    // === PASTE THIS REPLACEMENT CODE BLOCK ===
+    // 1. DEFAULT SPEED: Set to 0.25 when stationary so the camera instantly snaps into the address 
+    // position behind the ball the moment it stops, completely removing the "too far away to hit" delay lag.
+    let activeCameraSpeed = physics.isMoving ? 0.05 : 0.25;
 
     // FIXED: Responsive chase speed (0.035 instead of 0.005) allows camera to slow down precisely WITH the ball on bounce impact
     if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
@@ -3382,11 +3385,12 @@ init();
 
 
 
-// Add this entire function block at the very bottom of the file:
+// === REPLACE THE ENTIRE updateGreenGrid FUNCTION AT THE BOTTOM OF src/main.js ===
 function updateGreenGrid() {
-    if (!gridCanvas || !gridTexture || !green || !ball || !physics) return;
-    const ctx = gridCanvas.getContext('2d');
-    ctx.clearRect(0, 0, 512, 512);
+    if (!green || !ball || !physics || !scene) return;
+
+    // FIXED: De-allocate the old legacy 2D canvas grid overlay mesh so it can never block our 3D beads
+    if (greenGrid) greenGrid.visible = false;
 
     const gX = green.position.x;
     const gZ = greenCenterZ;
@@ -3398,64 +3402,51 @@ function updateGreenGrid() {
     const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(gridBallAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
     const isBallOnGreenOrFringe = gridBallDist < (activeR + 1.5);
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
-
-    // Grid safely stays hidden when swinging
     const isAiming = input && input.isAimMode;
 
-    if (!isBallOnGreenOrFringe || isAirborne || physics.hitWater || isSinking || !isAiming) { // Modify this line
-        gridTexture.needsUpdate = true;
+    // Turn off 3D meshes if display criteria aren't met
+    if (!isBallOnGreenOrFringe || isAirborne || physics.hitWater || isSinking || !isAiming) {
+        visualGuideBeads.forEach(bead => { bead.visible = false; });
         return;
     }
 
-    const dxHole = holePosition.x - ball.position.x; // Modify this line
-    const dzHole = holePosition.z - ball.position.z; // Modify this line
-    const pathLen = Math.sqrt(dxHole * dxHole + dzHole * dzHole) || 1; // Modify this line
+    const dxHole = holePosition.x - ball.position.x;
+    const dzHole = holePosition.z - ball.position.z;
+    const pathLen = Math.sqrt(dxHole * dxHole + dzHole * dzHole) || 1;
 
-    let angle = Math.atan2(dxHole, dzHole); // Add this line
-    if (input && input.aimAngleOffset) angle += input.aimAngleOffset; // Add this line
-    const dirX = Math.sin(angle); // Modify this line
-    const dirZ = Math.cos(angle); // Modify this line
+    let angle = Math.atan2(dxHole, dzHole);
+    if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+    const dirX = Math.sin(angle);
+    const dirZ = Math.cos(angle);
 
-    // High density spacing for a continuous smooth pearl line
     const travelSteps = Math.max(12, Math.floor(pathLen / 0.35));
     const delta = 0.1;
 
-    // Initialize running physics accumulators to blend slopes into a seamless trajectory arc
-    let cumulativeDrift = 0; // Add this line
-    let sideVelocity = 0;    // Add this line
+    let cumulativeDrift = 0;
+    let sideVelocity = 0;
+    let visibleCount = 0;
 
     for (let s = 0; s <= travelSteps; s++) {
-        const t = s / travelSteps; // Modify this line: Locks dots directly to a fixed mathematical ratio
+        const t = s / travelSteps;
 
-        const wx = ball.position.x + dirX * (t * pathLen); // Modify this line
-        const wz = ball.position.z + dirZ * (t * pathLen); // Modify this line  
+        const wx = ball.position.x + dirX * (t * pathLen);
+        const wz = ball.position.z + dirZ * (t * pathLen);
 
-        const arrowSlopeX = (physics.getGreenHeight(wx - delta, wz) - physics.getGreenHeight(wx + delta, wz)) / (2 * delta);
-        const arrowSlopeZ = (physics.getGreenHeight(wx, wz - delta) - physics.getGreenHeight(wx, wz + delta)) / (2 * delta);
-
-        // --- PUT THIS NEW CALIBRATED BLOCK IN ITS PLACE ---
         const perpX = -dirZ;
         const perpZ = dirX;
-        const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
-
-        // FIXED: Calibrated from 0.12 down to 0.0045 to perfectly mirror the physics engine's subtle gravity adjustments
-        sideVelocity += curveIntensity * 0.0045;
-        cumulativeDrift += sideVelocity;
-
         const finalWx = wx + perpX * cumulativeDrift;
         const finalWz = wz + perpZ * cumulativeDrift;
 
-        // Evaluate local path slope to determine dot color properties dynamically
-        const currentPathSlope = (dirX * arrowSlopeX) + (dirZ * arrowSlopeZ); // Add this line
-        let dotColor = '#2288ff'; // Modify this line: Ultra-light blue core for crisp uphill distinction
-        let glowColor = '#30adf5';
+        const arrowSlopeX = (physics.getGreenHeight(finalWx - delta, finalWz) - physics.getGreenHeight(finalWx + delta, finalWz)) / (2 * delta);
+        const arrowSlopeZ = (physics.getGreenHeight(finalWx, finalWz - delta) - physics.getGreenHeight(finalWx, finalWz + delta)) / (2 * delta);
 
-        if (Math.abs(currentPathSlope) < 0.012) { // Flat threshold window
-            dotColor = '#ffffff'; // Add this line
-            glowColor = 'rgba(255, 255, 255, 0.4)'; // Add this line
-        } else if (currentPathSlope > 0.012) { // Downhill slope section
-            dotColor = '#ff4d4d'; // Add this line
-            glowColor = '#ff3333'; // Add this line
+        const currentPathSlope = (dirX * arrowSlopeX) + (dirZ * arrowSlopeZ);
+        let dotColor = 0x2288ff; // Uphill Blue
+
+        if (Math.abs(currentPathSlope) < 0.012) {
+            dotColor = 0xffffff; // Flat White
+        } else if (currentPathSlope > 0.012) {
+            dotColor = 0xff4d4d; // Downhill Red
         }
 
         const fDx = finalWx - gX;
@@ -3464,24 +3455,37 @@ function updateGreenGrid() {
         const fAngle = Math.atan2(-fDz, fDx);
         const dotActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(fAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : activeR;
 
-        // === PASTE THIS REPLACEMENT CODE BLOCK ===
         if (fDist < dotActiveR - 0.3) {
-            // FIXED: Map coordinates relative to the fixed 12.0 base radius bounds (24.0 diameter)
-            // so the projection tracks the warped kidney geometry instead of snapping back to a circle
-            const cx = 512 * (fDx / 24.0 + 0.5);
-            const cy = 512 * ((finalWz - gZ) / 24.0 + 0.5);
+            if (!visualGuideBeads[visibleCount]) {
+                // FIXED: Adjusted geometry radius to 0.08 to perfectly restore the original clear dot size
+                const beadGeo = new THREE.CircleGeometry(0.08, 8);
+                const beadMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+                const beadMesh = new THREE.Mesh(beadGeo, beadMat);
+                beadMesh.rotation.x = -Math.PI / 2;
+                scene.add(beadMesh);
+                visualGuideBeads.push(beadMesh);
+            }
 
-            // Draw small, premium glowing circular beads with high-contrast visibility core
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
-            ctx.fillStyle = dotColor; // Modify this line
-            ctx.shadowBlur = 4;
-            ctx.shadowColor = glowColor; // Modify this line
-            ctx.fill();
-            ctx.restore();
+            const bead = visualGuideBeads[visibleCount];
+            const currentGroundY = physics.getGroundHeight(finalWx, finalWz);
+
+            // FIXED: Raised baseline placement factor to +0.06 to float securely and visibly over all turf surfaces
+            bead.position.set(finalWx, currentGroundY + 0.06, finalWz);
+            bead.material.color.setHex(dotColor);
+            bead.visible = true;
+            visibleCount++;
         }
+
+        const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
+        sideVelocity += curveIntensity * 0.0045;
+        cumulativeDrift += sideVelocity;
     }
+
+    // Hide any unused mesh segments lingering in the pool cache
+    for (let i = visibleCount; i < visualGuideBeads.length; i++) {
+        visualGuideBeads[i].visible = false;
+    }
+
     gridTexture.needsUpdate = true;
 }
 
