@@ -3,6 +3,7 @@
 export const globalCourseData = {
     hole1: {
         name: "The Opening Drive",
+        greenShape: 'kidney',
         teePosition: { x: 0, y: 0, z: 0 },
         holePosition: { x: 0, y: 0, z: 150 },
         waypoints: [{ x: 0, y: 0, z: 10 }, { x: 0, y: 0, z: -55 }],

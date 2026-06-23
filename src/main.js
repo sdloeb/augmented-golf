@@ -1,11 +1,13 @@
-// Central Green Shape profile profile formulas
+// === PASTE THIS REPLACEMENT CODE BLOCK ===
 window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
     if (!shapeType || shapeType === 'circle') return baseRadius;
     if (shapeType === 'oval') {
         return baseRadius * (1.0 + 0.24 * Math.cos(angle * 2));
     }
     if (shapeType === 'kidney') {
-        return baseRadius * (1.0 + 0.16 * Math.sin(angle) + 0.08 * Math.cos(angle * 2));
+        // AMPLIFIED: Increased coefficients from 0.16/0.08 to 0.26/0.18 to force an unmistakable, 
+        // high-contrast deep bean indentation visible from any camera zoom angle
+        return baseRadius * (1.0 + 0.26 * Math.sin(angle) + 0.18 * Math.cos(angle * 2));
     }
     if (shapeType === 'wavy') {
         return baseRadius * (1.0 + 0.12 * Math.sin(angle * 3) + 0.04 * Math.cos(angle * 5));
@@ -1357,8 +1359,8 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = floorHeight - 1.5;
                     } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) { // Modify this line: Added !insideSandZone check
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
-                        const transitionStart = activeR;
-                        const transitionEnd = activeR - 2.0;
+                        const transitionStart = activeR + 0.5;
+                        const transitionEnd = activeR - 4.0;
                         if (distToGreenCenter <= transitionEnd) {
                             calculatedHeight = floorHeight - 1.5;
                         } else {
@@ -2904,7 +2906,7 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 300, 800); // FIXED: Doubled vertical length density to smoothly resolve detailed organic curves
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
@@ -3451,9 +3453,12 @@ function updateGreenGrid() {
         const fAngle = Math.atan2(-fDz, fDx);
         const dotActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(fAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : activeR;
 
+        // === PASTE THIS REPLACEMENT CODE BLOCK ===
         if (fDist < dotActiveR - 0.3) {
-            const cx = 512 * (fDx / (dotActiveR * 2) + 0.5);
-            const cy = 512 * ((finalWz - gZ) / (activeR * 2) + 0.5);
+            // FIXED: Map coordinates relative to the fixed 12.0 base radius bounds (24.0 diameter)
+            // so the projection tracks the warped kidney geometry instead of snapping back to a circle
+            const cx = 512 * (fDx / 24.0 + 0.5);
+            const cy = 512 * ((finalWz - gZ) / 24.0 + 0.5);
 
             // Draw small, premium glowing circular beads with high-contrast visibility core
             ctx.save();
