@@ -816,34 +816,60 @@ function resetEntireGame(advanceHole = false) {
         greenGrid.geometry.dispose();
         greenGrid.geometry = new THREE.ShapeGeometry(greenShape);
 
-        // Add this block: Calculates a beautifully offset outer fringe perimeter line matching the green shape
+        // --- UPGRADED RIBBON GEOMETRY GENERATOR (Fixes gaps and hovering issues) ---
+        const fringeGeo = new THREE.BufferGeometry();
+        const vertices = [];
+        const uvs = [];
+        const outerFringePoints = [];
+        const numPoints = holeConfig.greenPoints.length;
+
         let cx = 0, cz = 0;
         holeConfig.greenPoints.forEach(p => { cx += p.x; cz += p.z; });
-        cx /= holeConfig.greenPoints.length; cz /= holeConfig.greenPoints.length;
+        cx /= numPoints; cz /= numPoints;
 
-        const fringeShape = new THREE.Shape();
-        let fP = holeConfig.greenPoints[0];
-        fringeShape.moveTo(fP.x + ((fP.x - cx) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2, -(fP.z + ((fP.z - cz) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2));
-        for (let i = 1; i < holeConfig.greenPoints.length; i++) {
-            let p = holeConfig.greenPoints[i];
-            fringeShape.lineTo(p.x + ((p.x - cx) / Math.hypot(p.x - cx, p.z - cz)) * 1.2, -(p.z + ((p.z - cz) / Math.hypot(p.x - cx, p.z - cz)) * 1.2));
+        // Compute mathematically perfect uniform outward outline points
+        for (let i = 0; i < numPoints; i++) {
+            const p = holeConfig.greenPoints[i];
+            const prev = holeConfig.greenPoints[(i - 1 + numPoints) % numPoints];
+            const next = holeConfig.greenPoints[(i + 1) % numPoints];
+
+            let v1x = p.x - prev.x; let v1z = p.z - prev.z;
+            let l1 = Math.hypot(v1x, v1z) || 1;
+            v1x /= l1; v1z /= l1;
+
+            let v2x = next.x - p.x; let v2z = next.z - p.z;
+            let l2 = Math.hypot(v2x, v2z) || 1;
+            v2x /= l2; v2z /= l2;
+
+            let nx = -(v1z + v2z); let nz = (v1x + v2x);
+            let len = Math.hypot(nx, nz) || 1;
+            nx /= len; nz /= len;
+
+            if (nx * (p.x - cx) + nz * (p.z - cz) < 0) { nx = -nx; nz = -nz; }
+            outerFringePoints.push({ x: p.x + nx * 1.2, z: p.z + nz * 1.2 });
         }
-        fringeShape.lineTo(fP.x + ((fP.x - cx) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2, -(fP.z + ((fP.z - cz) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2));
+
+        // Bridge inner and outer lines using high-precision quad strips
+        for (let i = 0; i < numPoints; i++) {
+            let next = (i + 1) % numPoints;
+            let ip = holeConfig.greenPoints[i];
+            let inp = holeConfig.greenPoints[next];
+            let op = outerFringePoints[i];
+            let onp = outerFringePoints[next];
+
+            // Double-sided triangle assemblies to maintain perfect visibility profiles
+            vertices.push(ip.x, -ip.z, 0, op.x, -op.z, 0, onp.x, -onp.z, 0);
+            vertices.push(ip.x, -ip.z, 0, onp.x, -onp.z, 0, inp.x, -inp.z, 0);
+            vertices.push(ip.x, -ip.z, 0, onp.x, -onp.z, 0, op.x, -op.z, 0);
+            vertices.push(ip.x, -ip.z, 0, inp.x, -inp.z, 0, onp.x, -onp.z, 0);
+
+            uvs.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1);
+        }
 
         greenFringe.geometry.dispose();
-        greenFringe.geometry = new THREE.ShapeGeometry(fringeShape); // Modify this line
-
-        green.scale.set(1, 1, 1);
-        greenGrid.scale.set(1, 1, 1);
-        greenFringe.scale.set(1, 1, 1);
-    } else {
-        // Circle fallback layout keeps Holes 2 & 3 safe and intact
-        green.geometry.dispose();
-        green.geometry = new THREE.RingGeometry(0, window.activeGreenRadius, 64, 32);
-        greenGrid.geometry.dispose();
-        greenGrid.geometry = new THREE.RingGeometry(0, window.activeGreenRadius - 0.02, 64, 32);
-        greenFringe.geometry.dispose();
-        greenFringe.geometry = new THREE.RingGeometry(window.activeGreenRadius, window.activeGreenRadius + 1.0, 64, 16);
+        greenFringe.geometry = fringeGeo;
+        greenFringe.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        greenFringe.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
 
         green.scale.set(1, 1, 1);
         greenGrid.scale.set(1, 1, 1);
@@ -1140,7 +1166,7 @@ function resetEntireGame(advanceHole = false) {
             // Removed the old sand check block here to stop bunkers from eating cuts out of the green edges
             if (targetMesh === green) calculatedHeight += 0.02;
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
-            if (targetMesh === greenFringe) calculatedHeight += 0.018;
+            if (targetMesh === greenFringe) calculatedHeight += 0.02; // Modify this line
 
             posAttr.setZ(i, calculatedHeight);
         }
@@ -1299,7 +1325,8 @@ function resetEntireGame(advanceHole = false) {
                 const isPastFairway = (physics ? physics.isPointOnGreen(worldX, worldZ) : (distToGreenCenter < activeRadius)) || (approachDot > 0); // Modify this line
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-                let floorHeight = calculatedHeight;
+                let floorHeight = (currentHoleConfig && currentHoleConfig.greenPoints) ? physics.getCourseHeight(worldX, worldZ) : calculatedHeight; // Modify this line
+
                 if (distanceToPath <= fW && !isPastFairway) {
                     floorHeight -= 0.04;
                 } else if (distanceToPath <= fWEdge && !isPastFairway) {
@@ -1314,8 +1341,18 @@ function resetEntireGame(advanceHole = false) {
 
                     // Add this block: Cuts down the floor map perfectly contouring any custom green boundaries
                     if (physics && physics.greenPoints && physics.greenPoints.length > 0) {
-                        if (physics.isPointOnGreen(worldX, worldZ, 1.2)) {
-                            calculatedHeight -= 1.5;
+                        if (physics.isPointOnGreen(worldX, worldZ, 0.2)) {
+                            calculatedHeight = floorHeight - 1.5; // Replace this line
+                        } else if (physics.isPointOnGreen(worldX, worldZ, 1.2)) {
+                            // Add these lines: Smoothly slopes the rough floor down so there are no floating cliff gaps
+                            let blend = 0.05;
+                            if (physics.isPointOnGreen(worldX, worldZ, 0.4)) blend = 0.85;
+                            else if (physics.isPointOnGreen(worldX, worldZ, 0.6)) blend = 0.65;
+                            else if (physics.isPointOnGreen(worldX, worldZ, 0.8)) blend = 0.45;
+                            else if (physics.isPointOnGreen(worldX, worldZ, 1.0)) blend = 0.25;
+
+                            const normalGround = physics.getCourseHeight(worldX, worldZ);
+                            calculatedHeight = THREE.MathUtils.lerp(normalGround, floorHeight - 1.5, blend);
                         }
                     } else {
                         // Original circular green fallback
@@ -1330,21 +1367,15 @@ function resetEntireGame(advanceHole = false) {
                                 calculatedHeight -= smoothTFloor * 1.5;
                             }
                         }
+                    } // Closed the else branch cleanly here! Duplicate code fully removed.
 
-                        if (distToGreen < fringeOuterR - transitionZone) {
-                            calculatedHeight -= 1.5;
-                        } else {
-                            const tFloor = (fringeOuterR - distToGreen) / transitionZone;
-                            const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
-                            calculatedHeight -= smoothTFloor * 1.5;
-                        }
-                    }
                     if (insideSandZone) {
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 1.5; // Modify this line
+                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 1.5;
                     }
                 }
 
                 // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
+
                 if (targetMesh === fairway) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.activeGreenRadius || GREEN_RADIUS;
@@ -1356,7 +1387,8 @@ function resetEntireGame(advanceHole = false) {
                     // Isolate boundary/sand hiding rules from green-blending rules
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));
 
-                    const pointIsOnGreen = physics ? physics.isPointOnGreen(worldX, worldZ) : false;
+                    // Modify this line: Check full fringe padding boundary (1.2) so fairway doesn't bury the fringe mesh
+                    const pointIsOnGreen = physics ? physics.isPointOnGreen(worldX, worldZ, 1.2) : false;
 
                     // Add this line: Identifies when the fairway is outside a custom polygon green area near the green entrance
                     const isCustomGreenTrim = (currentHoleConfig && currentHoleConfig.greenPoints) && (approachDot > -15.0) && !pointIsOnGreen;

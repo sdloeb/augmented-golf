@@ -29,7 +29,7 @@ export class PhysicsEngine {
         this.bounceCount = 0;
     }
 
-  setGreenContours(back, mid, front, centerX, centerZ, randomWidth, holeConfig) { // Update this line
+    setGreenContours(back, mid, front, centerX, centerZ, randomWidth, holeConfig) { // Update this line
         this.backZone = back;
         this.midZone = mid;
         this.frontZone = front;
@@ -56,20 +56,31 @@ export class PhysicsEngine {
 
     }
 
-    isPointOnGreen(x, z, padding = 0) { // Modify this line
+    isPointOnGreen(x, z, padding = 0) {
         if (this.greenPoints && this.greenPoints.length > 0) {
             let points = this.greenPoints;
-            // If padding is requested, expand the polygon vertices outward from its center
+            // If padding is requested, expand the polygon vertices outward using perfect edge-normal alignment
             if (padding > 0) {
                 let cx = 0, cz = 0;
+                let numPoints = this.greenPoints.length;
                 this.greenPoints.forEach(p => { cx += p.x; cz += p.z; });
-                cx /= this.greenPoints.length;
-                cz /= this.greenPoints.length;
-                points = this.greenPoints.map(p => {
-                    let dx = p.x - cx;
-                    let dz = p.z - cz;
-                    let len = Math.sqrt(dx * dx + dz * dz) || 1;
-                    return { x: p.x + (dx / len) * padding, z: p.z + (dz / len) * padding };
+                cx /= numPoints; cz /= numPoints;
+
+                points = this.greenPoints.map((p, i) => { // Modify this line
+                    const prev = this.greenPoints[(i - 1 + numPoints) % numPoints];
+                    const next = this.greenPoints[(i + 1) % numPoints];
+
+                    let v1x = p.x - prev.x; let v1z = p.z - prev.z;
+                    let l1 = Math.hypot(v1x, v1z) || 1; v1x /= l1; v1z /= l1;
+
+                    let v2x = next.x - p.x; let v2z = next.z - p.z;
+                    let l2 = Math.hypot(v2x, v2z) || 1; v2x /= l2; v2z /= l2;
+
+                    let nx = -(v1z + v2z); let nz = (v1x + v2x);
+                    let len = Math.hypot(nx, nz) || 1; nx /= len; nz /= len;
+
+                    if (nx * (p.x - cx) + nz * (p.z - cz) < 0) { nx = -nx; nz = -nz; }
+                    return { x: p.x + nx * padding, z: p.z + nz * padding };
                 });
             }
             let inside = false;
@@ -111,7 +122,19 @@ export class PhysicsEngine {
 
         // Add this block: Bypasses circular plateau formulas for custom shapes
         if (this.greenPoints && this.greenPoints.length > 0) {
-            return 0.15 + rawSlopeHeight; // Add this line
+            let height = 0.15 + rawSlopeHeight;
+
+            // Smoothly taper height across the outer fringe ribbon so it blends into the ground
+            if (!this.isPointOnGreen(x, z, 0)) {
+                let factor = 1.0;
+                if (!this.isPointOnGreen(x, z, 0.2)) factor = 0.8;
+                if (!this.isPointOnGreen(x, z, 0.4)) factor = 0.6;
+                if (!this.isPointOnGreen(x, z, 0.6)) factor = 0.4;
+                if (!this.isPointOnGreen(x, z, 0.8)) factor = 0.2;
+                if (!this.isPointOnGreen(x, z, 1.0)) factor = 0.05;
+                height *= factor;
+            }
+            return height; // Modify this line
         }
 
         // --- CIRCULAR GREEN FALLBACK (Maintains Holes 2 & 3 unmodified) ---
