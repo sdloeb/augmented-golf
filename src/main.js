@@ -1,3 +1,19 @@
+// Central Green Shape profile profile formulas
+window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
+    if (!shapeType || shapeType === 'circle') return baseRadius;
+    if (shapeType === 'oval') {
+        return baseRadius * (1.0 + 0.24 * Math.cos(angle * 2));
+    }
+    if (shapeType === 'kidney') {
+        return baseRadius * (1.0 + 0.16 * Math.sin(angle) + 0.08 * Math.cos(angle * 2));
+    }
+    if (shapeType === 'wavy') {
+        return baseRadius * (1.0 + 0.12 * Math.sin(angle * 3) + 0.04 * Math.cos(angle * 5));
+    }
+    return baseRadius;
+};
+
+
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
@@ -34,6 +50,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
         par: 3,
+        greenShape: 'kidney',
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
@@ -800,15 +817,53 @@ function resetEntireGame(advanceHole = false) {
         }
     }
 
-    currentHoleConfig = holeConfig; // 
+    currentHoleConfig = holeConfig;
     window.activeGreenRadius = (holeConfig && holeConfig.greenRadius) ? holeConfig.greenRadius : 12.0;
 
-    // Scale the visual 3D geometries to snap perfectly to the custom radius
-    const visualScaleFactor = window.activeGreenRadius / 12.0;
-    if (green) green.scale.set(visualScaleFactor, visualScaleFactor, 1);
-    if (greenGrid) greenGrid.scale.set(visualScaleFactor, visualScaleFactor, 1);
-    if (greenFringe) greenFringe.scale.set(visualScaleFactor, visualScaleFactor, 1);
+    // Assign shape style (supports specific manual profiles or cycles variety across procedural tracks)
+    window.activeGreenShape = (holeConfig && holeConfig.greenShape) ? holeConfig.greenShape : 'circle';
+    if (!holeConfig) {
+        const shapeOptions = ['circle', 'oval', 'kidney', 'wavy'];
+        window.activeGreenShape = shapeOptions[(currentHoleNumber - 1) % shapeOptions.length];
+    }
 
+    // Warps vertices to sculpt geometric borders while maintaining perfect concentric alignment
+    const applyShapeWarp = (targetMesh, baseR) => {
+        if (!targetMesh || !targetMesh.geometry.userData.origXY) return;
+        const posAttr = targetMesh.geometry.attributes.position;
+        const templates = targetMesh.geometry.userData.origXY;
+        const isFringeMesh = (targetMesh === greenFringe);
+
+        for (let i = 0; i < posAttr.count; i++) {
+            const tx = templates[i].x;
+            const ty = templates[i].y;
+            const theta = Math.atan2(ty, tx);
+            const templateDist = Math.sqrt(tx * tx + ty * ty);
+
+            const dynamicBorderR = window.getGreenRadiusAtAngle(theta, baseR, window.activeGreenShape);
+
+            let finalizedDist = 0;
+            if (isFringeMesh) {
+                const fringeOffset = templateDist - 12.0; // original GREEN_RADIUS reference
+                finalizedDist = dynamicBorderR + fringeOffset;
+            } else {
+                finalizedDist = dynamicBorderR * (templateDist / 12.0);
+            }
+
+            posAttr.setX(i, Math.cos(theta) * finalizedDist);
+            posAttr.setY(i, Math.sin(theta) * finalizedDist);
+        }
+        posAttr.needsUpdate = true;
+    };
+
+    applyShapeWarp(green, window.activeGreenRadius);
+    applyShapeWarp(greenGrid, window.activeGreenRadius - 0.02);
+    applyShapeWarp(greenFringe, window.activeGreenRadius);
+
+    // Lock baseline scale to 1.0 since transformations are performed directly on the vertex arrays
+    if (green) green.scale.set(1, 1, 1);
+    if (greenGrid) greenGrid.scale.set(1, 1, 1);
+    if (greenFringe) greenFringe.scale.set(1, 1, 1);
     const themeRoll = Math.random();
     if (themeRoll < 0.25) {
         currentHoleConfig.theme = 'open';    // Clean links-style course
@@ -855,9 +910,10 @@ function resetEntireGame(advanceHole = false) {
         holePosition.x = greenEndpoint.x;
         holePosition.z = greenEndpoint.z;
 
-        // Add random pin variance only if NOT custom
+        // Add random pin variance bounded perfectly inside the contour limits
         const pinAngle = Math.random() * Math.PI * 2;
-        const pinRadius = Math.random() * (window.activeGreenRadius - 3.0);
+        const maxAllowedR = window.getGreenRadiusAtAngle(pinAngle, window.activeGreenRadius || 12.0, window.activeGreenShape) - 3.0;
+        const pinRadius = Math.random() * Math.max(2.0, maxAllowedR);
         holePosition.x += Math.cos(pinAngle) * pinRadius;
         holePosition.z += Math.sin(pinAngle) * pinRadius;
     }
@@ -1194,9 +1250,11 @@ function resetEntireGame(advanceHole = false) {
             const gX = worldX - (green ? green.position.x : 0);
             const gZ = worldZ - greenCenterZ;
             const distToGreen = Math.sqrt(gX * gX + gZ * gZ);
+            const vertexAngle = Math.atan2(-gZ, gX);
 
-            const activeR = window.activeGreenRadius || 12.0;
-            const fringeOuterR = activeR * (13.0 / 12.0); // Dynamic outer edge of the scaled fringe mesh
+            // Fetch dynamic green boundary metrics for this explicit slice angle
+            const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+            const fringeOuterR = activeR + 1.0;
 
             // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
             if (distToGreen < activeR) {
@@ -2217,8 +2275,12 @@ function animate() {
             updateDistanceDisplay();
         }
 
-        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-        const onGreen = Math.sqrt((ball.position.x - (green ? green.position.x : 0)) * (ball.position.x - (green ? green.position.x : 0)) + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < activeR; // Modify this line
+        const camGreenX = ball.position.x - (green ? green.position.x : 0);
+        const camGreenZ = ball.position.z - greenCenterZ;
+        const camGreenDist = Math.sqrt(camGreenX * camGreenX + camGreenZ * camGreenZ);
+        const camGreenAngle = Math.atan2(-camGreenZ, camGreenX);
+        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(camGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        const onGreen = camGreenDist < activeR;
 
         // Detect if screen width is mobile or portrait orientation at top of block
         // Detect if screen width is mobile or portrait orientation at top of block
@@ -2279,9 +2341,10 @@ function animate() {
 
     const ballGreenX = ball.position.x - (green ? green.position.x : 0);
     const ballGreenZ = ball.position.z - greenCenterZ;
-
-    // NEW: Ensure green surface state only activates when the ball is low to the ground or has landed
-    const isBallInGreenCircle = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+    const bgDist = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ);
+    const bgAngle = Math.atan2(-ballGreenZ, ballGreenX);
+    const bgActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(bgAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+    const isBallInGreenCircle = bgDist < bgActiveR;
     const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
 
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
@@ -2398,9 +2461,11 @@ function animate() {
     // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
-    const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
+    const checkDist = Math.sqrt(checkX * checkX + checkZ * checkZ);
+    const checkAngle = Math.atan2(-checkZ, checkX);
+    const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < activeR && !isOverheadActive) { // Modify this line
+    if (checkDist < activeR && !isOverheadActive) {
         // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
         const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
         const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
@@ -2932,6 +2997,16 @@ function init() {
     // FIXED: Giving the grid map its own independent mesh geometry prevents shared-vertex texture coordinate breaks
     const gridGeo = new THREE.RingGeometry(0, GREEN_RADIUS - 0.02, 64, 32);
 
+    // Cache original layout templates to allow infinite clean shape-warping transforms
+    greenGeo.userData.origXY = [];
+    for (let i = 0; i < greenGeo.attributes.position.count; i++) {
+        greenGeo.userData.origXY.push({ x: greenGeo.attributes.position.getX(i), y: greenGeo.attributes.position.getY(i) });
+    }
+    gridGeo.userData.origXY = [];
+    for (let i = 0; i < gridGeo.attributes.position.count; i++) {
+        gridGeo.userData.origXY.push({ x: gridGeo.attributes.position.getX(i), y: gridGeo.attributes.position.getY(i) });
+    }
+
     const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.85 });
     green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
@@ -2956,6 +3031,10 @@ function init() {
     scene.add(greenGrid);
 
     const fringeGeo = new THREE.RingGeometry(GREEN_RADIUS, GREEN_RADIUS + 1.0, 64, 16); // Add this line: 2-unit wide ring collar around edge
+    fringeGeo.userData.origXY = [];
+    for (let i = 0; i < fringeGeo.attributes.position.count; i++) {
+        fringeGeo.userData.origXY.push({ x: fringeGeo.attributes.position.getX(i), y: fringeGeo.attributes.position.getY(i) });
+    }
     const fringeMat = new THREE.MeshStandardMaterial({
         color: 0x1b7a3a,
         roughness: 0.85,
@@ -3299,8 +3378,10 @@ function updateGreenGrid() {
 
     const dxB = ball.position.x - gX;
     const dzB = ball.position.z - gZ;
-    const activeR = window.activeGreenRadius || GREEN_RADIUS;
-    const isBallOnGreenOrFringe = Math.sqrt(dxB * dxB + dzB * dzB) < (activeR + 1.5); // Modify this line
+    const gridBallDist = Math.sqrt(dxB * dxB + dzB * dzB);
+    const gridBallAngle = Math.atan2(-dzB, dxB);
+    const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(gridBallAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+    const isBallOnGreenOrFringe = gridBallDist < (activeR + 1.5);
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
 
     // Grid safely stays hidden when swinging
@@ -3362,8 +3443,14 @@ function updateGreenGrid() {
             glowColor = '#ff3333'; // Add this line
         }
 
-        if (Math.sqrt((finalWx - gX) * (finalWx - gX) + (finalWz - gZ) * (finalWz - gZ)) < activeR - 0.3) {
-            const cx = 512 * ((finalWx - gX) / (activeR * 2) + 0.5);
+        const fDx = finalWx - gX;
+        const fDz = finalWz - gZ;
+        const fDist = Math.sqrt(fDx * fDx + fDz * fDz);
+        const fAngle = Math.atan2(-fDz, fDx);
+        const dotActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(fAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : activeR;
+
+        if (fDist < dotActiveR - 0.3) {
+            const cx = 512 * (fDx / (dotActiveR * 2) + 0.5);
             const cy = 512 * ((finalWz - gZ) / (activeR * 2) + 0.5);
 
             // Draw small, premium glowing circular beads with high-contrast visibility core

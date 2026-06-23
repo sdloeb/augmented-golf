@@ -55,18 +55,21 @@ export class PhysicsEngine {
         this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2); // Add this line
     }
 
-    // Around Line 56 in src/PhysicsEngine.js
     getGreenHeight(x, z) {
         const dz = z - this.greenCenterZ;
         const dx = x - this.greenCenterX;
-        const distanceSq = dx * dx + dz * dz;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const angle = Math.atan2(-dz, dx);
 
-        const activeRadius = window.activeGreenRadius || 12.0; // Add this line
+        // Dynamically compute the shape extent boundary for this specific location angle
+        const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(angle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
 
         // Out of bounds safety fallback
-        if (distanceSq >= (activeRadius * activeRadius)) return 0; // Modify this line
+        if (dist >= activeRadius) return 0;
 
-        const r = Math.sqrt(distanceSq);
+        const distanceSq = dist * dist;
+        const r = dist;
+
 
         // 1. Calculate smooth transition blending weights along the Z axis (Front to Back)
         let wBack = Math.max(0, Math.min(1, (-dz - 1.5) / 5));
@@ -249,8 +252,8 @@ export class PhysicsEngine {
         const gX = x - this.greenCenterX;
         const gZ = z - this.greenCenterZ;
         const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
-
-        const activeRadius = window.activeGreenRadius || 12.0; // Add this line
+        const angle = Math.atan2(-gZ, gX);
+        const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(angle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
 
         // MODIFIED: Base height is always the course elevation. If inside the green radius, we seamlessly stack the green contours on top.
         // This completely eliminates the pedestal drop-off and seals the giant canyon hole behind the green.
@@ -411,7 +414,10 @@ export class PhysicsEngine {
 
         const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
-        const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
+        const ballDist = Math.sqrt(gX * gX + gZ * gZ);
+        const ballAngle = Math.atan2(-gZ, gX);
+        const currentGreenR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        const onGreen = ballDist < currentGreenR;
 
         let inSand = false;
         for (let sand of this.sandTraps) {
@@ -448,7 +454,8 @@ export class PhysicsEngine {
         const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
         const approachDot = (this.approachDirX !== undefined) ? (relX * this.approachDirX + relZ * this.approachDirZ) : -999;
 
-        const activeRadius = window.activeGreenRadius || 12.0;
+        const relAngle = Math.atan2(-relZ, relX);
+        const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(relAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
         const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
         let activeFW = this.fairwayWidth;
         // Mirror the visual apron taper logic to align physical turf borders with mesh alterations
