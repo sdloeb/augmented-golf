@@ -29,15 +29,14 @@ export class PhysicsEngine {
         this.bounceCount = 0;
     }
 
-    // NEW: Receives the shuffled configurations from the map setup
-    setGreenContours(back, mid, front, centerX, centerZ, randomWidth, holeConfig) { // Add holeConfig here
+  setGreenContours(back, mid, front, centerX, centerZ, randomWidth, holeConfig) { // Update this line
         this.backZone = back;
         this.midZone = mid;
         this.frontZone = front;
         this.greenCenterX = centerX;
         this.greenCenterZ = centerZ;
         this.fairwayWidth = randomWidth || 8.5;
-        this.greenPoints = (holeConfig && holeConfig.greenPoints) ? holeConfig.greenPoints : null;
+        this.greenPoints = (holeConfig && holeConfig.greenPoints) ? holeConfig.greenPoints : null; // Add this line
 
         // Randomize fairway/rough course contours for the new hole
         this.courseSeedX1 = Math.random() * 50; // Add this line
