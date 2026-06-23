@@ -3476,8 +3476,13 @@ function updateGreenGrid() {
             visibleCount++;
         }
 
+        // === PASTE THIS REPLACEMENT CODE BLOCK ===
+        // FIXED: Accumulate the lateral breaking forces at the very END of the loop step
+        // so that they safely influence the trajectory projection of the NEXT dot.
         const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
-        sideVelocity += curveIntensity * 0.0045;
+        // CALIBRATED: Increased step acceleration coefficient from 0.0045 to 0.165 to accurately 
+        // scale realistic tournament-grade slopes across a compact number of visual prediction dots.
+        sideVelocity += curveIntensity * 0.165;
         cumulativeDrift += sideVelocity;
     }
 
