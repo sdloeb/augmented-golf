@@ -29,14 +29,14 @@ export class PhysicsEngine {
         this.bounceCount = 0;
     }
 
-    setGreenContours(back, mid, front, centerX, centerZ, randomWidth, holeConfig) { // Update this line
+    // NEW: Receives the shuffled configurations from the map setup
+    setGreenContours(back, mid, front, centerX, centerZ, randomWidth) {
         this.backZone = back;
         this.midZone = mid;
         this.frontZone = front;
         this.greenCenterX = centerX;
         this.greenCenterZ = centerZ;
         this.fairwayWidth = randomWidth || 8.5;
-        this.greenPoints = (holeConfig && holeConfig.greenPoints) ? holeConfig.greenPoints : null; // Add this line
 
         // Randomize fairway/rough course contours for the new hole
         this.courseSeedX1 = Math.random() * 50; // Add this line
@@ -53,59 +53,20 @@ export class PhysicsEngine {
         this.bigFeatureX = (Math.random() - 0.5) * 25; // Add this line
         this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120; // Add this line
         this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2); // Add this line
-
     }
 
-    isPointOnGreen(x, z, padding = 0) {
-        if (this.greenPoints && this.greenPoints.length > 0) {
-            let points = this.greenPoints;
-            // If padding is requested, expand the polygon vertices outward using perfect edge-normal alignment
-            if (padding > 0) {
-                let cx = 0, cz = 0;
-                let numPoints = this.greenPoints.length;
-                this.greenPoints.forEach(p => { cx += p.x; cz += p.z; });
-                cx /= numPoints; cz /= numPoints;
-
-                points = this.greenPoints.map((p, i) => { // Modify this line
-                    const prev = this.greenPoints[(i - 1 + numPoints) % numPoints];
-                    const next = this.greenPoints[(i + 1) % numPoints];
-
-                    let v1x = p.x - prev.x; let v1z = p.z - prev.z;
-                    let l1 = Math.hypot(v1x, v1z) || 1; v1x /= l1; v1z /= l1;
-
-                    let v2x = next.x - p.x; let v2z = next.z - p.z;
-                    let l2 = Math.hypot(v2x, v2z) || 1; v2x /= l2; v2z /= l2;
-
-                    let nx = -(v1z + v2z); let nz = (v1x + v2x);
-                    let len = Math.hypot(nx, nz) || 1; nx /= len; nz /= len;
-
-                    if (nx * (p.x - cx) + nz * (p.z - cz) < 0) { nx = -nx; nz = -nz; }
-                    return { x: p.x + nx * padding, z: p.z + nz * padding };
-                });
-            }
-            let inside = false;
-            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                const xi = points[i].x, zi = points[i].z;
-                const xj = points[j].x, zj = points[j].z;
-                const intersect = ((zi > z) !== (zj > z))
-                    && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
-                if (intersect) inside = !inside;
-            }
-            return inside;
-        }
-        const gX = x - this.greenCenterX;
-        const gZ = z - this.greenCenterZ;
-        const activeRadius = (window.activeGreenRadius || 12.0) + padding; // Modify this line
-        return (gX * gX + gZ * gZ) < (activeRadius * activeRadius);
-    }
-
+    // Around Line 56 in src/PhysicsEngine.js
     getGreenHeight(x, z) {
-        if (!this.isPointOnGreen(x, z, 1.2)) return 0; // Add this line: Includes full fringe shelf height buffer
-
         const dz = z - this.greenCenterZ;
         const dx = x - this.greenCenterX;
         const distanceSq = dx * dx + dz * dz;
-        const activeRadius = window.activeGreenRadius || 12.0;
+
+        const activeRadius = window.activeGreenRadius || 12.0; // Add this line
+
+        // Out of bounds safety fallback
+        if (distanceSq >= (activeRadius * activeRadius)) return 0; // Modify this line
+
+        const r = Math.sqrt(distanceSq);
 
         // 1. Calculate smooth transition blending weights along the Z axis (Front to Back)
         let wBack = Math.max(0, Math.min(1, (-dz - 1.5) / 5));
@@ -120,37 +81,18 @@ export class PhysicsEngine {
         const hFront = this.frontZone.rx * dx + this.frontZone.rz * dz;
         const rawSlopeHeight = hBack * wBack + hMid * wMid + hFront * wFront;
 
-        // Add this block: Bypasses circular plateau formulas for custom shapes
-        if (this.greenPoints && this.greenPoints.length > 0) {
-            let height = 0.15 + rawSlopeHeight;
-
-            // Smoothly taper height across the outer fringe ribbon so it blends into the ground
-            if (!this.isPointOnGreen(x, z, 0)) {
-                let factor = 1.0;
-                if (!this.isPointOnGreen(x, z, 0.2)) factor = 0.8;
-                if (!this.isPointOnGreen(x, z, 0.4)) factor = 0.6;
-                if (!this.isPointOnGreen(x, z, 0.6)) factor = 0.4;
-                if (!this.isPointOnGreen(x, z, 0.8)) factor = 0.2;
-                if (!this.isPointOnGreen(x, z, 1.0)) factor = 0.05;
-                height *= factor;
-            }
-            return height; // Modify this line
-        }
-
-        // --- CIRCULAR GREEN FALLBACK (Maintains Holes 2 & 3 unmodified) ---
-        const r = Math.sqrt(distanceSq);
-
-        // 3. Add a protective circular plateau mound foundation (+0.20 units at center)
-        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius)));
+        // 3. NEW: Add a protective circular plateau mound foundation (+0.5 units at center)
+        // This keeps downhill valleys elevated safely above the flat infinite floor sheet
+        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius))); // Modify this line
         const combinedHeight = basePlateau + rawSlopeHeight;
 
         // 4. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
-        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0));
+        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0)); // Modify this line
         const smoothFade = edgeFade * edgeFade * (3 - 2 * edgeFade);
 
         // Mathematical floor guard ensures the mesh can never drop below baseline ground level
         return Math.max(0.001, combinedHeight * smoothFade);
-    } // Closing bracket of getGreenHeight
+    } // Find this closing bracket of getGreenHeight
 
     // Add this method: Calculates distance from any coordinate to our curved spline path
     getDistanceToSpline(x, z) {
@@ -313,8 +255,10 @@ export class PhysicsEngine {
         // MODIFIED: Base height is always the course elevation. If inside the green radius, we seamlessly stack the green contours on top.
         // This completely eliminates the pedestal drop-off and seals the giant canyon hole behind the green.
         let baseHeight = this.getCourseHeight(x, z);
-        if (this.isPointOnGreen(x, z, 1.2)) { // Modify this line: Extends base platform out past fringe edge
+        if (distFromGreen < activeRadius) {
             baseHeight += this.getGreenHeight(x, z);
+
+
         }
 
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
@@ -465,7 +409,9 @@ export class PhysicsEngine {
             this.ball.position.y = groundY;
         } // End of added block
 
-        const onGreen = this.isPointOnGreen(this.ball.position.x, this.ball.position.z); // Modify this line
+        const gX = this.ball.position.x - this.greenCenterX;
+        const gZ = this.ball.position.z - this.greenCenterZ;
+        const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
 
         let inSand = false;
         for (let sand of this.sandTraps) {
@@ -535,22 +481,18 @@ export class PhysicsEngine {
             currentFriction = this.isPutting ? 0.956 : 0.996;
 
             if (!this.isPutting && this.currentLoft) {
-                const loftT = Math.max(0.0, Math.min(1.0, (this.currentLoft - 0.040) / (0.063 - 0.040)));
+                const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
 
                 // Lowers vertical bounce so irons hit with a realistic turf "thud" instead of ballooning upwards
-                currentBounceHeight = 0.14 * (2.0 - (this.currentLoft / 0.063));
+                currentBounceHeight = 0.14 * (2.0 - loftRatio);
 
                 // Only applies heavy spin check on the very first hop; subsequent hops glide forward smoothly
                 if (this.bounceCount === 0) {
-                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.96, 0.65, loftT);
+                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.95, 0.76, (loftRatio - 0.4) / 1.1);
                 } else {
-                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.98, 0.75, loftT);
+                    currentBounceForwardLoss = 0.97;
                 }
-
-                // Dynamic rolling friction based on club loft so wedges check/bite and low-lofted woods roll out naturally
-                currentFriction = THREE.MathUtils.lerp(0.9975, 0.992, loftT);
             }
-
         }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
