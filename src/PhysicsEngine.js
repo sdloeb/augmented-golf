@@ -30,13 +30,14 @@ export class PhysicsEngine {
     }
 
     // NEW: Receives the shuffled configurations from the map setup
-    setGreenContours(back, mid, front, centerX, centerZ, randomWidth) {
+    setGreenContours(back, mid, front, centerX, centerZ, randomWidth, holeConfig) { // Add holeConfig here
         this.backZone = back;
         this.midZone = mid;
         this.frontZone = front;
         this.greenCenterX = centerX;
         this.greenCenterZ = centerZ;
         this.fairwayWidth = randomWidth || 8.5;
+        this.greenPoints = (holeConfig && holeConfig.greenPoints) ? holeConfig.greenPoints : null;
 
         // Randomize fairway/rough course contours for the new hole
         this.courseSeedX1 = Math.random() * 50; // Add this line
@@ -53,20 +54,48 @@ export class PhysicsEngine {
         this.bigFeatureX = (Math.random() - 0.5) * 25; // Add this line
         this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120; // Add this line
         this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2); // Add this line
+
     }
 
-    // Around Line 56 in src/PhysicsEngine.js
+    isPointOnGreen(x, z, padding = 0) { // Modify this line
+        if (this.greenPoints && this.greenPoints.length > 0) {
+            let points = this.greenPoints;
+            // If padding is requested, expand the polygon vertices outward from its center
+            if (padding > 0) {
+                let cx = 0, cz = 0;
+                this.greenPoints.forEach(p => { cx += p.x; cz += p.z; });
+                cx /= this.greenPoints.length;
+                cz /= this.greenPoints.length;
+                points = this.greenPoints.map(p => {
+                    let dx = p.x - cx;
+                    let dz = p.z - cz;
+                    let len = Math.sqrt(dx * dx + dz * dz) || 1;
+                    return { x: p.x + (dx / len) * padding, z: p.z + (dz / len) * padding };
+                });
+            }
+            let inside = false;
+            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                const xi = points[i].x, zi = points[i].z;
+                const xj = points[j].x, zj = points[j].z;
+                const intersect = ((zi > z) !== (zj > z))
+                    && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+        const gX = x - this.greenCenterX;
+        const gZ = z - this.greenCenterZ;
+        const activeRadius = (window.activeGreenRadius || 12.0) + padding; // Modify this line
+        return (gX * gX + gZ * gZ) < (activeRadius * activeRadius);
+    }
+
     getGreenHeight(x, z) {
+        if (!this.isPointOnGreen(x, z, 1.2)) return 0; // Add this line: Includes full fringe shelf height buffer
+
         const dz = z - this.greenCenterZ;
         const dx = x - this.greenCenterX;
         const distanceSq = dx * dx + dz * dz;
-
-        const activeRadius = window.activeGreenRadius || 12.0; // Add this line
-
-        // Out of bounds safety fallback
-        if (distanceSq >= (activeRadius * activeRadius)) return 0; // Modify this line
-
-        const r = Math.sqrt(distanceSq);
+        const activeRadius = window.activeGreenRadius || 12.0;
 
         // 1. Calculate smooth transition blending weights along the Z axis (Front to Back)
         let wBack = Math.max(0, Math.min(1, (-dz - 1.5) / 5));
@@ -81,18 +110,25 @@ export class PhysicsEngine {
         const hFront = this.frontZone.rx * dx + this.frontZone.rz * dz;
         const rawSlopeHeight = hBack * wBack + hMid * wMid + hFront * wFront;
 
-        // 3. NEW: Add a protective circular plateau mound foundation (+0.5 units at center)
-        // This keeps downhill valleys elevated safely above the flat infinite floor sheet
-        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius))); // Modify this line
+        // Add this block: Bypasses circular plateau formulas for custom shapes
+        if (this.greenPoints && this.greenPoints.length > 0) {
+            return 0.15 + rawSlopeHeight; // Add this line
+        }
+
+        // --- CIRCULAR GREEN FALLBACK (Maintains Holes 2 & 3 unmodified) ---
+        const r = Math.sqrt(distanceSq);
+
+        // 3. Add a protective circular plateau mound foundation (+0.20 units at center)
+        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius)));
         const combinedHeight = basePlateau + rawSlopeHeight;
 
         // 4. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
-        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0)); // Modify this line
+        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0));
         const smoothFade = edgeFade * edgeFade * (3 - 2 * edgeFade);
 
         // Mathematical floor guard ensures the mesh can never drop below baseline ground level
         return Math.max(0.001, combinedHeight * smoothFade);
-    } // Find this closing bracket of getGreenHeight
+    } // Closing bracket of getGreenHeight
 
     // Add this method: Calculates distance from any coordinate to our curved spline path
     getDistanceToSpline(x, z) {
@@ -255,10 +291,8 @@ export class PhysicsEngine {
         // MODIFIED: Base height is always the course elevation. If inside the green radius, we seamlessly stack the green contours on top.
         // This completely eliminates the pedestal drop-off and seals the giant canyon hole behind the green.
         let baseHeight = this.getCourseHeight(x, z);
-        if (distFromGreen < activeRadius) {
+        if (this.isPointOnGreen(x, z, 1.2)) { // Modify this line: Extends base platform out past fringe edge
             baseHeight += this.getGreenHeight(x, z);
-
-
         }
 
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
@@ -409,9 +443,7 @@ export class PhysicsEngine {
             this.ball.position.y = groundY;
         } // End of added block
 
-        const gX = this.ball.position.x - this.greenCenterX;
-        const gZ = this.ball.position.z - this.greenCenterZ;
-        const onGreen = Math.sqrt(gX * gX + gZ * gZ) < 12.0;
+        const onGreen = this.isPointOnGreen(this.ball.position.x, this.ball.position.z); // Modify this line
 
         let inSand = false;
         for (let sand of this.sandTraps) {

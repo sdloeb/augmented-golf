@@ -37,6 +37,12 @@ const HOLES_CONFIG = {
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
+        ],
+        // Add this block temporarily to test your custom polygon engine:
+        greenPoints: [
+            { x: -15, z: -70 }, // Back Left corner
+            { x: 15, z: -70 },  // Back Right corner
+            { x: 0, z: -40 }    // Front Point facing the player
         ]
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
@@ -213,10 +219,7 @@ function updateDistanceDisplay() {
 
     if (distanceText && unitText) {
         // FIXED: Check if the ball is on the green surface container footprint instead of clamping to a raw radius proximity
-        const greenCheckX = ball.position.x - (green ? green.position.x : 0);
-        const greenCheckZ = ball.position.z - greenCenterZ;
-        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-        const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
+        const isOnGreenSurface = physics ? physics.isPointOnGreen(ball.position.x, ball.position.z) : false; // Modify this line
 
         if (isOnGreenSurface) {
             const feet = Math.round(gameDistance * 1.50);
@@ -240,11 +243,7 @@ function updateDistanceDisplay() {
             return;
         }
 
-        // FIXED: Check distance to the green's center instead of the hole cup
-        const greenCheckX = ball.position.x - (green ? green.position.x : 0);
-        const greenCheckZ = ball.position.z - greenCenterZ;
-        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
+        const isOnGreen = physics ? physics.isPointOnGreen(ball.position.x, ball.position.z) : false; // Modify this line
 
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
@@ -803,11 +802,53 @@ function resetEntireGame(advanceHole = false) {
     currentHoleConfig = holeConfig; // 
     window.activeGreenRadius = (holeConfig && holeConfig.greenRadius) ? holeConfig.greenRadius : 12.0;
 
-    // Scale the visual 3D geometries to snap perfectly to the custom radius
-    const visualScaleFactor = window.activeGreenRadius / 12.0;
-    if (green) green.scale.set(visualScaleFactor, visualScaleFactor, 1);
-    if (greenGrid) greenGrid.scale.set(visualScaleFactor, visualScaleFactor, 1);
-    if (greenFringe) greenFringe.scale.set(visualScaleFactor, visualScaleFactor, 1);
+    if (holeConfig && holeConfig.greenPoints) {
+        // Build Custom Shape vectors
+        const greenShape = new THREE.Shape();
+        greenShape.moveTo(holeConfig.greenPoints[0].x, -holeConfig.greenPoints[0].z);
+        for (let i = 1; i < holeConfig.greenPoints.length; i++) {
+            greenShape.lineTo(holeConfig.greenPoints[i].x, -holeConfig.greenPoints[i].z);
+        }
+        greenShape.lineTo(holeConfig.greenPoints[0].x, -holeConfig.greenPoints[0].z);
+
+        green.geometry.dispose();
+        green.geometry = new THREE.ShapeGeometry(greenShape);
+        greenGrid.geometry.dispose();
+        greenGrid.geometry = new THREE.ShapeGeometry(greenShape);
+
+        // Add this block: Calculates a beautifully offset outer fringe perimeter line matching the green shape
+        let cx = 0, cz = 0;
+        holeConfig.greenPoints.forEach(p => { cx += p.x; cz += p.z; });
+        cx /= holeConfig.greenPoints.length; cz /= holeConfig.greenPoints.length;
+
+        const fringeShape = new THREE.Shape();
+        let fP = holeConfig.greenPoints[0];
+        fringeShape.moveTo(fP.x + ((fP.x - cx) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2, -(fP.z + ((fP.z - cz) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2));
+        for (let i = 1; i < holeConfig.greenPoints.length; i++) {
+            let p = holeConfig.greenPoints[i];
+            fringeShape.lineTo(p.x + ((p.x - cx) / Math.hypot(p.x - cx, p.z - cz)) * 1.2, -(p.z + ((p.z - cz) / Math.hypot(p.x - cx, p.z - cz)) * 1.2));
+        }
+        fringeShape.lineTo(fP.x + ((fP.x - cx) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2, -(fP.z + ((fP.z - cz) / Math.hypot(fP.x - cx, fP.z - cz)) * 1.2));
+
+        greenFringe.geometry.dispose();
+        greenFringe.geometry = new THREE.ShapeGeometry(fringeShape); // Modify this line
+
+        green.scale.set(1, 1, 1);
+        greenGrid.scale.set(1, 1, 1);
+        greenFringe.scale.set(1, 1, 1);
+    } else {
+        // Circle fallback layout keeps Holes 2 & 3 safe and intact
+        green.geometry.dispose();
+        green.geometry = new THREE.RingGeometry(0, window.activeGreenRadius, 64, 32);
+        greenGrid.geometry.dispose();
+        greenGrid.geometry = new THREE.RingGeometry(0, window.activeGreenRadius - 0.02, 64, 32);
+        greenFringe.geometry.dispose();
+        greenFringe.geometry = new THREE.RingGeometry(window.activeGreenRadius, window.activeGreenRadius + 1.0, 64, 16);
+
+        green.scale.set(1, 1, 1);
+        greenGrid.scale.set(1, 1, 1);
+        greenFringe.scale.set(1, 1, 1);
+    }
 
     const themeRoll = Math.random();
     if (themeRoll < 0.25) {
@@ -865,9 +906,15 @@ function resetEntireGame(advanceHole = false) {
     greenCenterZ = holePosition.z; // Sync helper variable
 
     // --- 2. PHYSICALLY MOVE THE MESHES ---
-    if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
-    if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
-    if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
+    if (currentHoleConfig && currentHoleConfig.greenPoints) {
+        if (green) green.position.set(0, 0.02, 0);
+        if (greenGrid) greenGrid.position.set(0, 0.021, 0);
+        if (greenFringe) greenFringe.position.set(0, 0.018, 0);
+    } else {
+        if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
+        if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
+        if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
+    }
 
     // --- 3. SYNC PHYSICS ENGINE ---
     if (physics) {
@@ -909,7 +956,7 @@ function resetEntireGame(advanceHole = false) {
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, holePosition.x, holePosition.z, generatedWidth);
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, holePosition.x, holePosition.z, generatedWidth, holeConfig); // Modify this line
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
@@ -1249,7 +1296,7 @@ function resetEntireGame(advanceHole = false) {
                 const fWEdge = fW + 3.5; // Re-placed here safely so fWEdge uses your tapered fairway variables
 
                 // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
-                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > 0); // Modify this line
+                const isPastFairway = (physics ? physics.isPointOnGreen(worldX, worldZ) : (distToGreenCenter < activeRadius)) || (approachDot > 0); // Modify this line
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
@@ -1264,9 +1311,26 @@ function resetEntireGame(advanceHole = false) {
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
-                    if (distToGreen < fringeOuterR) {
-                        // Safety buffer zone: Stay perfectly flush at the fringe circle, slope down smoothly underneath it
-                        const transitionZone = 2.0;
+
+                    // Add this block: Cuts down the floor map perfectly contouring any custom green boundaries
+                    if (physics && physics.greenPoints && physics.greenPoints.length > 0) {
+                        if (physics.isPointOnGreen(worldX, worldZ, 1.2)) {
+                            calculatedHeight -= 1.5;
+                        }
+                    } else {
+                        // Original circular green fallback
+                        if (distToGreen < fringeOuterR) {
+                            // Safety buffer zone: Stay perfectly flush at the fringe circle, slope down smoothly underneath it
+                            const transitionZone = 2.0;
+                            if (distToGreen < fringeOuterR - transitionZone) {
+                                calculatedHeight -= 1.5;
+                            } else {
+                                const tFloor = (fringeOuterR - distToGreen) / transitionZone;
+                                const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
+                                calculatedHeight -= smoothTFloor * 1.5;
+                            }
+                        }
+
                         if (distToGreen < fringeOuterR - transitionZone) {
                             calculatedHeight -= 1.5;
                         } else {
@@ -1288,10 +1352,16 @@ function resetEntireGame(advanceHole = false) {
                     // Universal check: If we are past the front entrance apron and outside the green radius, hide the fairway
                     const isOnGreenSidesOrBack = (approachDot > -activeR + 1.0) && (distToGreenCenter >= activeR - 2.0);
 
+
                     // Isolate boundary/sand hiding rules from green-blending rules
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));
 
-                    if (insideSandZone || isOutsideFairwayBounds) {
+                    const pointIsOnGreen = physics ? physics.isPointOnGreen(worldX, worldZ) : false;
+
+                    // Add this line: Identifies when the fairway is outside a custom polygon green area near the green entrance
+                    const isCustomGreenTrim = (currentHoleConfig && currentHoleConfig.greenPoints) && (approachDot > -15.0) && !pointIsOnGreen;
+
+                    if (insideSandZone || isOutsideFairwayBounds || pointIsOnGreen || isCustomGreenTrim) { // Modify this line
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 1.5) : (floorHeight - 1.5);
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
                         calculatedHeight = floorHeight - 1.5;
@@ -2186,11 +2256,7 @@ function animate() {
 
     // <-- This brace closes the entire "ball is not moving" section
 
-    const ballGreenX = ball.position.x - (green ? green.position.x : 0);
-    const ballGreenZ = ball.position.z - greenCenterZ;
-
-    // NEW: Ensure green surface state only activates when the ball is low to the ground or has landed
-    const isBallInGreenCircle = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ) < GREEN_RADIUS;
+    const isBallInGreenCircle = physics ? physics.isPointOnGreen(ball.position.x, ball.position.z) : false; // Modify this line
     const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
 
     // 1. DEFAULT SPEED: Keep it crisp at 0.05 for normal address tracking, short shots, and hole resets
@@ -2304,12 +2370,7 @@ function animate() {
 
     }
 
-    // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
-    const checkX = ball.position.x - (green ? green.position.x : 0);
-    const checkZ = ball.position.z - greenCenterZ;
-    const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-
-    if (Math.sqrt(checkX * checkX + checkZ * checkZ) < activeR && !isOverheadActive) { // Modify this line
+    if ((physics && physics.isPointOnGreen(ball.position.x, ball.position.z)) && !isOverheadActive) { // Modify this line
         // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
         const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
         const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
@@ -3209,7 +3270,7 @@ function updateGreenGrid() {
     const dxB = ball.position.x - gX;
     const dzB = ball.position.z - gZ;
     const activeR = window.activeGreenRadius || GREEN_RADIUS;
-    const isBallOnGreenOrFringe = Math.sqrt(dxB * dxB + dzB * dzB) < (activeR + 1.5); // Modify this line
+    const isBallOnGreenOrFringe = physics ? (physics.isPointOnGreen(ball.position.x, ball.position.z) || Math.sqrt(dxB * dxB + dzB * dzB) < (activeR + 1.5)) : false; // Modify this line
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
 
     // Grid safely stays hidden when swinging
@@ -3270,7 +3331,7 @@ function updateGreenGrid() {
             glowColor = '#ff3333'; // Add this line
         }
 
-        if (Math.sqrt((finalWx - gX) * (finalWx - gX) + (finalWz - gZ) * (finalWz - gZ)) < activeR - 0.3) {
+        if (physics && (physics.isPointOnGreen(finalWx, finalWz) || Math.sqrt((finalWx - gX) * (finalWx - gX) + (finalWz - gZ) * (finalWz - gZ)) < activeR - 0.3)) { // Modify this line
             const cx = 512 * ((finalWx - gX) / (activeR * 2) + 0.5);
             const cy = 512 * ((finalWz - gZ) / (activeR * 2) + 0.5);
 
