@@ -1289,7 +1289,8 @@ function resetEntireGame(advanceHole = false) {
                 // FIXED: Added 'physics.' prefix to approachDirX and approachDirZ to fix the blank screen ReferenceError crash
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
 
-                const activeRadius = window.activeGreenRadius || 12.0;
+                // Use the angle-warped green radius instead of a static circle fallback
+                const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
                 // Universal procedural apron taper logic for all standard and random holes
                 if (currentHoleNumber !== 3) {                                          // Add this line
@@ -1307,7 +1308,7 @@ function resetEntireGame(advanceHole = false) {
                 const fWEdge = fW + 3.5; // Re-placed here safely so fWEdge uses your tapered fairway variables
 
                 // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
-                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > 0); // Modify this line
+                const isPastFairway = (distToGreenCenter < activeR) || (approachDot > 0); // Modify this line
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
@@ -1341,7 +1342,8 @@ function resetEntireGame(advanceHole = false) {
                 // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
-                    const activeR = window.activeGreenRadius || GREEN_RADIUS;
+                    // Use the angle-warped green radius so the fairway mesh conforms to the kidney shape bounds
+                    const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
                     // Universal check: If we are past the front entrance apron and outside the green radius, hide the fairway
                     const isOnGreenSidesOrBack = (approachDot > -activeR + 1.0) && (distToGreenCenter >= activeR - 2.0);
