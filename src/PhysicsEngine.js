@@ -451,6 +451,18 @@ export class PhysicsEngine {
         const activeRadius = window.activeGreenRadius || 12.0;
         const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
         let activeFW = this.fairwayWidth;
+        // Mirror the visual apron taper logic to align physical turf borders with mesh alterations
+        if (!(this.greenCenterZ < -165 && this.greenCenterZ > -185)) {
+            const apronStart = -activeRadius - 12.0;
+            const apronEnd = -activeRadius;
+            if (approachDot > apronStart && approachDot <= apronEnd) {
+                let tApron = (approachDot - apronStart) / 12.0;
+                const targetApronWidth = Math.min(this.fairwayWidth, activeRadius * 0.72);
+                activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, tApron);
+            } else if (approachDot > apronEnd) {
+                activeFW = Math.min(this.fairwayWidth, activeRadius * 0.72);
+            }
+        }
         if (this.greenCenterZ < -128 && this.greenCenterZ > -152 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
             activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t);

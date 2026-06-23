@@ -513,7 +513,7 @@ export class InputHandler {
         spinValue = Math.max(-45, Math.min(45, spinValue)); // Preserved: Keeps maximum spin capped safely
 
         // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable
-        this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft || 0.042);
+        this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft !== undefined ? club.loft : 0.042);
         this.chosenClubIndex = null;    // Preserved: Clears manually selected club
         this.isAimMode = false;         // Preserved: Exits aiming view upon hit
         this.aimAngleOffset = 0;        // Preserved: Resets custom aim offset
