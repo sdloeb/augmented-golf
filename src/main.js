@@ -53,6 +53,11 @@ const HOLES_CONFIG = {
     1: { // Straight Fairway Tutorial Hole
         par: 3,
         greenShape: 'kidney',
+        slopeProfile: {
+            back: { rx: 0.00, rz: 0.02 },  // Section 1: Pure subtle uphill backstop tilt
+            mid: { rx: 0.03, rz: 0.00 },  // Section 2: Clean left-to-right break cutting through the cup area
+            front: { rx: -0.02, rz: -0.02 }  // Section 3: Downhill tilt combined with a right-to-left break
+        },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
@@ -950,6 +955,7 @@ function resetEntireGame(advanceHole = false) {
         [horizontalOptions[i], horizontalOptions[j]] = [horizontalOptions[j], horizontalOptions[i]];
     }
 
+    // === PASTE THIS REPLACEMENT CODE BLOCK ===
     const verticalOptions = [0.03, -0.03, 0.0];
 
     // Build the 3 distinct randomized tier zones configuration blocks
@@ -957,8 +963,13 @@ function resetEntireGame(advanceHole = false) {
     let midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
     let frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
 
-    // FIXED OVERRIDE: Forces Hole 3 to mimic the real left-to-right severe slope breaking toward the ocean cliff
-    if (currentHoleNumber === 3) {
+    // FIXED: Dynamically load individual slope configurations from blueprints if specified
+    if (holeConfig && holeConfig.slopeProfile) {
+        if (holeConfig.slopeProfile.back) backZoneProfile = holeConfig.slopeProfile.back;
+        if (holeConfig.slopeProfile.mid) midZoneProfile = holeConfig.slopeProfile.mid;
+        if (holeConfig.slopeProfile.front) frontZoneProfile = holeConfig.slopeProfile.front;
+    } else if (currentHoleNumber === 3) {
+        // Fallback safety check preservation for standard non-configured tracks
         backZoneProfile = { rx: -0.04, rz: 0.01 };
         midZoneProfile = { rx: -0.05, rz: 0.00 };
         frontZoneProfile = { rx: -0.03, rz: -0.02 };
