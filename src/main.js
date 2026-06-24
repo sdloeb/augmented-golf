@@ -1349,7 +1349,7 @@ function resetEntireGame(advanceHole = false) {
 
                 const fWEdge = fW + 3.5;
 
-               // FIXED: Terminate cutoff cleanly along the green's circular edge and back equator sides
+                // FIXED: Terminate cutoff cleanly along the green's circular edge and back equator sides
                 const isPastFairway = (distToGreenCenter < activeR) || (approachDot > 0 && distToGreenCenter >= activeR);
                 const isOnGreenSidesOrBack = (approachDot > 0.0) && (distToGreenCenter >= activeR - 2.0);
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
@@ -1580,6 +1580,7 @@ function resetEntireGame(advanceHole = false) {
         sceneryGroup.position.set(x, courseHeight, z);
 
         if (!isHouse) {
+            sceneryGroup.userData = { type: 'tree' };
             // BUILD A PROCEDURAL TREE
             const treeHeight = 1.5;
             const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, treeHeight, 8);
@@ -1729,6 +1730,7 @@ function resetEntireGame(advanceHole = false) {
         if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
 
         if (generateAsTree) {
+            sceneryGroup.userData = { type: 'tree' };
             let randomScale = 3.5 + Math.random() * 1.3;
             if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
             let calculatedTrunkRad = 0.25 * randomScale;
@@ -1908,6 +1910,7 @@ function resetEntireGame(advanceHole = false) {
 
             // --- DELETE AND REPLACE THE ENTIRE "else" BUSH SCAFFOLD IN src/main.js ---
         } else {
+            sceneryGroup.userData = { type: 'bush' };
             let randomBushRad = 0.7 + Math.random() * 1.2;
 
             // Create a base structural container group to combine twigs, shadow core, and leaf cards
@@ -2897,7 +2900,72 @@ function animate() {
         });
     }
 
-    renderer.render(scene, camera); // Preserved: Main renderer pipeline stays intact[cite: 2]
+    // --- NEW: TREE AND BUSH WIND SWAY ANIMATION ---
+    if (sceneryObjects && sceneryObjects.length > 0) {
+        const time = currentTime * 0.003;
+        const baseDirX = Math.sin(currentWindAngle);
+        const baseDirZ = -Math.cos(currentWindAngle);
+
+        // Pseudo-random overlapping waves to simulate natural unpredictable wind gusts, lulls, and absolute stops
+        const gustFactor = Math.max(0, (
+            Math.sin(time * 0.12) * 0.4 +
+            Math.cos(time * 0.35) * 0.3 +
+            Math.sin(time * 0.03) * 0.5 +
+            0.1
+        ));
+
+        sceneryObjects.forEach(obj => {
+            if (obj.userData && obj.userData.type === 'tree') {
+                // Keep the trunk container perfectly vertical and rigid
+                obj.rotation.z = 0;
+                obj.rotation.x = 0;
+
+                // Animate only the green foliage children meshes
+                obj.children.forEach(child => {
+                    if (child.geometry && (child.geometry.type === 'SphereGeometry' || child.geometry.type === 'ConeGeometry')) {
+                        // Store reference positions on the first frame so they don't drift away
+                        if (child.userData.origX === undefined) {
+                            child.userData.origX = child.position.x;
+                            child.userData.origZ = child.position.z;
+                        }
+
+                        if (currentWindSpeed > 0 && gustFactor > 0) {
+                            // Uses a smooth, natural sway timing so trees linger and pause at the peak of their lean
+                            const phase = (obj.position.x * 0.15) + (obj.position.z * 0.15);
+                            const swayOscillation = Math.sin(time * 1.0 + phase) * 0.012 * currentWindSpeed * gustFactor;
+                            const constantTilt = 0.002 * currentWindSpeed * gustFactor;
+                            const totalSway = constantTilt + swayOscillation;
+
+                            // Shear only the foliage positions horizontally based on their height (y) above the ground
+                            child.position.x = child.userData.origX + (baseDirX * totalSway * child.position.y * 0.5);
+                            child.position.z = child.userData.origZ + (baseDirZ * totalSway * child.position.y * 0.5);
+                        } else {
+                            // Reset foliage to baseline coordinates on completely calm wind conditions
+                            child.position.x = child.userData.origX;
+                            child.position.z = child.userData.origZ;
+                        }
+                    }
+                });
+            }
+            else if (obj.userData && obj.userData.type === 'bush') {
+                // Bushes don't have trunks, so they can safely sway as a whole unit
+                if (currentWindSpeed > 0 && gustFactor > 0) {
+                    const phase = (obj.position.x * 0.15) + (obj.position.z * 0.15);
+                    const swayOscillation = Math.sin(time * 1.0 + phase) * 0.012 * currentWindSpeed * gustFactor;
+                    const constantTilt = 0.002 * currentWindSpeed * gustFactor;
+                    const totalSway = (constantTilt + swayOscillation) * 0.4;
+
+                    obj.rotation.z = -baseDirX * totalSway;
+                    obj.rotation.x = baseDirZ * totalSway;
+                } else {
+                    obj.rotation.z = 0;
+                    obj.rotation.x = 0;
+                }
+            }
+        });
+    }
+
+    renderer.render(scene, camera); // Preserved: Main renderer pipeline stays intact
 }
 
 function init() {
