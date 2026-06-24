@@ -828,7 +828,6 @@ html {
     animation: scorecardPulse 1.5s infinite ease-in-out;
 }
 
-/* ... existing code above (scorecard rules) ... */
 @keyframes scorecardPulse {
 
     0%,
@@ -840,7 +839,6 @@ html {
         opacity: 1;
     }
 }
- /* FIXED: Moved this bracket up here to close the mobile query layout block */
 
 /* ==========================================================================
    DYNAMIC WIND-BOUND ATMOSPHERIC CLOUD LAYER
@@ -859,11 +857,10 @@ html {
     opacity: 0.32;
 
     pointer-events: none;
-    
-    /* FIXED: Anchors perfectly behind your 3D graphics canvas viewport layers */
+
+    /* Anchors perfectly behind your transparent 3D graphics canvas viewport layers */
     z-index: -1;
 
     /* Promotes the element layer directly to high-performance GPU compositor processing caches */
     will-change: transform;
 }
-/* FIXED: Extra stray bracket removed from here. This is the clean end of the file. */
