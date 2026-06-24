@@ -165,6 +165,7 @@ let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 let visualGuideBeads = [];
 let completedHoles = [];
 let isRaining = false;
+let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
 let currentHoleYards = 0;
 let sandTraps = [];
@@ -2032,6 +2033,23 @@ function resetEntireGame(advanceHole = false) {
 function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
+
+    const dynamicCloudMesh = document.getElementById('cloudSkyLayer');
+    if (dynamicCloudMesh) {
+        // Base movement scalar tied to live game wind speed + a faint baseline breeze constant
+        const atmosphericVelocity = (currentWindSpeed * 0.015) + 0.04;
+
+        // Trigonometric coordinate shifts map directly to your live wind direction layout vector
+        cloudOffsetX += Math.sin(currentWindAngle) * atmosphericVelocity;
+        cloudOffsetY -= Math.cos(currentWindAngle) * atmosphericVelocity;
+
+        // Safe wrap limits keep coordinates small and clean over long, multi-hole gameplay sessions
+        if (Math.abs(cloudOffsetX) > 2000) cloudOffsetX = 0;
+        if (Math.abs(cloudOffsetY) > 2000) cloudOffsetY = 0;
+
+        // Applies instantaneous 3D translations safely inside GPU compositor passes
+        dynamicCloudMesh.style.transform = `translate3d(${cloudOffsetX}px, ${cloudOffsetY}px, 0)`;
+    }
 
     // Calculate elapsed real-world delta time
     const currentTime = performance.now();
