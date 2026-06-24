@@ -2034,17 +2034,16 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-    // UPDATED BLOCK: Smooth infinite horizontal cloud overlay texture glide
+    // UPDATED BLOCK: Smooth infinite background cloud texture glide
     const dynamicCloudMesh = document.getElementById('cloudSkyLayer');
     if (dynamicCloudMesh) {
         // Base movement velocity tied directly to your active weather wind speed profiles
         const atmosphericVelocity = (currentWindSpeed * 0.015) + 0.04;
 
-        // Accumulate horizontal vector tracking position based on live wind angle
+        // Accumulate horizontal directional texture coordinates following the active wind vectors
         cloudOffsetX += Math.sin(currentWindAngle) * atmosphericVelocity;
 
-        /* FIXED: Glides the transparent cloudtexture.png horizontally, keeping the 
-           vertical axis locked at 0px so it loops seamlessly over clouds.png */
+        // FIXED: Locks vertical axis to 0px so your repeating texture glides level along the repeat-x strip
         dynamicCloudMesh.style.backgroundPosition = `${cloudOffsetX}px 0px`;
     }
 
