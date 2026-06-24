@@ -1149,27 +1149,53 @@ function resetEntireGame(advanceHole = false) {
     const deformVisualGreenMesh = (targetMesh) => {
         if (!targetMesh) return;
         const posAttr = targetMesh.geometry.attributes.position;
+
+        // Initialize or fetch the geometry color attribute array dynamically
+        let colorAttr = targetMesh.geometry.attributes.color;
+        if (!colorAttr) {
+            const colors = new Float32Array(posAttr.count * 3);
+            targetMesh.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            colorAttr = targetMesh.geometry.attributes.color;
+        }
+
         for (let i = 0; i < posAttr.count; i++) {
             const localX = posAttr.getX(i);
             const localY = posAttr.getY(i);
 
-            // Map local plane points to true world spaces, respecting the dynamic mesh scales
             const worldX = localX * targetMesh.scale.x + targetMesh.position.x;
             const worldZ = -localY * targetMesh.scale.y + targetMesh.position.z;
 
-            // MODIFIED: Changed all targets to use getGroundHeight so that the putting green and grid layers 
-            // correctly combine contour modifications with our elevated clifftop base height table
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            // Removed the old sand check block here to stop bunkers from eating cuts out of the green edges
             if (targetMesh === green) calculatedHeight += 0.02;
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
             if (targetMesh === greenFringe) calculatedHeight += 0.018;
 
             posAttr.setZ(i, calculatedHeight);
+
+            // --- REALISTIC TURF SHADE CONTRAST GENERATOR ---
+            let baseR = 0.066, baseG = 0.666, baseB = 0.266; // Standard Green (0x11aa44)
+            if (targetMesh === greenFringe) {
+                baseR = 0.105; baseG = 0.478; baseB = 0.227; // Crisp Collar Fringe (0x1b7a3a)
+            }
+
+            // Evaluate elevation delta relative to the stable pin cup height baseline
+            const centerHeight = physics.getGroundHeight(targetMesh.position.x, targetMesh.position.z);
+            const heightDiff = calculatedHeight - centerHeight;
+
+            // Restrict blend factors strictly between narrow boundaries to maintain authentic look
+            const blend = THREE.MathUtils.clamp(heightDiff * 0.38, -0.16, 0.14);
+
+            // Organically enrich channels: valleys drift darker, ridges catch ambient sun highlight tones
+            let r = baseR + blend * 0.10;
+            let g = baseG + blend * 0.42;
+            let b = baseB + blend * 0.16;
+
+            colorAttr.setXYZ(i, r, g, b);
         }
         posAttr.needsUpdate = true;
-        targetMesh.geometry.computeVertexNormals(); // Forces Three.js to re-render lighting shadows smoothly
+        if (colorAttr) colorAttr.needsUpdate = true;
+        targetMesh.geometry.computeVertexNormals();
     };
 
     const deformCourseMesh = (targetMesh, useScale = false) => {
@@ -3026,7 +3052,7 @@ function init() {
         gridGeo.userData.origXY.push({ x: gridGeo.attributes.position.getX(i), y: gridGeo.attributes.position.getY(i) });
     }
 
-    const greenMat = new THREE.MeshStandardMaterial({ color: 0x11aa44, roughness: 0.85 });
+    const greenMat = new THREE.MeshStandardMaterial({ roughness: 0.85, vertexColors: true });
     green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
     green.position.set(0, 0.02, -55);
@@ -3055,8 +3081,8 @@ function init() {
         fringeGeo.userData.origXY.push({ x: fringeGeo.attributes.position.getX(i), y: fringeGeo.attributes.position.getY(i) });
     }
     const fringeMat = new THREE.MeshStandardMaterial({
-        color: 0x1b7a3a,
         roughness: 0.85,
+        vertexColors: true,
         polygonOffset: true,         // Add this line: Directs the GPU to render this layer on top of overlapping meshes
         polygonOffsetFactor: -1,     // Add this line
         polygonOffsetUnits: -4       // Add this line
