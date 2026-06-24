@@ -861,7 +861,7 @@ html {
 
     /* FIXED: Stretches the image height to fill 100% of the container space, 
        guaranteeing small textures are scaled down into the visible sky view */
-    background-size: auto 100%;
+    background-size: 700px auto;
 
     opacity: 0.85;
     /* FIXED 2: Boosts the white balance illumination directly in the browser engine */

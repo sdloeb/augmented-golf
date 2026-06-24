@@ -2038,7 +2038,7 @@ function animate() {
     const dynamicCloudMesh = document.getElementById('cloudSkyLayer');
     if (dynamicCloudMesh) {
         // Base movement velocity tied directly to your active weather wind speed profiles
-        const atmosphericVelocity = (currentWindSpeed * 0.015) + 0.04;
+        const atmosphericVelocity = (currentWindSpeed * 0.002) + 0.04;
 
         // Accumulate horizontal directional texture coordinates following the active wind vectors
         cloudOffsetX += Math.sin(currentWindAngle) * atmosphericVelocity;
