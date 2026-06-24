@@ -3437,8 +3437,8 @@ function updateGreenGrid() {
         const finalWx = wx + perpX * cumulativeDrift;
         const finalWz = wz + perpZ * cumulativeDrift;
 
-        const arrowSlopeX = (physics.getGreenHeight(finalWx - delta, finalWz) - physics.getGreenHeight(finalWx + delta, finalWz)) / (2 * delta);
-        const arrowSlopeZ = (physics.getGreenHeight(finalWx, finalWz - delta) - physics.getGreenHeight(finalWx, finalWz + delta)) / (2 * delta);
+        const arrowSlopeX = (physics.getGroundHeight(finalWx - delta, finalWz) - physics.getGroundHeight(finalWx + delta, finalWz)) / (2 * delta);
+        const arrowSlopeZ = (physics.getGroundHeight(finalWx, finalWz - delta) - physics.getGroundHeight(finalWx, finalWz + delta)) / (2 * delta);
 
         const currentPathSlope = (dirX * arrowSlopeX) + (dirZ * arrowSlopeZ);
         let dotColor = 0x2288ff; // Uphill Blue
@@ -3482,7 +3482,7 @@ function updateGreenGrid() {
         const curveIntensity = (arrowSlopeX * perpX) + (arrowSlopeZ * perpZ);
         // CALIBRATED: Increased step acceleration coefficient from 0.0045 to 0.165 to accurately 
         // scale realistic tournament-grade slopes across a compact number of visual prediction dots.
-        sideVelocity += curveIntensity * 0.165;
+        sideVelocity += curveIntensity * 0.055;
         cumulativeDrift += sideVelocity;
     }
 
