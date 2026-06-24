@@ -1307,28 +1307,30 @@ function resetEntireGame(advanceHole = false) {
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
                 // Universal procedural apron taper logic for all standard and random holes
-                if (currentHoleNumber !== 3) {                                          // Add this line
-                    const apronStart = -activeRadius - 12.0;                             // Add this line
-                    const apronEnd = -activeRadius;                                      // Add this line
-                    if (approachDot > apronStart && approachDot <= apronEnd) {           // Add this line
-                        let tApron = (approachDot - apronStart) / 12.0;                  // Add this line
-                        const targetApronWidth = Math.min(physics.fairwayWidth, activeRadius * 0.72); // Add this line
-                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, tApron);    // Add this line
-                    } else if (approachDot > apronEnd) {                                 // Add this line
-                        fW = Math.min(physics.fairwayWidth, activeRadius * 0.72);        // Add this line
-                    }                                                                    // Add this line
-                }                                                                        // Add this line
+                if (currentHoleNumber !== 3) {
+                    const apronStart = -activeRadius - 12.0;
+                    const apronEnd = -activeRadius;
+                    if (approachDot > apronStart && approachDot <= apronEnd) {
+                        let tApron = (approachDot - apronStart) / 12.0;
+                        // FIXED: Expand smoothly to fully engulf the green's entrance instead of pinching down
+                        const targetApronWidth = Math.max(physics.fairwayWidth, activeRadius + 1.0);
+                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, tApron);
+                    } else if (approachDot > apronEnd) {
+                        fW = Math.max(physics.fairwayWidth, activeRadius + 1.0);
+                    }
+                }
 
-                const fWEdge = fW + 3.5; // Re-placed here safely so fWEdge uses your tapered fairway variables
+                const fWEdge = fW + 3.5;
 
-                // FIXED: Dynamically align the fairway cutoff to terminate exactly at the front edge edge of the green mesh radius
-                const isPastFairway = (distToGreenCenter < activeR) || (approachDot > 0); // Modify this line
+                // FIXED: Terminate cutoff seamlessly along the circular green radius complex to prevent jagged edges
+                const isPastFairway = (distToGreenCenter < activeR);
+                const isOnGreenSidesOrBack = (approachDot > -activeR + 1.0) && (distToGreenCenter >= activeR - 2.0);
 
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
-                if (distanceToPath <= fW && !isPastFairway) {
+                if (distanceToPath <= fW && !isPastFairway && !isOnGreenSidesOrBack) {
                     floorHeight -= 0.04;
-                } else if (distanceToPath <= fWEdge && !isPastFairway) {
+                } else if (distanceToPath <= fWEdge && !isPastFairway && !isOnGreenSidesOrBack) {
                     const t = (distanceToPath - fW) / 3.5;
                     const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
                     floorHeight -= THREE.MathUtils.lerp(0.04, 0.0, smoothT);
@@ -1359,8 +1361,6 @@ function resetEntireGame(advanceHole = false) {
                     // Use the angle-warped green radius so the fairway mesh conforms to the kidney shape bounds
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
-                    // Universal check: If we are past the front entrance apron and outside the green radius, hide the fairway
-                    const isOnGreenSidesOrBack = (approachDot > -activeR + 1.0) && (distToGreenCenter >= activeR - 2.0);
 
                     // Isolate boundary/sand hiding rules from green-blending rules
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));

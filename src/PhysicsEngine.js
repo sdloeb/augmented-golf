@@ -456,7 +456,11 @@ export class PhysicsEngine {
 
         const relAngle = Math.atan2(-relZ, relX);
         const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(relAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
-        const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > -activeRadius);
+
+        // FIXED: Seamlessly align physical boundaries with the visual circular green contours
+        const isPastFairway = (distToGreenCenter < activeRadius);
+        const isOnGreenSidesOrBack = (approachDot > -activeRadius + 1.0) && (distToGreenCenter >= activeRadius - 2.0);
+
         let activeFW = this.fairwayWidth;
         // Mirror the visual apron taper logic to align physical turf borders with mesh alterations
         if (!(this.greenCenterZ < -165 && this.greenCenterZ > -185)) {
@@ -464,10 +468,11 @@ export class PhysicsEngine {
             const apronEnd = -activeRadius;
             if (approachDot > apronStart && approachDot <= apronEnd) {
                 let tApron = (approachDot - apronStart) / 12.0;
-                const targetApronWidth = Math.min(this.fairwayWidth, activeRadius * 0.72);
+                // FIXED: Match visual wide throat expansion
+                const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + 1.0);
                 activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, tApron);
             } else if (approachDot > apronEnd) {
-                activeFW = Math.min(this.fairwayWidth, activeRadius * 0.72);
+                activeFW = Math.max(this.fairwayWidth, activeRadius + 1.0);
             }
         }
         if (this.greenCenterZ < -128 && this.greenCenterZ > -152 && this.ball.position.z < -125) {
@@ -513,7 +518,7 @@ export class PhysicsEngine {
                 }
             }
         }
-        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
+        else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
             // Crisp Fairway Turf
             currentFriction = 0.91;
@@ -845,7 +850,7 @@ export class PhysicsEngine {
                         this.sounds.play('sand'); // Preserved: Sand path remains clean
                     } else if (onGreen) {
                         this.sounds.play('green'); // Add this line: Triggers on green grass bounce
-                    } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway &&
+                    } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                         ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
                         this.sounds.play('fairway'); // Add this line: Triggers on fairway track bounce
                     } else {
