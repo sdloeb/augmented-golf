@@ -268,8 +268,9 @@ function updateDistanceDisplay() {
         // FIXED: Check distance to the green's center instead of the hole cup
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
         const greenCheckZ = ball.position.z - greenCenterZ;
-        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
+        const checkAngle = Math.atan2(-greenCheckZ, greenCheckX);
+        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR;
 
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
@@ -3239,10 +3240,12 @@ function init() {
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
     }, () => {
-        // FIXED: Tracks the green boundaries accurately from the true center point during click-drags
+        // FIXED: Tracks the green boundaries accurately from the true center point during click-drags using shape-aware angles
         const gX = ball.position.x - (green ? green.position.x : 0);
         const gZ = ball.position.z - greenCenterZ;
-        return Math.sqrt(gX * gX + gZ * gZ) < (window.activeGreenRadius || GREEN_RADIUS); // Modify this line
+        const checkAngle = Math.atan2(-gZ, gX);
+        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        return Math.sqrt(gX * gX + gZ * gZ) < activeR;
     }, () => {
         // Add this third callback function here to return current distance in yards
 
