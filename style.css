@@ -856,14 +856,14 @@ html {
     width: 140%;
     height: 55%;
 
-    /* Seamless, multi-directional tiling pattern matrix */
-    background: url('https://www.transparenttextures.com/patterns/clouds.png') repeat;
+    /* FIXED: Reference your local file safely. Zero cross-origin blocks or latency issues. */
+    background: url('clouds.png') repeat;
     background-size: auto;
     opacity: 0.32;
 
     pointer-events: none;
 
-    /* Anchors perfectly behind your transparent 3D graphics canvas viewport layers */
+    /* FIXED: Drops layers perfectly on top of the sky photo but behind your z-index: 2 game canvas */
     z-index: 1;
 
     /* Promotes the element layer directly to high-performance GPU compositor processing caches */
