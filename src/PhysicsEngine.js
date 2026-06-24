@@ -457,10 +457,9 @@ export class PhysicsEngine {
         const relAngle = Math.atan2(-relZ, relX);
         const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(relAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
 
-        // FIXED: Seamlessly align physical boundaries with the visual circular green contours
-        const isPastFairway = (distToGreenCenter < activeRadius);
-        const isOnGreenSidesOrBack = (approachDot > -activeRadius + 1.0) && (distToGreenCenter >= activeRadius - 2.0);
-
+        // FIXED: Synchronize physical boundaries with the new visual wide circular throat
+        const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot > 0 && distToGreenCenter >= activeRadius);
+        const isOnGreenSidesOrBack = (approachDot > 0.0) && (distToGreenCenter >= activeRadius - 2.0);
         let activeFW = this.fairwayWidth;
         // Mirror the visual apron taper logic to align physical turf borders with mesh alterations
         if (!(this.greenCenterZ < -165 && this.greenCenterZ > -185)) {
@@ -468,7 +467,7 @@ export class PhysicsEngine {
             const apronEnd = -activeRadius;
             if (approachDot > apronStart && approachDot <= apronEnd) {
                 let tApron = (approachDot - apronStart) / 12.0;
-                // FIXED: Match visual wide throat expansion
+                // FIXED: Widen physics target width to match the new visual flaring throat
                 const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + 1.0);
                 activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, tApron);
             } else if (approachDot > apronEnd) {

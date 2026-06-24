@@ -1339,7 +1339,7 @@ function resetEntireGame(advanceHole = false) {
                     const apronEnd = -activeRadius;
                     if (approachDot > apronStart && approachDot <= apronEnd) {
                         let tApron = (approachDot - apronStart) / 12.0;
-                        // FIXED: Expand smoothly to fully engulf the green's entrance instead of pinching down
+                        // FIXED: Flare out to embrace the full green/fringe radius at the throat entrance
                         const targetApronWidth = Math.max(physics.fairwayWidth, activeRadius + 1.0);
                         fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, tApron);
                     } else if (approachDot > apronEnd) {
@@ -1349,10 +1349,9 @@ function resetEntireGame(advanceHole = false) {
 
                 const fWEdge = fW + 3.5;
 
-                // FIXED: Terminate cutoff seamlessly along the circular green radius complex to prevent jagged edges
-                const isPastFairway = (distToGreenCenter < activeR);
-                const isOnGreenSidesOrBack = (approachDot > -activeR + 1.0) && (distToGreenCenter >= activeR - 2.0);
-
+               // FIXED: Terminate cutoff cleanly along the green's circular edge and back equator sides
+                const isPastFairway = (distToGreenCenter < activeR) || (approachDot > 0 && distToGreenCenter >= activeR);
+                const isOnGreenSidesOrBack = (approachDot > 0.0) && (distToGreenCenter >= activeR - 2.0);
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
                 if (distanceToPath <= fW && !isPastFairway && !isOnGreenSidesOrBack) {
