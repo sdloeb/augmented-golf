@@ -2930,19 +2930,35 @@ function animate() {
                         }
 
                         if (currentWindSpeed > 0 && gustFactor > 0) {
-                            // Uses a smooth, natural sway timing so trees linger and pause at the peak of their lean
                             const phase = (obj.position.x * 0.15) + (obj.position.z * 0.15);
                             const swayOscillation = Math.sin(time * 1.0 + phase) * 0.012 * currentWindSpeed * gustFactor;
                             const constantTilt = 0.002 * currentWindSpeed * gustFactor;
                             const totalSway = constantTilt + swayOscillation;
 
-                            // Shear only the foliage positions horizontally based on their height (y) above the ground
-                            child.position.x = child.userData.origX + (baseDirX * totalSway * child.position.y * 0.5);
-                            child.position.z = child.userData.origZ + (baseDirZ * totalSway * child.position.y * 0.5);
+                            if (child.geometry.type === 'ConeGeometry') {
+                                // Triangle Pine Trees: Lock the base center position to the trunk axis and apply bending angular rotation
+                                const halfHeight = (child.geometry.parameters && child.geometry.parameters.height) ? (child.geometry.parameters.height / 2) : 0.5;
+                                const coneTilt = totalSway * 1.00; // Pronounced bending factor for the conical tops
+
+                                child.rotation.z = -baseDirX * coneTilt;
+                                child.rotation.x = baseDirZ * coneTilt;
+
+                                // Trigonometric counter-offset keeps the bottom face perfectly pinned to the trunk while leaning
+                                child.position.x = child.userData.origX - halfHeight * Math.sin(child.rotation.z);
+                                child.position.z = child.userData.origZ + halfHeight * Math.sin(child.rotation.x);
+                            } else {
+                                // Big Round Trees: Continue using smooth horizontal shearing position offsets as preferred
+                                child.position.x = child.userData.origX + (baseDirX * totalSway * child.position.y * 0.5);
+                                child.position.z = child.userData.origZ + (baseDirZ * totalSway * child.position.y * 0.5);
+                                child.rotation.z = 0;
+                                child.rotation.x = 0;
+                            }
                         } else {
                             // Reset foliage to baseline coordinates on completely calm wind conditions
                             child.position.x = child.userData.origX;
                             child.position.z = child.userData.origZ;
+                            child.rotation.z = 0;
+                            child.rotation.x = 0;
                         }
                     }
                 });
@@ -2953,7 +2969,7 @@ function animate() {
                     const phase = (obj.position.x * 0.15) + (obj.position.z * 0.15);
                     const swayOscillation = Math.sin(time * 1.0 + phase) * 0.012 * currentWindSpeed * gustFactor;
                     const constantTilt = 0.002 * currentWindSpeed * gustFactor;
-                    const totalSway = (constantTilt + swayOscillation) * 0.4;
+                    const totalSway = (constantTilt + swayOscillation) * 0.8;
 
                     obj.rotation.z = -baseDirX * totalSway;
                     obj.rotation.x = baseDirZ * totalSway;
