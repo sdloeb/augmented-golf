@@ -863,12 +863,14 @@ html {
        guaranteeing small textures are scaled down into the visible sky view */
     background-size: auto 100%;
 
-    opacity: 0.35;
+    opacity: 0.85;
+    /* FIXED 2: Boosts the white balance illumination directly in the browser engine */
+    filter: brightness(1.35) contrast(1.1);
+
+    /* FIXED 3: Screens out dark values to cleanly fuse highlights into clouds.png */
+    mix-blend-mode: screen;
+
     pointer-events: none;
-
-    /* Sits on top of the static clouds.png photo but safely behind your 3D graphics canvas */
     z-index: 1;
-
-    /* Promotes the element layer directly to high-performance GPU compositor processing caches */
     will-change: transform;
 }

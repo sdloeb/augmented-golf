@@ -24,60 +24,60 @@
 
     <body>
 
-    <div id="cloudSkyLayerFar"></div>
-    <div id="cloudSkyLayerNear"></div>
-    
-    <div id="windContainer">
-        <div id="windArrow">↑</div>
-        <div id="windText">0 mph</div>
-    </div>
+        <div id="cloudSkyLayer"></div>
 
-    <button id="overheadBtn">Overhead View</button>
-
-    <div id="scoreContainer">
-        <div style="font-size: 18px; margin-bottom: 5px; color: #ffffff; font-weight: bold;">Score: <span
-                id="scoreToParText">E</span></div>
-
-        <div style="color: #ffffff;">Strokes: <span id="strokeText" style="color: #dfa111;">0</span></div>
-
-        <div id="distanceLine" style="font-size: 18px; margin-top: 5px; color: #ffffff; font-weight: bold;">
-            Distance: <span id="distanceText" style="color: #dfa111;">---</span> <span id="unitText"
-                style="color: #dfa111;">yards</span>
+        <div id="windContainer">
+            <div id="windArrow">↑</div>
+            <div id="windText">0 mph</div>
         </div>
-        <div id="clubOptionsContainer" style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;"></div>
-    </div>
 
-    <div id="holeMapContainer">
-        <div id="holeMapTitle">HOLE 1</div>
-        <div id="holeMapPar">PAR 3</div>
-    </div>
+        <button id="overheadBtn">Overhead View</button>
 
-    <div id="distanceGauge" class="hidden">
-        <div id="gaugeFill"></div>
-        <div id="gaugeLabel">0 yds</div>
-    </div>
+        <div id="scoreContainer">
+            <div style="font-size: 18px; margin-bottom: 5px; color: #ffffff; font-weight: bold;">Score: <span
+                    id="scoreToParText">E</span></div>
 
+            <div style="color: #ffffff;">Strokes: <span id="strokeText" style="color: #dfa111;">0</span></div>
 
-    <div id="clubContainer">
-        <div id="clubSwipe"></div>
-    </div>
-
-    <div id="scorecardOverlay">
-
-        <div id="scorecardPlacard">
-            <h2>COURSE SCORECARD</h2>
-            <div class="table-responsive">
-                <table id="scorecardTable"></table>
+            <div id="distanceLine" style="font-size: 18px; margin-top: 5px; color: #ffffff; font-weight: bold;">
+                Distance: <span id="distanceText" style="color: #dfa111;">---</span> <span id="unitText"
+                    style="color: #dfa111;">yards</span>
             </div>
-            <button id="nextHoleBtn"
-                style="margin-top: 15px; background: #ffcc66; color: #3d2b22; border: none; padding: 12px 24px; font-family: 'Georgia', serif; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">Continue
-                to Next Hole</button>
+            <div id="clubOptionsContainer" style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+            </div>
         </div>
-    </div>
 
-    <canvas id="gameCanvas"></canvas>
+        <div id="holeMapContainer">
+            <div id="holeMapTitle">HOLE 1</div>
+            <div id="holeMapPar">PAR 3</div>
+        </div>
 
-    <script type="module" src="src/main.js"></script>
-</body>
+        <div id="distanceGauge" class="hidden">
+            <div id="gaugeFill"></div>
+            <div id="gaugeLabel">0 yds</div>
+        </div>
+
+
+        <div id="clubContainer">
+            <div id="clubSwipe"></div>
+        </div>
+
+        <div id="scorecardOverlay">
+
+            <div id="scorecardPlacard">
+                <h2>COURSE SCORECARD</h2>
+                <div class="table-responsive">
+                    <table id="scorecardTable"></table>
+                </div>
+                <button id="nextHoleBtn"
+                    style="margin-top: 15px; background: #ffcc66; color: #3d2b22; border: none; padding: 12px 24px; font-family: 'Georgia', serif; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">Continue
+                    to Next Hole</button>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <script type="module" src="src/main.js"></script>
+    </body>
 
 </html>
