@@ -2034,18 +2034,18 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-    // UPDATED BLOCK: Smooth infinite background cloud texture glide
+    // UPDATED BLOCK: Smooth infinite horizontal cloud overlay texture glide
     const dynamicCloudMesh = document.getElementById('cloudSkyLayer');
     if (dynamicCloudMesh) {
         // Base movement velocity tied directly to your active weather wind speed profiles
         const atmosphericVelocity = (currentWindSpeed * 0.015) + 0.04;
 
-        // Accumulate directional texture coordinates following the active wind vectors
+        // Accumulate horizontal vector tracking position based on live wind angle
         cloudOffsetX += Math.sin(currentWindAngle) * atmosphericVelocity;
-        cloudOffsetY -= Math.cos(currentWindAngle) * atmosphericVelocity;
 
-        // FIXED: Moves the inner texture coordinates seamlessly rather than sliding the outer element off-screen
-        dynamicCloudMesh.style.backgroundPosition = `${cloudOffsetX}px ${cloudOffsetY}px`;
+        /* FIXED: Glides the transparent cloudtexture.png horizontally, keeping the 
+           vertical axis locked at 0px so it loops seamlessly over clouds.png */
+        dynamicCloudMesh.style.backgroundPosition = `${cloudOffsetX}px 0px`;
     }
 
     // Calculate elapsed real-world delta time

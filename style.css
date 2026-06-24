@@ -6,16 +6,15 @@ html {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    /* NEW: A beautiful, crisp sky image that fills the screen */
-    background: url('https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+
+    /* FIXED: Set your clouds.png photo as the permanent, non-moving background layer */
+    background: url('clouds.png') no-repeat center center;
     background-size: cover;
+
     font-family: Arial, sans-serif;
     touch-action: none;
-    /* Add this line: Stops all native browser panning & zooming */
     user-select: none;
-    /* Add this line: Disables accidental text selections */
     -webkit-user-select: none;
-    /* Add this line: Core iOS Safari selection override */
     -webkit-touch-callout: none;
 }
 
@@ -850,22 +849,22 @@ html {
    ========================================================================== */
 #cloudSkyLayer {
     position: absolute;
-    /* Oversized bounding frame guards against gaps when clouds slide diagonally */
-    top: -10%;
-    left: -20%;
-    width: 140%;
-    height: 55%;
+    /* Clean baseline alignment spanning across your background skyline */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
 
-    /* FIXED: Reference your local file safely. Zero cross-origin blocks or latency issues. */
-    background: url('clouds.png') repeat;
+    /* FIXED: Uses your transparent texture overlay file and restricts repetition strictly left-to-right */
+    background: url('cloudtexture.png') repeat-x;
     background-size: auto;
-    opacity: 0.32;
+    opacity: 0.45;
+    /* Blends the transparent overlay vectors softly over your clouds.png backdrop */
 
     pointer-events: none;
 
-    /* FIXED: Drops layers perfectly on top of the sky photo but behind your z-index: 2 game canvas */
+    /* Anchors safely on top of the body sky photo but behind your z-index: 2 interactive game canvas */
     z-index: 1;
 
-    /* Promotes the element layer directly to high-performance GPU compositor processing caches */
     will-change: transform;
 }
