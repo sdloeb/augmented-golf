@@ -80,6 +80,16 @@ export class InputHandler {
         return CLUBS[defaultIndex];
     }
 
+    // ADD THIS FUNCTION HERE: Calculates your custom 20/40/60 dynamic limits
+    getPutterMaxFeet() {
+        if (!this.getDistance) return 60;
+        const rawUnits = this.getDistance() / 2.76923;
+        const distanceInFeet = rawUnits * 1.5;
+        if (distanceInFeet <= 15) return 20;
+        if (distanceInFeet <= 30) return 40;
+        return 60;
+    }
+
 
     initEvents() {
         window.addEventListener('mousedown', (e) => this.onMouseDown(e));
@@ -159,10 +169,9 @@ export class InputHandler {
         this.pullRatio = pullRatio;
 
         this.gaugeFill.style.height = `${pullRatio * 100}%`; // Keep this line! Resets the color bar layout instantly
-
         if (club.isGreen) {
-            // FIXED: Changed 50 to 80 to establish a consistent distance scale before the finger moves
-            const feet = Math.round(pullRatio * 80);
+            const maxFeet = this.getPutterMaxFeet();
+            const feet = Math.round(pullRatio * maxFeet);
             this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
         } else {
             this.gaugeLabel.innerText = `${club.name}: 0 yds`;
@@ -215,10 +224,11 @@ export class InputHandler {
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
-            this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
+
 
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 80);
+                const maxFeet = this.getPutterMaxFeet();
+                const feet = Math.round(pullRatio * maxFeet);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
@@ -337,10 +347,10 @@ export class InputHandler {
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
-            this.gaugeLabel.style.top = club.isGreen ? `${pullRatio * 340}px` : `${pullRatio * 160}px`;
 
             if (club.isGreen) {
-                const feet = Math.round(pullRatio * 80);
+                const maxFeet = this.getPutterMaxFeet();
+                const feet = Math.round(pullRatio * maxFeet);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
@@ -401,6 +411,11 @@ export class InputHandler {
             }
         }
         finalPower *= tempoModifier;
+
+        // ADD THIS BLOCK: Automatically translates physics velocity output to your new custom scales
+        if (club.isGreen) {
+            finalPower *= (this.getPutterMaxFeet() / 80);
+        }
 
         // 2. BASELINE RE-ACCELERATION DOWNSWING SPEED CHECK
         if (!club.isGreen) {
