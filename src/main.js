@@ -2041,7 +2041,7 @@ function animate() {
         const atmosphericVelocity = (currentWindSpeed * 0.0005) + 0.04;
 
         // Accumulate horizontal directional texture coordinates following the active wind vectors
-        cloudOffsetX += Math.sin(currentWindAngle) * atmosphericVelocity;
+        cloudOffsetX += 0.04 + (Math.sin(currentWindAngle) * currentWindSpeed * 0.0005);
 
         // FIXED: Locks vertical axis to 0px so your repeating texture glides level along the repeat-x strip
         dynamicCloudMesh.style.backgroundPosition = `${cloudOffsetX}px 0px`;
