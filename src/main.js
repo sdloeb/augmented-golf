@@ -2158,8 +2158,8 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-        // NEW: Dynamically expand capture radius if the ball comes to rest or rolls slowly, preventing it from balancing on the lip
-        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.32 : 0.22;
+       // Tightened physics trigger to perfectly match your 0.17 visual cup radius so it never captures early from the right
+        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.16 : 0.10;
 
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
