@@ -3306,9 +3306,14 @@ function init() {
         if (isOnGreen) {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
             finalPower *= 2.10;
+
+            // ADD THIS BLOCK: Smooth friction compensation for ultra-short micro putts
+            if (finalPower < 5.5) {
+                finalPower += (5.5 - finalPower) * 0.58;
+            }
         }
 
-        const club = input.getClubInfo(); // Add this line: Moved club info to the top of launch
+        const club = input.getClubInfo()
         const isPuttingStroke = isOnGreen || club.name === 'Putter'; // Add this line: Safe check preventing division by zero
 
         physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
