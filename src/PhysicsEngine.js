@@ -29,6 +29,29 @@ export class PhysicsEngine {
         this.bounceCount = 0;
     }
 
+    isBallInSand() {
+        for (let sand of this.sandTraps) {
+            if (sand.userData && sand.userData.isPolygon) {
+                const points = sand.userData.points;
+                let inside = false;
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                    const xi = points[i].x, zi = points[i].z;
+                    const xj = points[j].x, zj = points[j].z;
+                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                    if (intersect) inside = !inside;
+                }
+                if (inside) return true;
+            } else {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) return true;
+            }
+        }
+        return false;
+    }
+
     // NEW: Receives the shuffled configurations from the map setup
     setGreenContours(back, mid, front, centerX, centerZ, randomWidth) {
         this.backZone = back;

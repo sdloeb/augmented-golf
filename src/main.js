@@ -2359,9 +2359,11 @@ function animate() {
             ballTargetScale = isMobile ? 0.75 : 0.70; // Fairway, rough, and sand size
         }
 
-        const camDist = onGreen ? 2.5 : 7.5;
-        const camHeight = onGreen ? 1.0 : 2.2;
-        const lookDist = onGreen ? 6.0 : 15.0;
+        const isSand = physics && physics.isBallInSand();
+        // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
+        const camDist = checkOnGreen ? 2.5 : (isSand ? 5.0 : 7.5);
+        const camHeight = checkOnGreen ? 1.0 : (isSand ? 2.0 : 2.2);
+        const lookDist = OnGreen ? 6.0 : (isSand ? 4.0 : 15.0);
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -2386,6 +2388,7 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 lookTargetY = ball.position.y - 0.37;
             }
+
 
             const camX = ball.position.x - aimDirX * camDist; // Add this line
             const camZ = ball.position.z - aimDirZ * camDist; // Add this line
@@ -2526,7 +2529,7 @@ function animate() {
 
     }
 
-    const currentClub = input ? input.getClubInfo() : null;
+
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
     const checkDist = Math.sqrt(checkX * checkX + checkZ * checkZ);
@@ -3446,10 +3449,11 @@ function init() {
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+                const isSand = physics && physics.isBallInSand();
                 // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
-                const camDist = checkOnGreen ? 2.5 : 7.5;
-                const camHeight = checkOnGreen ? 1.0 : 2.2;
-                const lookDist = checkOnGreen ? 6.0 : 15.0;
+                const camDist = checkOnGreen ? 2.5 : (isSand ? 2.0 : 7.5);
+                const camHeight = checkOnGreen ? 1.0 : (isSand ? 3.2 : 2.2);
+                const lookDist = checkOnGreen ? 6.0 : (isSand ? 4.5 : 15.0);
 
                 const backX = -(dirX / length) * 7.5;
                 const backZ = -(dirZ / length) * 7.5;
