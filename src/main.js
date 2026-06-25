@@ -2360,10 +2360,10 @@ function animate() {
         }
 
         const isSand = physics && physics.isBallInSand();
-        // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
-        const camDist = checkOnGreen ? 2.5 : (isSand ? 5.0 : 7.5);
-        const camHeight = checkOnGreen ? 1.0 : (isSand ? 2.0 : 2.2);
-        const lookDist = OnGreen ? 6.0 : (isSand ? 4.0 : 15.0);
+        // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective, pointing securely to valid scope flags
+        const camDist = onGreen ? 2.5 : (isSand ? 5.0 : 7.5);
+        const camHeight = onGreen ? 1.0 : (isSand ? 2.0 : 2.2);
+        const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : 15.0);
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -3032,8 +3032,8 @@ function init() {
 
 
 
-    // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
+    // 5. Add Virtual Golf Green Floor (Optimized grid segments to prevent mobile browser crash overhead)
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 120, 160);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -3055,7 +3055,9 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 300, 800); // FIXED: Doubled vertical length density to smoothly resolve detailed organic curves
+
+    // Balanced geometric limits ensuring smooth organic curved shapes while minimizing performance weight
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 100, 200);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;

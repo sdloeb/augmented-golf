@@ -54,13 +54,26 @@ export class SoundManager {
         this.sounds.green.forEach(s => s.volume = 0.5);
 
 
-        // Force browser cache structures to load files immediately
+        // Force browser cache structures to load files immediately with a try/catch protection wrapper for mobile webviews
         Object.values(this.sounds).forEach(audioArray => {
             audioArray.forEach(sound => {
-                sound.preload = 'auto';
-                sound.load();
+                try {
+                    sound.preload = 'auto';
+                    sound.load();
+                } catch (audioMobileErr) {
+                    console.log("Audio preloading deferred by target mobile browser security policy.", audioMobileErr);
+                }
             });
         });
+
+        try {
+            this.ambientSounds.birds.preload = 'auto';
+            this.ambientSounds.birds.load();
+            this.ambientSounds.rain.preload = 'auto';
+            this.ambientSounds.rain.load();
+        } catch (ambientMobileErr) {
+            console.log("Ambient preloading safely deferred until first user click/touch interaction.", ambientMobileErr);
+        }
 
         this.ambientSounds.birds.preload = 'auto';
         this.ambientSounds.birds.load();
