@@ -3553,7 +3553,7 @@ function updateGreenGrid() {
 
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
     // Automatically activates aiming dots if the putter is selected, matching normal green behavior
-    const isAiming = (input && input.isAimMode) || isPutter;
+    const isAiming = input && input.isAimMode;
 
     // Turn off 3D meshes if display criteria aren't met
     if (!isBallOnGreenOrFringe || isAirborne || physics.hitWater || isSinking || !isAiming) {
