@@ -271,7 +271,9 @@ function updateDistanceDisplay() {
         const greenCheckZ = ball.position.z - greenCenterZ;
         const checkAngle = Math.atan2(-greenCheckZ, greenCheckX);
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        const isOnGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR;
+        const distToGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
+        const isOnGreen = distToGreen < activeR;
+        const isOnFringe = distToGreen >= activeR && distToGreen <= (activeR + 2.5); // Tracks the fringe boundary line
 
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
@@ -317,15 +319,17 @@ function updateDistanceDisplay() {
         rightBtn.className = 'club-option';
         rightBtn.innerText = '▶';
 
-        // Disable the arrow if we are already holding the shortest selectable non-putter club (SW Iron at index 10)
-        if (currentIdx === clubList.length - 2) {
+        // Allows scrolling to the putter (clubList.length - 1) on the fringe, otherwise stops at Sand Wedge (- 2)
+        const maxClubIdx = isOnFringe ? clubList.length - 1 : clubList.length - 2;
+
+        if (currentIdx === maxClubIdx) {
             rightBtn.style.opacity = '0.3';
             rightBtn.style.pointerEvents = 'none';
         }
         rightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx < clubList.length - 2) {
+            if (cIdx < maxClubIdx) {
                 input.chosenClubIndex = cIdx + 1;
                 updateDistanceDisplay();
             }
@@ -2339,8 +2343,9 @@ function animate() {
         const camGreenDist = Math.sqrt(camGreenX * camGreenX + camGreenZ * camGreenZ);
         const camGreenAngle = Math.atan2(-camGreenZ, camGreenX);
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(camGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        const onGreen = camGreenDist < activeR;
 
+        const currentClub = input ? input.getClubInfo() : null;
+        const onGreen = camGreenDist < activeR || (currentClub && currentClub.name === 'Putter'); // Sets putting size profiles if Putter is selected on fringe
         // Detect if screen width is mobile or portrait orientation at top of block
         // Detect if screen width is mobile or portrait orientation at top of block
         const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
@@ -2403,9 +2408,11 @@ function animate() {
     const bgDist = Math.sqrt(ballGreenX * ballGreenX + ballGreenZ * ballGreenZ);
     const bgAngle = Math.atan2(-ballGreenZ, ballGreenX);
     const bgActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(bgAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-    const isBallInGreenCircle = bgDist < bgActiveR;
-    const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
 
+    const currentClub = input ? input.getClubInfo() : null;
+    // Expands the circle check to include the fringe boundary if holding the Putter
+    const isBallInGreenCircle = bgDist < bgActiveR || (currentClub && currentClub.name === 'Putter' && bgDist <= bgActiveR + 2.5);
+    const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
     // === PASTE THIS REPLACEMENT CODE BLOCK ===
     // 1. DEFAULT SPEED: Set to 0.25 when stationary so the camera instantly snaps into the address 
     // position behind the ball the moment it stops, completely removing the "too far away to hit" delay lag.
@@ -2519,14 +2526,14 @@ function animate() {
 
     }
 
-    // --- QUICK PUTTING VIEW CAMERA INTERCEPTOR ---
+    const currentClub = input ? input.getClubInfo() : null;
     const checkX = ball.position.x - (green ? green.position.x : 0);
     const checkZ = ball.position.z - greenCenterZ;
     const checkDist = Math.sqrt(checkX * checkX + checkZ * checkZ);
     const checkAngle = Math.atan2(-checkZ, checkX);
     const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-    if (checkDist < activeR && !isOverheadActive) {
+    if ((checkDist < activeR || (currentClub && currentClub.name === 'Putter')) && !isOverheadActive) {
         // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
         const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
         const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
@@ -2587,11 +2594,12 @@ function animate() {
         // FIXED: Establish a stable height anchor so the camera stays on the green surface while the ball sinks underground
         const stableBallY = isSinking ? (physics.getGroundHeight(holePosition.x, holePosition.z) + 0.25) : ball.position.y;
 
-        cameraTargetPos.set(
-            camBaseX - dirX * rigidCamDist,
-            stableBallY + rigidCamHeight,
-            camBaseZ - dirZ * rigidCamDist
-        );
+        const putterCamX = camBaseX - dirX * rigidCamDist;
+        const putterCamZ = camBaseZ - dirZ * rigidCamDist;
+        const putterCamGroundY = physics.getGroundHeight(putterCamX, putterCamZ); // Samples hill contours under the camera
+        const putterCamY = Math.max(stableBallY + rigidCamHeight, putterCamGroundY + rigidCamHeight); // Keeps view cleanly elevated over the green edge
+
+        cameraTargetPos.set(putterCamX, putterCamY, putterCamZ);
 
         cameraLookAt.set(
             (isSinking ? holePosition.x : ball.position.x) + dirX * lookAheadDist,
@@ -3516,7 +3524,6 @@ init();
 
 
 
-// === REPLACE THE ENTIRE updateGreenGrid FUNCTION AT THE BOTTOM OF src/main.js ===
 function updateGreenGrid() {
     if (!green || !ball || !physics || !scene) return;
 
@@ -3526,14 +3533,21 @@ function updateGreenGrid() {
     const gX = green.position.x;
     const gZ = greenCenterZ;
 
+    // RESTORED: These two lines are required so the distance formulas below know where the ball is!
     const dxB = ball.position.x - gX;
     const dzB = ball.position.z - gZ;
+
     const gridBallDist = Math.sqrt(dxB * dxB + dzB * dzB);
     const gridBallAngle = Math.atan2(-dzB, dxB);
     const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(gridBallAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-    const isBallOnGreenOrFringe = gridBallDist < (activeR + 1.5);
+
+    const activeClub = input ? input.getClubInfo() : null;
+    const isPutter = activeClub && activeClub.name === 'Putter';
+    const isBallOnGreenOrFringe = gridBallDist < (activeR + (isPutter ? 2.5 : 1.5));
+
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
-    const isAiming = input && input.isAimMode;
+    // Automatically activates aiming dots if the putter is selected, matching normal green behavior
+    const isAiming = (input && input.isAimMode) || isPutter;
 
     // Turn off 3D meshes if display criteria aren't met
     if (!isBallOnGreenOrFringe || isAirborne || physics.hitWater || isSinking || !isAiming) {
@@ -3586,7 +3600,9 @@ function updateGreenGrid() {
         const fAngle = Math.atan2(-fDz, fDx);
         const dotActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(fAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : activeR;
 
-        if (fDist < dotActiveR - 0.3) {
+        const allowedRadius = isPutter ? (dotActiveR + 2.5) : (dotActiveR - 0.3);
+
+        if (fDist < allowedRadius) {
             if (!visualGuideBeads[visibleCount]) {
                 // FIXED: Adjusted geometry radius to 0.08 to perfectly restore the original clear dot size
                 const beadGeo = new THREE.CircleGeometry(0.08, 8);
