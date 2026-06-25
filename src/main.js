@@ -3033,7 +3033,7 @@ function init() {
 
 
     // 5. Add Virtual Golf Green Floor (Optimized grid segments to prevent mobile browser crash overhead)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 120, 160);
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 100, 200);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
