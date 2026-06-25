@@ -2361,9 +2361,9 @@ function animate() {
 
         const isSand = physics && physics.isBallInSand();
         // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
-        const camDist = checkOnGreen ? 2.5 : (isSand ? 5.0 : 7.5);
-        const camHeight = checkOnGreen ? 1.0 : (isSand ? 2.0 : 2.2);
-        const lookDist = OnGreen ? 6.0 : (isSand ? 4.0 : 15.0);
+        const camDist = onGreen ? 2.5 : (isSand ? 5.0 : 7.5);
+        const camHeight = onGreen ? 1.0 : (isSand ? 2.0 : 2.2);
+        const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : 15.0);
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -2396,7 +2396,7 @@ function animate() {
 
             // FIXED: Prevent the camera from plunging if the ball is sinking into the cup
             const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
-            const camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
+            const camY = isSand ? (stableBallHeight + camHeight) : Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
 
             cameraTargetPos.set(camX, camY, camZ); // Modify this line
             cameraLookAt.set(lookTargetX, lookTargetY + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
