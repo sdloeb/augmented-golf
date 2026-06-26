@@ -133,7 +133,7 @@ export class TutorialManager {
             fadeOutTransform = 'translate(0, -50%) scale(0.9)';
         } else if (this.currentStepIndex === 1 && isMobilePortrait) {
             // Step 1 (Mobile Portrait): Center BIRD'S-EYE VIEW directly underneath the overhead view button
-            this.textEl.style.left = '155px';
+            this.textEl.style.left = '125px';
             this.textEl.style.top = (rect.bottom + 20) + 'px';
             this.textEl.style.fontSize = '26px';
             this.textEl.style.textAlign = 'center';
@@ -190,12 +190,14 @@ export class TutorialManager {
             el.classList.remove('tutorial-highlighted');
         });
 
-        // Restore default layout layer order when tutorial closes
+        // Restore default club container layout layer order
         const clubContainer = document.getElementById('clubContainer');
         if (clubContainer) clubContainer.style.zIndex = '';
 
         if (this.overlayEl) this.overlayEl.remove();
         if (this.textEl) this.textEl.remove();
+
+        // Turn off the tutorial input locks so the player can click and play freely
         window.isTutorialActive = false;
     }
 }
