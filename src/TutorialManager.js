@@ -95,6 +95,18 @@ export class TutorialManager {
             el.classList.remove('tutorial-highlighted');
         });
 
+        // Reset club container z-index if it was elevated from a previous run
+        const clubContainer = document.getElementById('clubContainer');
+        if (clubContainer) clubContainer.style.zIndex = '';
+
+        // Add visual pulsing flash onto target element container
+        targetElement.classList.add('tutorial-highlighted');
+
+        // Elevate the parent stacking context if we are highlighting the club head zone
+        if (step.selector === '#clubSwipe' && clubContainer) {
+            clubContainer.style.zIndex = '1000002';
+        }
+
         // Add visual pulsing flash onto target element container
         targetElement.classList.add('tutorial-highlighted');
 
@@ -155,6 +167,10 @@ export class TutorialManager {
         document.querySelectorAll('.tutorial-highlighted').forEach(el => {
             el.classList.remove('tutorial-highlighted');
         });
+
+        // Restore default layout layer order when tutorial closes
+        const clubContainer = document.getElementById('clubContainer');
+        if (clubContainer) clubContainer.style.zIndex = '';
 
         if (this.overlayEl) this.overlayEl.remove();
         if (this.textEl) this.textEl.remove();

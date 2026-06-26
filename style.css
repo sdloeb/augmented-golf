@@ -889,6 +889,13 @@ html {
     transition: all 0.3s ease !important;
 }
 
+#clubSwipe.tutorial-highlighted {
+    outline: 4px solid #ffcc66 !important;
+    outline-offset: 6px !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+
 @keyframes tutorialPulse {
     0% {
         box-shadow: 0 0 0 2px #ffcc66, 0 4px 10px rgba(0, 0, 0, 0.4);

@@ -2732,8 +2732,11 @@ function animate() {
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
                 const aimClass = input.isAimMode ? ' aim-mode' : '';
 
+                // Capture if the tutorial is currently highlighting the club before overwriting
+                const tutorialHighlight = clubSwipeElement.classList.contains('tutorial-highlighted') ? ' tutorial-highlighted' : '';
+
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}`;
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}${tutorialHighlight}`;
 
                     clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important'); // Add this line: Locks ALL clubs to follow ball height
 
