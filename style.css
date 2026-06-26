@@ -883,7 +883,6 @@ html {
    TUTORIAL SPOTLIGHT GLOW STYLES
    ========================================================================== */
 .tutorial-highlighted {
-    position: relative !important;
     box-shadow: 0 0 0 4px #ffcc66, 0 10px 25px rgba(0, 0, 0, 0.5) !important;
     animation: tutorialPulse 1.5s infinite alternate ease-in-out !important;
     z-index: 1000001 !important;

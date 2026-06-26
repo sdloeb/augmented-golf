@@ -8,7 +8,7 @@ export class TutorialManager {
             { selector: '#windContainer', text: 'WIND SPEED', duration: 3000 },
             { selector: '#overheadBtn', text: "BIRD'S-EYE VIEW", duration: 3000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
-            { selector: '#clubContainer', text: 'DOUBLE CLICK TO AIM', duration: 3000 }
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM', duration: 3000 }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -98,17 +98,48 @@ export class TutorialManager {
         // Add visual pulsing flash onto target element container
         targetElement.classList.add('tutorial-highlighted');
 
-        // Render big text notification
+        // NEW: Allocate dynamic positioning and transition properties per step
+        let targetTransform = 'translate(-50%, -50%) scale(1)';
+        let fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
+
+        if (this.currentStepIndex === 0 || this.currentStepIndex === 1) {
+            // Steps 0 & 1: Align text precisely to the RIGHT side of the bounding card
+            this.textEl.style.left = (rect.right + 20) + 'px';
+            this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
+            this.textEl.style.fontSize = '24px';
+            this.textEl.style.textAlign = 'left';
+            targetTransform = 'translate(0, -50%) scale(1)';
+            fadeOutTransform = 'translate(0, -50%) scale(0.9)';
+        } else if (this.currentStepIndex === 2) {
+            // Step 2: Align text precisely to the LEFT side of the club scroll card
+            this.textEl.style.left = (rect.left - 20) + 'px';
+            this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
+            this.textEl.style.fontSize = '24px';
+            this.textEl.style.textAlign = 'right';
+            targetTransform = 'translate(-100%, -50%) scale(1)';
+            fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
+        } else {
+            // Step 3 (Double Click to Aim): Fallback cleanly to center screen default presentation
+            this.textEl.style.left = '50%';
+            this.textEl.style.top = '50%';
+            this.textEl.style.fontSize = '32px';
+            this.textEl.style.textAlign = 'center';
+            targetTransform = 'translate(-50%, -50%) scale(1)';
+            fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
+        }
+
+        // Render the text notification string matching the tailored geometry styles
         this.textEl.innerText = step.text;
         this.textEl.style.opacity = '1';
-        this.textEl.style.transform = 'translate(-50%, -50%)Scale(1)';
+        this.textEl.style.transform = targetTransform;
 
+        // FIXED: Deleted full screen dark blockout shadows to follow layout preferences clean
 
         // Schedule next step transition
         setTimeout(() => {
-            // Animate text fade-out transition window
+            // Animate text fade-out transition using the custom transform anchors
             this.textEl.style.opacity = '0';
-            this.textEl.style.transform = 'translate(-50%, -50%)Scale(0.9)';
+            this.textEl.style.transform = fadeOutTransform;
 
             setTimeout(() => {
                 this.currentStepIndex++;
