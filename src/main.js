@@ -2354,10 +2354,17 @@ function animate() {
         }
 
         const isSand = physics && physics.isBallInSand();
-        // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
-        const camDist = onGreen ? 2.5 : (isSand ? 5.0 : 7.5);
-        const camHeight = onGreen ? 1.0 : (isSand ? 2.0 : 2.2);
-        const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : 15.0);
+
+        // NEW: Calculate true distance to the hole pin to detect short chip-shot scenarios
+        const dxHole = holePosition.x - ball.position.x;
+        const dzHole = holePosition.z - ball.position.z;
+        const holeDistYards = Math.sqrt(dxHole * dxHole + dxHole * dzHole) * 2.76923;
+        const isChippingClose = !onGreen && holeDistYards < 25.0;
+
+        // ADJUSTED: Tighten camera profile for close chip situations so you can see the hole path clearly
+        const camDist = onGreen ? 2.5 : (isSand ? 5.0 : (isChippingClose ? 4.5 : 7.5));
+        const camHeight = onGreen ? 1.0 : (isSand ? 2.0 : (isChippingClose ? 1.4 : 2.2));
+        const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : (isChippingClose ? 8.0 : 15.0));
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -2652,8 +2659,14 @@ function animate() {
     // FIXED: Dynamically scale down the ball smoothly if the camera transitions closer, preventing ballooning
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
     if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
+        // NEW: Calculate distance to hole to avoid aggressive shrinking on delicate chips
+        const dxH = holePosition.x - ball.position.x;
+        const dzH = holePosition.z - ball.position.z;
+        const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
+        const chipScaleFloor = yardsToPin < 25.0 ? 0.82 : 0.55; // Keeps ball full and visible when near green
+
         // Clamp the proximity modifier to keep visual scale completely stable during close-up chips and approaches
-        const proximityFactor = THREE.MathUtils.clamp(cameraDistanceToBall / 9.5, 0.55, 1.0);
+        const proximityFactor = THREE.MathUtils.clamp(cameraDistanceToBall / 9.5, chipScaleFloor, 1.0);
         finalBallTargetScale *= proximityFactor;
     }
 
