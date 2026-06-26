@@ -1386,7 +1386,6 @@ function resetEntireGame(advanceHole = false) {
                     }
                 }
 
-                // 2. Fairway Elevation Cushion (applies ONLY to the fairway mesh)
                 if (targetMesh === fairway) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     // Use the angle-warped green radius so the fairway mesh conforms to the kidney shape bounds
@@ -1400,10 +1399,10 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 1.5) : (floorHeight - 1.5);
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
                         calculatedHeight = floorHeight - 1.5;
-                    } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) { // Modify this line: Added !insideSandZone check
+                    } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) {
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
-                        const transitionStart = activeR + 0.5;
-                        const transitionEnd = activeR - 4.0;
+                        const transitionStart = fringeOuterR + 0.2; // Adjusted to start diving seamlessly right before the fringe edge
+                        const transitionEnd = activeR - 3.0;
                         if (distToGreenCenter <= transitionEnd) {
                             calculatedHeight = floorHeight - 1.5;
                         } else {
@@ -1414,7 +1413,7 @@ function resetEntireGame(advanceHole = false) {
                             let normalFairwayHeight = calculatedHeight;
                             if (distanceToPath <= fW) {
                                 let cushion = 0.06;
-                                if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                                if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                                     cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                                 }
@@ -1423,7 +1422,7 @@ function resetEntireGame(advanceHole = false) {
                                 const t = (distanceToPath - fW) / 3.5;
                                 const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
                                 let cushion = 0.06;
-                                if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                                if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                                     cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                                 }
@@ -1436,32 +1435,27 @@ function resetEntireGame(advanceHole = false) {
                             calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, floorHeight - 1.5, smoothTFairway);
                         }
                     } else if (distanceToPath <= fW) {
-                        // FIXED: Deepened the underground cushion dip to -0.06 to guarantee zero triangle bleeding through the fringe mesh
                         let cushion = 0.06;
-                        if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                        if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                             cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                         }
-                        calculatedHeight += cushion; // Modify this line
+                        calculatedHeight += cushion;
                     } else {
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                        // FIXED: Deepened the edge cushion dip to -0.06 to match the clean blend profile perfectly
                         let cushion = 0.06;
-                        if (isCustomHole && distToGreenCenter < fringeOuterR + 3.0) {
+                        if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                             cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
                         }
 
-                        const visibleHeight = calculatedHeight + cushion; // Modify this line
+                        const visibleHeight = calculatedHeight + cushion;
                         const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.17 + activeSandDepth * 0.35)) : (floorHeight - 1.5);
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
-
-
-
                 }
             } // This bracket ends the insideWaterZone check clean
 
@@ -2159,7 +2153,7 @@ function animate() {
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
         // Tightened physics trigger to perfectly match your 0.17 visual cup radius so it never captures early from the right
-        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.16 : 0.10;
+        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.18 : 0.13;
 
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
@@ -3310,14 +3304,15 @@ function init() {
         const right = new THREE.Vector3();
         right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-        // FIXED: Measures from the green's center to scale the hitting power multiplier accurately
+        // FIXED: Measures from the green's center using shape-aware angles to scale accurately
         const gX = ball.position.x - (green ? green.position.x : 0);
         const gZ = ball.position.z - greenCenterZ;
-        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < activeR; // Modify this line
+        const checkAngle = Math.atan2(-gZ, gX);
+        const trueGreenR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < trueGreenR;
 
         // NEW: Spawn a 3D turf divot patch when hitting from the fairway or rough
-        if (!isOnGreen && !launchedFromSand) {
+        if (!isOnGreen && !launchedFromSand && !isOffTee) {
             const divotGeo = new THREE.CircleGeometry(0.15, 8);
             const divotMat = new THREE.MeshBasicMaterial({
                 color: 0x4a321a, // Rich soil dirt brown
