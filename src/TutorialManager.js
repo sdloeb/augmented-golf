@@ -20,9 +20,9 @@ export class TutorialManager {
      */
     start() {
         // Only run if on Hole 1 and hasn't been completed yet in this browser session
-        if (localStorage.getItem('golfTutorialCompleted') === 'true') {
-            return;
-        }
+        // if (localStorage.getItem('golfTutorialCompleted') === 'true') {
+        //     return;
+        // }
 
         window.isTutorialActive = true;
         this.createElements();
@@ -103,13 +103,6 @@ export class TutorialManager {
         this.textEl.style.opacity = '1';
         this.textEl.style.transform = 'translate(-50%, -50%)Scale(1)';
 
-        // Setup clear visual cutout spotlight box surrounding the target element bounds
-        const pad = 8; // Border space padding
-        this.overlayEl.style.boxShadow = `inset ${rect.left - pad}px ${rect.top - pad}px 0 rgba(0,0,0,0.5), 
-                                          inset -${window.innerWidth - rect.right - pad}px ${rect.top - pad}px 0 rgba(0,0,0,0.5), 
-                                          inset ${rect.left - pad}px -${window.innerHeight - rect.bottom - pad}px 0 rgba(0,0,0,0.5), 
-                                          inset -${window.innerWidth - rect.right - pad}px -${window.innerHeight - rect.bottom - pad}px 0 rgba(0,0,0,0.5),
-                                          0 0 0 9999px rgba(0,0,0,0.55)`;
 
         // Schedule next step transition
         setTimeout(() => {
