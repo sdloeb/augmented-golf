@@ -2158,7 +2158,7 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-       // Tightened physics trigger to perfectly match your 0.17 visual cup radius so it never captures early from the right
+        // Tightened physics trigger to perfectly match your 0.17 visual cup radius so it never captures early from the right
         const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.16 : 0.10;
 
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
@@ -3315,6 +3315,31 @@ function init() {
         const gZ = ball.position.z - greenCenterZ;
         const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
         const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < activeR; // Modify this line
+
+        // NEW: Spawn a 3D turf divot patch when hitting from the fairway or rough
+        if (!isOnGreen && !launchedFromSand) {
+            const divotGeo = new THREE.CircleGeometry(0.15, 8);
+            const divotMat = new THREE.MeshBasicMaterial({
+                color: 0x4a321a, // Rich soil dirt brown
+                side: THREE.DoubleSide,
+                polygonOffset: true,         // FORCES the divot layer to render cleanly on top of the turf
+                polygonOffsetFactor: -2,
+                polygonOffsetUnits: -4
+            });
+            const divotMesh = new THREE.Mesh(divotGeo, divotMat);
+
+            // Lay it flat on the ground and randomize its rotation so patches look unique
+            divotMesh.rotation.x = -Math.PI / 2;
+            divotMesh.rotation.z = Math.random() * Math.PI;
+
+            // ADJUSTED: Raised height to 0.065 to clear the fairway mesh visual cushion profile safely
+            const groundBaseY = physics.getGroundHeight(ball.position.x, ball.position.z);
+            const divotY = groundBaseY + 0.065;
+
+            divotMesh.position.set(ball.position.x, divotY, ball.position.z);
+            scene.add(divotMesh);
+        }
+
         let finalPower = power;
         if (isOnGreen) {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
