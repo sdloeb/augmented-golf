@@ -92,13 +92,32 @@ export class InputHandler {
 
 
     initEvents() {
-        window.addEventListener('mousedown', (e) => this.onMouseDown(e));
-        window.addEventListener('mousemove', (e) => this.onMouseMove(e));
-        window.addEventListener('mouseup', () => this.onMouseUp());
-        //mobile
-        window.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
-        window.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
-        window.addEventListener('touchend', () => this.onTouchEnd());
+        // MODIFIED: Injected global tutorial input locks to keep swing logic insulated
+        window.addEventListener('mousedown', (e) => {
+            if (window.isTutorialActive) return;
+            this.onMouseDown(e);
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (window.isTutorialActive) return;
+            this.onMouseMove(e);
+        });
+        window.addEventListener('mouseup', () => {
+            if (window.isTutorialActive) return;
+            this.onMouseUp();
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if (window.isTutorialActive) return;
+            this.onTouchStart(e);
+        }, { passive: false });
+        window.addEventListener('touchmove', (e) => {
+            if (window.isTutorialActive) return;
+            this.onTouchMove(e);
+        }, { passive: false });
+        window.addEventListener('touchend', () => {
+            if (window.isTutorialActive) return;
+            this.onTouchEnd();
+        });
 
         // Add this block: Tracks 1-second club double-taps to enter/exit camera aiming view
         const clubEl = document.getElementById('clubSwipe');

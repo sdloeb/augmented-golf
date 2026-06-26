@@ -878,3 +878,24 @@ html {
     z-index: 1;
     will-change: transform;
 }
+
+/* ==========================================================================
+   TUTORIAL SPOTLIGHT GLOW STYLES
+   ========================================================================== */
+.tutorial-highlighted {
+    position: relative !important;
+    box-shadow: 0 0 0 4px #ffcc66, 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+    animation: tutorialPulse 1.5s infinite alternate ease-in-out !important;
+    z-index: 1000001 !important;
+    transition: all 0.3s ease !important;
+}
+
+@keyframes tutorialPulse {
+    0% {
+        box-shadow: 0 0 0 2px #ffcc66, 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    100% {
+        box-shadow: 0 0 0 6px #ffcc66, 0 0 20px rgba(255, 204, 102, 0.6), 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+}

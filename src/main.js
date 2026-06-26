@@ -19,6 +19,7 @@ window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
 import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
+import { TutorialManager } from './TutorialManager.js';
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
@@ -944,6 +945,14 @@ function resetEntireGame(advanceHole = false) {
         physics.greenCenterX = holePosition.x;
         physics.greenCenterZ = holePosition.z;
         physics.updateGreenPosition(holePosition.x, holePosition.z);
+    }
+
+    // NEW: Kick off the sequential visual tutorial tour if the player is landing on Hole 1
+    if (currentHoleNumber === 1) {
+        setTimeout(() => {
+            const tutorial = new TutorialManager();
+            tutorial.start();
+        }, 800); // Small delay to let the green finish shifting into position first
     }
 
     // 3. UPDATING THE PHYSICS ENGINE:
