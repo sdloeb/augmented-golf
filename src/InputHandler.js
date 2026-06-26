@@ -183,7 +183,7 @@ export class InputHandler {
 
         const club = this.getClubInfo();
         const targetPullDistance = this.maxPullY - this.startY;
-        const maxPullPixels = club.isGreen ? 360 : 180;
+        const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
         const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
         this.pullRatio = pullRatio;
 
@@ -238,7 +238,7 @@ export class InputHandler {
 
             const club = this.getClubInfo();
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = club.isGreen ? 360 : 180;
+            const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
             this.pullRatio = pullRatio;
 
@@ -361,7 +361,7 @@ export class InputHandler {
             }
 
             const targetPullDistance = this.maxPullY - this.startY;
-            const maxPullPixels = club.isGreen ? 360 : 180;
+            const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
             this.pullRatio = pullRatio;
 
@@ -400,7 +400,7 @@ export class InputHandler {
     executeLaunch(endX, endY) {
         const club = this.getClubInfo();
 
-        const targetPullDistance = Math.min(club.isGreen ? 360 : 180, this.maxPullY - this.startY);
+        const targetPullDistance = Math.min(club.isGreen ? 160 : 180, this.maxPullY - this.startY); // Changed 360 to 160
         const actualForwardDistance = this.maxPullY - endY;
 
         const powerMultiplier = Math.min(1.0, actualForwardDistance / targetPullDistance);
@@ -434,6 +434,7 @@ export class InputHandler {
         // ADD THIS BLOCK: Automatically translates physics velocity output to your new custom scales
         if (club.isGreen) {
             finalPower *= (this.getPutterMaxFeet() / 80);
+            finalPower *= (360 / 160); // Scale compensation so you don't lose physical power from the shorter drag range!
         }
 
         // 2. BASELINE RE-ACCELERATION DOWNSWING SPEED CHECK
