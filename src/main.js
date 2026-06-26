@@ -2273,7 +2273,19 @@ function animate() {
             } else if (launchedFromGreenSurface) {
                 window.shotStartScale = 0.30;
             } else {
-                window.shotStartScale = isCurrentMobile ? 0.75 : 0.70;
+                // FIXED: Factor in the exact proximity factor active at address so the ball launches at its true rendered size
+                const addressCamDist = camera.position.distanceTo(ball.position);
+                const baseScale = isCurrentMobile ? 0.75 : 0.70;
+                if (addressCamDist < 9.5) {
+                    const dxH = holePosition.x - ball.position.x;
+                    const dzH = holePosition.z - ball.position.z;
+                    const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
+                    const chipScaleFloor = yardsToPin < 25.0 ? 0.82 : 0.55;
+                    const prox = THREE.MathUtils.clamp(addressCamDist / 9.5, chipScaleFloor, 1.0);
+                    window.shotStartScale = baseScale * prox;
+                } else {
+                    window.shotStartScale = baseScale;
+                }
             }
         }
         updateDistanceDisplay();
@@ -2296,8 +2308,12 @@ function animate() {
 
         if (isPuttingStroke || activeLaunchScale === 0.30) {
             ballTargetScale = 0.30; // Keep putts and green side rolling completely stable
+        } else if (!isLongShot) {
+            // FIXED: For short shots where the camera is stationary, lock code scale to launch size
+            // and let natural WebGL 3D perspective handle making the ball smaller as it rolls away
+            ballTargetScale = activeLaunchScale;
         } else {
-            // Scale down smoothly from the true starting lie scale instead of inflating to 1.0
+            // For long shots where the camera actively chases the ball, manually scale down to simulate height/distance
             ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0035));
         }
         if (isLongShot) {
@@ -2658,7 +2674,7 @@ function animate() {
 
     // FIXED: Dynamically scale down the ball smoothly if the camera transitions closer, preventing ballooning
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
-    if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
+    if (cameraDistanceToBall < 9.5 && !isCamOnGreen && !physics.isMoving) { // MODIFIED: Added !physics.isMoving check
         // NEW: Calculate distance to hole to avoid aggressive shrinking on delicate chips
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
