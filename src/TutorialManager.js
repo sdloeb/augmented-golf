@@ -95,33 +95,39 @@ export class TutorialManager {
             el.classList.remove('tutorial-highlighted');
         });
 
+        // Add visual pulsing flash onto target element container
+        targetElement.classList.add('tutorial-highlighted');
+
         // Reset club container z-index if it was elevated from a previous run
         const clubContainer = document.getElementById('clubContainer');
         if (clubContainer) clubContainer.style.zIndex = '';
-
-        // Add visual pulsing flash onto target element container
-        targetElement.classList.add('tutorial-highlighted');
 
         // Elevate the parent stacking context if we are highlighting the club head zone
         if (step.selector === '#clubSwipe' && clubContainer) {
             clubContainer.style.zIndex = '1000002';
         }
 
-        // Add visual pulsing flash onto target element container
-        targetElement.classList.add('tutorial-highlighted');
-
         // NEW: Allocate dynamic positioning and transition properties per step
         let targetTransform = 'translate(-50%, -50%) scale(1)';
         let fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
 
-        // Detect if the game is running in mobile portrait layout matching your style.css profiles
+        // Detect if the game is running in mobile portrait layout matching your profile metrics
         const isMobilePortrait = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+
+        // Dynamically change text and shadow glow to red on mobile portrait, keep gold on desktop
+        if (isMobilePortrait) {
+            this.textEl.style.color = '#ff3333';
+            this.textEl.style.textShadow = '0 4px 12px rgba(0,0,0,0.9), 0 0 20px rgba(255,51,51,0.45)';
+        } else {
+            this.textEl.style.color = '#ffcc66';
+            this.textEl.style.textShadow = '0 4px 12px rgba(0,0,0,0.9), 0 0 20px rgba(255,204,102,0.3)';
+        }
 
         if (this.currentStepIndex === 0 || (this.currentStepIndex === 1 && !isMobilePortrait)) {
             // Steps 0 & 1 (Desktop default): Align text precisely to the RIGHT side of the bounding card
             this.textEl.style.left = (rect.right + 20) + 'px';
             this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-            this.textEl.style.fontSize = '32px';
+            this.textEl.style.fontSize = '24px';
             this.textEl.style.textAlign = 'left';
             targetTransform = 'translate(0, -50%) scale(1)';
             fadeOutTransform = 'translate(0, -50%) scale(0.9)';
@@ -146,13 +152,12 @@ export class TutorialManager {
                 // Step 2 (Desktop default): Align text precisely to the LEFT side of the club scroll card
                 this.textEl.style.left = (rect.left - 20) + 'px';
                 this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-                this.textEl.style.fontSize = '32px';
+                this.textEl.style.fontSize = '24px';
                 this.textEl.style.textAlign = 'right';
                 targetTransform = 'translate(-100%, -50%) scale(1)';
                 fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
             }
         } else {
-
             // Step 3 (Double Click to Aim): Fallback cleanly to center screen default presentation
             this.textEl.style.left = '50%';
             this.textEl.style.top = '50%';
@@ -167,8 +172,6 @@ export class TutorialManager {
         this.textEl.style.opacity = '1';
         this.textEl.style.transform = targetTransform;
 
-        // FIXED: Deleted full screen dark blockout shadows to follow layout preferences clean
-
         // Schedule next step transition
         setTimeout(() => {
             // Animate text fade-out transition using the custom transform anchors
@@ -180,24 +183,5 @@ export class TutorialManager {
                 this.executeStep();
             }, 300);
         }, step.duration);
-    }
-
-    /**
-     * Disposes elements cleanly and restores inputs to gameplay state
-     */
-    end() {
-        document.querySelectorAll('.tutorial-highlighted').forEach(el => {
-            el.classList.remove('tutorial-highlighted');
-        });
-
-        // Restore default layout layer order when tutorial closes
-        const clubContainer = document.getElementById('clubContainer');
-        if (clubContainer) clubContainer.style.zIndex = '';
-
-        if (this.overlayEl) this.overlayEl.remove();
-        if (this.textEl) this.textEl.remove();
-
-        window.isTutorialActive = false;
-        localStorage.setItem('golfTutorialCompleted', 'true');
     }
 }
