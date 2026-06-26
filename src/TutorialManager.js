@@ -127,15 +127,15 @@ export class TutorialManager {
             // Steps 0 & 1 (Desktop default): Align text precisely to the RIGHT side of the bounding card
             this.textEl.style.left = (rect.right + 20) + 'px';
             this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-            this.textEl.style.fontSize = '24px';
+            this.textEl.style.fontSize = '32px';
             this.textEl.style.textAlign = 'left';
             targetTransform = 'translate(0, -50%) scale(1)';
             fadeOutTransform = 'translate(0, -50%) scale(0.9)';
         } else if (this.currentStepIndex === 1 && isMobilePortrait) {
             // Step 1 (Mobile Portrait): Center BIRD'S-EYE VIEW directly underneath the overhead view button
-            this.textEl.style.left = '100px';
+            this.textEl.style.left = '175px';
             this.textEl.style.top = (rect.bottom + 20) + 'px';
-            this.textEl.style.fontSize = '22px';
+            this.textEl.style.fontSize = '26px';
             this.textEl.style.textAlign = 'center';
             targetTransform = 'translate(-50%, 0) scale(1)';
             fadeOutTransform = 'translate(-50%, 0) scale(0.9)';
@@ -144,7 +144,7 @@ export class TutorialManager {
                 // Step 2 (Mobile Portrait): Center CHOOSE YOUR CLUB directly underneath the selection container box
                 this.textEl.style.left = (rect.left + rect.width / 2) + 'px';
                 this.textEl.style.top = (rect.bottom + 20) + 'px';
-                this.textEl.style.fontSize = '22px';
+                this.textEl.style.fontSize = '26px';
                 this.textEl.style.textAlign = 'center';
                 targetTransform = 'translate(-50%, 0) scale(1)';
                 fadeOutTransform = 'translate(-50%, 0) scale(0.9)';
@@ -152,7 +152,7 @@ export class TutorialManager {
                 // Step 2 (Desktop default): Align text precisely to the LEFT side of the club scroll card
                 this.textEl.style.left = (rect.left - 20) + 'px';
                 this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-                this.textEl.style.fontSize = '24px';
+                this.textEl.style.fontSize = '32px';
                 this.textEl.style.textAlign = 'right';
                 targetTransform = 'translate(-100%, -50%) scale(1)';
                 fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
