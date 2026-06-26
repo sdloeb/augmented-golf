@@ -119,7 +119,7 @@ export class TutorialManager {
             this.textEl.style.color = '#ff3333';
             this.textEl.style.textShadow = '0 4px 12px rgba(0,0,0,0.9), 0 0 20px rgba(255,51,51,0.45)';
         } else {
-            this.textEl.style.color = '#ffcc66';
+            this.textEl.style.color = '#ff3333';
             this.textEl.style.textShadow = '0 4px 12px rgba(0,0,0,0.9), 0 0 20px rgba(255,204,102,0.3)';
         }
 
