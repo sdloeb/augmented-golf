@@ -883,18 +883,29 @@ html {
    TUTORIAL SPOTLIGHT GLOW STYLES
    ========================================================================== */
 .tutorial-highlighted {
-    box-shadow: 0 0 0 4px #ffcc66, 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 0 0 4px #ff3333, 0 10px 25px rgba(0, 0, 0, 0.5) !important;
     animation: tutorialPulse 1.5s infinite alternate ease-in-out !important;
     z-index: 1000001 !important;
     transition: all 0.3s ease !important;
 }
 
+/* Bulletproof specificity override to force an outline around the club graphics */
 #clubSwipe.tutorial-highlighted {
-    outline: 4px solid #ffcc66 !important;
     outline-offset: 6px !important;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6) !important;
+    animation: clubPulse 1.5s infinite alternate ease-in-out !important;
 }
 
+@keyframes clubPulse {
+    0% {
+        outline: 2px solid rgba(255, 51, 51, 0.5);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    100% {
+        outline: 5px solid rgba(255, 51, 51, 1);
+        box-shadow: 0 12px 30px rgba(255, 51, 51, 0.4);
+    }
+}
 
 @keyframes tutorialPulse {
     0% {

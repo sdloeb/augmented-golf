@@ -52,7 +52,7 @@ export class TutorialManager {
         this.textEl.style.top = '50%';
         this.textEl.style.left = '50%';
         this.textEl.style.transform = 'translate(-50%, -50%)Scale(0.9)';
-        this.textEl.style.color = '#ffcc66'; // Accent Gold text color
+        this.textEl.style.color = '#eb0303'; // Accent Gold text color
         this.textEl.style.fontFamily = "'Georgia', serif";
         this.textEl.style.fontSize = '32px';
         this.textEl.style.fontWeight = 'bold';
@@ -114,23 +114,45 @@ export class TutorialManager {
         let targetTransform = 'translate(-50%, -50%) scale(1)';
         let fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
 
-        if (this.currentStepIndex === 0 || this.currentStepIndex === 1) {
-            // Steps 0 & 1: Align text precisely to the RIGHT side of the bounding card
+        // Detect if the game is running in mobile portrait layout matching your style.css profiles
+        const isMobilePortrait = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+
+        if (this.currentStepIndex === 0 || (this.currentStepIndex === 1 && !isMobilePortrait)) {
+            // Steps 0 & 1 (Desktop default): Align text precisely to the RIGHT side of the bounding card
             this.textEl.style.left = (rect.right + 20) + 'px';
             this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-            this.textEl.style.fontSize = '24px';
+            this.textEl.style.fontSize = '32px';
             this.textEl.style.textAlign = 'left';
             targetTransform = 'translate(0, -50%) scale(1)';
             fadeOutTransform = 'translate(0, -50%) scale(0.9)';
+        } else if (this.currentStepIndex === 1 && isMobilePortrait) {
+            // Step 1 (Mobile Portrait): Center BIRD'S-EYE VIEW directly underneath the overhead view button
+            this.textEl.style.left = (rect.left + rect.width / 2) + 'px';
+            this.textEl.style.top = (rect.bottom + 20) + 'px';
+            this.textEl.style.fontSize = '22px';
+            this.textEl.style.textAlign = 'center';
+            targetTransform = 'translate(-50%, 0) scale(1)';
+            fadeOutTransform = 'translate(-50%, 0) scale(0.9)';
         } else if (this.currentStepIndex === 2) {
-            // Step 2: Align text precisely to the LEFT side of the club scroll card
-            this.textEl.style.left = (rect.left - 20) + 'px';
-            this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-            this.textEl.style.fontSize = '24px';
-            this.textEl.style.textAlign = 'right';
-            targetTransform = 'translate(-100%, -50%) scale(1)';
-            fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
+            if (isMobilePortrait) {
+                // Step 2 (Mobile Portrait): Center CHOOSE YOUR CLUB directly underneath the selection container box
+                this.textEl.style.left = (rect.left + rect.width / 2) + 'px';
+                this.textEl.style.top = (rect.bottom + 20) + 'px';
+                this.textEl.style.fontSize = '22px';
+                this.textEl.style.textAlign = 'center';
+                targetTransform = 'translate(-50%, 0) scale(1)';
+                fadeOutTransform = 'translate(-50%, 0) scale(0.9)';
+            } else {
+                // Step 2 (Desktop default): Align text precisely to the LEFT side of the club scroll card
+                this.textEl.style.left = (rect.left - 20) + 'px';
+                this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
+                this.textEl.style.fontSize = '32px';
+                this.textEl.style.textAlign = 'right';
+                targetTransform = 'translate(-100%, -50%) scale(1)';
+                fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
+            }
         } else {
+
             // Step 3 (Double Click to Aim): Fallback cleanly to center screen default presentation
             this.textEl.style.left = '50%';
             this.textEl.style.top = '50%';
