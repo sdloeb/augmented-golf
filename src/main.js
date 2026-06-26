@@ -2158,8 +2158,8 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-        // NEW: Dynamically expand capture radius if the ball comes to rest or rolls slowly, preventing it from balancing on the lip
-        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.32 : 0.22;
+       // Tightened physics trigger to perfectly match your 0.17 visual cup radius so it never captures early from the right
+        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.16 : 0.10;
 
         // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
         // even with minor floating-point variations or light bounces on the 3D mound
@@ -3032,8 +3032,8 @@ function init() {
 
 
 
-    // 5. Add Virtual Golf Green Floor (Upgraded to 150x400 segments for crisp, smooth trap & fringe boundaries)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 450, 400);
+    // 5. Add Virtual Golf Green Floor (Optimized grid segments to prevent mobile browser crash overhead)
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 100, 200);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -3055,7 +3055,9 @@ function init() {
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 300, 800); // FIXED: Doubled vertical length density to smoothly resolve detailed organic curves
+
+    // Balanced geometric limits ensuring smooth organic curved shapes while minimizing performance weight
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 100, 200);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
@@ -3551,7 +3553,7 @@ function updateGreenGrid() {
 
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
     // Automatically activates aiming dots if the putter is selected, matching normal green behavior
-    const isAiming = (input && input.isAimMode) || isPutter;
+    const isAiming = input && input.isAimMode;
 
     // Turn off 3D meshes if display criteria aren't met
     if (!isBallOnGreenOrFringe || isAirborne || physics.hitWater || isSinking || !isAiming) {
