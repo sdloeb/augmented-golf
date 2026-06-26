@@ -2625,11 +2625,28 @@ function animate() {
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
 
-    // NEW: Counteract the camera zoom scale on the green so the ball doesn't look giant
     let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
         // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
         finalBallTargetScale *= 0.85;
+    }
+
+    // NEW: Shrink the ball smoothly into the cup center and depth so it doesn't clip the grass mesh
+    if (isSinking) {
+        const groundY = physics.getGroundHeight(holePosition.x, holePosition.z);
+        const startY = groundY + 0.25;
+        const localCupFloor = groundY - 0.15;
+        const totalDrop = startY - localCupFloor;
+        const currentDrop = startY - ball.position.y;
+        const dropProgress = Math.max(0, Math.min(1, currentDrop / totalDrop));
+
+        // Scale down proportional to how deep the ball has traveled down the cup
+        finalBallTargetScale *= (1.0 - dropProgress);
+
+        // Continue shrinking down to absolute zero during the 2-second scorecard delay
+        if (ball.isSunk) {
+            finalBallTargetScale = 0.001;
+        }
     }
 
     // FIXED: Dynamically scale down the ball smoothly if the camera transitions closer, preventing ballooning
