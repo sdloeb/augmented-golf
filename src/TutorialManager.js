@@ -184,4 +184,18 @@ export class TutorialManager {
             }, 300);
         }, step.duration);
     }
+
+    end() {
+        document.querySelectorAll('.tutorial-highlighted').forEach(el => {
+            el.classList.remove('tutorial-highlighted');
+        });
+
+        // Restore default layout layer order when tutorial closes
+        const clubContainer = document.getElementById('clubContainer');
+        if (clubContainer) clubContainer.style.zIndex = '';
+
+        if (this.overlayEl) this.overlayEl.remove();
+        if (this.textEl) this.textEl.remove();
+        window.isTutorialActive = false;
+    }
 }
