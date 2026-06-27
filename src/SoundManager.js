@@ -101,22 +101,36 @@ export class SoundManager {
         const ambient = this.ambientSounds[soundName];
         if (ambient) {
             ambient.play().catch(err => {
-                // If browser blocks initial page-load autoplay, register an invisible one-time trigger 
-                // that plays the birds the very split second the user clicks or taps anywhere on screen.
-                const startOnInteraction = () => {
-                    ambient.play().catch(e => console.log(e));
-                    window.removeEventListener('click', startOnInteraction);
-                    window.removeEventListener('touchstart', startOnInteraction);
+                // Clear any existing listeners to avoid multi-trigger stacking on new holes
+                if (ambient._soundUnlocker) {
+                    document.removeEventListener('click', ambient._soundUnlocker, true);
+                    document.removeEventListener('touchstart', ambient._soundUnlocker, true);
+                }
+
+                // Create a robust capturing trigger that fires no matter what element is touched
+                ambient._soundUnlocker = () => {
+                    ambient.play().catch(e => console.log("Ambient catch unlock failed:", e));
+                    document.removeEventListener('click', ambient._soundUnlocker, true);
+                    document.removeEventListener('touchstart', ambient._soundUnlocker, true);
+                    ambient._soundUnlocker = null;
                 };
-                window.addEventListener('click', startOnInteraction);
-                window.addEventListener('touchstart', startOnInteraction);
+
+                // The 'true' parameter activates CAPTURING mode, intercepting the tap before anything else can prevent it
+                document.addEventListener('click', ambient._soundUnlocker, true);
+                document.addEventListener('touchstart', ambient._soundUnlocker, true);
             });
         }
     }
-    stopAmbient(soundName) { // Add this method block
+    stopAmbient(soundName) {
         const ambient = this.ambientSounds[soundName];
         if (ambient) {
             ambient.pause();
+            // Safeguard: Tear down the listener if the track changes before a click happens
+            if (ambient._soundUnlocker) {
+                document.removeEventListener('click', ambient._soundUnlocker, true);
+                document.removeEventListener('touchstart', ambient._soundUnlocker, true);
+                ambient._soundUnlocker = null;
+            }
         }
     }
 
