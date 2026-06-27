@@ -8,7 +8,9 @@ export class TutorialManager {
             { selector: '#windContainer', text: 'WIND SPEED', duration: 3000 },
             { selector: '#overheadBtn', text: "BIRD'S-EYE VIEW", duration: 3000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM', duration: 3000 }
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM', duration: 3000 },
+            { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
+            { selector: '#clubSwipe', text: 'Pull BACK AND SWIPE FORWARD ALONG SAME DIAGONAL TO CREATE A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -158,14 +160,30 @@ export class TutorialManager {
                 fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
             }
         } else {
-            // Step 3 (Double Click to Aim): Fallback cleanly to center screen default presentation
+            // Step 3 and later: Position text in the upper center area to leave the center clear for swing animations
             this.textEl.style.left = '50%';
             this.textEl.style.top = '50%';
-            this.textEl.style.fontSize = '32px';
+            this.textEl.style.fontSize = isMobilePortrait ? '22px' : '28px';
             this.textEl.style.textAlign = 'center';
+            this.textEl.style.width = '80%';
+            this.textEl.style.maxWidth = '600px';
             targetTransform = 'translate(-50%, -50%) scale(1)';
             fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
         }
+
+        // Remove any old gesture indicators
+        const oldHand = document.getElementById('tutorialHandIndicator');
+        if (oldHand) oldHand.remove();
+
+        // Create a new gesture overlay if specified by the step
+        if (step.swingType) {
+            const hand = document.createElement('div');
+            hand.id = 'tutorialHandIndicator';
+            hand.className = `tutorial-hand-overlay animate-${step.swingType}`;
+            document.body.appendChild(hand);
+        }
+
+
 
         // Render the text notification string matching the tailored geometry styles
         this.textEl.innerText = step.text;
@@ -193,6 +211,9 @@ export class TutorialManager {
         // Restore default club container layout layer order
         const clubContainer = document.getElementById('clubContainer');
         if (clubContainer) clubContainer.style.zIndex = '';
+
+        const oldHand = document.getElementById('tutorialHandIndicator');
+        if (oldHand) oldHand.remove();
 
         if (this.overlayEl) this.overlayEl.remove();
         if (this.textEl) this.textEl.remove();
