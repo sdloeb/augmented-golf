@@ -2213,14 +2213,14 @@ function animate() {
     }
     if (isSinking) {
         // Smoothly pull the ball horizontally toward the exact center of the cup while it drops to create a natural gravity effect
-        ball.position.x = THREE.MathUtils.lerp(ball.position.x, holePosition.x, 0.18);
-        ball.position.z = THREE.MathUtils.lerp(ball.position.z, holePosition.z, 0.18);
+        ball.position.x = THREE.MathUtils.lerp(ball.position.x, holePosition.x, 0.25);
+        ball.position.z = THREE.MathUtils.lerp(ball.position.z, holePosition.z, 0.25);
 
         // Linearly drop the ball downward beneath the flat ground plane layout
         // FIXED: Only subtract height if the ball hasn't reached its hidden subterranean resting limit yet
-        const localCupFloor = physics.getGroundHeight(holePosition.x, holePosition.z) - 0.15; // Add this line
-        if (ball.position.y > localCupFloor) { // Modify this line
-            ball.position.y -= 0.015;
+        const localCupFloor = physics.getGroundHeight(holePosition.x, holePosition.z) - 0.45; /* Deeper cup floor to let the ball fully plunge underground */
+        if (ball.position.y > localCupFloor) {
+            ball.position.y -= 0.04; /* Snap down faster to simulate weight/gravity */
         }
 
         // Once it drops safely inside the hole depth out of sight (Y <= localCupFloor)
@@ -2685,19 +2685,9 @@ function animate() {
         finalBallTargetScale *= 0.85;
     }
 
-    // NEW: Shrink the ball smoothly into the cup center and depth so it doesn't clip the grass mesh
+
+    // NEW: Keep full scale during the plunge, only zero out once resting out of sight at the bottom
     if (isSinking) {
-        const groundY = physics.getGroundHeight(holePosition.x, holePosition.z);
-        const startY = groundY + 0.25;
-        const localCupFloor = groundY - 0.15;
-        const totalDrop = startY - localCupFloor;
-        const currentDrop = startY - ball.position.y;
-        const dropProgress = Math.max(0, Math.min(1, currentDrop / totalDrop));
-
-        // Scale down proportional to how deep the ball has traveled down the cup
-        finalBallTargetScale *= (1.0 - dropProgress);
-
-        // Continue shrinking down to absolute zero during the 2-second scorecard delay
         if (ball.isSunk) {
             finalBallTargetScale = 0.001;
         }
