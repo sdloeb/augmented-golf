@@ -1208,13 +1208,26 @@ function resetEntireGame(advanceHole = false) {
             const centerHeight = physics.getGroundHeight(targetMesh.position.x, targetMesh.position.z);
             const heightDiff = calculatedHeight - centerHeight;
 
-            // Restrict blend factors strictly between narrow boundaries to maintain authentic look
-            const blend = THREE.MathUtils.clamp(heightDiff * 0.38, -0.16, 0.14);
+            // NEW: Micro-sample nearby terrain vectors to calculate localized slope breaks and curve directions
+            const delta = 0.15;
+            const hL = physics.getGroundHeight(worldX - delta, worldZ);
+            const hR = physics.getGroundHeight(worldX + delta, worldZ);
+            const hF = physics.getGroundHeight(worldX, worldZ - delta);
+            const hB = physics.getGroundHeight(worldX, worldZ + delta);
+            const slopeX = (hR - hL) / (2 * delta);
+            const slopeZ = (hB - hF) / (2 * delta);
+            const steepness = Math.sqrt(slopeX * slopeX + slopeZ * slopeZ);
 
-            // Organically enrich channels: valleys drift darker, ridges catch ambient sun highlight tones
-            let r = baseR + blend * 0.10;
-            let g = baseG + blend * 0.42;
-            let b = baseB + blend * 0.16;
+            // Create an organic embossed shading weight (darkens down-slopes, illuminates up-mounds)
+            const slopeShading = (slopeX - slopeZ) * 0.35 - (steepness * 0.18);
+
+            // Blend absolute elevation mapping with dynamic directional slope contrast
+            const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.28);
+
+            // Organically enrich channels: channels scale deep into shadows or sun highlights to outline contours
+            let r = baseR + blend * 0.12;
+            let g = baseG + blend * 0.48;
+            let b = baseB + blend * 0.18;
 
             colorAttr.setXYZ(i, r, g, b);
         }
