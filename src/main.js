@@ -720,6 +720,11 @@ function resetEntireGame(advanceHole = false) {
         rainParticles = [];
     }
     isRaining = Math.random() < 0.35; // 35% chance of rain on any given hole
+    if (isRaining) {
+        document.body.classList.add('storm-mode');
+    } else {
+        document.body.classList.remove('storm-mode');
+    }
     if (sounds) {
         if (isRaining) {
             sounds.stopAmbient('birds');

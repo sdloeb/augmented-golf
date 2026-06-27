@@ -1019,3 +1019,20 @@ html {
 .animate-diagonal {
     animation: swingDiagonal 3s infinite ease-in-out;
 }
+
+/* ==========================================================================
+   STORM WEATHER VISUAL OVERRIDES
+   ========================================================================== */
+body.storm-mode {
+    /* Layer a dark storm-gray tint directly over your background clouds.png image */
+    background: linear-gradient(rgba(45, 55, 70, 0.35), rgba(45, 55, 70, 0.35)), url('clouds.png') no-repeat center center;
+    background-size: cover;
+}
+
+body.storm-mode #cloudSkyLayer {
+    /* Drop the brightness of the moving clouds to turn them dark gray, and switch 
+       mix-blend-mode to 'normal' so they overlay like heavy storm clouds instead of glowing */
+    filter: brightness(0.55) contrast(1.2);
+    mix-blend-mode: normal;
+    opacity: 0.75;
+}
