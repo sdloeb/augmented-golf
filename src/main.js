@@ -402,6 +402,12 @@ function generateNewWind() {
         windSpeed = 16 + Math.floor(Math.random() * 10); // Generates 16 through 25
     }
 
+
+    // NEW: Enforce a minimum of 10 MPH wind during a storm/rain
+    if (isRaining) {
+        windSpeed = Math.max(10, windSpeed);
+    }
+
     currentWindSpeed = windSpeed;
 
     const text = document.getElementById('windText');
@@ -2622,7 +2628,13 @@ function animate() {
         let lookAheadDist = 6.0;
         const distToHole = Math.sqrt((holePosition.x - ball.position.x) * (holePosition.x - ball.position.x) + (holePosition.z - ball.position.z) * (holePosition.z - ball.position.z));
         if (distToHole < 3.5) {
-            lookAheadDist = THREE.MathUtils.lerp(0.0, 6.0, distToHole / 3.5);
+            const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
+            lookAheadDist = THREE.MathUtils.lerp(0.0, 6.0, factor);
+
+            // Dynamically increase camera height and pull in distance to create a steep, clear top-down perspective
+            rigidCamHeight = THREE.MathUtils.lerp(aspect < 1 ? 2.0 : 2.2, rigidCamHeight, factor);
+            rigidCamDist = THREE.MathUtils.lerp(aspect < 1 ? 1.7 : 2.5, rigidCamDist, factor);
+            lookUpOffset = THREE.MathUtils.lerp(-0.15, lookUpOffset, factor);
         }
 
         // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
