@@ -1532,7 +1532,11 @@ function resetEntireGame(advanceHole = false) {
     if (ball) ball.isSunk = false;
     isOverheadActive = false;
     ballTargetScale = 1.0;
-    ball.scale.set(1, 1, 1);
+    // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
+    const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+    const initialTeeScale = isMobileOnStart ? 0.9 : 0.65; /* Matches your custom computer desktop size */
+    ballTargetScale = initialTeeScale;
+    ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
     // Calculate the precise target-line vector between the randomized tee and the first fairway waypoint
     const firstTarget = holeConfig.waypoints[1]; // Add this line
@@ -2382,7 +2386,7 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.9 : 1.0; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.9 : 0.80; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             ballTargetScale = 0.30;  // Change this number to adjust size when Putting
         } else {
