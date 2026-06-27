@@ -2613,7 +2613,12 @@ function animate() {
             camera.updateProjectionMatrix();
         }
 
-        const lookAheadDist = 6.0;
+        // UPDATED: Starting the tilt sooner (3.5 yards) and dropping lookAheadDist to 0.0 for a clean top-down view when close
+        let lookAheadDist = 6.0;
+        const distToHole = Math.sqrt((holePosition.x - ball.position.x) * (holePosition.x - ball.position.x) + (holePosition.z - ball.position.z) * (holePosition.z - ball.position.z));
+        if (distToHole < 3.5) {
+            lookAheadDist = THREE.MathUtils.lerp(0.0, 6.0, distToHole / 3.5);
+        }
 
         // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
         // This keeps the camera steady behind the initial hitting zone while letting the ball smoothly roll away down the green.
