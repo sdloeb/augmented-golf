@@ -501,20 +501,20 @@ export class InputHandler {
                             for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
                                 const xi = points[i].x, zi = points[i].z;
                                 const xj = points[j].x, zj = points[j].z;
-                                const intersect = ((zi > ball.position.z) !== (zj > ball.position.z))
-                                    && (ball.position.x < (xj - xi) * (ball.position.z - zi) / (zj - zi) + xi);
+                                const intersect = ((zi > this.ballRef.position.z) !== (zj > this.ballRef.position.z))
+                                    && (this.ballRef.position.x < (xj - xi) * (this.ballRef.position.z - zi) / (zj - zi) + xi);
                                 if (intersect) inside = !inside;
                             }
                             if (inside) {
-                                launchedFromSand = true;
+                                inSand = true;
                                 break;
                             }
                         } else {
-                            const dx = ball.position.x - sand.position.x;
-                            const dz = ball.position.z - sand.position.z;
+                            const dx = this.ballRef.position.x - sand.position.x;
+                            const dz = this.ballRef.position.z - sand.position.z;
                             const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                             if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                                launchedFromSand = true;
+                                inSand = true;
                                 break;
                             }
                         }
