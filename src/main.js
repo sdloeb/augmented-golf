@@ -2092,6 +2092,116 @@ function resetEntireGame(advanceHole = false) {
         sceneryObjects.push(sceneryGroup);
     }
 
+    // NEW: Generate visual 3D White Stakes along the exact Out of Bounds boundary lines
+    if (physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
+        // --- CONFIGURATION CORNER ---
+        // Change these two numbers anytime to perfectly control the layout count!
+        const STAKES_PER_SIDE = 8; // Total stakes running down each side track
+        const STAKES_PER_ROW = 4;  // Total stakes sealing the back wall & front green wall
+
+        const points = physics.fairwayPoints;
+        const stakeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 4);
+        const stakeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 }); // Traditional White Stakes
+        // Create an extended array of points to carry the rails all the way out to the fence lines
+        const boundaryPoints = [...points];
+
+        // Prepend a virtual point extended backward to match the back wall line at z = 25.0
+        const pStart = points[0];
+        const pNext = points[1] || pStart;
+        const dXStart = pStart.x - pNext.x;
+        const dZStart = pStart.z - pNext.z;
+        const zDistStart = 25.0 - pStart.z;
+        const extendedStart = {
+            x: pStart.x + (Math.abs(dZStart) > 0.01 ? (dXStart / dZStart) * zDistStart : 0),
+            z: 25.0
+        };
+        boundaryPoints.unshift(extendedStart);
+
+        // Append a virtual point extended forward to match the front wall line at z = holePosition.z - 45.0
+        const pEnd = points[points.length - 1];
+        const pPrev = points[points.length - 2] || pEnd;
+        const dXEnd = pEnd.x - pPrev.x;
+        const dZEnd = pEnd.z - pPrev.z;
+        const targetZEnd = holePosition.z - 45.0;
+        const zDistEnd = targetZEnd - pEnd.z;
+        const extendedEnd = {
+            x: pEnd.x + (Math.abs(dZEnd) > 0.01 ? (dXEnd / dZEnd) * zDistEnd : 0),
+            z: targetZEnd
+        };
+        boundaryPoints.push(extendedEnd);
+
+        // 1. Automatically calculate spacing and spawn pairs along left/right tracks spanning wall-to-wall
+        for (let k = 0; k < STAKES_PER_SIDE; k++) {
+            const index = Math.round((k / (STAKES_PER_SIDE - 1)) * (boundaryPoints.length - 1));
+            const currentPt = boundaryPoints[index];
+
+            let nextPt = boundaryPoints[index + 1];
+            let prevPt = boundaryPoints[index - 1];
+
+            let dirX = 0, dirZ = 0;
+            if (nextPt && prevPt) {
+                dirX = nextPt.x - prevPt.x;
+                dirZ = nextPt.z - prevPt.z;
+            } else if (nextPt) {
+                dirX = nextPt.x - currentPt.x;
+                dirZ = nextPt.z - currentPt.z;
+            } else if (prevPt) {
+                dirX = currentPt.x - prevPt.x;
+                dirZ = currentPt.z - prevPt.z;
+            }
+
+            const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            const perpX = -dirZ / len;
+            const perpZ = dirX / len;
+
+            // Left boundary line stake
+            const leftX = currentPt.x + perpX * 70.0;
+            const leftZ = currentPt.z + perpZ * 70.0;
+            const leftY = physics.getGroundHeight(leftX, leftZ);
+            const leftStake = new THREE.Mesh(stakeGeo, stakeMat);
+            leftStake.position.set(leftX, leftY + 0.4, leftZ);
+            scene.add(leftStake);
+            sceneryObjects.push(leftStake);
+
+            // Right boundary line stake
+            const rightX = currentPt.x - perpX * 70.0;
+            const rightZ = currentPt.z - perpZ * 70.0;
+            const rightY = physics.getGroundHeight(rightX, rightZ);
+            const rightStake = new THREE.Mesh(stakeGeo, stakeMat);
+            rightStake.position.set(rightX, rightY + 0.4, rightZ);
+            scene.add(rightStake);
+            sceneryObjects.push(rightStake);
+        }
+
+        // Calculate dynamic horizontal widths from -70 to 70
+        const totalWidthRange = 140;
+        const rowSpacing = totalWidthRange / Math.max(1, STAKES_PER_ROW - 1);
+
+        // 2. Spawn evenly spaced closing row behind the Tee Box (at z = 25.0)
+        for (let k = 0; k < STAKES_PER_ROW; k++) {
+            const xOffset = -70.0 + (k * rowSpacing);
+            const sX = boundaryPoints[0].x + xOffset;
+            const sZ = 25.0;
+            const sY = physics.getGroundHeight(sX, sZ);
+            const backStake = new THREE.Mesh(stakeGeo, stakeMat);
+            backStake.position.set(sX, sY + 0.4, sZ);
+            scene.add(backStake);
+            sceneryObjects.push(backStake);
+        }
+
+        // 3. Spawn evenly spaced closing row beyond the Green (at z = holePosition.z - 45.0)
+        for (let k = 0; k < STAKES_PER_ROW; k++) {
+            const xOffset = -70.0 + (k * rowSpacing);
+            const sX = boundaryPoints[boundaryPoints.length - 1].x + xOffset;
+            const sZ = holePosition.z - 45.0;
+            const sY = physics.getGroundHeight(sX, sZ);
+            const frontStake = new THREE.Mesh(stakeGeo, stakeMat);
+            frontStake.position.set(sX, sY + 0.4, sZ);
+            scene.add(frontStake);
+            sceneryObjects.push(frontStake);
+        }
+    }
+
     generateNewWind();
     updateDistanceDisplay();
 
@@ -2181,10 +2291,43 @@ function animate() {
         physicsAccumulator -= FIXED_TIMESTEP;
     }
 
-    // FIXED: Re-added your Out of Bounds course boundary tracking check
-    if (!isSinking && (Math.abs(ball.position.x) > 120 || ball.position.z < holePosition.z - 40)) { // Modify this line
-        alert(`Out of Bounds! Ball flew off the course.`);
-        resetEntireGame(false);
+    // FIXED: Dynamic out-of-bounds boundary check based on distance to the hole's centerline track
+    let isOutOfBounds = false;
+    if (physics) {
+        const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
+        // Out of Bounds activates if ball is 70+ units from path, 25 units behind tee, or 45 units beyond the hole
+        if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
+            isOutOfBounds = true;
+        }
+    }
+
+    if (!isSinking && isOutOfBounds) {
+        strokeCount++;
+        document.getElementById('strokeText').innerText = strokeCount;
+
+        setTimeout(() => {
+            alert(`Out of Bounds! 🏳️ One stroke penalty. Dropping back where you last hit.`);
+
+            ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
+            ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
+            ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+            ball.visible = true;
+
+            if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
+                teeBox.visible = true;
+            }
+
+            // Re-align the camera safely behind the ball looking toward the hole cup
+            const dirX = holePosition.x - ball.position.x;
+            const dirZ = holePosition.z - ball.position.z;
+            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+            const backX = -(dirX / length) * 7.5;
+            const backZ = -(dirZ / length) * 7.5;
+            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+
+            updateDistanceDisplay();
+        }, 30);
         return;
     }
 
@@ -3515,9 +3658,9 @@ function init() {
             clubSwipe.classList.add('swipe-animation');
 
             // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
-         clubSwipe.style.removeProperty('bottom');
-             clubSwipe.style.removeProperty('left');
-             clubSwipe.style.removeProperty('transform');
+            clubSwipe.style.removeProperty('bottom');
+            clubSwipe.style.removeProperty('left');
+            clubSwipe.style.removeProperty('transform');
 
             // NEW: Scales timeout to match the active club (1000ms for slow putts, 350ms for swift swings)
             const swingDuration = club.name === 'Putter' ? 400 : 350;
