@@ -890,6 +890,20 @@ export class PhysicsEngine {
                 this.velocity.y = -this.velocity.y * currentBounceHeight; // Preserved
                 this.velocity.x *= currentBounceForwardLoss;
                 this.velocity.z *= currentBounceForwardLoss;
+
+                // Apply dynamic backspin physics depending on which club was chosen
+                if (this.hasBackspin && this.bounceCount === 1 && !inSand) {
+                    if (this.currentLoft === 0.059) { // 9 Iron: Sharp check-up bite/stop
+                        this.velocity.x *= 0.15;
+                        this.velocity.z *= 0.15;
+                    } else if (this.currentLoft === 0.061) { // PW Iron: Moderate backward spin bite
+                        this.velocity.x *= -0.25;
+                        this.velocity.z *= -0.25;
+                    } else if (this.currentLoft === 0.063) { // SW Iron: Aggressive full backward traction pull
+                        this.velocity.x *= -0.60;
+                        this.velocity.z *= -0.60;
+                    }
+                }
             } else {
 
 

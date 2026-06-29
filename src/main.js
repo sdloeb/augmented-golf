@@ -3582,6 +3582,7 @@ function init() {
         isOverheadActive = false;
 
         // Reset backspin parameters back to off default upon striking the shot
+        if (physics) physics.hasBackspin = isBackspinOn;
         isBackspinOn = false;
         const currentBackspinBtn = document.getElementById('backspinBtn');
         if (currentBackspinBtn) {
