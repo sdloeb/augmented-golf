@@ -2550,9 +2550,21 @@ function animate() {
         }
         updateDistanceDisplay();
 
-        tracerPoints.push(ball.position.clone());
-        if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
-        ballTracer.geometry.computeBoundingSphere();
+        // Turn off and clear the trail once the ball enters the green radius
+        const trailGreenX = ball.position.x - (green ? green.position.x : 0);
+        const trailGreenZ = ball.position.z - greenCenterZ;
+        const trailGreenDist = Math.sqrt(trailGreenX * trailGreenX + trailGreenZ * trailGreenZ);
+        const trailGreenAngle = Math.atan2(-trailGreenZ, trailGreenX);
+        const trailActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(trailGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+
+        if (trailGreenDist < trailActiveR) {
+            tracerPoints = [];
+            if (ballTracer) ballTracer.geometry.setFromPoints([]);
+        } else {
+            tracerPoints.push(ball.position.clone());
+            if (ballTracer) ballTracer.geometry.setFromPoints(tracerPoints);
+            ballTracer.geometry.computeBoundingSphere();
+        }
 
         // --- REPLACE THE Y-AXIS SHRINKING WITH THIS DISTANCE-BASED BLOCK ---
         // Unified seamless transition: base scale calculation on active shot origin size

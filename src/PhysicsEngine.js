@@ -897,11 +897,11 @@ export class PhysicsEngine {
                         this.velocity.x *= 0.15;
                         this.velocity.z *= 0.15;
                     } else if (this.currentLoft === 0.061) { // PW Iron: Moderate backward spin bite
-                        this.velocity.x *= -0.25;
-                        this.velocity.z *= -0.25;
+                        this.velocity.x *= -0.55;
+                        this.velocity.z *= -0.55;
                     } else if (this.currentLoft === 0.063) { // SW Iron: Aggressive full backward traction pull
-                        this.velocity.x *= -0.60;
-                        this.velocity.z *= -0.60;
+                        this.velocity.x *= -0.85;
+                        this.velocity.z *= -0.85;
                     }
                 }
             } else {
