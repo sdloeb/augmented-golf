@@ -2353,6 +2353,14 @@ function animate() {
     if (!isSinking && physics && physics.hitWater) { // Modify this line
         physics.hitWater = false;
 
+        physics.velocity.set(0, 0, 0);
+        physics.isMoving = false;
+        wasMoving = false;
+        tracerPoints = [];
+        if (ballTracer) ballTracer.geometry.setFromPoints([]);
+        strokeCount += 1;
+        document.getElementById('strokeText').innerText = strokeCount;
+
         setTimeout(() => {
             alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`);
 
