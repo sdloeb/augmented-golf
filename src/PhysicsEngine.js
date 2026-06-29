@@ -323,12 +323,9 @@ export class PhysicsEngine {
                         if (distToWater < lakeRadius - 0.4) {
                             baseHeight -= 1.2;
                         }
-                    } else if (distToWater < lakeRadius + 5.5) {
-                        // Force a wide flat terrace that spans across the coarse 3x4 unit grid spacing
-                        baseHeight = centerLakeHeight;
-                    } else if (distToWater < lakeRadius + 12.0) {
-                        // Smoothly slope the lifted terrace back into the rolling course hills
-                        const t = (distToWater - (lakeRadius + 5.5)) / 6.5;
+                    } else if (distToWater < lakeRadius + 4.0) {
+                        // Smoothly slope your natural rolling hills down to meet the water rim over 4 units
+                        const t = (distToWater - lakeRadius) / 4.0;
                         const smoothT = t * t * (3 - 2 * t);
                         baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, smoothT);
                     }

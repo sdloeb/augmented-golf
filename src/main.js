@@ -532,18 +532,37 @@ function generateHazards() {
 
     for (let i = 0; i < numWater; i++) {
         let x, z, r = 7.0 + Math.random() * 4.5;
-        let waterAttempts = 0; // Add this line
+        let waterAttempts = 0;
         do {
-            x = (Math.random() - 0.5) * 160; // Modify this line: Spans wide enough for doglegs
+            x = (Math.random() - 0.5) * 160;
             z = (targetGreenZ - 20) + Math.random() * (26 - targetGreenZ);
-            waterAttempts++; // Add this line
+            waterAttempts++;
             if (waterAttempts > 50) break;
         } while (
             checkOverlap(x, z, r, waterHazards, 3.0) ||
             checkOverlap(x, z, r, sandTraps) ||
-            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) || // Modify this line: Checks true green center
-            (physics && (physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5) || physics.getDistanceToSpline(x, z) > (9.0 + r + 2.0))) || // Modify this line: Set min distance to 0.5 and clamped max distance to 18.0
-            (z > -15 && Math.abs(x) < 15)
+            Math.sqrt((x - targetGreenX) * (x - targetGreenX) + (z - targetGreenZ) * (z - targetGreenZ)) < (12 + r + 8.0) ||
+            (physics && (physics.getDistanceToSpline(x, z) < (9.0 + r + 0.5) || physics.getDistanceToSpline(x, z) > (9.0 + r + 2.0))) ||
+            (z > -15 && Math.abs(x) < 15) ||
+            // NEW: Prevent spawning lakes over the cliff edge on Hole 3
+            (() => {
+                if (targetGreenZ < -165 && targetGreenZ > -185) {
+                    let pathCenter = 0;
+                    if (z >= -125) {
+                        let t = (10 - z) / 135;
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t);
+                    } else {
+                        let t = (-125 - z) / 55;
+                        t = Math.min(1.0, t);
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
+                    }
+                    let cliffPadding = z < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 20.0))) : 15.5;
+                    const cliffEdgeLimit = pathCenter + cliffPadding;
+                    // Check if outer terrace edge (radius + 6.0 padding) spills over the cliff line
+                    return ((x + r + 6.0) > cliffEdgeLimit && z <= -51.75);
+                }
+                return false;
+            })()
         );
         if (waterAttempts > 50) continue;
 
@@ -1537,9 +1556,11 @@ function resetEntireGame(advanceHole = false) {
             // NEW: If deforming a sand trap mesh itself, add a tiny positive offset cushion to prevent z-fighting clips
             if (sandTraps.includes(targetMesh)) {
                 calculatedHeight += 0.02;
+            } else if (waterShores.includes(targetMesh) && targetMesh.geometry.type === 'RingGeometry') {
+                // Surgically offset the dirt border ring locally relative to its high/low lake position
+                calculatedHeight += (0.022 - targetMesh.position.y);
             }
 
-            // Write the finalized calculated height to the current vertex
             posAttr.setZ(i, calculatedHeight);
         }
 
@@ -1557,6 +1578,13 @@ function resetEntireGame(advanceHole = false) {
     deformCourseMesh(floor, false);
     deformCourseMesh(fairway, true);
     sandTraps.forEach(sand => deformCourseMesh(sand, false));
+
+    // Snap the flat water shore dirt borders onto the 3D ground contour heightmap
+    waterShores.forEach(shore => {
+        if (shore.geometry && shore.geometry.type === 'RingGeometry') {
+            deformCourseMesh(shore, false);
+        }
+    });
 
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
