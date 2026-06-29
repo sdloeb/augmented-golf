@@ -167,6 +167,7 @@ let visualGuideBeads = [];
 let completedHoles = [];
 let isRaining = false;
 let isOutOfBoundsResetting = false;
+let isBackspinOn = false;
 let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
 let currentHoleYards = 0;
@@ -1287,24 +1288,22 @@ function resetEntireGame(advanceHole = false) {
 
             // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
+            let closeToWater = false; // Tracks vertices near the lake terrace
             waterHazards.forEach(water => {
-                // MODIFIED: Updated visual vertex check to respect our curved centerline path limits
+                // MODIFIED: Constrained the rectangular ocean check to only apply to coordinates past our curved cliff face line
                 if (water.userData && water.userData.isRectangular) {
                     let pathCenter = 0;
                     if (worldZ >= -125) {
                         let t = (10 - worldZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Prevents visual ocean mesh from bleeding onto the new left path extension
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t);
                     } else {
                         let t = (-125 - worldZ) / 55;
                         t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Prevents visual ocean mesh from bleeding onto the new left path extension
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
                     }
-
-                    // Modify these lines to match the smooth visual transition:
                     let cliffPadding = 15.5;
                     if (worldZ < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))); }
                     const cliffEdgeLimit = pathCenter + cliffPadding;
-
                     if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
                         worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
                         insideWaterZone = true;
@@ -1314,8 +1313,11 @@ function resetEntireGame(advanceHole = false) {
                     const dzW = worldZ - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                     const lakeRadius = water.userData.radius || 5;
-                    if (distToWater < lakeRadius + 0.55) {
+                    if (distToWater < lakeRadius - 0.65) { // Pull grass down ONLY inside the inner water pool basin
                         insideWaterZone = true;
+                    }
+                    if (distToWater < lakeRadius + 6.0) { // Flags vertices sitting within the lake's terrace blend
+                        closeToWater = true;
                     }
                 }
             });
@@ -1425,7 +1427,9 @@ function resetEntireGame(advanceHole = false) {
                 const isOnGreenSidesOrBack = (approachDot > 0.0) && (distToGreenCenter >= activeR - 2.0);
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
-                if (distanceToPath <= fW && !isPastFairway && !isOnGreenSidesOrBack) {
+                if (closeToWater) {
+                    // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
+                } else if (distanceToPath <= fW && !isPastFairway && !isOnGreenSidesOrBack) {
                     floorHeight -= 0.04;
                 } else if (distanceToPath <= fWEdge && !isPastFairway && !isOnGreenSidesOrBack) {
                     const t = (distanceToPath - fW) / 3.5;
@@ -1486,7 +1490,8 @@ function resetEntireGame(advanceHole = false) {
                             } else {
                                 const t = (distanceToPath - fW) / 3.5;
                                 const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-                                let cushion = 0.06;
+
+                                let cushion = closeToWater ? 0.0 : 0.06; // Neutralize the step highlight around lakes
                                 if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                                     cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
@@ -1500,7 +1505,7 @@ function resetEntireGame(advanceHole = false) {
                             calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, floorHeight - 1.5, smoothTFairway);
                         }
                     } else if (distanceToPath <= fW) {
-                        let cushion = 0.06;
+                        let cushion = closeToWater ? 0.0 : 0.06; // Neutralize the step highlight around lakes
                         if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                             cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
@@ -2215,6 +2220,19 @@ function resetEntireGame(advanceHole = false) {
 function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
+
+    // Update backspin button visibility state based on aim mode and active club choice
+    const backspinBtn = document.getElementById('backspinBtn');
+    if (backspinBtn && input) {
+        const activeClub = input.getClubInfo();
+        const allowedClub = activeClub && (activeClub.name === '9 Iron' || activeClub.name === 'PW Iron' || activeClub.name === 'SW Iron');
+
+        if (input.isAimMode && allowedClub && !physics.isMoving && !isSinking) {
+            backspinBtn.classList.remove('hidden');
+        } else {
+            backspinBtn.classList.add('hidden');
+        }
+    }
 
     // UPDATED BLOCK: Smooth infinite background cloud texture glide
     const dynamicCloudMesh = document.getElementById('cloudSkyLayer');
@@ -3562,6 +3580,16 @@ function init() {
         window.shotStartX = ball.position.x; // Add this line
         window.shotStartZ = ball.position.z;
         isOverheadActive = false;
+
+        // Reset backspin parameters back to off default upon striking the shot
+        isBackspinOn = false;
+        const currentBackspinBtn = document.getElementById('backspinBtn');
+        if (currentBackspinBtn) {
+            currentBackspinBtn.innerText = "BACKSPIN OFF";
+            currentBackspinBtn.style.borderColor = "#ffffff";
+            currentBackspinBtn.style.color = "#ffffff";
+        }
+
         if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
 
         // FIXED: Capture if the ball is struck off the tee box before hiding its template mesh structure
@@ -3782,6 +3810,22 @@ function init() {
                 cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (checkOnGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
             }
         });
+    }
+
+    // Add backspin button interaction click listeners
+    const backspinBtn = document.getElementById('backspinBtn');
+    if (backspinBtn) {
+        const handleBackspinToggle = (e) => {
+            e.stopPropagation();
+            if (e.type === 'touchstart') e.preventDefault();
+
+            isBackspinOn = !isBackspinOn;
+            backspinBtn.innerText = isBackspinOn ? "BACKSPIN ON" : "BACKSPIN OFF";
+            backspinBtn.style.borderColor = isBackspinOn ? "#ff3366" : "#ffffff";
+            backspinBtn.style.color = isBackspinOn ? "#ff3366" : "#ffffff";
+        };
+        backspinBtn.addEventListener('click', handleBackspinToggle);
+        backspinBtn.addEventListener('touchstart', handleBackspinToggle, { passive: false });
     }
 
     generateNewWind();

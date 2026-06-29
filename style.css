@@ -56,6 +56,35 @@ html {
     color: #00ffcc;
 }
 
+#backspinBtn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px solid #ffffff;
+    border-radius: 5px;
+    padding: 12px 24px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.7);
+    transition: all 0.15s ease;
+    pointer-events: auto;
+    z-index: 10000;
+}
+
+#backspinBtn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #ff3366;
+    color: #ff3366;
+}
+
+#backspinBtn.hidden {
+    display: none;
+}
+
 #distanceGauge {
     position: absolute;
     /* Positioned right next to the ball's screen location */

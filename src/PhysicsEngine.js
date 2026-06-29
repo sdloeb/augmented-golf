@@ -318,14 +318,19 @@ export class PhysicsEngine {
                     const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
                     const centerLakeHeight = water.position.y - 0.01;
 
-                    if (distToWater < lakeRadius + 0.6) {
+                    if (distToWater < lakeRadius) {
                         baseHeight = centerLakeHeight;
                         if (distToWater < lakeRadius - 0.4) {
                             baseHeight -= 1.2;
                         }
-                    } else if (distToWater < lakeRadius + 2.5) {
-                        const blendFactor = (distToWater - (lakeRadius + 0.6)) / 1.9;
-                        baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, blendFactor);
+                    } else if (distToWater < lakeRadius + 5.5) {
+                        // Force a wide flat terrace that spans across the coarse 3x4 unit grid spacing
+                        baseHeight = centerLakeHeight;
+                    } else if (distToWater < lakeRadius + 12.0) {
+                        // Smoothly slope the lifted terrace back into the rolling course hills
+                        const t = (distToWater - (lakeRadius + 5.5)) / 6.5;
+                        const smoothT = t * t * (3 - 2 * t);
+                        baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, smoothT);
                     }
                 }
             });
