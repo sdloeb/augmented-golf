@@ -166,6 +166,7 @@ let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 let visualGuideBeads = [];
 let completedHoles = [];
 let isRaining = false;
+let isOutOfBoundsResetting = false;
 let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
 let currentHoleYards = 0;
@@ -2301,7 +2302,21 @@ function animate() {
         }
     }
 
-    if (!isSinking && isOutOfBounds) {
+    if (!isSinking && isOutOfBounds && !isOutOfBoundsResetting) {
+        isOutOfBoundsResetting = true;
+
+        // FORCE THE BALL TO STOP MOVING IMMEDIATELY
+        if (physics) {
+            physics.velocity.set(0, 0, 0);
+            physics.isMoving = false;
+        }
+        wasMoving = false;
+
+        // Clear the visual shot tracer line immediately
+        tracerPoints = [];
+        if (ballTracer) ballTracer.geometry.setFromPoints([]);
+
+        // Add the penalty stroke
         strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
 
@@ -2326,7 +2341,10 @@ function animate() {
             cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
 
+            // Re-verify the stroke UI display text is forced visible after the alert closes
+            document.getElementById('strokeText').innerText = strokeCount;
             updateDistanceDisplay();
+            isOutOfBoundsResetting = false;
         }, 30);
         return;
     }

@@ -23,7 +23,7 @@ export class TutorialManager {
     start() {
         // Only run if on Hole 1 and hasn't been completed yet in this browser session
         // if (localStorage.getItem('golfTutorialCompleted') === 'true') {
-        //     return;
+        return;
         // }
 
         window.isTutorialActive = true;
