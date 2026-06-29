@@ -173,6 +173,7 @@ let sandTraps = [];
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
+let divotObjects = [];
 let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
@@ -719,6 +720,12 @@ function updateWindArrowDisplay() {
 function resetEntireGame(advanceHole = false) {
     if (advanceHole) {
         currentHoleNumber++;
+    }
+
+    // Clear old divots so they don't carry over into the next hole or reset
+    if (divotObjects) {
+        divotObjects.forEach(d => scene.remove(d));
+        divotObjects = [];
     }
 
     if (rainParticles) {
@@ -1679,16 +1686,16 @@ function resetEntireGame(advanceHole = false) {
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
         let distanceToTee = Math.sqrt((sampleX - teeBoxX) * (sampleX - teeBoxX) + (sampleZ - 10) * (sampleZ - 10));
         let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
+        // LINE ABOVE FOR FIND: let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
         if (distanceToTee < 9.03 || distanceToHole < 9.03) {
             continue;
         }
 
         // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
-        let distanceToGreenCenter = Math.sqrt((sampleX - greenEndpoint.x) * (sampleX - greenEndpoint.x) + (sampleZ - greenCenterZ) * (sampleZ - greenCenterZ)); // Modify this line: Swapped to greenEndpoint.x
-        if (distanceToGreenCenter < 15.0) { // Keep this line
-            continue; // Keep this line
-        } // Keep this line
-
+        let distanceToGreenCenter = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
+        if (distanceToGreenCenter < 15.0) {
+            continue;
+        }
         // Prevent spawning inside sand traps (+1.0 unit buffer padding)
         let insideSandTrap = sandTraps.some(sandMesh => {
             if (sandMesh.userData && sandMesh.userData.isPolygon) { // Add this line
@@ -3420,6 +3427,7 @@ function init() {
 
             divotMesh.position.set(ball.position.x, divotY, ball.position.z);
             scene.add(divotMesh);
+            divotObjects.push(divotMesh);
         }
 
         let finalPower = power;

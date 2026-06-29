@@ -10,7 +10,7 @@ export class TutorialManager {
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM', duration: 3000 },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'Pull BACK AND SWIPE FORWARD ALONG SAME DIAGONAL TO CREATE A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
+            { selector: '#clubSwipe', text: 'PULL BACK AND SWIPE FORWARD ON THE SAME DIAGONAL FOR A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -163,7 +163,7 @@ export class TutorialManager {
             // Step 3 and later: Position text in the upper center area to leave the center clear for swing animations
             this.textEl.style.left = '50%';
             this.textEl.style.top = '50%';
-            this.textEl.style.fontSize = isMobilePortrait ? '22px' : '28px';
+            this.textEl.style.fontSize = isMobilePortrait ? '28px' : '34px';
             this.textEl.style.textAlign = 'center';
             this.textEl.style.width = '80%';
             this.textEl.style.maxWidth = '600px';
