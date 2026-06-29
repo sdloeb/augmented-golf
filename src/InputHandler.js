@@ -493,18 +493,30 @@ export class InputHandler {
             if (this.ballRef) {
                 let inSand = false;
 
-                // 1. Check Sand Traps contact
                 if (this.sandTrapsRef) {
                     for (let sand of this.sandTrapsRef) {
-                        const dx = this.ballRef.position.x - sand.position.x;
-                        const dz = this.ballRef.position.z - sand.position.z;
-
-                        const angle = Math.atan2(dz, dx); // Add this line
-                        const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
-                        const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
-                        if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                            inSand = true;
-                            break;
+                        if (sand.userData && sand.userData.isPolygon) {
+                            const points = sand.userData.points;
+                            let inside = false;
+                            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                                const xi = points[i].x, zi = points[i].z;
+                                const xj = points[j].x, zj = points[j].z;
+                                const intersect = ((zi > ball.position.z) !== (zj > ball.position.z))
+                                    && (ball.position.x < (xj - xi) * (ball.position.z - zi) / (zj - zi) + xi);
+                                if (intersect) inside = !inside;
+                            }
+                            if (inside) {
+                                launchedFromSand = true;
+                                break;
+                            }
+                        } else {
+                            const dx = ball.position.x - sand.position.x;
+                            const dz = ball.position.z - sand.position.z;
+                            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
+                                launchedFromSand = true;
+                                break;
+                            }
                         }
                     }
                 }

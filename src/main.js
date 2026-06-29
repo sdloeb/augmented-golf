@@ -1199,6 +1199,31 @@ function resetEntireGame(advanceHole = false) {
 
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
+            // Prevent the putting green complex from clipping into overlapping sand traps
+            let insideSandZoneCheck = false;
+            sandTraps.forEach(sand => {
+                if (sand.userData && sand.userData.isPolygon) {
+                    const points = sand.userData.points;
+                    let inside = false;
+                    for (let k = 0, j = points.length - 1; k < points.length; j = k++) {
+                        const xi = points[k].x, zi = points[k].z;
+                        const xj = points[j].x, zj = points[j].z;
+                        const intersect = ((zi > worldZ) !== (zj > worldZ))
+                            && (worldX < (xj - xi) * (worldZ - zi) / (zj - zi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    if (inside) insideSandZoneCheck = true;
+                } else {
+                    const dxS = worldX - sand.position.x;
+                    const dzS = worldZ - sand.position.z;
+                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) insideSandZoneCheck = true;
+                }
+            });
+            if (insideSandZoneCheck) {
+                calculatedHeight -= 1.5;
+            }
+
             if (targetMesh === green) calculatedHeight += 0.02;
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
             if (targetMesh === greenFringe) calculatedHeight += 0.018;
@@ -1321,7 +1346,7 @@ function resetEntireGame(advanceHole = false) {
                     let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
 
                     // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
-                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.2 : 0.0;
+                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.0 : 0.0;
                     const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
 
                     if (distToSand < sandRadius) {
@@ -1433,8 +1458,7 @@ function resetEntireGame(advanceHole = false) {
 
 
                     // Isolate boundary/sand hiding rules from green-blending rules
-                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132)));
-
+                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 1.5) : (floorHeight - 1.5);
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
@@ -1496,6 +1520,11 @@ function resetEntireGame(advanceHole = false) {
 
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
+                }
+            } else {
+                // Pull grass meshes underground inside water lines to prevent clipping at the banks
+                if (targetMesh === floor || targetMesh === fairway) {
+                    calculatedHeight -= 1.5;
                 }
             } // This bracket ends the insideWaterZone check clean
 
@@ -2826,7 +2855,11 @@ function animate() {
                 const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
                 const lakeRadius = mesh.userData.radius || 5; // Add this line
                 // Smoothly fade waves down over the outer 1.5 units of the lake profile
-                const waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5)); // Add this line
+                // Smoothly fade waves down over the outer 1.5 units of the lake profile
+                let waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5));
+                if (mesh.userData && mesh.userData.isRectangular) {
+                    waveFade = 1.0; // Keep waves active across the entire ocean surface
+                }
 
                 // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
                 const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
@@ -3482,9 +3515,9 @@ function init() {
             clubSwipe.classList.add('swipe-animation');
 
             // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
-            clubSwipe.style.bottom = '';
-            clubSwipe.style.left = '';
-            clubSwipe.style.transform = '';
+         clubSwipe.style.removeProperty('bottom');
+             clubSwipe.style.removeProperty('left');
+             clubSwipe.style.removeProperty('transform');
 
             // NEW: Scales timeout to match the active club (1000ms for slow putts, 350ms for swift swings)
             const swingDuration = club.name === 'Putter' ? 400 : 350;
