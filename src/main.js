@@ -249,11 +249,19 @@ function updateDistanceDisplay() {
         const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
 
         if (isOnGreenSurface) {
+            // Restore the original 1.5 scale so short putts read correctly as 3-4 feet again
             const feet = Math.round(gameDistance * 1.50);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            const yards = Math.round(gameDistance * 2.76923); // Precise starting scale multiplier
+            // Smoothly blend the yardage multiplier when close to the green to prevent sudden jumps
+            let multiplier = 2.76923;
+            if (gameDistance <= 30.0) {
+                const t = Math.max(0.0, (gameDistance - activeR) / (30.0 - activeR));
+                // Smoothly blend from 0.5 yards per unit (matching 1.5 feet) up to full fairway yards
+                multiplier = THREE.MathUtils.lerp(0.5, 2.76923, t);
+            }
+            const yards = Math.round(gameDistance * multiplier);
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
@@ -599,7 +607,7 @@ function generateHazards() {
         );
         waterMesh.rotation.x = -Math.PI / 2;
         // FIXED: Lowered from +0.06 to +0.01 to snap the water surface flush against the terrain hills
-        waterMesh.position.set(x, currentWaterGroundY + 0.01, z);
+        waterMesh.position.set(x, currentWaterGroundY + 0.01 - 1.5, z);
         waterMesh.userData = { radius: r };
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
@@ -614,7 +622,7 @@ function generateHazards() {
         );
         shoreMesh.rotation.x = -Math.PI / 2;
         // FIXED: Lowered from +0.07 to +0.015 to securely bind the shore ring down to the grass without floating disc artifacts
-        shoreMesh.position.set(x, currentWaterGroundY + 0.015, z);
+        shoreMesh.position.set(x, currentWaterGroundY + 0.015 - 1.5, z);
         scene.add(shoreMesh);
         waterShores.push(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
@@ -630,7 +638,7 @@ function generateHazards() {
         );
 
         // FIXED: Shifted down to match the new 0.015 shore reference line perfectly
-        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 25.0, z);
+        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 25.0 - 1.5, z);
         scene.add(wallMesh);
         waterShores.push(wallMesh);
 
@@ -1332,11 +1340,8 @@ function resetEntireGame(advanceHole = false) {
                     const dzW = worldZ - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                     const lakeRadius = water.userData.radius || 5;
-                    if (distToWater < lakeRadius - 0.65) { // Pull grass down ONLY inside the inner water pool basin
+                    if (distToWater < lakeRadius + 0.1) { // Pull grass down inside the shore ring boundary to prevent jagged clips
                         insideWaterZone = true;
-                    }
-                    if (distToWater < lakeRadius + 6.0) { // Flags vertices sitting within the lake's terrace blend
-                        closeToWater = true;
                     }
                 }
             });
@@ -2577,7 +2582,6 @@ function animate() {
             }
         }
         updateDistanceDisplay();
-
         // Turn off and clear the trail once the ball enters the green radius
         const trailGreenX = ball.position.x - (green ? green.position.x : 0);
         const trailGreenZ = ball.position.z - greenCenterZ;
@@ -2585,7 +2589,8 @@ function animate() {
         const trailGreenAngle = Math.atan2(-trailGreenZ, trailGreenX);
         const trailActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(trailGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-        if (trailGreenDist < trailActiveR) {
+        // UPDATE THIS LINE BELOW: Ensure the tracer line only clears once it hits the green surface
+        if (trailGreenDist < trailActiveR && physics.hasLanded) {
             tracerPoints = [];
             if (ballTracer) ballTracer.geometry.setFromPoints([]);
         } else {
@@ -2736,7 +2741,7 @@ function animate() {
     // === PASTE THIS REPLACEMENT CODE BLOCK ===
     // 1. DEFAULT SPEED: Set to 0.25 when stationary so the camera instantly snaps into the address 
     // position behind the ball the moment it stops, completely removing the "too far away to hit" delay lag.
-    let activeCameraSpeed = physics.isMoving ? 0.05 : 0.25;
+    let activeCameraSpeed = physics.isMoving ? 0.05 : 0.04;
 
     // FIXED: Responsive chase speed (0.035 instead of 0.005) allows camera to slow down precisely WITH the ball on bounce impact
     if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
@@ -2940,7 +2945,7 @@ function animate() {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.04) : 0.08;
+        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.04) : 0.04;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;

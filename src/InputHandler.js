@@ -80,10 +80,10 @@ export class InputHandler {
         return CLUBS[defaultIndex];
     }
 
-    // ADD THIS FUNCTION HERE: Calculates your custom 20/40/60 dynamic limits
     getPutterMaxFeet() {
         if (!this.getDistance) return 60;
         const rawUnits = this.getDistance() / 2.76923;
+        // Restore to use the original 1.5 putting scale factor
         const distanceInFeet = rawUnits * 1.5;
         if (distanceInFeet <= 15) return 20;
         if (distanceInFeet <= 30) return 40;
