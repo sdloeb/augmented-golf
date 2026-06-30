@@ -890,15 +890,35 @@ export class PhysicsEngine {
 
                 // Apply dynamic backspin physics depending on which club was chosen
                 if (this.hasBackspin && this.bounceCount === 1 && !inSand) {
-                    if (this.currentLoft === 0.059) { // 9 Iron: Sharp check-up bite/stop
-                        this.velocity.x *= 0.15;
-                        this.velocity.z *= 0.15;
-                    } else if (this.currentLoft === 0.061) { // PW Iron: Moderate backward spin bite
-                        this.velocity.x *= -0.55;
-                        this.velocity.z *= -0.55;
-                    } else if (this.currentLoft === 0.063) { // SW Iron: Aggressive full backward traction pull
-                        this.velocity.x *= -0.85;
-                        this.velocity.z *= -0.85;
+                    let spinMultiplier = 1.0;
+                    if (this.currentLoft === 0.051) spinMultiplier = 0.75;      // 5 Iron: minor forward check
+                    else if (this.currentLoft === 0.053) spinMultiplier = 0.55; // 6 Iron: light forward check
+                    else if (this.currentLoft === 0.055) spinMultiplier = 0.35; // 7 Iron: moderate forward check
+                    else if (this.currentLoft === 0.057) spinMultiplier = 0.22; // 8 Iron: heavy forward check-up
+                    else if (this.currentLoft === 0.059) spinMultiplier = 0.15; // 9 Iron (Original): sharp check-up bite
+                    else if (this.currentLoft === 0.061) spinMultiplier = -0.55; // PW Iron (Original): moderate backward bite
+                    else if (this.currentLoft === 0.063) spinMultiplier = -0.85; // SW Iron (Original): aggressive backward traction
+
+                    if (spinMultiplier !== 1.0) {
+                        // 1. SURFACE GRAB EVALUATION (Green = 100% friction grab, Fairway = 40% partial check, Rough = 0% muffle)
+                        let surfaceFactor = 0.0;
+                        if (onGreen) {
+                            surfaceFactor = 1.0;
+                        } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
+                            ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
+                            surfaceFactor = 0.4;
+                        }
+
+                        // 2. SPEED/POWER DEPENDENCY (Recovers pre-bounce velocity to prevent short chips from snapping backwards)
+                        const incomingHorizontalSpeed = Math.hypot(this.velocity.x / currentBounceForwardLoss, this.velocity.z / currentBounceForwardLoss);
+                        const speedFactor = Math.min(1.0, Math.max(0.0, incomingHorizontalSpeed / 0.01));
+
+                        // 3. SEAMLESS COALESCENCE (Blends between normal forward physics (1.0) and backspin multipliers)
+                        const combinedFactor = speedFactor * surfaceFactor;
+                        const activeMultiplier = 1.0 + (spinMultiplier - 1.0) * combinedFactor;
+
+                        this.velocity.x *= activeMultiplier;
+                        this.velocity.z *= activeMultiplier;
                     }
                 }
             } else {

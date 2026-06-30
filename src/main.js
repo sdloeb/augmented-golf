@@ -2733,7 +2733,7 @@ function animate() {
     // === PASTE THIS REPLACEMENT CODE BLOCK ===
     // 1. DEFAULT SPEED: Set to 0.25 when stationary so the camera instantly snaps into the address 
     // position behind the ball the moment it stops, completely removing the "too far away to hit" delay lag.
-    let activeCameraSpeed = physics.isMoving ? 0.05 : 0.25;
+    let activeCameraSpeed = physics.isMoving ? 0.05 : 0.04;
 
     // FIXED: Responsive chase speed (0.035 instead of 0.005) allows camera to slow down precisely WITH the ball on bounce impact
     if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
@@ -2937,7 +2937,7 @@ function animate() {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.04) : 0.08;
+        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.04) : 0.04;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
