@@ -599,7 +599,7 @@ function generateHazards() {
         );
         waterMesh.rotation.x = -Math.PI / 2;
         // FIXED: Lowered from +0.06 to +0.01 to snap the water surface flush against the terrain hills
-        waterMesh.position.set(x, currentWaterGroundY + 0.01, z);
+        waterMesh.position.set(x, currentWaterGroundY + 0.01 - 1.5, z);
         waterMesh.userData = { radius: r };
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
@@ -614,7 +614,7 @@ function generateHazards() {
         );
         shoreMesh.rotation.x = -Math.PI / 2;
         // FIXED: Lowered from +0.07 to +0.015 to securely bind the shore ring down to the grass without floating disc artifacts
-        shoreMesh.position.set(x, currentWaterGroundY + 0.015, z);
+        shoreMesh.position.set(x, currentWaterGroundY + 0.015 - 1.5, z);
         scene.add(shoreMesh);
         waterShores.push(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
@@ -630,7 +630,7 @@ function generateHazards() {
         );
 
         // FIXED: Shifted down to match the new 0.015 shore reference line perfectly
-        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 25.0, z);
+        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 25.0 - 1.5, z);
         scene.add(wallMesh);
         waterShores.push(wallMesh);
 
@@ -1332,11 +1332,8 @@ function resetEntireGame(advanceHole = false) {
                     const dzW = worldZ - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
                     const lakeRadius = water.userData.radius || 5;
-                    if (distToWater < lakeRadius - 0.65) { // Pull grass down ONLY inside the inner water pool basin
+                    if (distToWater < lakeRadius + 0.1) { // Pull grass down inside the shore ring boundary to prevent jagged clips
                         insideWaterZone = true;
-                    }
-                    if (distToWater < lakeRadius + 6.0) { // Flags vertices sitting within the lake's terrace blend
-                        closeToWater = true;
                     }
                 }
             });
