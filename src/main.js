@@ -249,11 +249,19 @@ function updateDistanceDisplay() {
         const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
 
         if (isOnGreenSurface) {
+            // Restore the original 1.5 scale so short putts read correctly as 3-4 feet again
             const feet = Math.round(gameDistance * 1.50);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            const yards = Math.round(gameDistance * 2.76923); // Precise starting scale multiplier
+            // Smoothly blend the yardage multiplier when close to the green to prevent sudden jumps
+            let multiplier = 2.76923;
+            if (gameDistance <= 30.0) {
+                const t = Math.max(0.0, (gameDistance - activeR) / (30.0 - activeR));
+                // Smoothly blend from 0.5 yards per unit (matching 1.5 feet) up to full fairway yards
+                multiplier = THREE.MathUtils.lerp(0.5, 2.76923, t);
+            }
+            const yards = Math.round(gameDistance * multiplier);
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
@@ -2574,7 +2582,6 @@ function animate() {
             }
         }
         updateDistanceDisplay();
-
         // Turn off and clear the trail once the ball enters the green radius
         const trailGreenX = ball.position.x - (green ? green.position.x : 0);
         const trailGreenZ = ball.position.z - greenCenterZ;
@@ -2582,7 +2589,8 @@ function animate() {
         const trailGreenAngle = Math.atan2(-trailGreenZ, trailGreenX);
         const trailActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(trailGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-        if (trailGreenDist < trailActiveR) {
+        // UPDATE THIS LINE BELOW: Ensure the tracer line only clears once it hits the green surface
+        if (trailGreenDist < trailActiveR && physics.hasLanded) {
             tracerPoints = [];
             if (ballTracer) ballTracer.geometry.setFromPoints([]);
         } else {
