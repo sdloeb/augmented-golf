@@ -3040,7 +3040,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // Delete the old inline style bottom line from here
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 0.75 : 1.10})`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.4 : 0.75})`, 'important');
                     } else {
                         // Delete clubSwipeElement.style.bottom = ''; from here
                         clubSwipeElement.style.left = '';
