@@ -676,21 +676,21 @@ html {
         0% {
             bottom: var(--putter-start-bottom, 30.0%);
             left: calc(50% - 77.5px);
-            transform: rotate(0deg) scale(0.75);
+            transform: rotate(0deg) scale(1.1);
             opacity: 1;
         }
 
         35% {
             bottom: 30.0%;
             left: calc(50% - 77.5px);
-            transform: rotate(0deg) scale(0.75);
+            transform: rotate(0deg) scale(1.1);
             opacity: 1;
         }
 
         100% {
             bottom: 38.2%;
             left: calc(50% - 77.5px);
-            transform: rotate(0deg) scale(0.75);
+            transform: rotate(0deg) scale(1.1);
             opacity: 0;
         }
     }
