@@ -937,7 +937,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate the mathematical Catmull-Rom spline curve from the waypoints
     const fairwaySpline = new THREE.CatmullRomCurve3(holeConfig.waypoints);
-    physics.fairwayPoints = fairwaySpline.getPoints(200); // Extract 200 spatial resolution check nodes
+    physics.fairwayPoints = fairwaySpline.getPoints(1000);
 
     // The green centers itself perfectly on the final waypoint point of the path
     const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
@@ -3381,7 +3381,7 @@ function init() {
 
 
     // 5. Add Virtual Golf Green Floor (Optimized grid segments to prevent mobile browser crash overhead)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 100, 200);
+    const floorGeo = new THREE.PlaneGeometry(300, 800, 300, 600);
 
     // Procedural rough grass noise texture generator
     const rCanvas = document.createElement('canvas');
@@ -3405,7 +3405,7 @@ function init() {
     scene.add(floor);
 
     // Balanced geometric limits ensuring smooth organic curved shapes while minimizing performance weight
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 100, 200);
+    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 300, 600);
 
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
