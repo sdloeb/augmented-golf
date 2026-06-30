@@ -655,6 +655,7 @@ html {
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 77.5px) !important;
         bottom: 21% !important;
+        transform: rotate(0deg) scale(0.75) !important;
         /* Kept at 35% to line up perfectly with closer portrait putter camera view */
     }
 
@@ -675,21 +676,21 @@ html {
         0% {
             bottom: var(--putter-start-bottom, 30.0%);
             left: calc(50% - 77.5px);
-            transform: rotate(0deg) scale(1.4);
+            transform: rotate(0deg) scale(0.75);
             opacity: 1;
         }
 
         35% {
             bottom: 30.0%;
             left: calc(50% - 77.5px);
-            transform: rotate(0deg) scale(1.4);
+            transform: rotate(0deg) scale(0.75);
             opacity: 1;
         }
 
         100% {
             bottom: 38.2%;
             left: calc(50% - 77.5px);
-            transform: rotate(0deg) scale(1.4);
+            transform: rotate(0deg) scale(0.75);
             opacity: 0;
         }
     }
