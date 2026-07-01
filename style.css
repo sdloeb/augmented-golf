@@ -679,7 +679,7 @@ html {
 
     /* NEW OVERRIDE: Change the size of the Irons specifically on mobile screens */
     #clubSwipe.iron {
-        transform: scale(0.90) !important;
+        transform: scale(1.00) !important;
         /* Adjust this decimal up or down to tune your mobile iron size */
         transform-origin: right bottom;
     }
