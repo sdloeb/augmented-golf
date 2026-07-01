@@ -556,12 +556,11 @@ export class PhysicsEngine {
             currentBounceForwardLoss = 0.30;
         }
 
-        // === PASTE THIS REPLACEMENT CODE BLOCK ===
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
         if (this.isPutting) {
-            if (!onGreen) {
-                // FIXED: If the putt rolls completely off the green complex, terminate putting status instantly.
-                // This forces the ball to plow into normal grass friction and use the standard, crisp stop threshold.
+            // Allow putting state to remain active across both the putting surface and fringe collar complex
+            if (distToGreenCenter > activeRadius + 2.5) {
+                // Terminate putting status instantly if it completely leaves the green complex
                 this.isPutting = false;
             } else {
                 currentFriction = 0.979;

@@ -254,19 +254,12 @@ function updateDistanceDisplay() {
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            // Smoothly blend the yardage multiplier when close to the green to prevent sudden jumps
-            let multiplier = 2.76923;
-            if (gameDistance <= 30.0) {
-                const t = Math.max(0.0, (gameDistance - activeR) / (30.0 - activeR));
-                // Smoothly blend from 0.5 yards per unit (matching 1.5 feet) up to full fairway yards
-                multiplier = THREE.MathUtils.lerp(0.5, 2.76923, t);
-            }
-            const yards = Math.round(gameDistance * multiplier);
+            // Standardize yardage scale factor linearly up to the green edge to prevent compression bugs
+            const yards = Math.round(gameDistance * 2.76923);
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
     }
-
 
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
@@ -3707,17 +3700,35 @@ function init() {
         }
 
         let finalPower = power;
-        if (isOnGreen) {
+        const club = input.getClubInfo();
+
+        if (isOnGreen || club.name === 'Putter') {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
             finalPower *= 2.10;
 
-            // ADD THIS BLOCK: Smooth friction compensation for ultra-short micro putts
+            // If putting from off the green (fringe/fairway), add a boost to overcome heavier grass friction
+            if (!isOnGreen) {
+                finalPower *= 1.45;
+            }
+
+            // Smooth friction compensation for ultra-short micro putts
             if (finalPower < 5.5) {
                 finalPower += (5.5 - finalPower) * 0.58;
             }
+        } else {
+            // Short game chipping tuning: If within 35 yards of the pin, apply a smooth touch dampener
+            const dxH = ball.position.x - holePosition.x;
+            const dzH = ball.position.z - holePosition.z;
+            const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
+
+            if (yardsToPin < 35.0) {
+                // Smoothly scale down the excessive full-swing power of wedges at close range
+                const shortGameT = yardsToPin / 35.0;
+                // Linearly blend between a high-precision touch factor (0.65) and full power (1.0)
+                finalPower *= THREE.MathUtils.lerp(0.65, 1.0, shortGameT);
+            }
         }
 
-        const club = input.getClubInfo()
         const isPuttingStroke = isOnGreen || club.name === 'Putter'; // Add this line: Safe check preventing division by zero
 
         physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
