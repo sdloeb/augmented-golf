@@ -219,7 +219,7 @@ html {
 
 /* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
 #clubSwipe.wood {
-    zoom: 0.55;
+    zoom: 0.85;
     /* NEW: Change this ONE number to scale the entire wood club up or down instantly! */
 
     /* Reshaped width and height to give the crown a deep, bulbous driver silhouette */
@@ -648,13 +648,13 @@ html {
         font-size: 12px !important;
     }
 
- /* Update this block to lock the club alignment to the 50% ball center on mobile */
+    /* Update this block to lock the club alignment to the 50% ball center on mobile */
     #clubSwipe.idle-stance {
         left: calc(50% - 40px) !important;
         bottom: 32% !important;
-        
+
         /* ADD THIS LINE BELOW: Adjust this decimal to set your mobile fairway/rough club size */
-        transform: scale(0.80) !important; 
+        transform: scale(0.80) !important;
     }
 
     /* Add this block right below it to override the putter on mobile screens */
