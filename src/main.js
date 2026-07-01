@@ -1447,11 +1447,11 @@ function resetEntireGame(advanceHole = false) {
                 if (closeToWater) {
                     // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
                 } else if (distanceToPath <= fW && !isPastFairway && !isOnGreenSidesOrBack) {
-                    floorHeight -= 0.04;
+                    floorHeight -= 0.12;
                 } else if (distanceToPath <= fWEdge && !isPastFairway && !isOnGreenSidesOrBack) {
                     const t = (distanceToPath - fW) / 3.5;
                     const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-                    floorHeight -= THREE.MathUtils.lerp(0.04, 0.0, smoothT);
+                    floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
 
                 // Render the rough floor geometry
@@ -1498,20 +1498,20 @@ function resetEntireGame(advanceHole = false) {
                             // Track what the normal fairway height should have been
                             let normalFairwayHeight = calculatedHeight;
                             if (distanceToPath <= fW) {
-                                let cushion = 0.06;
+                                let cushion = -0.05;
                                 if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                                    cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
+                                    cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                                 }
                                 normalFairwayHeight += cushion;
                             } else {
                                 const t = (distanceToPath - fW) / 3.5;
                                 const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                                let cushion = closeToWater ? 0.0 : 0.06; // Neutralize the step highlight around lakes
+                                let cushion = closeToWater ? 0.0 : -0.05; // Neutralize the step highlight around lakes
                                 if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                                    cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
+                                    cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                                 }
                                 const visibleHeight = calculatedHeight + cushion;
                                 const hiddenHeight = floorHeight - 1.5;
@@ -1522,20 +1522,20 @@ function resetEntireGame(advanceHole = false) {
                             calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, floorHeight - 1.5, smoothTFairway);
                         }
                     } else if (distanceToPath <= fW) {
-                        let cushion = closeToWater ? 0.0 : 0.06; // Neutralize the step highlight around lakes
+                        let cushion = closeToWater ? 0.0 : -0.05; // Neutralize the step highlight around lakes
                         if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
+                            cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                         }
                         calculatedHeight += cushion;
                     } else {
                         const t = (distanceToPath - fW) / 3.5;
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                        let cushion = 0.06;
+                        let cushion = -0.05;
                         if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(-0.06, 0.06, Math.max(0, Math.min(1, tFade)));
+                            cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                         }
 
                         const visibleHeight = calculatedHeight + cushion;
