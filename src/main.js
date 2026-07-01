@@ -3706,9 +3706,9 @@ function init() {
             // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
             finalPower *= 2.10;
 
-            // If putting from off the green (fringe/fairway), add a boost to overcome heavier grass friction
+            // Dampener specifically for putting from off the green (fringe/fairway)
             if (!isOnGreen) {
-                finalPower *= 1.45;
+                finalPower *= 0.60; // Lower this number to make it less powerful, raise it for more power
             }
 
             // Smooth friction compensation for ultra-short micro putts
