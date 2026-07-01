@@ -2751,10 +2751,10 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.9 : 0.80; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.75 : 0.80; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.45 : 0.21;
+            ballTargetScale = isMobile ? 0.30 : 0.21;
         } else {
             ballTargetScale = isMobile ? 0.75 : 0.70; // Fairway, rough, and sand size
         }
