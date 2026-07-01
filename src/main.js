@@ -2752,7 +2752,8 @@ function animate() {
             // NEW: Separate mobile and desktop sizing for the Tee
             ballTargetScale = isMobile ? 0.9 : 0.80; // Change first number for mobile, second for desktop
         } else if (onGreen) {
-            ballTargetScale = 0.30;  // Change this number to adjust size when Putting
+            // Optional: First number is mobile size, second number is computer size
+            ballTargetScale = isMobile ? 0.21 : 0.21;
         } else {
             ballTargetScale = isMobile ? 0.75 : 0.70; // Fairway, rough, and sand size
         }
