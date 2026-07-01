@@ -2647,7 +2647,8 @@ function animate() {
             if (teeBox && teeBox.visible) {
                 window.shotStartScale = isCurrentMobile ? 0.9 : 1.0;
             } else if (launchedFromGreenSurface) {
-                window.shotStartScale = 0.30;
+                // MODIFIED: Changed from 0.30 to 0.22 to match your smaller ball profile at launch
+                window.shotStartScale = 0.22;
             } else {
                 // FIXED: Factor in the exact proximity factor active at address so the ball launches at its true rendered size
                 const addressCamDist = camera.position.distanceTo(ball.position);

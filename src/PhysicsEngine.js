@@ -708,11 +708,20 @@ export class PhysicsEngine {
                     if (fade > 1) fade = 1;
                     slopeGravityModifier = fade;
 
-                    // MODIFIED: Added a micro-crawl stabilizer that only triggers when the ball slows down to a microscopic trickle (< 0.025).
-                    // This stops the ball from rolling endlessly down hills without ruining normal putting speeds.
-                    if (speed < 0.016) {
-                        this.velocity.x *= 0.95;
-                        this.velocity.z *= 0.95;
+                    // MODIFIED: Balanced hill-lock and short putt launch stabilizer.
+                    // We aggressively scale down the hill's gravity pull under 0.050 speed so the ball 
+                    // cannot break loose and roll down like ice, but we REMOVE the velocity friction choke 
+                    // so short 5-foot putts can launch completely free and smooth.
+                    if (speed < 0.050) {
+                        let slopeFade = speed / 0.050;
+                        slopeGravityModifier *= Math.max(0.0, Math.min(1.0, slopeFade));
+                    }
+
+                    // MODIFIED: Widened the braking window to 0.032 to take away the extra rollout distance,
+                    // but softened the multiplier to 0.925 so it glides smoothly to a stop instead of jerking.
+                    if (speed < 0.032) {
+                        this.velocity.x *= 0.925;
+                        this.velocity.z *= 0.925;
                     }
                 }
             }
