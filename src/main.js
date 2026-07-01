@@ -3054,8 +3054,16 @@ function animate() {
 
     let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
-        // 1.0 keeps the ball size perfectly constant whether it is rolling or sitting completely still
-        finalBallTargetScale *= 0.85;
+        // Calculate real-time distance to the pin in yards
+        const dxH = holePosition.x - ball.position.x;
+        const dzH = holePosition.z - ball.position.z;
+        const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
+
+        // NEW: Gently scale down the ball when far away to combat perspective ballooning.
+        // It caps the maximum shrinkage to 78% so it never gets too microscopic on monster putts.
+        const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.78, 1.0);
+
+        finalBallTargetScale *= 0.85 * perspectiveCorrection;
     }
 
 
