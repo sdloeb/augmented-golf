@@ -242,11 +242,13 @@ function updateDistanceDisplay() {
     const unitText = document.getElementById('unitText');
 
     if (distanceText && unitText) {
-        // FIXED: Check if the ball is on the green surface container footprint instead of clamping to a raw radius proximity
+        // FIXED: Check if the ball is on the green surface container footprint using true shape-aware boundary angles
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
         const greenCheckZ = ball.position.z - greenCenterZ;
-        const activeR = window.activeGreenRadius || GREEN_RADIUS; // Add this line
-        const isOnGreenSurface = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ) < activeR; // Modify this line
+        const ballDist = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
+        const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
+        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        const isOnGreenSurface = ballDist < activeR;
 
         if (isOnGreenSurface) {
             // Restore the original 1.5 scale so short putts read correctly as 3-4 feet again
@@ -3703,7 +3705,7 @@ function init() {
         const club = input.getClubInfo();
 
         if (isOnGreen || club.name === 'Putter') {
-            // Set to 0.8588 so an 80ft pull on the gauge physically rolls exactly 80ft in world units
+            // Calibrated down from 2.10 to 1.30 so visual target distances align 1-to-1 with ball rollouts
             finalPower *= 2.10;
 
             // Dampener specifically for putting from off the green (fringe/fairway)
