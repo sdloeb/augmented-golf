@@ -521,15 +521,20 @@ export class PhysicsEngine {
             currentBounceHeight = 0.10;
             currentBounceForwardLoss = 0.25;
         }
-        else if (onGreen) {
+      else if (onGreen) {
             currentBounceHeight = 0.12;
             currentBounceForwardLoss = 0.45;
 
             // Sets a smooth friction glide for airborne approach shots, but protects your putting calibration
-            currentFriction = this.isPutting ? 0.956 : 0.996;
+            currentFriction = this.isPutting ? 0.956 : 0.962;
 
             if (!this.isPutting && this.currentLoft) {
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
+
+                // MODIFIED: Scale ground roll friction by club loft. 
+                // Low-lofted Hybrids/Woods scale toward 0.993 for an authentic, extended runout.
+                // Short wedges scale down toward 0.948 to bite and check up quickly.
+                currentFriction = THREE.MathUtils.lerp(0.993, 0.948, (loftRatio - 0.4) / 1.1);
 
                 // Lowers vertical bounce so irons hit with a realistic turf "thud" instead of ballooning upwards
                 currentBounceHeight = 0.14 * (2.0 - loftRatio);
@@ -692,6 +697,8 @@ export class PhysicsEngine {
 
             // NEW: Anti-infinite rolling capture mechanism on green slopes
             // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
+            // NEW: Anti-infinite rolling capture mechanism on green slopes
+            // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
             if (onGreen && slopeMagnitude < 0.14) {
                 const speed = this.velocity.length();
                 if (speed < 0.09) {
@@ -701,9 +708,12 @@ export class PhysicsEngine {
                     if (fade > 1) fade = 1;
                     slopeGravityModifier = fade;
 
-                    // Soft extra dampening helper so it glides smoothly to a stop without an aggressive halt
-                    this.velocity.x *= 0.965;
-                    this.velocity.z *= 0.965;
+                    // MODIFIED: Added a micro-crawl stabilizer that only triggers when the ball slows down to a microscopic trickle (< 0.025).
+                    // This stops the ball from rolling endlessly down hills without ruining normal putting speeds.
+                    if (speed < 0.013) {
+                        this.velocity.x *= 0.975;
+                        this.velocity.z *= 0.975;
+                    }
                 }
             }
 

@@ -241,28 +241,31 @@ function updateDistanceDisplay() {
     const distanceText = document.getElementById('distanceText');
     const unitText = document.getElementById('unitText');
 
-    if (distanceText && unitText) {
+   if (distanceText && unitText) {
         // FIXED: Check if the ball is on the green surface container footprint using true shape-aware boundary angles
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
         const greenCheckZ = ball.position.z - greenCenterZ;
         const ballDist = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
         const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        const isOnGreenSurface = ballDist < activeR;
+        
+        // MODIFIED: Fetch club selection state to unify short game tracking readouts
+        const currentClub = input ? input.getClubInfo() : null;
+        const isPutterActive = currentClub && currentClub.name === 'Putter';
 
-        if (isOnGreenSurface) {
-            // Putting surface displays precisely in feet with perspective correction
+        // MODIFIED: Engage the visual feet scale if on the green surface, on the fringe collar (+3.5 units), or putter is held
+        if (ballDist < (activeR + 3.5) || isPutterActive) {
+            // Putting surface and fringe complex display precisely in feet matching visual perspective
             const feet = Math.round(gameDistance * 1.75);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            // Fairway, rough, and fringe chips accurately maintain the global course yardage scale
+            // Fairway, rough, and deep approach shots accurately maintain the global course yardage scale
             const yards = Math.round(gameDistance * 2.76923);
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
     }
-
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
     if (container && input) {
@@ -2759,7 +2762,8 @@ function animate() {
         // NEW: Calculate true distance to the hole pin to detect short chip-shot scenarios
         const dxHole = holePosition.x - ball.position.x;
         const dzHole = holePosition.z - ball.position.z;
-        const holeDistYards = Math.sqrt(dxHole * dxHole + dxHole * dzHole) * 2.76923;
+        // MODIFIED: Corrected the Z-axis component typo from (dxHole * dzHole) to (dzHole * dzHole)
+        const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
         const isChippingClose = !onGreen && holeDistYards < 25.0;
 
         // ADJUSTED: Tighten camera profile for close chip situations so you can see the hole path clearly
@@ -3798,25 +3802,9 @@ function init() {
             finalPower *= 2.10;
 
             // Dampener specifically for putting from off the green (fringe/fairway)
-            if (!isOnGreen) {
+            // MODIFIED: Exempt the fringe collar layout from this penalty cliff completely
+            if (!isOnGreen && !isOnFringe) {
                 finalPower *= 0.60; // Lower this number to make it less powerful, raise it for more power
-            }
-
-            // Smooth friction compensation for ultra-short micro putts
-            if (finalPower < 5.5) {
-                finalPower += (5.5 - finalPower) * 0.58;
-            }
-        } else {
-            // Short game chipping tuning: If within 35 yards of the pin, apply a smooth touch dampener
-            const dxH = ball.position.x - holePosition.x;
-            const dzH = ball.position.z - holePosition.z;
-            const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
-
-            if (yardsToPin < 35.0) {
-                // Smoothly scale down the excessive full-swing power of wedges at close range
-                const shortGameT = yardsToPin / 35.0;
-                // Linearly blend between a high-precision touch factor (0.65) and full power (1.0)
-                finalPower *= THREE.MathUtils.lerp(0.65, 1.0, shortGameT);
             }
         }
 

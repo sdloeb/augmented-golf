@@ -525,11 +525,14 @@ export class InputHandler {
                 // 2. Check if on the Green
                 const onGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
 
-                // Realism addition: Calculate if the ball is sitting on the clean green fringe collar (12 to 14 units out)
+                // Realism addition: Calculate if the ball is sitting on the clean green fringe collar
                 const gX = this.ballRef.position.x - (window.physicsEngine ? window.physicsEngine.greenCenterX : 0); // Add this line
                 const gZ = this.ballRef.position.z - (window.physicsEngine ? window.physicsEngine.greenCenterZ : -55); // Add this line
                 const distToGreenCenter = Math.hypot(gX, gZ); // Add this line
-                const isOnFringe = distToGreenCenter >= 12.0 && distToGreenCenter <= 14.0; // Add this line
+
+                // MODIFIED: Swapped hardcoded values out for true dynamic hole blueprint calculations
+                const activeR = window.activeGreenRadius || 12.0;
+                const isOnFringe = distToGreenCenter >= activeR && distToGreenCenter <= (activeR + 2.5);
 
                 // 3. Apply Penalties
                 if (inSand) {
