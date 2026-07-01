@@ -241,14 +241,14 @@ function updateDistanceDisplay() {
     const distanceText = document.getElementById('distanceText');
     const unitText = document.getElementById('unitText');
 
-   if (distanceText && unitText) {
+    if (distanceText && unitText) {
         // FIXED: Check if the ball is on the green surface container footprint using true shape-aware boundary angles
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
         const greenCheckZ = ball.position.z - greenCenterZ;
         const ballDist = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
         const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        
+
         // MODIFIED: Fetch club selection state to unify short game tracking readouts
         const currentClub = input ? input.getClubInfo() : null;
         const isPutterActive = currentClub && currentClub.name === 'Putter';
@@ -2966,9 +2966,11 @@ function animate() {
             rigidCamHeight = 1.1;
             lookUpOffset = -0.40;
         } else {
-            targetFov = 40;
-            rigidCamDist = 3.5;
-            rigidCamHeight = 1.2;
+            // MODIFIED: Widened targetFov from 40 to 55 and pulled cam closer (3.5 to 2.4)
+            // This eliminates the telephoto zoom effect so a 4-foot putt visually looks exactly 4 feet away.
+            targetFov = 55;
+            rigidCamDist = 2.4;
+            rigidCamHeight = 1.1;
             lookUpOffset = -0.40;
         }
 

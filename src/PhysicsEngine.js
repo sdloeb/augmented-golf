@@ -521,20 +521,20 @@ export class PhysicsEngine {
             currentBounceHeight = 0.10;
             currentBounceForwardLoss = 0.25;
         }
-      else if (onGreen) {
+        else if (onGreen) {
             currentBounceHeight = 0.12;
             currentBounceForwardLoss = 0.45;
 
             // Sets a smooth friction glide for airborne approach shots, but protects your putting calibration
-            currentFriction = this.isPutting ? 0.956 : 0.962;
+            currentFriction = this.isPutting ? 0.932 : 0.962;
 
             if (!this.isPutting && this.currentLoft) {
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
 
-                // MODIFIED: Scale ground roll friction by club loft. 
-                // Low-lofted Hybrids/Woods scale toward 0.993 for an authentic, extended runout.
-                // Short wedges scale down toward 0.948 to bite and check up quickly.
-                currentFriction = THREE.MathUtils.lerp(0.993, 0.948, (loftRatio - 0.4) / 1.1);
+                // MODIFIED: Boosted the low-loft friction ceiling to 0.998. 
+                // This significantly reduces frame-by-frame velocity decay for Hybrids and Woods, 
+                // allowing long shots to naturally release and roll 15-25 yards across the putting surface.
+                currentFriction = THREE.MathUtils.lerp(0.998, 0.952, (loftRatio - 0.4) / 1.1);
 
                 // Lowers vertical bounce so irons hit with a realistic turf "thud" instead of ballooning upwards
                 currentBounceHeight = 0.14 * (2.0 - loftRatio);
@@ -710,9 +710,9 @@ export class PhysicsEngine {
 
                     // MODIFIED: Added a micro-crawl stabilizer that only triggers when the ball slows down to a microscopic trickle (< 0.025).
                     // This stops the ball from rolling endlessly down hills without ruining normal putting speeds.
-                    if (speed < 0.013) {
-                        this.velocity.x *= 0.975;
-                        this.velocity.z *= 0.975;
+                    if (speed < 0.016) {
+                        this.velocity.x *= 0.95;
+                        this.velocity.z *= 0.95;
                     }
                 }
             }
@@ -946,7 +946,9 @@ export class PhysicsEngine {
 
         // FIXED: Adjusted the putting stop threshold to 0.014 to complement the slower visual roll speed,
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
-        const stopThreshold = (this.isPutting || onGreen) ? 0.003 : 0.012; // Modify this line
+        // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
+        // while leaving regular green shots and rough/fairway stops completely un-impacted.
+        const stopThreshold = this.isPutting ? 0.014 : (onGreen ? 0.003 : 0.012);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
