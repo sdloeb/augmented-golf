@@ -3674,10 +3674,12 @@ function init() {
         const gZ = ball.position.z - greenCenterZ;
         const checkAngle = Math.atan2(-gZ, gX);
         const trueGreenR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        const isOnGreen = Math.sqrt(gX * gX + gZ * gZ) < trueGreenR;
+        const distToGreenCenter = Math.sqrt(gX * gX + gZ * gZ);
+        const isOnGreen = distToGreenCenter < trueGreenR;
+        const isOnFringe = distToGreenCenter >= trueGreenR && distToGreenCenter <= (trueGreenR + 2.5);
 
-        // NEW: Spawn a 3D turf divot patch when hitting from the fairway or rough
-        if (!isOnGreen && !launchedFromSand && !isOffTee) {
+        // NEW: Spawn a 3D turf divot patch when hitting from the fairway or rough (exempt green and fringe)
+        if (!isOnGreen && !isOnFringe && !launchedFromSand && !isOffTee) {
             const divotGeo = new THREE.CircleGeometry(0.15, 8);
             const divotMat = new THREE.MeshBasicMaterial({
                 color: 0x4a321a, // Rich soil dirt brown
