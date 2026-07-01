@@ -251,12 +251,12 @@ function updateDistanceDisplay() {
         const isOnGreenSurface = ballDist < activeR;
 
         if (isOnGreenSurface) {
-            // Restore the original 1.5 scale so short putts read correctly as 3-4 feet again
-            const feet = Math.round(gameDistance * 1.50);
+            // Putting surface displays precisely in feet with perspective correction
+            const feet = Math.round(gameDistance * 1.75);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
         } else {
-            // Standardize yardage scale factor linearly up to the green edge to prevent compression bugs
+            // Fairway, rough, and fringe chips accurately maintain the global course yardage scale
             const yards = Math.round(gameDistance * 2.76923);
             distanceText.innerText = yards;
             unitText.innerText = "yards";

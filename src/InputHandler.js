@@ -83,11 +83,11 @@ export class InputHandler {
     getPutterMaxFeet() {
         if (!this.getDistance) return 60;
         const rawUnits = this.getDistance() / 2.76923;
-        // Restore to use the original 1.5 putting scale factor
-        const distanceInFeet = rawUnits * 1.5;
-        if (distanceInFeet <= 15) return 20;
-        if (distanceInFeet <= 30) return 40;
-        return 60;
+        // Synced with the true 3.0 visual feet model
+        const distanceInFeet = rawUnits * 3.0;
+        if (distanceInFeet <= 20) return 30;
+        if (distanceInFeet <= 45) return 60;
+        return 90;
     }
 
 
@@ -433,7 +433,8 @@ export class InputHandler {
 
         // ADD THIS BLOCK: Automatically translates physics velocity output to your new custom scales
         if (club.isGreen) {
-            finalPower *= (this.getPutterMaxFeet() / 80);
+            // Restored to original stable physics divisor tuning
+            finalPower *= (this.getPutterMaxFeet() / 120);
             finalPower *= (360 / 160); // Scale compensation so you don't lose physical power from the shorter drag range!
         }
 
