@@ -3061,7 +3061,7 @@ function animate() {
 
         // NEW: Gently scale down the ball when far away to combat perspective ballooning.
         // It caps the maximum shrinkage to 78% so it never gets too microscopic on monster putts.
-        const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.78, 1.0);
+        const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
 
         finalBallTargetScale *= 0.85 * perspectiveCorrection;
     }
