@@ -654,7 +654,7 @@ html {
         bottom: 32% !important;
 
         /* ADD THIS LINE BELOW: Adjust this decimal to set your mobile fairway/rough club size */
-        transform: scale(0.85) !important;
+        transform: scale(0.90) !important;
     }
 
     /* Add this block right below it to override the putter on mobile screens */
@@ -679,7 +679,7 @@ html {
 
     /* NEW OVERRIDE: Change the size of the Irons specifically on mobile screens */
     #clubSwipe.iron {
-        transform: scale(0.80) !important;
+        transform: scale(0.90) !important;
         /* Adjust this decimal up or down to tune your mobile iron size */
         transform-origin: right bottom;
     }
