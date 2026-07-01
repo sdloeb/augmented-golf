@@ -1534,7 +1534,7 @@ function resetEntireGame(advanceHole = false) {
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
                         const transitionStart = fringeOuterR + 0.2; // Adjusted to start diving seamlessly right before the fringe edge
                         const transitionEnd = activeR - 3.0;
-                        if (distToGreenCenter <= transitionEnd) {
+                        if (distToGreenCenter <= transitionEnd || isPastFairway || isOnGreenSidesOrBack) {
                             calculatedHeight = floorHeight - 1.5;
                         } else {
                             const tFairway = (transitionStart - distToGreenCenter) / (transitionStart - transitionEnd);
