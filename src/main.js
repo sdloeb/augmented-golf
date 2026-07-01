@@ -1297,6 +1297,21 @@ function resetEntireGame(advanceHole = false) {
         const posAttr = targetMesh.geometry.attributes.position;
         const scaleX = useScale ? targetMesh.scale.x : 1;
         const scaleY = useScale ? targetMesh.scale.y : 1;
+
+        // Precompute the dynamic bounding corridor of the current hole's waypoints
+        let wpMinX = Infinity, wpMaxX = -Infinity, wpMinZ = Infinity, wpMaxZ = -Infinity;
+        const activeWaypoints = (currentHoleConfig && currentHoleConfig.waypoints) ? currentHoleConfig.waypoints : null;
+        if (activeWaypoints) {
+            activeWaypoints.forEach(wp => {
+                if (wp.x < wpMinX) wpMinX = wp.x; if (wp.x > wpMaxX) wpMaxX = wp.x;
+                if (wp.z < wpMinZ) wpMinZ = wp.z; if (wp.z > wpMaxZ) wpMaxZ = wp.z;
+            });
+        } else {
+            wpMinX = -25; wpMaxX = 25; wpMinZ = -220; wpMaxZ = 45;
+        }
+        // Add a safety buffer zone to encompass wide fairway contours and curves nicely
+        wpMinX -= 30; wpMaxX += 30; wpMinZ -= 30; wpMaxZ += 30;
+
         for (let i = 0; i < posAttr.count; i++) {
             const localX = posAttr.getX(i);
             const localY = posAttr.getY(i);
@@ -1305,6 +1320,9 @@ function resetEntireGame(advanceHole = false) {
             const worldX = localX * scaleX + targetMesh.position.x;
             const worldZ = -localY * scaleY + targetMesh.position.z;
 
+            // Rapid early-exit boundary check: if vertex is far out in background rough, skip complex math
+            const isNearFairwayCorridor = (worldX >= wpMinX && worldX <= wpMaxX && worldZ >= wpMinZ && worldZ <= wpMaxZ);
+
             // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
@@ -1312,6 +1330,12 @@ function resetEntireGame(advanceHole = false) {
             let insideWaterZone = false;
             let closeToWater = false; // Tracks vertices near the lake terrace
             waterHazards.forEach(water => {
+                // Bounding-box optimization filter for circular lakes
+                if (!water.userData.isRectangular) {
+                    const rLimit = (water.userData.radius || 5) + 1.5;
+                    if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
+                }
+
                 // MODIFIED: Constrained the rectangular ocean check to only apply to coordinates past our curved cliff face line
                 if (water.userData && water.userData.isRectangular) {
                     let pathCenter = 0;
@@ -1345,6 +1369,24 @@ function resetEntireGame(advanceHole = false) {
             let insideSandZone = false;
             let activeSandDepth = 0;
             sandTraps.forEach(sand => {
+                // Pre-filter bounding boxes for sand traps to keep calculations extremely fast
+                if (!sand.userData.isPolygon) {
+                    const rLimit = (sand.userData.radius || 5) + 1.5;
+                    if (Math.abs(worldX - sand.position.x) > rLimit || Math.abs(worldZ - sand.position.z) > rLimit) return;
+                } else {
+                    // Precompute and cache polygon hazard bounding box bounds
+                    if (!sand.userData.fastBox) {
+                        let sMinX = Infinity, sMaxX = -Infinity, sMinZ = Infinity, sMaxZ = -Infinity;
+                        sand.userData.points.forEach(p => {
+                            if (p.x < sMinX) sMinX = p.x; if (p.x > sMaxX) sMaxX = p.x;
+                            if (p.z < sMinZ) sMinZ = p.z; if (p.z > sMaxZ) sMaxZ = p.z;
+                        });
+                        sand.userData.fastBox = { minX: sMinX - 1, maxX: sMaxX + 1, minZ: sMinZ - 1, maxZ: sMaxZ + 1 };
+                    }
+                    const b = sand.userData.fastBox;
+                    if (worldX < b.minX || worldX > b.maxX || worldZ < b.minZ || worldZ > b.maxZ) return;
+                }
+
                 if (sand.userData && sand.userData.isPolygon) {
                     // High-performance Point-in-Polygon check to carve visual grass/fairway meshes
                     const points = sand.userData.points;
@@ -1398,7 +1440,8 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight -= THREE.MathUtils.lerp(0.0, 0.0, smoothGreenT);
             }
             if (!insideWaterZone) {
-                const distanceToPath = physics.getDistanceToSpline(worldX, worldZ);
+                // If vertex falls out in deep background rough, bypass spline lookup entirely to preserve CPU threads
+                const distanceToPath = isNearFairwayCorridor ? physics.getDistanceToSpline(worldX, worldZ) : 999;
                 let fW = physics.fairwayWidth;
 
                 if (currentHoleNumber === 3) {
@@ -3426,6 +3469,8 @@ function init() {
     const floorGeo = new THREE.PlaneGeometry(300, 800, 300, 600);
 
     // Procedural rough grass noise texture generator
+
+
     const rCanvas = document.createElement('canvas');
     rCanvas.width = 64; rCanvas.height = 64;
     const rCtx = rCanvas.getContext('2d');
