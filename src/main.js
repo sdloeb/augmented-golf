@@ -1606,13 +1606,15 @@ function resetEntireGame(advanceHole = false) {
         golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
         golfTee.visible = true;
     }
-
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
     if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
-    if (ball) ball.isSunk = false;
+    if (ball) {
+        ball.isSunk = false;
+        ball.userData.isLipRiding = false;
+    }
     isOverheadActive = false;
     ballTargetScale = 1.0;
     // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
@@ -2440,43 +2442,83 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-        // Tightened physics trigger to perfectly match your 0.17 visual cup radius so it never captures early from the right
-        const dynamicCaptureRadius = (!physics.isMoving || physics.velocity.length() < 0.05) ? 0.18 : 0.13;
+        // Expanded capture radius to 0.23 to intercept lip-in and spin-out edge interactions fully
+        const maxLipRadius = 0.23;
 
-        // FIXED: Added a +0.15 vertical tolerance cushion to ensure the ball triggers capture 
-        // even with minor floating-point variations or light bounces on the 3D mound
-        if (distanceToHole < dynamicCaptureRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
+        if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
-
-            // Calculate true world speed translation based on internal engine time scaling profiles
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
-            // A uniform physical threshold standard (0.24) applied equally to both chips and putts
-            const maxWorldSinkSpeed = 0.14;
-
-            // Realism Lip-out simulation based on true physical ground speed limits
-            if (trueWorldSpeed > maxWorldSinkSpeed) {
-                if (trueWorldSpeed > 0.48) return; // Add this line: Smashed putts roll straight over the cup
-
-                const perpX = -dz / distanceToHole;
-                const perpZ = dx / distanceToHole;
-
-                // Centripetal sling wraps the ball around the lip edge based on velocity
-                const slingX = (physics.velocity.x * 0.4) + (perpX * rawSpeed * 0.6); // Add this line
-                const slingZ = (physics.velocity.z * 0.4) + (perpZ * rawSpeed * 0.6); // Add this line
-                const slingLen = Math.sqrt(slingX * slingX + slingZ * slingZ) || 1; // Add this line
-
-                physics.velocity.x = (slingX / slingLen) * rawSpeed * 0.95; // Modify this line: Maintains full ball speed
-                physics.velocity.z = (slingZ / slingLen) * rawSpeed * 0.95; // Modify this line: Maintains full ball speed
-                return;
+            // Dead center drop condition: sinks immediately if struck true
+            if (distanceToHole < 0.06 && trueWorldSpeed <= 0.42) {
+                isSinking = true;
+                ball.userData.isLipRiding = false;
+                physics.velocity.set(0, 0, 0);
+                physics.isMoving = false;
+                wasMoving = false;
             }
-            isSinking = true;
-            physics.velocity.set(0, 0, 0);
-            physics.isMoving = false;
-            wasMoving = false;
+            // Handle off-center lip captures when traveling at look-in speeds
+            else if (rawSpeed > 0.02) {
+                if (!ball.userData.isLipRiding) {
+                    ball.userData.isLipRiding = true;
+                    ball.userData.lipAngleTraveled = 0;
+                    ball.userData.lastLipAngle = Math.atan2(dz, dx);
 
-            // REMOVED instant horizontal teleportation to allow a smooth gravitational dropping profile
+                    // Cross-product check to figure out if it entered Clockwise or Counter-Clockwise
+                    const perpX = -dz / distanceToHole;
+                    const perpZ = dx / distanceToHole;
+                    const tangentDot = physics.velocity.x * perpX + physics.velocity.z * perpZ;
+                    ball.userData.lipDirection = Math.sign(tangentDot) || 1;
+                }
+
+                // Track continuous angular progression around the rim
+                const currentAngle = Math.atan2(dz, dx);
+                let angleDelta = currentAngle - ball.userData.lastLipAngle;
+                if (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
+                if (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
+
+                ball.userData.lipAngleTraveled += Math.abs(angleDelta);
+                ball.userData.lastLipAngle = currentAngle;
+
+                const hDirX = dx / distanceToHole;
+                const hDirZ = dz / distanceToHole;
+                const tanX = -hDirZ * ball.userData.lipDirection;
+                const tanZ = hDirX * ball.userData.lipDirection;
+
+                // Blasted past the cup: too hot to grip the edge, breaks tracking instantly (Clean Lip-Out)
+                if (trueWorldSpeed > 0.45) {
+                    ball.userData.isLipRiding = false;
+                }
+                // Lip-ride simulation engagement loop
+                else {
+                    // Bleed speed smoothly as the ball travels up and around the rim wall friction profile
+                    const frictionFactor = trueWorldSpeed > 0.22 ? 0.94 : 0.88;
+                    physics.velocity.x = tanX * rawSpeed * frictionFactor;
+                    physics.velocity.z = tanZ * rawSpeed * frictionFactor;
+
+                    // Pull gravity down visually to settle the ball slightly inside the 3D rim track
+                    const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
+                    ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.10, 0.15);
+
+                    // PATHWAY A: LIP-IN (Ball slowed down enough to fall completely through the cup floor)
+                    if (physics.velocity.length() * currentScale < 0.12) {
+                        isSinking = true;
+                        ball.userData.isLipRiding = false;
+                        physics.velocity.set(0, 0, 0);
+                        physics.isMoving = false;
+                        wasMoving = false;
+                    }
+                    // PATHWAY B: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
+                    else if (ball.userData.lipAngleTraveled > 1.35) {
+                        physics.velocity.x = (tanX + hDirX * 0.20) * rawSpeed * 0.95;
+                        physics.velocity.z = (tanZ + hDirZ * 0.20) * rawSpeed * 0.95;
+                        ball.userData.isLipRiding = false;
+                    }
+                }
+            }
+        } else {
+            ball.userData.isLipRiding = false;
         }
     }
     if (isSinking) {
