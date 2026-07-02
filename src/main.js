@@ -2696,7 +2696,8 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
 
         if (isPuttingStroke || activeLaunchScale === 0.30) {
-            ballTargetScale = 0.30; // Keep putts and green side rolling completely stable
+            // FIXED: Matches your stationary base green sizing to eliminate the sudden growth pop on launch
+            ballTargetScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.24 : 0.21;
         } else if (!isLongShot) {
             // FIXED: For short shots where the camera is stationary, lock code scale to launch size
             // and let natural WebGL 3D perspective handle making the ball smaller as it rolls away
