@@ -3093,15 +3093,16 @@ function animate() {
         if (distToHole < 3.5) {
             const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
 
-            // FIXED: Look slightly ahead past the ball center so both the ball and cup remain perfectly centered in the frame
-            lookAheadDist = THREE.MathUtils.lerp(0.4, 6.0, factor);
+            // Look further down the line of sight to keep the cup and target path elegantly framed
+            lookAheadDist = THREE.MathUtils.lerp(1.5, 6.0, factor);
 
-            // FIXED: Elevate camera height (up to 2.9) and pull horizontal distance tight to the ball (down to 0.8) to force a steep top-down view
-            rigidCamHeight = THREE.MathUtils.lerp(aspect < 1 ? 2.6 : 2.9, rigidCamHeight, factor);
-            rigidCamDist = THREE.MathUtils.lerp(aspect < 1 ? 0.6 : 0.8, rigidCamDist, factor);
+            // MODIFIED: Soften camera height (down to 1.8) and push the horizontal distance back behind the ball (up to 1.6)
+            // This replaces the flat vertical blueprint look with a natural 3D cinematic depth perspective
+            rigidCamHeight = THREE.MathUtils.lerp(aspect < 1 ? 1.5 : 1.8, rigidCamHeight, factor);
+            rigidCamDist = THREE.MathUtils.lerp(aspect < 1 ? 1.3 : 1.6, rigidCamDist, factor);
 
-            // FIXED: Tilt the lens downward aggressively (-0.45) to create a clean, non-occluded view into the cup
-            lookUpOffset = THREE.MathUtils.lerp(-0.45, lookUpOffset, factor);
+            // Soften the lens tilt downwards to clear the occlusion while keeping a realistic horizon line
+            lookUpOffset = THREE.MathUtils.lerp(-0.22, lookUpOffset, factor);
         }
 
         // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
@@ -3163,11 +3164,12 @@ function animate() {
         // Apply perspective correction cleanly to the absolute base scale
         finalBallTargetScale = baseGreenScale * perspectiveCorrection;
 
-        // FIXED: Only apply the 2D putter proximity boost when the ball is stationary at address or rest,
-        // preventing the ball from expanding and shrinking while actively rolling past the hole.
+        // FIXED: Reduced the old 0.60 multiplier boost down to 0.05 since our new angled broadcast camera 
+        // angle naturally frames the ball perfectly without needing artificial size inflating.
+        // TWEAK: Set 0.05 to 0.0 if you want absolutely zero artificial growth when approaching the cup.
         if (yardsToPin < 3.5 && !physics.isMoving) {
             let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
-            finalBallTargetScale *= (1.0 + closeFactor * 0.60); // Boost scale to balance the 2D putter
+            finalBallTargetScale *= (1.0 + closeFactor * 0.05); // Balanced proximity scale
         }
 
     }
