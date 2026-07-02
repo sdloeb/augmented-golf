@@ -909,13 +909,13 @@ export class PhysicsEngine {
                 // Apply dynamic backspin physics depending on which club was chosen
                 if (this.hasBackspin && this.bounceCount === 1 && !inSand) {
                     let spinMultiplier = 1.0;
-                    if (this.currentLoft === 0.051) spinMultiplier = 0.75;      // 5 Iron: minor forward check
-                    else if (this.currentLoft === 0.053) spinMultiplier = 0.55; // 6 Iron: light forward check
-                    else if (this.currentLoft === 0.055) spinMultiplier = 0.35; // 7 Iron: moderate forward check
-                    else if (this.currentLoft === 0.057) spinMultiplier = 0.22; // 8 Iron: heavy forward check-up
-                    else if (this.currentLoft === 0.059) spinMultiplier = 0.15; // 9 Iron (Original): sharp check-up bite
-                    else if (this.currentLoft === 0.061) spinMultiplier = -0.55; // PW Iron (Original): moderate backward bite
-                    else if (this.currentLoft === 0.063) spinMultiplier = -0.85; // SW Iron (Original): aggressive backward traction
+                    if (this.currentLoft === 0.051) spinMultiplier = 0.65;      // 5 Iron: minor forward check
+                    else if (this.currentLoft === 0.053) spinMultiplier = 0.45; // 6 Iron: light forward check
+                    else if (this.currentLoft === 0.055) spinMultiplier = 0.25; // 7 Iron: moderate forward check
+                    else if (this.currentLoft === 0.057) spinMultiplier = 0.05; // 8 Iron: heavy forward check-up
+                    else if (this.currentLoft === 0.059) spinMultiplier = -0.25; // 9 Iron (Original): sharp check-up bite
+                    else if (this.currentLoft === 0.061) spinMultiplier = -0.95; // PW Iron (Original): moderate backward bite
+                    else if (this.currentLoft === 0.063) spinMultiplier = -1.45; // SW Iron (Original): aggressive backward traction
 
                     if (spinMultiplier !== 1.0) {
                         // 1. SURFACE GRAB EVALUATION (Green = 100% friction grab, Fairway = 40% partial check, Rough = 0% muffle)
