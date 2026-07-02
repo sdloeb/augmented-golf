@@ -3068,7 +3068,7 @@ function animate() {
         // Counteract camera height shrinkage when ultra-close to the cup
         if (yardsToPin < 3.5) {
             let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
-            finalBallTargetScale *= (1.0 + closeFactor * 0.35); // Boost scale to balance the 2D putter
+            finalBallTargetScale *= (1.0 + closeFactor * 0.60); // Boost scale to balance the 2D putter
         }
 
     }
