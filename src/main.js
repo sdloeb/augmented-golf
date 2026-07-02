@@ -66,12 +66,12 @@ const HOLES_CONFIG = {
         // ADDED: Individual rectangular stake bounds configuration for Hole 1
         customOOB: {
             type: 'rectangle',
-            minX: -40,   // Left wall line
-            maxX: 40,    // Right wall line
-            minZ: -95,   // Front wall beyond green
-            maxZ: 25,    // Back wall behind tee box
-            stakesPerSide: 14, // Spacing density down the long sides
-            stakesPerRow: 8    // Spacing density across the narrow walls
+            minX: -60,   // Left wall line
+            maxX: 60,    // Right wall line
+            minZ: -110,   // Front wall beyond green
+            maxZ: 35,    // Back wall behind tee box
+            stakesPerSide: 5, // Spacing density down the long sides
+            stakesPerRow: 3    // Spacing density across the narrow walls
         }
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
@@ -2222,9 +2222,9 @@ function resetEntireGame(advanceHole = false) {
             const sideLength = Math.abs(oob.maxZ - oob.minZ);
             const rowLength = Math.abs(oob.maxX - oob.minX);
 
-            // FIXED: Automatically calculate how many stakes fit 25 yards apart across the rectangle sizes
-            const stakesPerSide = Math.max(2, Math.ceil(sideLength / spacingUnits) + 1);
-            const stakesPerRow = Math.max(2, Math.ceil(rowLength / spacingUnits) + 1);
+            // FIXED: Read directly from your customOOB config numbers so your settings actually update on screen
+            const stakesPerSide = oob.stakesPerSide;
+            const stakesPerRow = oob.stakesPerRow;
 
             // 1. Spacing along the Left Side Wall (minX)
             for (let i = 0; i < stakesPerSide; i++) {
