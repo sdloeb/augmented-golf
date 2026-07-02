@@ -55,14 +55,24 @@ const HOLES_CONFIG = {
         par: 3,
         greenShape: 'kidney',
         slopeProfile: {
-            back: { rx: 0.00, rz: 0.02 },  // Section 1: Pure subtle uphill backstop tilt
-            mid: { rx: 0.03, rz: 0.00 },  // Section 2: Clean left-to-right break cutting through the cup area
-            front: { rx: -0.02, rz: -0.02 }  // Section 3: Downhill tilt combined with a right-to-left break
+            back: { rx: 0.00, rz: 0.02 },
+            mid: { rx: 0.03, rz: 0.00 },
+            front: { rx: -0.02, rz: -0.02 }
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -55)
-        ]
+        ],
+        // ADDED: Individual rectangular stake bounds configuration for Hole 1
+        customOOB: {
+            type: 'rectangle',
+            minX: -40,   // Left wall line
+            maxX: 40,    // Right wall line
+            minZ: -95,   // Front wall beyond green
+            maxZ: 25,    // Back wall behind tee box
+            stakesPerSide: 14, // Spacing density down the long sides
+            stakesPerRow: 8    // Spacing density across the narrow walls
+        }
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
         par: 4,
@@ -2191,114 +2201,166 @@ function resetEntireGame(advanceHole = false) {
 
     // NEW: Generate visual 3D White Stakes along the exact Out of Bounds boundary lines
     if (physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
-        // --- CONFIGURATION CORNER ---
-        // Change these two numbers anytime to perfectly control the layout count!
-        const STAKES_PER_SIDE = 8; // Total stakes running down each side track
-        const STAKES_PER_ROW = 4;  // Total stakes sealing the back wall & front green wall
-
-        const points = physics.fairwayPoints;
         const stakeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 4);
-        const stakeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 }); // Traditional White Stakes
-        // Create an extended array of points to carry the rails all the way out to the fence lines
-        const boundaryPoints = [...points];
+        const stakeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
 
-        // Prepend a virtual point extended backward to match the back wall line at z = 25.0
-        const pStart = points[0];
-        const pNext = points[1] || pStart;
-        const dXStart = pStart.x - pNext.x;
-        const dZStart = pStart.z - pNext.z;
-        const zDistStart = 25.0 - pStart.z;
-        const extendedStart = {
-            x: pStart.x + (Math.abs(dZStart) > 0.01 ? (dXStart / dZStart) * zDistStart : 0),
-            z: 25.0
+        // FIXED: Calculate precise game unit equivalent for 25 yards spacing (25 / par scale)
+        const spacingUnits = 25 / 2.76923;
+
+        // Reusable internal function to spawn an OOB stake snapped flush to terrain curves
+        const spawnOOBStake = (x, z) => {
+            const y = physics.getGroundHeight(x, z);
+            const stake = new THREE.Mesh(stakeGeo, stakeMat);
+            stake.position.set(x, y + 0.4, z);
+            scene.add(stake);
+            sceneryObjects.push(stake);
         };
-        boundaryPoints.unshift(extendedStart);
 
-        // Append a virtual point extended forward to match the front wall line at z = holePosition.z - 45.0
-        const pEnd = points[points.length - 1];
-        const pPrev = points[points.length - 2] || pEnd;
-        const dXEnd = pEnd.x - pPrev.x;
-        const dZEnd = pEnd.z - pPrev.z;
-        const targetZEnd = holePosition.z - 45.0;
-        const zDistEnd = targetZEnd - pEnd.z;
-        const extendedEnd = {
-            x: pEnd.x + (Math.abs(dZEnd) > 0.01 ? (dXEnd / dZEnd) * zDistEnd : 0),
-            z: targetZEnd
-        };
-        boundaryPoints.push(extendedEnd);
+        // BRANCH A: Render a clean, straight-line rectangle if custom parameters exist (Hole 1)
+        if (currentHoleConfig && currentHoleConfig.customOOB && currentHoleConfig.customOOB.type === 'rectangle') {
+            const oob = currentHoleConfig.customOOB;
+            const sideLength = Math.abs(oob.maxZ - oob.minZ);
+            const rowLength = Math.abs(oob.maxX - oob.minX);
 
-        // 1. Automatically calculate spacing and spawn pairs along left/right tracks spanning wall-to-wall
-        for (let k = 0; k < STAKES_PER_SIDE; k++) {
-            const index = Math.round((k / (STAKES_PER_SIDE - 1)) * (boundaryPoints.length - 1));
-            const currentPt = boundaryPoints[index];
+            // FIXED: Automatically calculate how many stakes fit 25 yards apart across the rectangle sizes
+            const stakesPerSide = Math.max(2, Math.ceil(sideLength / spacingUnits) + 1);
+            const stakesPerRow = Math.max(2, Math.ceil(rowLength / spacingUnits) + 1);
 
-            let nextPt = boundaryPoints[index + 1];
-            let prevPt = boundaryPoints[index - 1];
-
-            let dirX = 0, dirZ = 0;
-            if (nextPt && prevPt) {
-                dirX = nextPt.x - prevPt.x;
-                dirZ = nextPt.z - prevPt.z;
-            } else if (nextPt) {
-                dirX = nextPt.x - currentPt.x;
-                dirZ = nextPt.z - currentPt.z;
-            } else if (prevPt) {
-                dirX = currentPt.x - prevPt.x;
-                dirZ = currentPt.z - prevPt.z;
+            // 1. Spacing along the Left Side Wall (minX)
+            for (let i = 0; i < stakesPerSide; i++) {
+                const t = i / (stakesPerSide - 1);
+                const z = THREE.MathUtils.lerp(oob.maxZ, oob.minZ, t);
+                spawnOOBStake(oob.minX, z);
             }
 
-            const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-            const perpX = -dirZ / len;
-            const perpZ = dirX / len;
+            // 2. Spacing along the Right Side Wall (maxX)
+            for (let i = 0; i < stakesPerSide; i++) {
+                const t = i / (stakesPerSide - 1);
+                const z = THREE.MathUtils.lerp(oob.maxZ, oob.minZ, t);
+                spawnOOBStake(oob.maxX, z);
+            }
 
-            // Left boundary line stake
-            const leftX = currentPt.x + perpX * 70.0;
-            const leftZ = currentPt.z + perpZ * 70.0;
-            const leftY = physics.getGroundHeight(leftX, leftZ);
-            const leftStake = new THREE.Mesh(stakeGeo, stakeMat);
-            leftStake.position.set(leftX, leftY + 0.4, leftZ);
-            scene.add(leftStake);
-            sceneryObjects.push(leftStake);
+            // 3. Spacing along the Back Wall behind the Tee (maxZ) - Skip corners to prevent overlapping duplicates
+            for (let i = 1; i < stakesPerRow - 1; i++) {
+                const t = i / (stakesPerRow - 1);
+                const x = THREE.MathUtils.lerp(oob.minX, oob.maxX, t);
+                spawnOOBStake(x, oob.maxZ);
+            }
 
-            // Right boundary line stake
-            const rightX = currentPt.x - perpX * 70.0;
-            const rightZ = currentPt.z - perpZ * 70.0;
-            const rightY = physics.getGroundHeight(rightX, rightZ);
-            const rightStake = new THREE.Mesh(stakeGeo, stakeMat);
-            rightStake.position.set(rightX, rightY + 0.4, rightZ);
-            scene.add(rightStake);
-            sceneryObjects.push(rightStake);
+            // 4. Spacing along the Front Wall beyond the Green (minZ) - Skip corners to prevent overlapping duplicates
+            for (let i = 1; i < stakesPerRow - 1; i++) {
+                const t = i / (stakesPerRow - 1);
+                const x = THREE.MathUtils.lerp(oob.minX, oob.maxX, t);
+                spawnOOBStake(x, oob.minZ);
+            }
         }
+        // BRANCH B: Fallback automatically to standard procedural distance tracking for other curved holes
+        else {
+            const points = physics.fairwayPoints;
+            const boundaryPoints = [...points];
 
-        // Calculate dynamic horizontal widths from -70 to 70
-        const totalWidthRange = 140;
-        const rowSpacing = totalWidthRange / Math.max(1, STAKES_PER_ROW - 1);
+            const pStart = points[0];
+            const pNext = points[1] || pStart;
+            const dXStart = pStart.x - pNext.x;
+            const dZStart = pStart.z - pNext.z;
+            const zDistStart = 25.0 - pStart.z;
+            const extendedStart = {
+                x: pStart.x + (Math.abs(dZStart) > 0.01 ? (dXStart / dZStart) * zDistStart : 0),
+                z: 25.0
+            };
+            boundaryPoints.unshift(extendedStart);
 
-        // 2. Spawn evenly spaced closing row behind the Tee Box (at z = 25.0)
-        for (let k = 0; k < STAKES_PER_ROW; k++) {
-            const xOffset = -70.0 + (k * rowSpacing);
-            const sX = boundaryPoints[0].x + xOffset;
-            const sZ = 25.0;
-            const sY = physics.getGroundHeight(sX, sZ);
-            const backStake = new THREE.Mesh(stakeGeo, stakeMat);
-            backStake.position.set(sX, sY + 0.4, sZ);
-            scene.add(backStake);
-            sceneryObjects.push(backStake);
-        }
+            const pEnd = points[points.length - 1];
+            const pPrev = points[points.length - 2] || pEnd;
+            const dXEnd = pEnd.x - pPrev.x;
+            const dZEnd = pEnd.z - pPrev.z;
+            const targetZEnd = holePosition.z - 45.0;
+            const zDistEnd = targetZEnd - pEnd.z;
+            const extendedEnd = {
+                x: pEnd.x + (Math.abs(dZEnd) > 0.01 ? (dXEnd / dZEnd) * zDistEnd : 0),
+                z: targetZEnd
+            };
+            boundaryPoints.push(extendedEnd);
 
-        // 3. Spawn evenly spaced closing row beyond the Green (at z = holePosition.z - 45.0)
-        for (let k = 0; k < STAKES_PER_ROW; k++) {
-            const xOffset = -70.0 + (k * rowSpacing);
-            const sX = boundaryPoints[boundaryPoints.length - 1].x + xOffset;
-            const sZ = holePosition.z - 45.0;
-            const sY = physics.getGroundHeight(sX, sZ);
-            const frontStake = new THREE.Mesh(stakeGeo, stakeMat);
-            frontStake.position.set(sX, sY + 0.4, sZ);
-            scene.add(frontStake);
-            sceneryObjects.push(frontStake);
+            // Generate full tracking paths for the parallel left and right fences
+            const leftTrack = [];
+            const rightTrack = [];
+
+            for (let i = 0; i < boundaryPoints.length; i++) {
+                const currentPt = boundaryPoints[i];
+                let nextPt = boundaryPoints[i + 1];
+                let prevPt = boundaryPoints[i - 1];
+
+                let dirX = 0, dirZ = 0;
+                if (nextPt && prevPt) {
+                    dirX = nextPt.x - prevPt.x; dirZ = nextPt.z - prevPt.z;
+                } else if (nextPt) {
+                    dirX = nextPt.x - currentPt.x; dirZ = nextPt.z - currentPt.z;
+                } else if (prevPt) {
+                    dirX = currentPt.x - prevPt.x; dirZ = currentPt.z - prevPt.z;
+                }
+
+                const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+                const perpX = -dirZ / len;
+                const perpZ = dirX / len;
+
+                leftTrack.push(new THREE.Vector3(currentPt.x + perpX * 70.0, 0, currentPt.z + perpZ * 70.0));
+                rightTrack.push(new THREE.Vector3(currentPt.x - perpX * 70.0, 0, currentPt.z - perpZ * 70.0));
+            }
+
+            // High-precision lineal distance placement function for side rails
+            const spawnStakesAlongTrack = (track) => {
+                if (track.length === 0) return;
+                spawnOOBStake(track[0].x, track[0].z); // First post anchor
+
+                let accumulatedDist = 0;
+                for (let i = 0; i < track.length - 1; i++) {
+                    const p1 = track[i];
+                    const p2 = track[i + 1];
+                    const segmentDist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.z - p1.z) ** 2);
+                    accumulatedDist += segmentDist;
+
+                    while (accumulatedDist >= spacingUnits) {
+                        const overshot = accumulatedDist - spacingUnits;
+                        const t = (segmentDist - overshot) / segmentDist;
+                        const spawnX = THREE.MathUtils.lerp(p1.x, p2.x, t);
+                        const spawnZ = THREE.MathUtils.lerp(p1.z, p2.z, t);
+                        spawnOOBStake(spawnX, spawnZ);
+                        accumulatedDist = overshot;
+                    }
+                }
+                spawnOOBStake(track[track.length - 1].x, track[track.length - 1].z); // End post anchor
+            };
+
+            // Spawn left and right tracks with absolute 25 yards spacing
+            spawnStakesAlongTrack(leftTrack);
+            spawnStakesAlongTrack(rightTrack);
+
+            // 1. Seal Back Wall (bridge between leftTrack start and rightTrack start)
+            const startLeft = leftTrack[0];
+            const startRight = rightTrack[0];
+            const backWallDist = Math.sqrt((startRight.x - startLeft.x) ** 2 + (startRight.z - startLeft.z) ** 2);
+            const backStakesCount = Math.max(2, Math.ceil(backWallDist / spacingUnits) + 1);
+            for (let i = 1; i < backStakesCount - 1; i++) {
+                const t = i / (backStakesCount - 1);
+                const x = THREE.MathUtils.lerp(startLeft.x, startRight.x, t);
+                const z = THREE.MathUtils.lerp(startLeft.z, startRight.z, t);
+                spawnOOBStake(x, z);
+            }
+
+            // 2. Seal Front Wall (bridge between leftTrack end and rightTrack end)
+            const endLeft = leftTrack[leftTrack.length - 1];
+            const endRight = rightTrack[rightTrack.length - 1];
+            const frontWallDist = Math.sqrt((endRight.x - endLeft.x) ** 2 + (endRight.z - endLeft.z) ** 2);
+            const frontStakesCount = Math.max(2, Math.ceil(frontWallDist / spacingUnits) + 1);
+            for (let i = 1; i < frontStakesCount - 1; i++) {
+                const t = i / (frontStakesCount - 1);
+                const x = THREE.MathUtils.lerp(endLeft.x, endRight.x, t);
+                const z = THREE.MathUtils.lerp(endLeft.z, endRight.z, t);
+                spawnOOBStake(x, z);
+            }
         }
     }
-
     generateNewWind();
     updateDistanceDisplay();
 
