@@ -2756,7 +2756,7 @@ function animate() {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.24 : 0.21;
         } else {
-            ballTargetScale = isMobile ? 0.73 : 0.65; // Fairway, rough, and sand size
+            ballTargetScale = isMobile ? 0.73 : 0.51; // Fairway, rough, and sand size
         }
 
         const isSand = physics && physics.isBallInSand();

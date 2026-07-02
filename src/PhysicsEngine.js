@@ -719,9 +719,9 @@ export class PhysicsEngine {
 
                     // MODIFIED: Widened the braking window to 0.032 to take away the extra rollout distance,
                     // but softened the multiplier to 0.925 so it glides smoothly to a stop instead of jerking.
-                    if (speed < 0.025) {
-                        this.velocity.x *= 0.82;
-                        this.velocity.z *= 0.82;
+                    if (speed < 0.015) {
+                        this.velocity.x *= 0.85;
+                        this.velocity.z *= 0.85;
                     }
                 }
             }
