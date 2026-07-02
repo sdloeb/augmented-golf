@@ -3000,7 +3000,8 @@ function animate() {
 
         // UPDATED: Starting the tilt sooner (3.5 yards) and dropping lookAheadDist to 0.0 for a clean top-down view when close
         let lookAheadDist = 6.0;
-        const distToHole = Math.sqrt((holePosition.x - ball.position.x) * (holePosition.x - ball.position.x) + (holePosition.z - ball.position.z) * (holePosition.z - ball.position.z));
+        // FIXED: Base the distance parameter check on refX and refZ (the stable address origin) instead of the moving ball position
+        const distToHole = Math.sqrt((holePosition.x - refX) * (holePosition.x - refX) + (holePosition.z - refZ) * (holePosition.z - refZ));
         if (distToHole < 3.5) {
             const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
             lookAheadDist = THREE.MathUtils.lerp(0.0, 6.0, factor);
