@@ -2464,12 +2464,23 @@ function animate() {
     }
 
     // FIXED: Dynamic out-of-bounds boundary check based on distance to the hole's centerline track
+    // FIXED: Dynamic out-of-bounds boundary check synchronized perfectly to our visual stake lines
     let isOutOfBounds = false;
     if (physics) {
-        const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
-        // Out of Bounds activates if ball is 70+ units from path, 25 units behind tee, or 45 units beyond the hole
-        if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
-            isOutOfBounds = true;
+        // If the current hole has a custom rectangle boundary configured, check against those exact box walls
+        if (currentHoleConfig && currentHoleConfig.customOOB && currentHoleConfig.customOOB.type === 'rectangle') {
+            const oob = currentHoleConfig.customOOB;
+            if (ball.position.x < oob.minX || ball.position.x > oob.maxX ||
+                ball.position.z > oob.maxZ || ball.position.z < oob.minZ) {
+                isOutOfBounds = true;
+            }
+        }
+        // Otherwise, fallback safely to standard track spline distance bounds for other holes
+        else {
+            const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
+            if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
+                isOutOfBounds = true;
+            }
         }
     }
 
@@ -3152,8 +3163,9 @@ function animate() {
         // Apply perspective correction cleanly to the absolute base scale
         finalBallTargetScale = baseGreenScale * perspectiveCorrection;
 
-        // Preserved exactly: Counteract camera height shrinkage when ultra-close to the cup
-        if (yardsToPin < 3.5) {
+        // FIXED: Only apply the 2D putter proximity boost when the ball is stationary at address or rest,
+        // preventing the ball from expanding and shrinking while actively rolling past the hole.
+        if (yardsToPin < 3.5 && !physics.isMoving) {
             let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
             finalBallTargetScale *= (1.0 + closeFactor * 0.60); // Boost scale to balance the 2D putter
         }
