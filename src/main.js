@@ -3013,16 +3013,20 @@ function animate() {
 
         // UPDATED: Starting the tilt sooner (3.5 yards) and dropping lookAheadDist to 0.0 for a clean top-down view when close
         let lookAheadDist = 6.0;
-        // FIXED: Base the distance parameter check on refX and refZ (the stable address origin) instead of the moving ball position
+        // Preserved from Step 1: Keeps tracking stable during active ball movement
         const distToHole = Math.sqrt((holePosition.x - refX) * (holePosition.x - refX) + (holePosition.z - refZ) * (holePosition.z - refZ));
         if (distToHole < 3.5) {
             const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
-            lookAheadDist = THREE.MathUtils.lerp(0.0, 6.0, factor);
 
-            // Dynamically increase camera height and pull in distance to create a steep, clear top-down perspective
-            rigidCamHeight = THREE.MathUtils.lerp(aspect < 1 ? 2.0 : 2.2, rigidCamHeight, factor);
-            rigidCamDist = THREE.MathUtils.lerp(aspect < 1 ? 1.7 : 2.5, rigidCamDist, factor);
-            lookUpOffset = THREE.MathUtils.lerp(-0.15, lookUpOffset, factor);
+            // FIXED: Look slightly ahead past the ball center so both the ball and cup remain perfectly centered in the frame
+            lookAheadDist = THREE.MathUtils.lerp(0.4, 6.0, factor);
+
+            // FIXED: Elevate camera height (up to 2.9) and pull horizontal distance tight to the ball (down to 0.8) to force a steep top-down view
+            rigidCamHeight = THREE.MathUtils.lerp(aspect < 1 ? 2.6 : 2.9, rigidCamHeight, factor);
+            rigidCamDist = THREE.MathUtils.lerp(aspect < 1 ? 0.6 : 0.8, rigidCamDist, factor);
+
+            // FIXED: Tilt the lens downward aggressively (-0.45) to create a clean, non-occluded view into the cup
+            lookUpOffset = THREE.MathUtils.lerp(-0.45, lookUpOffset, factor);
         }
 
         // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
@@ -3074,13 +3078,17 @@ function animate() {
         const dzH = holePosition.z - ball.position.z;
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
-        // NEW: Gently scale down the ball when far away to combat perspective ballooning.
-        // It caps the maximum shrinkage to 78% so it never gets too microscopic on monster putts.
+        // FIXED: Treat the base green size as an absolute starting value to eliminate double-compounding sizing pops
+        const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+        const baseGreenScale = isMobileScreen ? 0.24 : 0.21;
+
+        // Preserved exactly: Gently scales down the ball when far away to combat perspective ballooning
         const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
 
-        finalBallTargetScale *= 0.85 * perspectiveCorrection;
+        // Apply perspective correction cleanly to the absolute base scale
+        finalBallTargetScale = baseGreenScale * perspectiveCorrection;
 
-        // Counteract camera height shrinkage when ultra-close to the cup
+        // Preserved exactly: Counteract camera height shrinkage when ultra-close to the cup
         if (yardsToPin < 3.5) {
             let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
             finalBallTargetScale *= (1.0 + closeFactor * 0.60); // Boost scale to balance the 2D putter
