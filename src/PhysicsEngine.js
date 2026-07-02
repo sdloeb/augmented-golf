@@ -957,7 +957,7 @@ export class PhysicsEngine {
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
         // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
         // while leaving regular green shots and rough/fairway stops completely un-impacted.
-        const stopThreshold = this.isPutting ? 0.014 : (onGreen ? 0.003 : 0.012);
+        const stopThreshold = this.isPutting ? 0.03 : (onGreen ? 0.003 : 0.012);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
