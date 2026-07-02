@@ -59,7 +59,7 @@ html {
 #backspinBtn {
     position: absolute;
     top: 63%;
-    left: 5%;
+    left: 25%;
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.75);
     border: 2px solid #ffffff;
