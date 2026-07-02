@@ -2792,7 +2792,7 @@ function animate() {
             ballTargetScale = activeLaunchScale;
         } else {
             // For long shots where the camera actively chases the ball, manually scale down to simulate height/distance
-            ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0035));
+            ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0015));
         }
         if (isLongShot) {
             if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) {
@@ -2912,7 +2912,7 @@ function animate() {
     const currentClub = input ? input.getClubInfo() : null;
     // Expands the circle check to include the fringe boundary if holding the Putter
     const isBallInGreenCircle = bgDist < bgActiveR || (currentClub && currentClub.name === 'Putter' && bgDist <= bgActiveR + 2.5);
-    const isCamOnGreen = isBallInGreenCircle && (ball.position.y <= physics.getGroundHeight(ball.position.x, ball.position.z) + 0.5);
+    const isCamOnGreen = isBallInGreenCircle;
     // === PASTE THIS REPLACEMENT CODE BLOCK ===
     // 1. DEFAULT SPEED: Set to 0.25 when stationary so the camera instantly snaps into the address 
     // position behind the ball the moment it stops, completely removing the "too far away to hit" delay lag.
@@ -3147,14 +3147,12 @@ function animate() {
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
 
-    let finalBallTargetScale = ballTargetScale;
+   let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
-        // Calculate real-time distance to the pin in yards
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
-        // FIXED: Treat the base green size as an absolute starting value to eliminate double-compounding sizing pops
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
         const baseGreenScale = isMobileScreen ? 0.24 : 0.21;
 
@@ -3164,9 +3162,15 @@ function animate() {
         // Apply perspective correction cleanly to the absolute base scale
         finalBallTargetScale = baseGreenScale * perspectiveCorrection;
 
-        // FIXED: Reduced the old 0.60 multiplier boost down to 0.05 since our new angled broadcast camera 
-        // angle naturally frames the ball perfectly without needing artificial size inflating.
-        // TWEAK: Set 0.05 to 0.0 if you want absolutely zero artificial growth when approaching the cup.
+        // FIXED: Boost the ball's scale proportionally if the camera is trailing far behind (chase camera),
+        // and smoothly fade it out as the camera glides close, preventing the ball from turning into a tiny speck.
+        const camDistFromBall = camera.position.distanceTo(ball.position);
+        if (camDistFromBall > 3.0) {
+            const distanceBoost = 1.0 + (camDistFromBall - 3.0) * 0.085;
+            finalBallTargetScale *= Math.min(2.5, distanceBoost); // Caps maximum boost safely at 2.5x
+        }
+
+        // Preserved exactly: Counteract camera height shrinkage when ultra-close to the cup
         if (yardsToPin < 3.5 && !physics.isMoving) {
             let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
             finalBallTargetScale *= (1.0 + closeFactor * 0.05); // Balanced proximity scale
