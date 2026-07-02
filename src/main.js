@@ -2751,7 +2751,7 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.75 : 0.80; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.75 : 0.54; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.30 : 0.21;
@@ -3064,6 +3064,13 @@ function animate() {
         const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
 
         finalBallTargetScale *= 0.85 * perspectiveCorrection;
+
+        // Counteract camera height shrinkage when ultra-close to the cup
+        if (yardsToPin < 3.5) {
+            let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
+            finalBallTargetScale *= (1.0 + closeFactor * 0.35); // Boost scale to balance the 2D putter
+        }
+
     }
 
 

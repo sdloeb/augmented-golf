@@ -275,7 +275,7 @@ html {
 
 /* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
-    zoom: 0.85;
+    zoom: 0.95;
     /* Main Chassis: Corner curves downscaled by 25% to keep proportions sharp */
     border-radius: 4px 20px 14px 10px;
     width: 78px;
