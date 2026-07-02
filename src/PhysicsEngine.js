@@ -717,11 +717,13 @@ export class PhysicsEngine {
                         slopeGravityModifier *= Math.max(0.0, Math.min(1.0, slopeFade));
                     }
 
-                    // MODIFIED: Widened the braking window to 0.032 to take away the extra rollout distance,
-                    // but softened the multiplier to 0.925 so it glides smoothly to a stop instead of jerking.
-                    if (speed < 0.015) {
-                        this.velocity.x *= 0.85;
-                        this.velocity.z *= 0.85;
+                    // MODIFIED: Balanced hill-lock and short putt launch stabilizer.
+                    // We aggressively scale down the hill's gravity pull under 0.050 speed so the ball 
+                    // cannot break loose and roll down like ice, but we REMOVE the velocity friction choke 
+                    // so short 5-foot putts can launch completely free and smooth.
+                    if (speed < 0.050) {
+                        let slopeFade = speed / 0.050;
+                        slopeGravityModifier *= Math.max(0.0, Math.min(1.0, slopeFade));
                     }
                 }
             }
