@@ -3088,7 +3088,7 @@ function animate() {
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
-        const chipScaleFloor = yardsToPin < 25.0 ? 0.82 : 0.55; // Keeps ball full and visible when near green
+        const chipScaleFloor = yardsToPin < 25.0 ? 0.55 : 0.55; // Keeps ball full and visible when near green
 
         // Clamp the proximity modifier to keep visual scale completely stable during close-up chips and approaches
         const proximityFactor = THREE.MathUtils.clamp(cameraDistanceToBall / 9.5, chipScaleFloor, 1.0);
