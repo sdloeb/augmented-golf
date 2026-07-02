@@ -1360,9 +1360,11 @@ function resetEntireGame(advanceHole = false) {
                 } else {
                     const dxW = worldX - water.position.x;
                     const dzW = worldZ - water.position.z;
-                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                    // FIXED: Use squared distance to avoid heavy Math.sqrt calculations on every single vertex
+                    const distToWaterSq = dxW * dxW + dzW * dzW;
                     const lakeRadius = water.userData.radius || 5;
-                    if (distToWater < lakeRadius + 0.1) { // Pull grass down inside the shore ring boundary to prevent jagged clips
+                    const maxRadius = lakeRadius + 0.1;
+                    if (distToWaterSq < maxRadius * maxRadius) { // Pull grass down inside the shore ring boundary to prevent jagged clips
                         insideWaterZone = true;
                     }
                 }
@@ -1407,16 +1409,16 @@ function resetEntireGame(advanceHole = false) {
                         if (depth > activeSandDepth) activeSandDepth = depth;
                     }
                 } else {
-                    // Preserves original circle geometry setup unmodified
                     const dxS = worldX - sand.position.x;
                     const dzS = worldZ - sand.position.z;
-                    let distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+                    // FIXED: Use squared distance to optimize circular bunker boundary checks inside the tight grid loop
+                    const distToSandSq = dxS * dxS + dzS * dzS;
 
                     // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
                     const padding = (targetMesh === floor || targetMesh === fairway) ? 0.0 : 0.0;
                     const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
 
-                    if (distToSand < sandRadius) {
+                    if (distToSandSq < sandRadius * sandRadius) {
                         insideSandZone = true;
                         const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
                         if (depth > activeSandDepth) activeSandDepth = depth;
