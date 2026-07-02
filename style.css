@@ -682,7 +682,7 @@ html {
         transform: scale(1.15) !important;
         /* Adjust this decimal up or down to tune your mobile iron size */
         transform-origin: right bottom;
-        margin-left: 5px !important;
+        margin-left: 8px !important;
     }
 
 
