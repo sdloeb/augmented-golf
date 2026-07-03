@@ -1736,6 +1736,12 @@ function resetEntireGame(advanceHole = false) {
             continue;
         }
 
+        // Prevent background scenery from spawning on or overlapping the putting green
+        const distToGreenCenter = Math.sqrt((x - holePosition.x) * (x - holePosition.x) + (z - holePosition.z) * (z - holePosition.z));
+        if (distToGreenCenter < 16.0) {
+            continue;
+        }
+
         // Prevent background scenery from spawning inside water hazards (+1.5 unit buffer padding)
         let insideWater = waterHazards.some(waterMesh => {
             let dxW = x - waterMesh.position.x;
