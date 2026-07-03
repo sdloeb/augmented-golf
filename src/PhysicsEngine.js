@@ -485,6 +485,7 @@ export class PhysicsEngine {
         // FIXED: Synchronize physical boundaries with the new visual wide circular throat
         const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
         let activeFW = this.fairwayWidth;
+        const isOnGreenSidesOrBack = false;
         // Mirror the visual apron taper logic to align physical turf borders with mesh alterations
         if (!(this.greenCenterZ < -165 && this.greenCenterZ > -185)) {
             const apronStart = -activeRadius - 12.0;
