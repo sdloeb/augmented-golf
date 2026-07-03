@@ -1500,15 +1500,15 @@ function resetEntireGame(advanceHole = false) {
                 const fWEdge = fW + 3.5;
 
                 // FIXED: Terminate cutoff cleanly along the green's circular edge and back equator sides
-                const isPastFairway = (distToGreenCenter < activeR) || (approachDot > 0 && distToGreenCenter >= activeR);
+                const isPastFairway = (distToGreenCenter < activeR) || (approachDot + (distToGreenCenter - activeR) * 0.5 > 0);
                 const isOnGreenSidesOrBack = (approachDot > 0.0) && (distToGreenCenter >= activeR - 2.0);
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
                 if (closeToWater) {
                     // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
-                } else if (distanceToPath <= fW && !isPastFairway && !isOnGreenSidesOrBack) {
+                } else if (distanceToPath <= fW) {
                     floorHeight -= 0.12;
-                } else if (distanceToPath <= fWEdge && !isPastFairway && !isOnGreenSidesOrBack) {
+                } else if (distanceToPath <= fWEdge) {
                     const t = (distanceToPath - fW) / 3.5;
                     const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
