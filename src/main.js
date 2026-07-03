@@ -2577,7 +2577,7 @@ function animate() {
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
         // Expanded capture radius to 0.23 to intercept lip-in and spin-out edge interactions fully
-        const maxLipRadius = 0.23;
+        const maxLipRadius = 0.38;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -2644,7 +2644,7 @@ function animate() {
                         wasMoving = false;
                     }
                     // PATHWAY B: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
-                    else if (ball.userData.lipAngleTraveled > 1.35) {
+                    else if (ball.userData.lipAngleTraveled > 3.8) {
                         physics.velocity.x = (tanX + hDirX * 0.20) * rawSpeed * 0.95;
                         physics.velocity.z = (tanZ + hDirZ * 0.20) * rawSpeed * 0.95;
                         ball.userData.isLipRiding = false;
@@ -3147,7 +3147,7 @@ function animate() {
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
 
-   let finalBallTargetScale = ballTargetScale;
+    let finalBallTargetScale = ballTargetScale;
     if (isCamOnGreen) {
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;

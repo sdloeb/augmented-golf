@@ -579,7 +579,7 @@ export class PhysicsEngine {
 
         // FIXED: Set speed factor to 0.38 to visually slow down the rolling speed of the ball,
         // giving it a realistic, smooth grass glide while preserving your distance calibration perfectly.
-        const puttSpeedFactor = 0.28;
+        const puttSpeedFactor = 0.38;
         if (!isAirborne && this.isPutting) {
             timeScale *= puttSpeedFactor;
             currentFriction = 1.0 - puttSpeedFactor * (1.0 - currentFriction);
