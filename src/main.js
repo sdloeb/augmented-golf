@@ -206,6 +206,8 @@ let previewProgress = 0;
 // NEW CAMERA FLIGHT TRACKERS
 let shotStartTime = 0;
 let isLongShot = false;
+let shotStoppedTime = 0;       // <-- Capture the exact timestamp when the ball settles
+const POST_SHOT_DELAY = 2200;
 
 let ballTargetScale = 1.0;
 
@@ -2827,6 +2829,7 @@ function animate() {
     } else {
         if (wasMoving) {
             wasMoving = false;
+            shotStoppedTime = performance.now();
             tracerPoints = []; // Add this line: Empties the line point rendering path history array
             if (ballTracer) ballTracer.geometry.setFromPoints([]); // Add this line: Erases the path geometry line visually from screen
             updateDistanceDisplay();
@@ -3149,6 +3152,12 @@ function animate() {
         updateGreenGrid();
     }
 
+    // NEW: Post-shot camera fader to create a slow cinematic pan into your address stance position
+    let timeSinceStop = performance.now() - shotStoppedTime;
+    if (!physics.isMoving && timeSinceStop < POST_SHOT_DELAY && !isOverheadActive && !isSinking) {
+        activeCameraSpeed = 0.007; // Drastically lower interpolation speed for a luxurious tracking glide
+    }
+
     camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Existing line below your new addition
     currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
     camera.lookAt(currentLookAt);
@@ -3215,7 +3224,12 @@ function animate() {
     if (clubSwipeElement && input) {
         // Only modify stance classes if the forward swing animation isn't currently playing
         if (!clubSwipeElement.classList.contains('swipe-animation')) {
-            if (!physics.isMoving && !isSinking && !isOverheadActive) {
+            // Calculate if the camera is currently in its landing cooldown pan window
+            let timeSinceStop = performance.now() - shotStoppedTime;
+            let isPostShotResting = !physics.isMoving && (timeSinceStop < POST_SHOT_DELAY);
+
+            // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
+            if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
                 const activeClub = input.getClubInfo();
 
                 // Add these lines: Calculates the ball's real-time 2D screen percentage height
