@@ -1500,8 +1500,8 @@ function resetEntireGame(advanceHole = false) {
                 const fWEdge = fW + 3.5;
 
                 // FIXED: Terminate cutoff cleanly along the green's circular edge and back equator sides
-                const isPastFairway = (distToGreenCenter < activeR) || (approachDot + (distToGreenCenter - activeR) * 0.5 > 0);
-                const isOnGreenSidesOrBack = (approachDot > 0.0) && (distToGreenCenter >= activeR - 2.0);
+                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
+                const isOnGreenSidesOrBack = false;
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
                 if (closeToWater) {
@@ -3361,10 +3361,35 @@ function animate() {
                     }); // Add this line
                 } // Add this line
 
-                const ringY = baseGroundY + 0.25; // Change this line
-                clubLandingRing.position.set(ringX, ringY, ringZ);
-                clubLandingRing.visible = true; // Add this line
-                clubLandingBeacon.position.set(ringX, ringY + 75, ringZ); // Add this line
+                clubLandingRing.position.set(ringX, 0, ringZ);
+
+                // Deform the ring vertices so it perfectly contours to hills and always appears full
+                const ringPosAttr = clubLandingRing.geometry.attributes.position;
+                for (let i = 0; i < ringPosAttr.count; i++) {
+                    const lx = ringPosAttr.getX(i);
+                    const ly = ringPosAttr.getY(i);
+                    const vWorldX = ringX + lx;
+                    const vWorldZ = ringZ - ly;
+
+                    let vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
+                    if (physics.waterHazards) {
+                        physics.waterHazards.forEach(water => {
+                            const dxW = vWorldX - water.position.x;
+                            const dzW = vWorldZ - water.position.z;
+                            const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
+                            const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+                            if (distToWater < lakeRadius + 0.6) {
+                                vGroundY = Math.max(vGroundY, water.position.y);
+                            }
+                        });
+                    }
+                    ringPosAttr.setZ(i, vGroundY + 0.04);
+                }
+                ringPosAttr.needsUpdate = true;
+                clubLandingRing.geometry.computeVertexNormals();
+
+                clubLandingRing.visible = true;
+                clubLandingBeacon.position.set(ringX, baseGroundY + 0.25 + 75, ringZ);
                 clubLandingBeacon.visible = true;
             } else { // Add this line
                 clubLandingRing.visible = false; // Add this line
@@ -3817,7 +3842,15 @@ function init() {
     // --- PUT THIS NEW SPECIFICATION IN ITS PLACE ---
     // Increased geometric resolution (64, 4) to allow smooth hill molding profiles
     const ringGeo = new THREE.RingGeometry(3.0, 3.6, 64, 4);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 1.0 });
+    const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -4
+    });
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
     clubLandingRing.rotation.x = -Math.PI / 2;
     clubLandingRing.visible = false;
