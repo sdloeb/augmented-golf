@@ -420,6 +420,7 @@ export class PhysicsEngine {
         this.bounceCount = 0;
     }
 
+    // === REPLACE WITH THIS EXACT BLOCK ===
     update() {
         if (!this.isMoving) return;
 
@@ -430,12 +431,7 @@ export class PhysicsEngine {
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
-        const groundY = 0.25 + greenHeightOffset;
-
-        // Add this block: Ground-snapping stickiness to keep the ball hugging downhill slopes
-        if (this.ball.position.y > groundY && this.ball.position.y <= groundY + 0.4 && this.velocity.y <= 0.01) {
-            this.ball.position.y = groundY;
-        } // End of added block
+        let groundY = 0.25 + greenHeightOffset; // Changed to let to allow dynamic adjustments below
 
         const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
@@ -560,11 +556,53 @@ export class PhysicsEngine {
             currentBounceHeight = 0.36;
             currentBounceForwardLoss = (this.bounceCount === 0) ? 0.52 : 0.95;
         }
+        // === REPLACE WITH THIS EXACT BLOCK ===
         else {
             // Deep Course Rough
             currentFriction = 0.74;
             currentBounceHeight = 0.18;
             currentBounceForwardLoss = 0.30;
+
+            const bX = this.ball.position.x;
+            const bZ = this.ball.position.z;
+            const distanceToPath = this.getDistanceToSpline(bX, bZ);
+
+            // Sync with the exact visual boundary parameters from main.js
+            const fWEdge = activeFW + 3.5;
+            const fringeOuterR = activeRadius + 1.0;
+
+            let finalGrassHeight = greenHeightOffset;
+
+            // A. REPLICATE COLLAR TRANSITION DIP: Accounts for the micro-slope contours near fairway cuts
+            if (distanceToPath <= activeFW) {
+                finalGrassHeight -= 0.12;
+            } else if (distanceToPath <= fWEdge) {
+                const t = (distanceToPath - activeFW) / 3.5;
+                const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
+                finalGrassHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
+            }
+
+            // B. REPLICATE JAGGED JITTER NOISE: Adds micro-spikes only out in open deep rough fields
+            if (distanceToPath > fWEdge && distToGreenCenter > fringeOuterR) {
+                const grassJitter = Math.sin(bX * 3.5) * Math.cos(bZ * 3.5) * 0.18 + Math.cos(bX * 7.0) * 0.08;
+                finalGrassHeight += Math.max(0, grassJitter);
+            }
+
+            // C. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across doglegs and back-greens
+            let roughLift = 0;
+            if (isPastFairway) {
+                if (distToGreenCenter > fringeOuterR) {
+                    roughLift = 1.0;
+                }
+            } else {
+                if (distanceToPath > activeFW) {
+                    roughLift = 1.0;
+                }
+            }
+            finalGrassHeight += roughLift * 0.3;
+
+            // Apply your custom offset to sink the ball center uniformly into the active grass height
+            groundY = finalGrassHeight - .02;
         }
 
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
@@ -576,6 +614,11 @@ export class PhysicsEngine {
             } else {
                 currentFriction = 0.979;
             }
+        }
+
+        // Add this block here: Ground-snapping stickiness now runs safely with the finalized groundY plane
+        if (this.ball.position.y > groundY && this.ball.position.y <= groundY + 0.4 && this.velocity.y <= 0.01) {
+            this.ball.position.y = groundY;
         }
 
         // Determine if the ball is currently airborne relative to the dynamic 3D slope height
@@ -969,7 +1012,7 @@ export class PhysicsEngine {
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
         // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
         // while leaving regular green shots and rough/fairway stops completely un-impacted.
-        const stopThreshold = this.isPutting ? 0.018 : (onGreen ? 0.018 : 0.015);
+        const stopThreshold = this.isPutting ? 0.018 : (onGreen ? 0.018 : 0.01);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
