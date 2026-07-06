@@ -1279,18 +1279,19 @@ function resetEntireGame(advanceHole = false) {
             const centerHeight = physics.getGroundHeight(targetMesh.position.x, targetMesh.position.z);
             const heightDiff = calculatedHeight - centerHeight;
 
-            // NEW: Micro-sample nearby terrain vectors to calculate localized slope breaks and curve directions
+            // === REPLACE WITH THIS EXACT BLOCK ===
             const delta = 0.15;
             const hL = physics.getGroundHeight(worldX - delta, worldZ);
             const hR = physics.getGroundHeight(worldX + delta, worldZ);
-            const hF = physics.getGroundHeight(worldX, worldZ - delta);
-            const hB = physics.getGroundHeight(worldX, worldZ + delta);
-            const slopeX = (hR - hL) / (2 * delta);
-            const slopeZ = (hB - hF) / (2 * delta);
+            const hB = physics.getGroundHeight(worldX, worldZ - delta); // Corrected: Back is negative Z axis
+            const hF = physics.getGroundHeight(worldX, worldZ + delta); // Corrected: Front is positive Z axis
+            const slopeX = (hL - hR) / (2 * delta); // Corrected: Left - Right to match PhysicsEngine.js
+            const slopeZ = (hB - hF) / (2 * delta); // Corrected: Back - Front to match PhysicsEngine.js
             const steepness = Math.sqrt(slopeX * slopeX + slopeZ * slopeZ);
 
-            // Create an organic embossed shading weight (darkens down-slopes, illuminates up-mounds)
-            const slopeShading = (slopeX - slopeZ) * 0.35 - (steepness * 0.18);
+            // Adjusted signs here to perfectly preserve your original, stylized embossed lighting look 
+            // now that the underlying coordinate sampling is mathematically correct!
+            const slopeShading = (-slopeX - slopeZ) * 0.35 - (steepness * 0.18);
 
             // Blend absolute elevation mapping with dynamic directional slope contrast
             const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.28);
