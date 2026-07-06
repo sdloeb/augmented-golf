@@ -571,24 +571,24 @@ export class PhysicsEngine {
             const fWEdge = activeFW + 3.5;
             const fringeOuterR = activeRadius + 1.0;
 
-            let finalGrassHeight = greenHeightOffset;
+            let floorHeight = greenHeightOffset;
 
-            // A. REPLICATE COLLAR TRANSITION DIP: Accounts for the micro-slope contours near fairway cuts
+            // A. REPLICATE COLLAR TRANSITION DIP: Matches the micro-slope contours near fairway cuts
             if (distanceToPath <= activeFW) {
-                finalGrassHeight -= 0.12;
+                floorHeight -= 0.12;
             } else if (distanceToPath <= fWEdge) {
                 const t = (distanceToPath - activeFW) / 3.5;
                 const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-                finalGrassHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
+                floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
             }
 
             // B. REPLICATE JAGGED JITTER NOISE: Adds micro-spikes only out in open deep rough fields
-            if (distanceToPath > fWEdge && distToGreenCenter > fringeOuterR) {
+            if (distanceToPath > fWEdge && !inSand && distToGreenCenter > fringeOuterR) {
                 const grassJitter = Math.sin(bX * 3.5) * Math.cos(bZ * 3.5) * 0.18 + Math.cos(bX * 7.0) * 0.08;
-                finalGrassHeight += Math.max(0, grassJitter);
+                floorHeight += Math.max(0, grassJitter);
             }
 
-            // C. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across doglegs and back-greens
+            // C. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across open fields
             let roughLift = 0;
             if (isPastFairway) {
                 if (distToGreenCenter > fringeOuterR) {
@@ -599,10 +599,16 @@ export class PhysicsEngine {
                     roughLift = 1.0;
                 }
             }
-            finalGrassHeight += roughLift * 0.3;
+            floorHeight += roughLift * 0.3;
 
-            // Apply your custom offset to sink the ball center uniformly into the active grass height
-            groundY = finalGrassHeight - .02;
+            // D. ANTICIPATE RESTING SCALE: Look ahead to find what size the ball will snap to when it stops.
+            // This eliminates the height-popping artifact when transitioning from moving to stationary!
+            const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+            const targetRestingScale = isMobileScreen ? 0.73 : 0.51;
+            const targetRestingRadius = 0.25 * targetRestingScale;
+
+            // To visually swallow exactly 1/4 of the ball, the center must sit half a resting radius above the grass line
+            groundY = floorHeight + (targetRestingRadius * 0.5);
         }
 
         // Cleaned up putting override loop so it doesn't break approach shot rollouts

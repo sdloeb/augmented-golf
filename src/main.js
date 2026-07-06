@@ -3257,12 +3257,22 @@ function animate() {
             if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
                 const activeClub = input.getClubInfo();
 
+                // === REPLACE WITH THIS EXACT BLOCK ===
                 // Add these lines: Calculates the ball's real-time 2D screen percentage height
                 const tempProj = new THREE.Vector3();
                 ball.getWorldPosition(tempProj);
                 tempProj.project(camera);
                 const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
                 const dynamicBottom = ballBottomPercent - 4.0; // Automatically tracks ball equator with calibration offset
+
+                // NEW: Dynamically bind the backspin button position relative to the club's Y baseline coordinates
+                const backspinBtnEl = document.getElementById('backspinBtn');
+                if (backspinBtnEl) {
+                    const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+                    // Subtracting a calibrated percentage value drops the button cleanly below the active clubhead frame footprint
+                    const verticalOffset = isMobileScreen ? 11.5 : 9.5;
+                    backspinBtnEl.style.setProperty('bottom', `${dynamicBottom - verticalOffset}%`, 'important');
+                }
 
                 // Establish base club layout shapes
                 let clubTypeClass = 'iron';
