@@ -547,6 +547,12 @@ export class PhysicsEngine {
                 }
             }
         }
+        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
+            // Tightly-mown Fringe Collar Physics
+            currentFriction = 0.94;
+            currentBounceHeight = 0.28;
+            currentBounceForwardLoss = (this.bounceCount === 0) ? 0.42 : 0.96;
+        }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
             // Crisp Fairway Turf
@@ -893,12 +899,14 @@ export class PhysicsEngine {
                     if (inSand) {
                         this.sounds.play('sand'); // Preserved: Sand path remains clean
                     } else if (onGreen) {
-                        this.sounds.play('green'); // Add this line: Triggers on green grass bounce
+                        this.sounds.play('green'); // Triggers on green grass bounce
+                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
+                        this.sounds.play('fairway'); // Modified: Fringe plays crisp fairway turf sound
                     } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                         ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
-                        this.sounds.play('fairway'); // Add this line: Triggers on fairway track bounce
+                        this.sounds.play('fairway'); // Triggers on fairway track bounce
                     } else {
-                        this.sounds.play('rough'); // Add this line: Triggers on deep course rough bounce
+                        this.sounds.play('rough'); // Triggers on deep course rough bounce
                     }
                 }
                 this.bounceCount++; // Preserved: Increment count on each airborne landing hit
@@ -924,7 +932,9 @@ export class PhysicsEngine {
                         let surfaceFactor = 0.0;
                         if (onGreen) {
                             surfaceFactor = 1.0;
-                        } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
+                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
+                            surfaceFactor = 0.75; // Modified: Fringe gets a crisp 75% backspin check-up grab!
+                        } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW &&
                             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
                             surfaceFactor = 0.4;
                         }
