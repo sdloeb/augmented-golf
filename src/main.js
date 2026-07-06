@@ -2889,9 +2889,10 @@ function animate() {
         const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
         const isChippingClose = !onGreen && holeDistYards < 25.0;
 
-        // ADJUSTED: Tighten camera profile for close chip situations so you can see the hole path clearly
-        const camDist = onGreen ? 2.5 : (isSand ? 5.0 : (isChippingClose ? 4.5 : 7.5));
-        const camHeight = onGreen ? 1.0 : (isSand ? 2.0 : (isChippingClose ? 1.4 : 2.2));
+        // === REPLACE WITH THIS EXACT BLOCK ===
+        // ADJUSTED: Lift camera height and tighten distance specifically for deep sand traps so you can see over the bunker lip
+        const camDist = onGreen ? 2.5 : (isSand ? 1.5 : (isChippingClose ? 4.5 : 7.5));
+        const camHeight = onGreen ? 1.0 : (isSand ? 0.1 : (isChippingClose ? 1.4 : 2.2));
         const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : (isChippingClose ? 8.0 : 15.0));
         if (!isOverheadActive) {
             let baseTargetX = holePosition.x;
@@ -2909,6 +2910,7 @@ function animate() {
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
 
+            // === REPLACE WITH THIS EXACT BLOCK ===
             const lookTargetX = ball.position.x + aimDirX * lookDist;
             const lookTargetZ = ball.position.z + aimDirZ * lookDist;
             let lookTargetY = physics.getGroundHeight(lookTargetX, lookTargetZ); // Modify this line: Changed 'const' to 'let'
@@ -2916,6 +2918,11 @@ function animate() {
             // Add this block: Overrides the downward tilt at the tee box so the 2D club overlay aligns perfectly
             if (teeBox && teeBox.visible) {
                 lookTargetY = ball.position.y - 0.37;
+            }
+            // NEW: If in a deep bunker, override lookTargetY to stay flat with the bunker floor under the ball
+            // instead of looking way up at the high ground outside the trap!
+            else if (isSand) {
+                lookTargetY = ball.position.y - 0.25;
             }
 
 
@@ -3219,6 +3226,9 @@ function animate() {
     }
 
 
+
+
+    // === REPLACE WITH THIS EXACT BLOCK ===
     // NEW: Keep full scale during the plunge, only zero out once resting out of sight at the bottom
     if (isSinking) {
         if (ball.isSunk) {
@@ -3233,7 +3243,13 @@ function animate() {
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
-        const chipScaleFloor = yardsToPin < 25.0 ? 0.55 : 0.55; // Keeps ball full and visible when near green
+
+        // Self-contained check query directly from the physics engine ensures this is always in scope!
+        const isBallInBunker = physics && physics.isBallInSand();
+
+        // Lower the floor down to 0.15 dynamically when in the sand trap
+        // This allows the ball to keep shrinking as the camera gets ultra close, offsetting the 3D zoom perfectly!
+        const chipScaleFloor = isBallInBunker ? 0.15 : (yardsToPin < 25.0 ? 0.55 : 0.55);
 
         // Clamp the proximity modifier to keep visual scale completely stable during close-up chips and approaches
         const proximityFactor = THREE.MathUtils.clamp(cameraDistanceToBall / 9.5, chipScaleFloor, 1.0);
