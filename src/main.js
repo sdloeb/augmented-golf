@@ -207,7 +207,7 @@ let previewProgress = 0;
 let shotStartTime = 0;
 let isLongShot = false;
 let shotStoppedTime = 0;       // <-- Capture the exact timestamp when the ball settles
-const POST_SHOT_DELAY = 2200;
+const POST_SHOT_DELAY = 600;
 
 let ballTargetScale = 1.0;
 
