@@ -3731,7 +3731,7 @@ function init() {
 
 
     // 6.1. Add Tee Box Mat (Grassy short turf area with red tee markers)
-    const teeGeo = new THREE.BoxGeometry(5.5, 0.01, 8.0); // Modify this line (wider low grass boundary)
+    const teeGeo = new THREE.BoxGeometry(5.5, 0.01, 3.5); // Modify this line (wider low grass boundary)
     const teeMat = new THREE.MeshStandardMaterial({ color: 0x3cb371, roughness: 0.5 }); // Modify this line (distinct short golf grass)
     teeBox = new THREE.Mesh(teeGeo, teeMat);
     teeBox.position.set(0, 0.01, 10);
