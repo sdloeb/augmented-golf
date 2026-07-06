@@ -3102,16 +3102,18 @@ function animate() {
         if (distToHole < 3.5) {
             const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
 
-            // Look further down the line of sight to keep the cup and target path elegantly framed
-            lookAheadDist = THREE.MathUtils.lerp(1.5, 6.0, factor);
+            // Frames the view slightly ahead of the ball, tracking cleanly toward the cup
+            lookAheadDist = THREE.MathUtils.lerp(2.2, 6.0, factor);
 
-            // MODIFIED: Soften camera height (down to 1.8) and push the horizontal distance back behind the ball (up to 1.6)
-            // This replaces the flat vertical blueprint look with a natural 3D cinematic depth perspective
-            rigidCamHeight = THREE.MathUtils.lerp(aspect < 1 ? 1.5 : 1.8, rigidCamHeight, factor);
-            rigidCamDist = THREE.MathUtils.lerp(aspect < 1 ? 1.3 : 1.6, rigidCamDist, factor);
+            // Pull the camera BACK further behind the ball as you get close
+            // This clearly outlines the gap to the cup and keeps everything in perfect proportion
+            rigidCamDist = THREE.MathUtils.lerp(3.2, rigidCamDist, factor);
 
-            // Soften the lens tilt downwards to clear the occlusion while keeping a realistic horizon line
-            lookUpOffset = THREE.MathUtils.lerp(-0.22, lookUpOffset, factor);
+            // Keep the camera height lower to maintain a true "behind" view instead of "looking over"
+            rigidCamHeight = THREE.MathUtils.lerp(1.25, rigidCamHeight, factor);
+
+            // Gently tilt the lens angle to keep the horizon line natural near the cup
+            lookUpOffset = THREE.MathUtils.lerp(-0.25, lookUpOffset, factor);
         }
 
         // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
