@@ -3103,7 +3103,7 @@ function animate() {
             const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
 
             // Frames the view slightly ahead of the ball, tracking cleanly toward the cup
-            lookAheadDist = THREE.MathUtils.lerp(2.2, 6.0, factor);
+            lookAheadDist = THREE.MathUtils.lerp(distToHole, 6.0, factor);
 
             // Pull the camera BACK further behind the ball as you get close
             // This clearly outlines the gap to the cup and keeps everything in perfect proportion
