@@ -1516,11 +1516,32 @@ function resetEntireGame(advanceHole = false) {
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
 
+                // Add jagged 3D micro-spikes to the actual geometry vertices to break the flat plane lines in the rough
+                if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
+                    const grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
+                    floorHeight += Math.max(0, grassJitter);
+                }
+
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
+
+                    // 1. HILLS: Calculate a sharp vertical step-up right where the fairway and green fringe end
+                    if (!insideSandZone && !insideWaterZone) {
+                        let roughLift = 0;
+                        if (isPastFairway) {
+                            if (distToGreen > fringeOuterR) {
+                                roughLift = 1.0; // Immediate vertical wall right at the edge of the green fringe
+                            }
+                        } else {
+                            if (distanceToPath > fW) {
+                                roughLift = 1.0; // Immediate vertical wall right where the fairway stripes end
+                            }
+                        }
+                        calculatedHeight += roughLift * 0.3; // Multiplied by your test height of 1.0
+                    }
+                    // 2. GREEN PROTECTION: Slope the grass floor underneath the putting green complex to prevent overlapping lines
                     if (distToGreen < fringeOuterR) {
-                        // Safety buffer zone: Stay perfectly flush at the fringe circle, slope down smoothly underneath it
                         const transitionZone = 2.0;
                         if (distToGreen < fringeOuterR - transitionZone) {
                             calculatedHeight -= 1.5;
@@ -1530,8 +1551,9 @@ function resetEntireGame(advanceHole = false) {
                             calculatedHeight -= smoothTFloor * 1.5;
                         }
                     }
+
+                    // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
                     if (insideSandZone) {
-                        // FIXED: Calculate local crater depth to push grass down further inside the slopes, preventing clipping
                         const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                         const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
                         calculatedHeight = physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6);
@@ -3652,16 +3674,26 @@ function init() {
     rCtx.fillStyle = '#c5c5c5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
     for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
         rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#909090'; // Modify this line
-        rCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 64), 1, 3); // Fine vertical blade specks (Add this line)
+        const bladeHeight = 5 + Math.floor(Math.random() * 5); // Taller strands
+        const bladeWidth = 2 + Math.floor(Math.random() * 2);  // Chunky pixel widths to stand out from afar
+        const xPos = Math.floor(Math.random() * 64);
+        const yPos = Math.floor(Math.random() * 64);
+
+        // Draw the main grass blade strand with chunky width
+        rCtx.fillRect(xPos, yPos, bladeWidth, bladeHeight);
+
+        // Draw a distinct dark micro-shadow block to create a clean 2D pixel-art pop
+        rCtx.fillStyle = '#404040';
+        rCtx.fillRect(xPos + bladeWidth, yPos + 1, 1, bladeHeight - 1);
     }
     const roughTexture = new THREE.CanvasTexture(rCanvas);
     roughTexture.wrapS = THREE.RepeatWrapping;
     roughTexture.wrapT = THREE.RepeatWrapping;
     roughTexture.repeat.set(90, 600);
 
-    // Modify this line to add the emissive property:
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture }); // Modify this line
 
+    // Modify this line to add the emissive property and real-time 3D lighting depth over rough blades
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45 }); // Modify this line
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
