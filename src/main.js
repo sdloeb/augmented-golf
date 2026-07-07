@@ -88,7 +88,17 @@ const HOLES_CONFIG = {
             { type: 'sand', x: 18.5, z: -126.0, radius: 4.0, depth: 0.6 },
             { type: 'sand', x: 20.0, z: -155.0, radius: 3.8, depth: 0.6 },
             { type: 'sand', x: 28.5, z: -140.0, radius: 3.5, depth: 0.6 }
-        ]
+        ],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -60,         // Left wall line bounding the rough
+            maxX: 65,          // Right wall line extended to clear the right hazards
+            minZ: -185,        // Front wall line positioned safely past the green complex
+            maxZ: 35,          // Back wall line behind the tee box
+            stakesPerSide: 8,  // Spacing density down the long sides
+            stakesPerRow: 3    // Spacing density across the narrow front/back walls
+        }
     },
 
     3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
@@ -186,7 +196,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 2; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -262,11 +272,8 @@ function updateDistanceDisplay() {
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
         // MODIFIED: Fetch club selection state to unify short game tracking readouts
-        const currentClub = input ? input.getClubInfo() : null;
-        const isPutterActive = currentClub && currentClub.name === 'Putter';
-
-        // MODIFIED: Engage the visual feet scale if on the green surface, on the fringe collar (+3.5 units), or putter is held
-        if (ballDist < (activeR + 3.5) || isPutterActive) {
+        // Check if strictly on the green surface container footprint
+        if (ballDist < activeR) {
             // Putting surface and fringe complex display precisely in feet matching visual perspective
             const feet = Math.round(gameDistance * 1.75);
             distanceText.innerText = feet;
