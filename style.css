@@ -430,6 +430,35 @@ html {
     pointer-events: none;
 }
 
+#clubSwipe.putter::after {
+    content: '';
+    position: absolute;
+
+    /* Positions the shaft connection point cleanly on the heel/left edge of the putter */
+    left: -58px;
+    top: 14px;
+    width: 64px;
+    height: 14px;
+
+    border-radius: 3px 0 0 3px;
+    background: linear-gradient(to right,
+            #ced2d5 0%, #ffffff 20%, #9fa2a5 45%,
+            /* Silver Handle/Shaft Segment */
+            #3c3e3f 45%, #404243 75%,
+            /* Dark Graphite/Black Ferrule Ring */
+            #ffffff 65%, #bcbfc2 80%, #a2a6a8 100%
+            /* Polished Putter Steel Joint */
+        );
+    border: 1px solid #5a5d5f;
+    border-right: none;
+    box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.2);
+
+    /* Angled precisely towards 10 o'clock matching your other club variations */
+    transform: rotate(80deg);
+    transform-origin: right center;
+    pointer-events: none;
+}
+
 /* Arc motion simulating a golf swing through the ball location */
 
 /* Arc motion simulating a golf swing, shifted right to line up perfectly with the ball center */
