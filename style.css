@@ -274,6 +274,35 @@ html {
     box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
 }
 
+#clubSwipe.wood::after {
+    content: '';
+    position: absolute;
+
+    /* Positions the connection point securely on the left side of the wood crown */
+    left: -58px;
+    top: 14px;
+    width: 64px;
+    height: 12px;
+
+    border-radius: 3px 0 0 3px;
+    background: linear-gradient(to right,
+            #151617 55%, #ffffff 20%, #9fa2a5 45%,
+            /* Silver Handle/Shaft Segment */
+            #151617 55%, #252729 65%,
+            /* Premium Black Trim Accent */
+            #151617 65%, #bcbfc2 80%, #7f8284 100%
+            /* Chrome Hosel Joint */
+        );
+    border: 1px solid #141516;
+    border-right: none;
+    box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.3);
+
+    /* Angled precisely towards 10 o'clock matching your iron stance orientation */
+    transform: rotate(55deg);
+    transform-origin: right center;
+    pointer-events: none;
+}
+
 /* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
     zoom: 0.95;
@@ -284,12 +313,7 @@ html {
     height: 37px;
     /* Exactly 25% smaller than your current 50px height */
 
-    background:
-        /* Groove ceiling tightened from 19px to 14px to align with the shallower face depth */
-        repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0, 0, 0, 0.16) 2px, rgba(0, 0, 0, 0.16) 3px) top left / 100% 14px no-repeat,
-        /* Metallic slope transition leading down to an emphasized polished chrome topline highlight */
-        linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 32%, #ffffff 36%, #b4b8bb 46%, #7f8284 100%);
-
+    background: linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 20%, #ffffff 34%, #b4b8bb 55%, #7f8284 100%);
     border: 1px solid #6c6f72;
     box-shadow:
         0 9px 18px rgba(0, 0, 0, 0.45),
@@ -328,20 +352,29 @@ html {
     content: '';
     position: absolute;
 
-    left: -5px;
-    /* Downscaled from -6px */
-    top: 15px;
-    /* Downscaled from 20px */
-    width: 14px;
-    /* Downscaled from 19px */
-    height: 10px;
-    /* Downscaled from 13px */
+    /* Adjusted coordinates to maintain perfect alignment while tilted */
+    left: -58px;
+    top: 14px;
+    width: 64px;
+    height: 12px;
 
-    border-radius: 4px 0 0 4px;
-    background: linear-gradient(to bottom, #ffffff, #9fa2a5 45%, #4b4e50 100%);
+
+    border-radius: 3px 0 0 3px;
+    background: linear-gradient(to right,
+            #ced2d5 0%, #ffffff 20%, #9fa2a5 45%,
+            /* Silver Handle/Shaft Segment */
+            #1d437a 45%, #1d437a 65%,
+            /* Cobalt Blue Trim Accent (No Black) */
+            #ffffff 65%, #bcbfc2 80%, #7f8284 100%
+            /* Chrome Hosel Adapter Joint */
+        );
     border: 1px solid #6c6f72;
     border-right: none;
-    box-shadow: -2px 3px 4px rgba(0, 0, 0, 0.15);
+    box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.2);
+
+    /* Tilts the shaft up towards 10 o'clock and locks the pivot connection point to the right */
+    transform: rotate(58deg);
+    transform-origin: right center;
     pointer-events: none;
 }
 
