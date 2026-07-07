@@ -196,7 +196,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1573,6 +1573,14 @@ function resetEntireGame(advanceHole = false) {
                     // Use the angle-warped green radius so the fairway mesh conforms to the kidney shape bounds
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
+                    // NEW: Calculate a tight sub-surface depth to hide clipped margins without building vertical cliffs
+                    let rLift = 0;
+                    if (isPastFairway) {
+                        if (distToGreen > fringeOuterR) rLift = 1.0;
+                    } else {
+                        if (distanceToPath > fW) rLift = 1.0;
+                    }
+                    const hiddenFairwayH = floorHeight + (rLift * 0.3) - 0.08;
 
                     // Isolate boundary/sand hiding rules from green-blending rules
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
@@ -1580,15 +1588,15 @@ function resetEntireGame(advanceHole = false) {
                         // FIXED: Apply the dynamic depth cushion to the outer fairway bounds check
                         const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                         const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : (floorHeight - 1.5);
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
-                        calculatedHeight = floorHeight - 1.5;
+                        calculatedHeight = hiddenFairwayH;
                     } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) {
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
                         const transitionStart = fringeOuterR + 0.2; // Adjusted to start diving seamlessly right before the fringe edge
                         const transitionEnd = activeR - 3.0;
                         if (distToGreenCenter <= transitionEnd || isPastFairway || isOnGreenSidesOrBack) {
-                            calculatedHeight = floorHeight - 1.5;
+                            calculatedHeight = hiddenFairwayH;
                         } else {
                             const tFairway = (transitionStart - distToGreenCenter) / (transitionStart - transitionEnd);
                             const smoothTFairway = Math.max(0, Math.min(1, tFairway * tFairway * (3 - 2 * tFairway)));
@@ -1615,14 +1623,13 @@ function resetEntireGame(advanceHole = false) {
                                 // FIXED: Apply the dynamic depth cushion inside the smooth blending layer to clean up internal wall bleeds
                                 const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                                 const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : (floorHeight - 1.5);
-
+                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
                                 // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
                                 calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                             }
 
                             // Blend the normal height cleanly down into the subterranean clearance zone
-                            calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, floorHeight - 1.5, smoothTFairway);
+                            calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, hiddenFairwayH, smoothTFairway);
                         }
                     } else if (distanceToPath <= fW) {
                         let cushion = closeToWater ? 0.0 : -0.05; // Neutralize the step highlight around lakes
@@ -1643,8 +1650,7 @@ function resetEntireGame(advanceHole = false) {
 
                         const visibleHeight = calculatedHeight + cushion;
                         // FIXED: Replaced the deep drop with a uniform -0.05 visual shield to perfectly seal the bunker rims
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.05) : (floorHeight - 1.5);
-
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.05) : hiddenFairwayH;
                         // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
@@ -4074,8 +4080,22 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
-                const currentBottom = 21.8 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
+
+                // NEW: Dynamically calculate the ball's true screen height at impact to handle slopes/hills
+                const tempProj = new THREE.Vector3();
+                ball.getWorldPosition(tempProj);
+                tempProj.project(camera);
+                const baseBottom = (tempProj.y * 0.5 + 0.5) * 100 - 4.0;
+
+                const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+                const maxTravel = isMobileScreen ? 8.0 : 6.0;
+
+                const currentBottom = baseBottom - (maxTravel * ratio);
+                const followBottom = baseBottom + (maxTravel * ratio * 0.55);
+
+                clubSwipe.style.setProperty('--putter-base-bottom', baseBottom + '%');
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
+                clubSwipe.style.setProperty('--putter-follow-bottom', followBottom + '%');
             }
 
             clubSwipe.className = '';

@@ -509,7 +509,7 @@ html {
     right: auto !important;
     transform: rotate(30deg) scale(1.5) !important;
     opacity: 0 !important;
-    transition: opacity 0.25s ease, bottom 0.25s ease, left 0.25s ease, transform 0.25s ease;
+    transition: opacity 1.00s ease, bottom 1.00s ease, left 1.00s ease, transform 1.00s ease;
 }
 
 #clubSwipe.putter.idle-stance {
@@ -751,7 +751,7 @@ html {
 
     @keyframes putterSwipeAnimMobile {
         0% {
-            bottom: var(--putter-start-bottom, 30.0%);
+            bottom: var(--putter-base-bottom, 30.0%);
             left: calc(50% - 77.5px);
             transform: rotate(0deg) scale(0.9);
             opacity: 1;
@@ -765,7 +765,7 @@ html {
         }
 
         100% {
-            bottom: 38.2%;
+            bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             transform: rotate(0deg) scale(0.9);
             opacity: 0;
@@ -834,14 +834,14 @@ html {
     }
 
     35% {
-        bottom: 21.8%;
+        bottom: var(--putter-base-bottom, 21.8%);
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.25);
         opacity: 1;
     }
 
     100% {
-        bottom: 25.0%;
+        bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
         transform: rotate(0deg) scale(1.25);
         opacity: 0;
