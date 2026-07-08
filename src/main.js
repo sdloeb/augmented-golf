@@ -1296,17 +1296,16 @@ function resetEntireGame(advanceHole = false) {
             const slopeZ = (hB - hF) / (2 * delta); // Corrected: Back - Front to match PhysicsEngine.js
             const steepness = Math.sqrt(slopeX * slopeX + slopeZ * slopeZ);
 
-            // Adjusted signs here to perfectly preserve your original, stylized embossed lighting look 
-            // now that the underlying coordinate sampling is mathematically correct!
-            const slopeShading = (-slopeX - slopeZ) * 0.35 - (steepness * 0.18);
+            // RESTORED BASELINE SHADING: Insulated values to guarantee perfectly smooth, line-free color transitions
+            const slopeShading = (-slopeX - slopeZ) * 0.40 - (steepness * 0.16);
 
-            // Blend absolute elevation mapping with dynamic directional slope contrast
-            const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.28);
+            // Strict clamping bounds to prevent harsh shadows or bright highlights from breaking vertex blending
+            const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.26);
 
-            // Organically enrich channels: channels scale deep into shadows or sun highlights to outline contours
-            let r = baseR + blend * 0.12;
-            let g = baseG + blend * 0.48;
-            let b = baseB + blend * 0.18;
+            // Perfectly balanced channel weights to smoothly contour the turf without showing triangle facets
+            let r = baseR + blend * 0.13;
+            let g = baseG + blend * 0.46;
+            let b = baseB + blend * 0.17;
 
             colorAttr.setXYZ(i, r, g, b);
         }
@@ -2828,8 +2827,12 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
 
         if (isPuttingStroke || activeLaunchScale === 0.30) {
-            // FIXED: Matches your stationary base green sizing to eliminate the sudden growth pop on launch
-            ballTargetScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.24 : 0.21;
+            // FIXED: Start with your original clean base green sizing
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.24 : 0.21;
+
+            // COUNTERACT PERSPECTIVE: Gently scale up the mesh size in code as it rolls away to fight the perspective drop.
+            // Change 0.0025 to a higher number (like 0.004) to make it shrink even slower, or lower to let it shrink faster.
+            ballTargetScale = basePuttScale + (distanceTraveled * 0.0025);
         } else if (!isLongShot) {
             // FIXED: For short shots where the camera is stationary, lock code scale to launch size
             // and let natural WebGL 3D perspective handle making the ball smaller as it rolls away
@@ -3222,10 +3225,10 @@ function animate() {
         // Apply perspective correction cleanly to the absolute base scale
         finalBallTargetScale = baseGreenScale * perspectiveCorrection;
 
-        // FIXED: Boost the ball's scale proportionally if the camera is trailing far behind (chase camera),
-        // and smoothly fade it out as the camera glides close, preventing the ball from turning into a tiny speck.
+        // FIXED: Only apply the distance size-boost if the ball is in a long airborne chase-camera sequence.
+        // This stops it from triggering on stationary putts, allowing natural 3D perspective to shrink the ball as it rolls away.
         const camDistFromBall = camera.position.distanceTo(ball.position);
-        if (camDistFromBall > 3.0) {
+        if (camDistFromBall > 3.0 && physics && !physics.isPutting && isLongShot) {
             const distanceBoost = 1.0 + (camDistFromBall - 3.0) * 0.085;
             finalBallTargetScale *= Math.min(2.5, distanceBoost); // Caps maximum boost safely at 2.5x
         }
