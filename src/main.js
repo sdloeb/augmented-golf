@@ -2891,7 +2891,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.75 : 0.56; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.24 : 0.21;
+            ballTargetScale = isMobile ? 0.24 : 0.19;
         } else {
             ballTargetScale = isMobile ? 0.73 : 0.51; // Fairway, rough, and sand size
         }
@@ -3305,9 +3305,9 @@ function animate() {
                 const backspinBtnEl = document.getElementById('backspinBtn');
                 if (backspinBtnEl) {
                     const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-                    // Subtracting a calibrated percentage value drops the button cleanly below the active clubhead frame footprint
+                    // Adding a calibrated percentage value lifts the button cleanly above the active clubhead frame footprint
                     const verticalOffset = isMobileScreen ? 11.5 : 9.5;
-                    backspinBtnEl.style.setProperty('bottom', `${dynamicBottom - verticalOffset}%`, 'important');
+                    backspinBtnEl.style.setProperty('bottom', `${dynamicBottom + verticalOffset}%`, 'important');
                 }
 
                 // Establish base club layout shapes
