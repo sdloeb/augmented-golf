@@ -753,6 +753,8 @@ html {
         0% {
             bottom: var(--putter-base-bottom, 30.0%);
             left: calc(50% - 77.5px);
+            right: auto;
+            /* FIXED: Unbinds the default right-margin limits for mobile screens */
             transform: rotate(0deg) scale(0.9);
             opacity: 1;
         }
@@ -760,6 +762,7 @@ html {
         35% {
             bottom: 30.0%;
             left: calc(50% - 77.5px);
+            right: auto;
             transform: rotate(0deg) scale(0.9);
             opacity: 1;
         }
@@ -767,9 +770,11 @@ html {
         100% {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
+            right: auto;
             transform: rotate(0deg) scale(0.9);
             opacity: 0;
         }
+
     }
 
     @keyframes clubSwipeAnimMobile {
@@ -829,6 +834,8 @@ html {
     0% {
         bottom: var(--putter-start-bottom, 21.8%);
         left: calc(50% - 77.5px);
+        right: auto;
+        /* FIXED: Clears the right-side layout anchor so it doesn't snap off-screen */
         transform: rotate(0deg) scale(1.25);
         opacity: 1;
     }
@@ -836,6 +843,7 @@ html {
     35% {
         bottom: var(--putter-base-bottom, 21.8%);
         left: calc(50% - 77.5px);
+        right: auto;
         transform: rotate(0deg) scale(1.25);
         opacity: 1;
     }
@@ -843,6 +851,7 @@ html {
     100% {
         bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
+        right: auto;
         transform: rotate(0deg) scale(1.25);
         opacity: 0;
     }
