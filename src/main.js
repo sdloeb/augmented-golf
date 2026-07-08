@@ -3177,10 +3177,14 @@ function animate() {
 
         cameraTargetPos.set(putterCamX, putterCamY, putterCamZ);
 
+        // DYNAMIC TRACKING: If the ball is rolling, track it directly (0.0 offset) so the camera pivots to follow bad wide putts.
+        // If stationary at address, keep lookAheadDist so the player can see down their target bead line.
+        const activeLookAhead = physics.isMoving ? 0.0 : lookAheadDist;
+
         cameraLookAt.set(
-            (isSinking ? holePosition.x : ball.position.x) + dirX * lookAheadDist,
+            (isSinking ? holePosition.x : ball.position.x) + dirX * activeLookAhead,
             stableBallY + lookUpOffset,
-            (isSinking ? holePosition.z : ball.position.z) + dirZ * lookAheadDist
+            (isSinking ? holePosition.z : ball.position.z) + dirZ * activeLookAhead
         );
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
