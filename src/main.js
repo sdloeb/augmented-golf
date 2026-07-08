@@ -3223,8 +3223,8 @@ function animate() {
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
         const baseGreenScale = isMobileScreen ? 0.24 : 0.21;
 
-        // Preserved exactly: Gently scales down the ball when far away to combat perspective ballooning
-        const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
+        // FIXED: Ignore pin distance shrinkage while stationary at address so the ball and putter always start at the exact same uniform size ratio
+        const perspectiveCorrection = !physics.isMoving ? 1.0 : THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
 
         // Apply perspective correction cleanly to the absolute base scale
         finalBallTargetScale = baseGreenScale * perspectiveCorrection;
@@ -3318,11 +3318,13 @@ function animate() {
                     clubTypeClass = 'wood';
                 }
 
-                // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
+                // FIXED: Upgraded stance checking to utilize shape-aware warping so the putter remains at a consistent scale across non-circular greens
                 const cX = ball.position.x - (green ? green.position.x : 0);
                 const cZ = ball.position.z - greenCenterZ;
-                const activeRadiusOffset = window.activeGreenRadius || GREEN_RADIUS;
-                const ballOnGreen = Math.sqrt(cX * cX + cZ * cZ) < activeRadiusOffset;
+                const stanceDist = Math.hypot(cX, cZ);
+                const stanceAngle = Math.atan2(-cZ, cX);
+                const stanceActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(stanceAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+                const ballOnGreen = stanceDist < stanceActiveR;
                 // Delete the old static putterBaseBottom line from here
 
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
