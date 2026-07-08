@@ -2891,7 +2891,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.75 : 0.56; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.22 : 0.19;
+            ballTargetScale = isMobile ? 0.20 : 0.19;
         } else {
             ballTargetScale = isMobile ? 0.73 : 0.51; // Fairway, rough, and sand size
         }
