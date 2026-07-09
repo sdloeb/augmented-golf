@@ -1533,20 +1533,23 @@ function resetEntireGame(advanceHole = false) {
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
 
-                    // 1. HILLS: Calculate a sharp vertical step-up right where the fairway and green fringe end
+                    // 1. HILLS: Calculate a smooth gradual step-up right where the fairway and green fringe end
                     if (!insideSandZone && !insideWaterZone) {
                         let roughLift = 0;
                         if (isPastFairway) {
                             if (distToGreen > fringeOuterR) {
-                                roughLift = 1.0; // Immediate vertical wall right at the edge of the green fringe
+                                const tGreen = Math.min(1, (distToGreen - fringeOuterR) / 3.5);
+                                roughLift = THREE.MathUtils.smoothstep(tGreen, 0, 1);
                             }
                         } else {
                             if (distanceToPath > fW) {
-                                roughLift = 1.0; // Immediate vertical wall right where the fairway stripes end
+                                const tPath = Math.min(1, (distanceToPath - fW) / 3.5);
+                                roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
                             }
                         }
-                        calculatedHeight += roughLift * 0.3; // Multiplied by your test height of 1.0
+                        calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
                     }
+
                     // 2. GREEN PROTECTION: Slope the grass floor underneath the putting green complex to prevent overlapping lines
                     if (distToGreen < fringeOuterR) {
                         const transitionZone = 2.0;
@@ -1575,9 +1578,15 @@ function resetEntireGame(advanceHole = false) {
                     // NEW: Calculate a tight sub-surface depth to hide clipped margins without building vertical cliffs
                     let rLift = 0;
                     if (isPastFairway) {
-                        if (distToGreen > fringeOuterR) rLift = 1.0;
+                        if (distToGreen > fringeOuterR) {
+                            const tGreen = Math.min(1, (distToGreen - fringeOuterR) / 3.5);
+                            rLift = THREE.MathUtils.smoothstep(tGreen, 0, 1);
+                        }
                     } else {
-                        if (distanceToPath > fW) rLift = 1.0;
+                        if (distanceToPath > fW) {
+                            const tPath = Math.min(1, (distanceToPath - fW) / 3.5);
+                            rLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
+                        }
                     }
                     const hiddenFairwayH = floorHeight + (rLift * 0.3) - 0.08;
 

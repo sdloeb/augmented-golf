@@ -61,7 +61,7 @@ export const globalCourseData = {
         name: "The Downhill Dogleg",
         par: 4,
         teePosition: { x: 0, y: 37.5, z: 10 }, // Modify this line: Match the new peak terrain height
-        holePosition: { x: 11, y: 0, z: -139 },
+        holePosition: { x: 20, y: 0, z: -139 },
 
         // Custom base sizes for this specific layout
         fairwayWidth: 9.5,
@@ -71,7 +71,7 @@ export const globalCourseData = {
         waypoints: [
             { x: 0, y: 0, z: 10 },     // Flat Tee Box zone
             { x: 0, y: 0, z: -108 },   // 327 Yard Elbow (Ground flattens out here)
-            { x: 11, y: 0, z: -139 }   // 87 Yard Approach Green
+            { x: 20, y: 0, z: -139 }   // 87 Yard Approach Green
         ],
 
         // Place all 4 hazards matching the exact positions from the overhead layout view
