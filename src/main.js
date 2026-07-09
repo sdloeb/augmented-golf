@@ -196,7 +196,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3214,8 +3214,7 @@ function animate() {
         const perspectiveCorrection = !physics.isMoving ? 1.0 : THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
 
         // Apply perspective correction cleanly to the absolute base scale
-        finalBallTargetScale = baseGreenScale * perspectiveCorrection;
-
+        finalBallTargetScale = !physics.isMoving ? (baseGreenScale * perspectiveCorrection) : ballTargetScale;
         // FIXED: Only apply the distance size-boost if the ball is in a long airborne chase-camera sequence.
         // This stops it from triggering on stationary putts, allowing natural 3D perspective to shrink the ball as it rolls away.
         const camDistFromBall = camera.position.distanceTo(ball.position);
