@@ -196,7 +196,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1149,7 +1149,24 @@ function resetEntireGame(advanceHole = false) {
                         ruggedIntensity = (-125 - currentZ) / 10.0; // Gracefully blends rock fracturing back in as it climbs up the hill crest
                     }
 
-                    const rockWidth = 5.0 + (Math.sin(currentZ * 1.5) * 0.3 * ruggedIntensity);
+                    // ADJUST THIS NUMBER: Raise this to make the low wall expand further left into the grass turf
+                    // (e.g., 0.0 is the original thin wall, 1.2 makes it grow 1.2 units wider towards the left)
+                    const leftExtension = 1.2;
+
+                    // DYNAMIC BULKHEAD PROFILE: Width and position parameters scale together based on leftExtension
+                    // to grow the wall leftward into the rough fields while keeping the ocean side completely flush.
+                    let baseWidth = currentZ >= -125 ? (1.1 + leftExtension) : 5.0;
+                    let yOffset = currentZ >= -125 ? -24.80 : -25.15;
+                    let shiftLeft = currentZ >= -125 ? leftExtension : 0.0;
+
+                    if (currentZ < -125 && currentZ > -135) {
+                        let tBlend = (-125 - currentZ) / 10.0;
+                        baseWidth = THREE.MathUtils.lerp(1.1 + leftExtension, 5.0, tBlend);
+                        yOffset = THREE.MathUtils.lerp(-24.80, -25.15, tBlend);
+                        shiftLeft = THREE.MathUtils.lerp(leftExtension, 0.0, tBlend);
+                    }
+
+                    const rockWidth = baseWidth + (Math.sin(currentZ * 1.5) * 0.3 * ruggedIntensity);
                     const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12 * ruggedIntensity;
 
                     const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, sliceLength + 0.08);
@@ -1158,15 +1175,14 @@ function resetEntireGame(advanceHole = false) {
                     cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03 * ruggedIntensity;
                     cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04 * ruggedIntensity;
 
-                    // Position the rock face flush against the outer boundaries
-                    const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset;
+                    // Position the rock face flush against the outer boundaries, tracking the leftward shift factor
+                    const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset - shiftLeft;
 
                     cliffWall.position.set(
                         positionX,
-                        trueCrestHeight - 25.15,
+                        trueCrestHeight + yOffset,
                         currentZ - sliceLength / 2
                     );
-
                     scene.add(cliffWall);
                     waterShores.push(cliffWall);
                 }
