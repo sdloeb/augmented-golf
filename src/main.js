@@ -84,10 +84,10 @@ const HOLES_CONFIG = {
             new THREE.Vector3(20, 0, -139)     // 87 Yard Approach Green
         ],
         hazards: [
-            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 4.5 },
-            { type: 'sand', x: 26.5, z: -119.5, radius: 5.0, depth: 4.6 },
-            { type: 'sand', x: 20.0, z: -151.0, radius: 4.8, depth: 4.6 },
-            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 4.6 }
+            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 2.5 },
+            { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 2.6 },
+            { type: 'sand', shape: 'snake', depth: 3.6, radius: 2.2, path: [{ x: 20, z: -152 }, { x: 25, z: -152 }] },
+            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 2.6 }
         ],
 
         customOOB: {
@@ -968,47 +968,28 @@ function resetEntireGame(advanceHole = false) {
     const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
     greenCenterZ = greenEndpoint.z;
 
-    // Shift the pin location slightly inside the green boundaries
+    // --- 1. SET HOLE POSITION (KEEP GREEN FIXED, RANDOMIZE CUP INSIDE IT) ---
+    const greenCenterX = greenEndpoint.x;
+    greenCenterZ = greenEndpoint.z;
+
+    // Calculate a randomized pin location bounded perfectly inside the green's true shape
     const pinAngle = Math.random() * Math.PI * 2;
-    const pinRadius = Math.random() * (GREEN_RADIUS - 3.0);
-    holePosition.x = greenEndpoint.x + Math.cos(pinAngle) * pinRadius;
+    const maxAllowedR = window.getGreenRadiusAtAngle(pinAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') - 3.0;
+    const pinRadius = Math.random() * Math.max(2.0, maxAllowedR);
+
+    holePosition.x = greenCenterX + Math.cos(pinAngle) * pinRadius;
     holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
 
-    // --- 1. SET HOLE POSITION (PRIORITY: CUSTOM DATA) ---
-    // Clear out any old values first
-    holePosition.x = 0;
-    holePosition.z = 0;
+    // --- 2. PHYSICALLY MOVE THE MESHES TO THE FIXED WAYPOINT CENTER ---
+    if (green) green.position.set(greenCenterX, 0.02, greenCenterZ);
+    if (greenGrid) greenGrid.position.set(greenCenterX, 0.021, greenCenterZ);
+    if (greenFringe) greenFringe.position.set(greenCenterX, 0.018, greenCenterZ);
 
-    if (currentHoleConfig && currentHoleConfig.holePosition) {
-        // Use custom config
-        holePosition.x = currentHoleConfig.holePosition.x;
-        holePosition.z = currentHoleConfig.holePosition.z;
-    } else {
-        // Fallback for procedural
-        const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
-        holePosition.x = greenEndpoint.x;
-        holePosition.z = greenEndpoint.z;
-
-        // Add random pin variance bounded perfectly inside the contour limits
-        const pinAngle = Math.random() * Math.PI * 2;
-        const maxAllowedR = window.getGreenRadiusAtAngle(pinAngle, window.activeGreenRadius || 12.0, window.activeGreenShape) - 3.0;
-        const pinRadius = Math.random() * Math.max(2.0, maxAllowedR);
-        holePosition.x += Math.cos(pinAngle) * pinRadius;
-        holePosition.z += Math.sin(pinAngle) * pinRadius;
-    }
-
-    greenCenterZ = holePosition.z; // Sync helper variable
-
-    // --- 2. PHYSICALLY MOVE THE MESHES ---
-    if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
-    if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
-    if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
-
-    // --- 3. SYNC PHYSICS ENGINE ---
+    // --- 3. SYNC PHYSICS ENGINE TO THE FIXED GREEN LOCATION ---
     if (physics) {
-        physics.greenCenterX = holePosition.x;
-        physics.greenCenterZ = holePosition.z;
-        physics.updateGreenPosition(holePosition.x, holePosition.z);
+        physics.greenCenterX = greenCenterX;
+        physics.greenCenterZ = greenCenterZ;
+        physics.updateGreenPosition(greenCenterX, greenCenterZ);
     }
 
     // NEW: Kick off the sequential visual tutorial tour if the player is landing on Hole 1
@@ -1017,13 +998,6 @@ function resetEntireGame(advanceHole = false) {
             const tutorial = new TutorialManager();
             tutorial.start();
         }, 800); // Small delay to let the green finish shifting into position first
-    }
-
-    // 3. UPDATING THE PHYSICS ENGINE:
-    // This tells the ball physics where the new center is.
-    if (physics) {
-        physics.greenCenterX = holePosition.x;
-        physics.greenCenterZ = holePosition.z;
     }
 
     // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
@@ -1058,7 +1032,7 @@ function resetEntireGame(advanceHole = false) {
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, holePosition.x, holePosition.z, generatedWidth);
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterX, greenCenterZ, generatedWidth);
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
@@ -1089,8 +1063,12 @@ function resetEntireGame(advanceHole = false) {
 
             if (hz.type === 'sand') {
                 let sandDepth = hz.depth || 0.6;              // Modify this line: Change const to let
-                const maxCustomDepthCap = r * 0.20;         // Add this line
-                sandDepth = Math.min(sandDepth, maxCustomDepthCap); // Add this line
+
+                // Route to snaking generator if path coordinates are active
+                if (hz.shape === 'snake' || hz.shapeType === 'snake') {
+                    createSnakingBunker(hz.path || [{ x: hz.x, z: hz.z }, { x: hz.x + 4, z: hz.z + 10 }], 0.8, r, sandDepth);
+                    return;
+                }
 
                 // Route to polygon generator if configuration matches
                 if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {

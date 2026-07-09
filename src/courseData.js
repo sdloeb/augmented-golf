@@ -74,13 +74,7 @@ export const globalCourseData = {
             { x: 20, y: 0, z: -139 }   // 87 Yard Approach Green
         ],
 
-        // Place all 4 hazards matching the exact positions from the overhead layout view
-        hazards: [
-            { id: "front_right_bunker", type: "sand", shapeType: "circle", x: 22.5, z: -126.0, radius: 4.0, depth: 0.6 }, // Modify this line
-            { id: "back_right_bunker", type: "sand", shapeType: "circle", x: 24.5, z: -146.0, radius: 3.5, depth: 0.6 },  // Modify this line
-            { id: "back_left_bunker", type: "sand", shapeType: "circle", x: -1.0, z: -147.0, radius: 3.8, depth: 0.6 },   // Modify this line
-            { id: "left_fairway_bunker", type: "sand", shapeType: "circle", x: -6.5, z: -124.0, radius: 4.2, depth: 0.5 } // Modify this line
-        ],
+
 
         // Structural hills and slopes defined directly via properties
         contours: [
