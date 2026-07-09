@@ -84,10 +84,10 @@ const HOLES_CONFIG = {
             new THREE.Vector3(20, 0, -139)     // 87 Yard Approach Green
         ],
         hazards: [
-            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 2.5 },
-            { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 2.6 },
-            { type: 'sand', shape: 'snake', depth: 3.6, radius: 2.2, path: [{ x: 20, z: -152 }, { x: 25, z: -152 }] },
-            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 2.6 }
+            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 1.5 },
+            { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 1.6 },
+            { type: 'sand', shape: 'snake', depth: 0.3, radius: 2.2, path: [{ x: 18, z: -152 }, { x: 25, z: -152 }] },
+            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
         ],
 
         customOOB: {
