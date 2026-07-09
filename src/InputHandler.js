@@ -163,14 +163,11 @@ export class InputHandler {
         this.startX = touch.clientX;
         this.startY = touch.clientY;
 
-        const touchedClub = e.target.closest('#clubSwipe');
-        if (touchedClub) {
-            // Delay touch swing activation until dragging starts
-            this.isSwingingFromClub = true;
-            this.isSwinging = false;
-            this.state = 'IDLE';
-            return;
-        }
+        // Delay touch swing activation universally until dragging starts
+        this.isSwingingFromClub = true;
+        this.isSwinging = false;
+        this.state = 'IDLE';
+        return;
 
         this.isSwingingFromClub = false;
         this.isSwinging = true;
@@ -292,14 +289,11 @@ export class InputHandler {
         this.startX = e.clientX;
         this.startY = e.clientY;
 
-        const clickedClub = e.target.closest('#clubSwipe');
-        if (clickedClub) {
-            // Delay swing activation until an actual drag occurs
-            this.isSwingingFromClub = true;
-            this.isSwinging = false;
-            this.state = 'IDLE';
-            return;
-        }
+        // Delay swing activation universally until an actual drag occurs
+        this.isSwingingFromClub = true;
+        this.isSwinging = false;
+        this.state = 'IDLE';
+        return;
 
         this.isSwingingFromClub = false;
         this.isSwinging = true;

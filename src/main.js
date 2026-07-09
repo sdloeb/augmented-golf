@@ -81,14 +81,24 @@ const HOLES_CONFIG = {
         waypoints: [
             new THREE.Vector3(0, 0, 10),       // Flat Tee Box zone
             new THREE.Vector3(0, 0, -108),     // 327 Yard Elbow (Hill descent ends here)
-            new THREE.Vector3(11, 0, -139)     // 87 Yard Approach Green
+            new THREE.Vector3(20, 0, -139)     // 87 Yard Approach Green
         ],
         hazards: [
-            { type: 'sand', x: -14.5, z: -115.0, radius: 4.2, depth: 0.5 },
-            { type: 'sand', x: 18.5, z: -126.0, radius: 4.0, depth: 0.6 },
-            { type: 'sand', x: 20.0, z: -155.0, radius: 3.8, depth: 0.6 },
-            { type: 'sand', x: 28.5, z: -140.0, radius: 3.5, depth: 0.6 }
-        ]
+            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 1.5 },
+            { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 1.6 },
+            { type: 'sand', shape: 'snake', depth: 0.3, radius: 2.2, path: [{ x: 18, z: -152 }, { x: 25, z: -152 }] },
+            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
+        ],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -60,         // Left wall line bounding the rough
+            maxX: 65,          // Right wall line extended to clear the right hazards
+            minZ: -185,        // Front wall line positioned safely past the green complex
+            maxZ: 35,          // Back wall line behind the tee box
+            stakesPerSide: 8,  // Spacing density down the long sides
+            stakesPerRow: 3    // Spacing density across the narrow front/back walls
+        }
     },
 
     3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
@@ -262,11 +272,8 @@ function updateDistanceDisplay() {
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
         // MODIFIED: Fetch club selection state to unify short game tracking readouts
-        const currentClub = input ? input.getClubInfo() : null;
-        const isPutterActive = currentClub && currentClub.name === 'Putter';
-
-        // MODIFIED: Engage the visual feet scale if on the green surface, on the fringe collar (+3.5 units), or putter is held
-        if (ballDist < (activeR + 3.5) || isPutterActive) {
+        // Check if strictly on the green surface container footprint
+        if (ballDist < activeR) {
             // Putting surface and fringe complex display precisely in feet matching visual perspective
             const feet = Math.round(gameDistance * 1.75);
             distanceText.innerText = feet;
@@ -961,47 +968,28 @@ function resetEntireGame(advanceHole = false) {
     const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
     greenCenterZ = greenEndpoint.z;
 
-    // Shift the pin location slightly inside the green boundaries
+    // --- 1. SET HOLE POSITION (KEEP GREEN FIXED, RANDOMIZE CUP INSIDE IT) ---
+    const greenCenterX = greenEndpoint.x;
+    greenCenterZ = greenEndpoint.z;
+
+    // Calculate a randomized pin location bounded perfectly inside the green's true shape
     const pinAngle = Math.random() * Math.PI * 2;
-    const pinRadius = Math.random() * (GREEN_RADIUS - 3.0);
-    holePosition.x = greenEndpoint.x + Math.cos(pinAngle) * pinRadius;
+    const maxAllowedR = window.getGreenRadiusAtAngle(pinAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') - 3.0;
+    const pinRadius = Math.random() * Math.max(2.0, maxAllowedR);
+
+    holePosition.x = greenCenterX + Math.cos(pinAngle) * pinRadius;
     holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
 
-    // --- 1. SET HOLE POSITION (PRIORITY: CUSTOM DATA) ---
-    // Clear out any old values first
-    holePosition.x = 0;
-    holePosition.z = 0;
+    // --- 2. PHYSICALLY MOVE THE MESHES TO THE FIXED WAYPOINT CENTER ---
+    if (green) green.position.set(greenCenterX, 0.02, greenCenterZ);
+    if (greenGrid) greenGrid.position.set(greenCenterX, 0.021, greenCenterZ);
+    if (greenFringe) greenFringe.position.set(greenCenterX, 0.018, greenCenterZ);
 
-    if (currentHoleConfig && currentHoleConfig.holePosition) {
-        // Use custom config
-        holePosition.x = currentHoleConfig.holePosition.x;
-        holePosition.z = currentHoleConfig.holePosition.z;
-    } else {
-        // Fallback for procedural
-        const greenEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 1];
-        holePosition.x = greenEndpoint.x;
-        holePosition.z = greenEndpoint.z;
-
-        // Add random pin variance bounded perfectly inside the contour limits
-        const pinAngle = Math.random() * Math.PI * 2;
-        const maxAllowedR = window.getGreenRadiusAtAngle(pinAngle, window.activeGreenRadius || 12.0, window.activeGreenShape) - 3.0;
-        const pinRadius = Math.random() * Math.max(2.0, maxAllowedR);
-        holePosition.x += Math.cos(pinAngle) * pinRadius;
-        holePosition.z += Math.sin(pinAngle) * pinRadius;
-    }
-
-    greenCenterZ = holePosition.z; // Sync helper variable
-
-    // --- 2. PHYSICALLY MOVE THE MESHES ---
-    if (green) green.position.set(holePosition.x, 0.02, holePosition.z);
-    if (greenGrid) greenGrid.position.set(holePosition.x, 0.021, holePosition.z);
-    if (greenFringe) greenFringe.position.set(holePosition.x, 0.018, holePosition.z);
-
-    // --- 3. SYNC PHYSICS ENGINE ---
+    // --- 3. SYNC PHYSICS ENGINE TO THE FIXED GREEN LOCATION ---
     if (physics) {
-        physics.greenCenterX = holePosition.x;
-        physics.greenCenterZ = holePosition.z;
-        physics.updateGreenPosition(holePosition.x, holePosition.z);
+        physics.greenCenterX = greenCenterX;
+        physics.greenCenterZ = greenCenterZ;
+        physics.updateGreenPosition(greenCenterX, greenCenterZ);
     }
 
     // NEW: Kick off the sequential visual tutorial tour if the player is landing on Hole 1
@@ -1010,13 +998,6 @@ function resetEntireGame(advanceHole = false) {
             const tutorial = new TutorialManager();
             tutorial.start();
         }, 800); // Small delay to let the green finish shifting into position first
-    }
-
-    // 3. UPDATING THE PHYSICS ENGINE:
-    // This tells the ball physics where the new center is.
-    if (physics) {
-        physics.greenCenterX = holePosition.x;
-        physics.greenCenterZ = holePosition.z;
     }
 
     // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
@@ -1051,7 +1032,7 @@ function resetEntireGame(advanceHole = false) {
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, holePosition.x, holePosition.z, generatedWidth);
+        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterX, greenCenterZ, generatedWidth);
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
@@ -1082,8 +1063,12 @@ function resetEntireGame(advanceHole = false) {
 
             if (hz.type === 'sand') {
                 let sandDepth = hz.depth || 0.6;              // Modify this line: Change const to let
-                const maxCustomDepthCap = r * 0.085;          // Add this line
-                sandDepth = Math.min(sandDepth, maxCustomDepthCap); // Add this line
+
+                // Route to snaking generator if path coordinates are active
+                if (hz.shape === 'snake' || hz.shapeType === 'snake') {
+                    createSnakingBunker(hz.path || [{ x: hz.x, z: hz.z }, { x: hz.x + 4, z: hz.z + 10 }], 0.8, r, sandDepth);
+                    return;
+                }
 
                 // Route to polygon generator if configuration matches
                 if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {
@@ -1289,17 +1274,16 @@ function resetEntireGame(advanceHole = false) {
             const slopeZ = (hB - hF) / (2 * delta); // Corrected: Back - Front to match PhysicsEngine.js
             const steepness = Math.sqrt(slopeX * slopeX + slopeZ * slopeZ);
 
-            // Adjusted signs here to perfectly preserve your original, stylized embossed lighting look 
-            // now that the underlying coordinate sampling is mathematically correct!
-            const slopeShading = (-slopeX - slopeZ) * 0.35 - (steepness * 0.18);
+            // RESTORED BASELINE SHADING: Insulated values to guarantee perfectly smooth, line-free color transitions
+            const slopeShading = (-slopeX - slopeZ) * 0.40 - (steepness * 0.16);
 
-            // Blend absolute elevation mapping with dynamic directional slope contrast
-            const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.28);
+            // Strict clamping bounds to prevent harsh shadows or bright highlights from breaking vertex blending
+            const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.26);
 
-            // Organically enrich channels: channels scale deep into shadows or sun highlights to outline contours
-            let r = baseR + blend * 0.12;
-            let g = baseG + blend * 0.48;
-            let b = baseB + blend * 0.18;
+            // Perfectly balanced channel weights to smoothly contour the turf without showing triangle facets
+            let r = baseR + blend * 0.13;
+            let g = baseG + blend * 0.46;
+            let b = baseB + blend * 0.17;
 
             colorAttr.setXYZ(i, r, g, b);
         }
@@ -1527,20 +1511,23 @@ function resetEntireGame(advanceHole = false) {
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
 
-                    // 1. HILLS: Calculate a sharp vertical step-up right where the fairway and green fringe end
+                    // 1. HILLS: Calculate a smooth gradual step-up right where the fairway and green fringe end
                     if (!insideSandZone && !insideWaterZone) {
                         let roughLift = 0;
                         if (isPastFairway) {
                             if (distToGreen > fringeOuterR) {
-                                roughLift = 1.0; // Immediate vertical wall right at the edge of the green fringe
+                                const tGreen = Math.min(1, (distToGreen - fringeOuterR) / 3.5);
+                                roughLift = THREE.MathUtils.smoothstep(tGreen, 0, 1);
                             }
                         } else {
                             if (distanceToPath > fW) {
-                                roughLift = 1.0; // Immediate vertical wall right where the fairway stripes end
+                                const tPath = Math.min(1, (distanceToPath - fW) / 3.5);
+                                roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
                             }
                         }
-                        calculatedHeight += roughLift * 0.3; // Multiplied by your test height of 1.0
+                        calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
                     }
+
                     // 2. GREEN PROTECTION: Slope the grass floor underneath the putting green complex to prevent overlapping lines
                     if (distToGreen < fringeOuterR) {
                         const transitionZone = 2.0;
@@ -1566,6 +1553,20 @@ function resetEntireGame(advanceHole = false) {
                     // Use the angle-warped green radius so the fairway mesh conforms to the kidney shape bounds
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
+                    // NEW: Calculate a tight sub-surface depth to hide clipped margins without building vertical cliffs
+                    let rLift = 0;
+                    if (isPastFairway) {
+                        if (distToGreen > fringeOuterR) {
+                            const tGreen = Math.min(1, (distToGreen - fringeOuterR) / 3.5);
+                            rLift = THREE.MathUtils.smoothstep(tGreen, 0, 1);
+                        }
+                    } else {
+                        if (distanceToPath > fW) {
+                            const tPath = Math.min(1, (distanceToPath - fW) / 3.5);
+                            rLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
+                        }
+                    }
+                    const hiddenFairwayH = floorHeight + (rLift * 0.3) - 0.08;
 
                     // Isolate boundary/sand hiding rules from green-blending rules
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
@@ -1573,15 +1574,15 @@ function resetEntireGame(advanceHole = false) {
                         // FIXED: Apply the dynamic depth cushion to the outer fairway bounds check
                         const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                         const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : (floorHeight - 1.5);
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
-                        calculatedHeight = floorHeight - 1.5;
+                        calculatedHeight = hiddenFairwayH;
                     } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) {
                         // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
                         const transitionStart = fringeOuterR + 0.2; // Adjusted to start diving seamlessly right before the fringe edge
                         const transitionEnd = activeR - 3.0;
                         if (distToGreenCenter <= transitionEnd || isPastFairway || isOnGreenSidesOrBack) {
-                            calculatedHeight = floorHeight - 1.5;
+                            calculatedHeight = hiddenFairwayH;
                         } else {
                             const tFairway = (transitionStart - distToGreenCenter) / (transitionStart - transitionEnd);
                             const smoothTFairway = Math.max(0, Math.min(1, tFairway * tFairway * (3 - 2 * tFairway)));
@@ -1608,14 +1609,13 @@ function resetEntireGame(advanceHole = false) {
                                 // FIXED: Apply the dynamic depth cushion inside the smooth blending layer to clean up internal wall bleeds
                                 const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                                 const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : (floorHeight - 1.5);
-
+                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
                                 // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
                                 calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                             }
 
                             // Blend the normal height cleanly down into the subterranean clearance zone
-                            calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, floorHeight - 1.5, smoothTFairway);
+                            calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, hiddenFairwayH, smoothTFairway);
                         }
                     } else if (distanceToPath <= fW) {
                         let cushion = closeToWater ? 0.0 : -0.05; // Neutralize the step highlight around lakes
@@ -1636,8 +1636,7 @@ function resetEntireGame(advanceHole = false) {
 
                         const visibleHeight = calculatedHeight + cushion;
                         // FIXED: Replaced the deep drop with a uniform -0.05 visual shield to perfectly seal the bunker rims
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.05) : (floorHeight - 1.5);
-
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.05) : hiddenFairwayH;
                         // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
@@ -3176,10 +3175,14 @@ function animate() {
 
         cameraTargetPos.set(putterCamX, putterCamY, putterCamZ);
 
+        // DYNAMIC TRACKING: If the ball is rolling, track it directly (0.0 offset) so the camera pivots to follow bad wide putts.
+        // If stationary at address, keep lookAheadDist so the player can see down their target bead line.
+        const activeLookAhead = physics.isMoving ? 0.0 : lookAheadDist;
+
         cameraLookAt.set(
-            (isSinking ? holePosition.x : ball.position.x) + dirX * lookAheadDist,
+            (isSinking ? holePosition.x : ball.position.x) + dirX * activeLookAhead,
             stableBallY + lookUpOffset,
-            (isSinking ? holePosition.z : ball.position.z) + dirZ * lookAheadDist
+            (isSinking ? holePosition.z : ball.position.z) + dirZ * activeLookAhead
         );
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
@@ -3307,9 +3310,9 @@ function animate() {
                 const backspinBtnEl = document.getElementById('backspinBtn');
                 if (backspinBtnEl) {
                     const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-                    // Subtracting a calibrated percentage value drops the button cleanly below the active clubhead frame footprint
+                    // Adding a calibrated percentage value lifts the button cleanly above the active clubhead frame footprint
                     const verticalOffset = isMobileScreen ? 11.5 : 9.5;
-                    backspinBtnEl.style.setProperty('bottom', `${dynamicBottom - verticalOffset}%`, 'important');
+                    backspinBtnEl.style.setProperty('bottom', `${dynamicBottom + verticalOffset}%`, 'important');
                 }
 
                 // Establish base club layout shapes
@@ -3320,11 +3323,13 @@ function animate() {
                     clubTypeClass = 'wood';
                 }
 
-                // Calibrated baseline position mapping perfectly to our 35-degree vertical camera projection
+                // FIXED: Upgraded stance checking to utilize shape-aware warping so the putter remains at a consistent scale across non-circular greens
                 const cX = ball.position.x - (green ? green.position.x : 0);
                 const cZ = ball.position.z - greenCenterZ;
-                const activeRadiusOffset = window.activeGreenRadius || GREEN_RADIUS;
-                const ballOnGreen = Math.sqrt(cX * cX + cZ * cZ) < activeRadiusOffset;
+                const stanceDist = Math.hypot(cX, cZ);
+                const stanceAngle = Math.atan2(-cZ, cX);
+                const stanceActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(stanceAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+                const ballOnGreen = stanceDist < stanceActiveR;
                 // Delete the old static putterBaseBottom line from here
 
                 const putterCenteredLeft = 'calc(50% - 77.5px)';
@@ -4089,8 +4094,22 @@ function init() {
             // Capture the exact position where the pullback stopped for the putter
             if (club.name === 'Putter') {
                 const ratio = input.pullRatio || 0;
-                const currentBottom = 21.8 - (6.0 * ratio); // Updated baseline to 19.5% to match our precise perspective view
+
+                // NEW: Dynamically calculate the ball's true screen height at impact to handle slopes/hills
+                const tempProj = new THREE.Vector3();
+                ball.getWorldPosition(tempProj);
+                tempProj.project(camera);
+                const baseBottom = (tempProj.y * 0.5 + 0.5) * 100 - 4.0;
+
+                const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+                const maxTravel = isMobileScreen ? 8.0 : 6.0;
+
+                const currentBottom = baseBottom - (maxTravel * ratio);
+                const followBottom = baseBottom + (maxTravel * ratio * 0.55);
+
+                clubSwipe.style.setProperty('--putter-base-bottom', baseBottom + '%');
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
+                clubSwipe.style.setProperty('--putter-follow-bottom', followBottom + '%');
             }
 
             clubSwipe.className = '';

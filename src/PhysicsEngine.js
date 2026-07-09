@@ -215,14 +215,30 @@ export class PhysicsEngine {
             let baseHeight = 0.0;
 
 
-            // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards
+            // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards with organic transitions and a sightline window
             if (z > 5) {
-                baseHeight = 37.5; // Modify this line: Set peak to match a 30-degree slope
-            } else if (z >= -60) { // Modify this line: Stretch hill to go for 180 yards (65 units)
-                let t = (5 - z) / 65; // Modify this line
-                baseHeight = THREE.MathUtils.lerp(37.5, 0.0, t); // Modify this line: Gradual slope calculation
+                baseHeight = 37.5;
+            } else if (z >= -60) {
+                let t = (5 - z) / 65;
+                let smoothT = t * t * (3 - 2 * t); // Smoothstep rounding formula to eliminate the sharp geometric ridge lines
+                baseHeight = THREE.MathUtils.lerp(37.5, 0.0, smoothT);
             } else {
-                baseHeight = 0.0; // Flat bottom valley floor for the fairway and green
+                baseHeight = 0.0;
+            }
+
+            // CREATE A SADDLE: Smoothly dips the center line (x = 0) right at the hill crest to frame the fairway view
+            if (z > -15 && z < 6) {
+                let xDist = Math.abs(x);
+                if (xDist < 16) {
+                    let saddleFactor = 1.0 - (xDist / 16);
+                    saddleFactor = saddleFactor * saddleFactor * (3 - 2 * saddleFactor); // Smooth bell distribution for the valley dip
+
+                    let zDist = Math.abs(z - 4);
+                    let zFade = Math.max(0, 1.0 - (zDist / 12)); // Limits the scoop to the edge of the ridge line
+
+                    // Lowers the ridge center by ~6.5 units, giving you a beautiful "U-shaped" window to aim through
+                    baseHeight -= 6.5 * saddleFactor * zFade;
+                }
             }
 
 
