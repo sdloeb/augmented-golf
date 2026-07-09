@@ -75,10 +75,7 @@ export class SoundManager {
             console.log("Ambient preloading safely deferred until first user click/touch interaction.", ambientMobileErr);
         }
 
-        this.ambientSounds.birds.preload = 'auto';
-        this.ambientSounds.birds.load();
-        this.ambientSounds.rain.preload = 'auto';
-        this.ambientSounds.rain.load();
+
     }
 
     play(soundName) {

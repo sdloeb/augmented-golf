@@ -2607,8 +2607,12 @@ function animate() {
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-        // Expanded capture radius to 0.23 to intercept lip-in and spin-out edge interactions fully
-        const maxLipRadius = 0.38;
+        // DYNAMIC CAPTURE BOUNDARY: Calculate the active club type locally to keep scope insulated.
+        // If putting, scale the physics lip radius to perfectly match the visible cup rim (0.17) plus
+        // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
+        const collisionClub = input ? input.getClubInfo() : null;
+        const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
+        const maxLipRadius = collisionIsPutting ? (0.17 + 0.25 * ball.scale.x) : 0.38;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -2813,17 +2817,28 @@ function animate() {
         const currentActiveClub = input ? input.getClubInfo() : null;
         const isPuttingStroke = currentActiveClub && currentActiveClub.name === 'Putter';
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
-
         if (isPuttingStroke || activeLaunchScale === 0.30) {
-            // FIXED: Matches your stationary base green sizing to eliminate the sudden growth pop on launch
-            ballTargetScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.24 : 0.21;
+            // FIXED: Start with your original clean base green sizing
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.24 : 0.19;
+
+            // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
+            // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
+            // drop-off so the ball shrinks beautifully and gradually instead of turning into a tiny speck!
+            // -- TWEAKING: Increase 0.0035 to shrink slower (stay larger), lower it to shrink faster.
+            const currentCamDist = camera.position.distanceTo(ball.position);
+            if (currentCamDist > 3.0) {
+                ballTargetScale = basePuttScale + ((currentCamDist - 3.0) * 0.0035);
+            } else {
+                ballTargetScale = basePuttScale;
+            }
+
         } else if (!isLongShot) {
             // FIXED: For short shots where the camera is stationary, lock code scale to launch size
             // and let natural WebGL 3D perspective handle making the ball smaller as it rolls away
             ballTargetScale = activeLaunchScale;
         } else {
             // For long shots where the camera actively chases the ball, manually scale down to simulate height/distance
-            ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0015));
+            ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0005));
         }
         if (isLongShot) {
             if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) {
@@ -2875,7 +2890,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.75 : 0.56; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.24 : 0.21;
+            ballTargetScale = isMobile ? 0.24 : 0.19;
         } else {
             ballTargetScale = isMobile ? 0.73 : 0.51; // Fairway, rough, and sand size
         }
@@ -2894,7 +2909,7 @@ function animate() {
         const camDist = onGreen ? 2.5 : (isSand ? 1.5 : (isChippingClose ? 4.5 : 7.5));
         const camHeight = onGreen ? 1.0 : (isSand ? 0.1 : (isChippingClose ? 1.4 : 2.2));
         const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : (isChippingClose ? 8.0 : 15.0));
-        if (!isOverheadActive) {
+        if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
             if (teeBox && teeBox.visible && currentHoleConfig) {
@@ -3201,18 +3216,25 @@ function animate() {
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.24 : 0.21;
+        const baseGreenScale = isMobileScreen ? 0.24 : 0.19;
 
-        // Preserved exactly: Gently scales down the ball when far away to combat perspective ballooning
-        const perspectiveCorrection = THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
+        // FIXED: Ignore pin distance shrinkage while stationary at address so the ball and putter always start at the exact same uniform size ratio
+        const perspectiveCorrection = !physics.isMoving ? 1.0 : THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
 
         // Apply perspective correction cleanly to the absolute base scale
-        finalBallTargetScale = baseGreenScale * perspectiveCorrection;
+        finalBallTargetScale = !physics.isMoving ? (baseGreenScale * perspectiveCorrection) : ballTargetScale;
 
-        // FIXED: Boost the ball's scale proportionally if the camera is trailing far behind (chase camera),
-        // and smoothly fade it out as the camera glides close, preventing the ball from turning into a tiny speck.
+        // PROTECT PUTTING PERSPECTIVE: Safely resolve club info locally in this block's scope 
+        // to prevent ReferenceErrors and freezes while the ball is airborne over the green complex.
+        const localActiveClub = input ? input.getClubInfo() : null;
+        const localIsPutting = localActiveClub && localActiveClub.name === 'Putter';
+        if (localIsPutting) {
+            finalBallTargetScale = ballTargetScale;
+        }
+
+        // FIXED: Only apply the distance size-boost if the ball is in a long airborne chase-camera sequence.
         const camDistFromBall = camera.position.distanceTo(ball.position);
-        if (camDistFromBall > 3.0) {
+        if (camDistFromBall > 3.0 && physics && !physics.isPutting && isLongShot) {
             const distanceBoost = 1.0 + (camDistFromBall - 3.0) * 0.085;
             finalBallTargetScale *= Math.min(2.5, distanceBoost); // Caps maximum boost safely at 2.5x
         }
@@ -4082,7 +4104,7 @@ function init() {
                 clubSwipe.classList.add('iron');
             }
 
-            // Kick off the swipe animation
+        // Kick off the swipe animation
             clubSwipe.classList.add('swipe-animation');
 
             // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
@@ -4090,8 +4112,9 @@ function init() {
             clubSwipe.style.removeProperty('left');
             clubSwipe.style.removeProperty('transform');
 
-            // NEW: Scales timeout to match the active club (1000ms for slow putts, 350ms for swift swings)
-            const swingDuration = club.name === 'Putter' ? 400 : 350;
+            // ADJUSTED: Raised from 400ms to 1400ms so the DOM element preserves the 'swipe-animation' class 
+            // for the full length of our expanded CSS timeline before clearing it out for the next stroke.
+            const swingDuration = club.name === 'Putter' ? 1400 : 350;
             setTimeout(() => {
                 clubSwipe.classList.remove('swipe-animation');
             }, swingDuration);

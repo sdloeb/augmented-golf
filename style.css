@@ -675,36 +675,48 @@ html {
     }
 
     #clubSwipe.putter.swipe-animation {
-        animation: putterSwipeAnimMobile 0.4s linear forwards !important;
+        /* CHANGED: Extended to 1.4s to mirror desktop follow-through stability mechanics on mobile viewports */
+        animation: putterSwipeAnimMobile 1.4s linear forwards !important;
     }
-
-    /* NEW OVERRIDE: Change the size of the Irons specifically on mobile screens */
-    #clubSwipe.iron {
-        transform: scale(1.05) !important;
-        /* Adjust this decimal up or down to tune your mobile iron size */
-        transform-origin: right bottom;
-        margin-left: 9px !important;
-    }
-
 
     @keyframes putterSwipeAnimMobile {
         0% {
-            bottom: var(--putter-start-bottom, 30.0%);
+            bottom: var(--putter-base-bottom, 30.0%);
             left: calc(50% - 77.5px);
+            right: auto;
+            /* FIXED: Unbinds the default right-margin limits for mobile screens */
             transform: rotate(0deg) scale(0.9);
             opacity: 1;
         }
 
-        35% {
+        10% {
             bottom: 30.0%;
             left: calc(50% - 77.5px);
+            right: auto;
+            transform: rotate(0deg) scale(0.9);
+            opacity: 1;
+        }
+
+        28% {
+            bottom: var(--putter-follow-bottom, 38.2%);
+            left: calc(50% - 77.5px);
+            right: auto;
+            transform: rotate(0deg) scale(0.9);
+            opacity: 1;
+        }
+
+        90% {
+            bottom: var(--putter-follow-bottom, 38.2%);
+            left: calc(50% - 77.5px);
+            right: auto;
             transform: rotate(0deg) scale(0.9);
             opacity: 1;
         }
 
         100% {
-            bottom: 38.2%;
+            bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
+            right: auto;
             transform: rotate(0deg) scale(0.9);
             opacity: 0;
         }
@@ -759,28 +771,47 @@ html {
 
 /* 2. Slows the forward acceleration down into a highly deliberate, professional tempo */
 #clubSwipe.putter.swipe-animation {
-    /* CHANGED: Increased from 0.6s to 1.0s to give you a very smooth, gentle forward swing speed */
-    animation: putterSwipeAnim 0.4s linear forwards;
+    /* CHANGED: Extended total duration to 1.4s to add a beautiful, steady 1-second hold at the end of the stroke */
+    animation: putterSwipeAnim 1.4s linear forwards;
 }
 
 @keyframes putterSwipeAnim {
     0% {
         bottom: var(--putter-start-bottom, 21.8%);
         left: calc(50% - 77.5px);
+        right: auto;
         transform: rotate(0deg) scale(1.25);
         opacity: 1;
     }
 
-    35% {
-        bottom: 21.8%;
+    10% {
+        bottom: var(--putter-base-bottom, 21.8%);
         left: calc(50% - 77.5px);
+        right: auto;
+        transform: rotate(0deg) scale(1.25);
+        opacity: 1;
+    }
+
+    28% {
+        bottom: var(--putter-follow-bottom, 25.0%);
+        left: calc(50% - 77.5px);
+        right: auto;
+        transform: rotate(0deg) scale(1.25);
+        opacity: 1;
+    }
+
+    90% {
+        bottom: var(--putter-follow-bottom, 25.0%);
+        left: calc(50% - 77.5px);
+        right: auto;
         transform: rotate(0deg) scale(1.25);
         opacity: 1;
     }
 
     100% {
-        bottom: 25.0%;
+        bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
+        right: auto;
         transform: rotate(0deg) scale(1.25);
         opacity: 0;
     }
