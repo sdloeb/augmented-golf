@@ -3213,78 +3213,61 @@ function animate() {
     camera.lookAt(currentLookAt);
 
     let finalBallTargetScale = ballTargetScale;
+
+    // Check active club rules locally to ensure strict scope encapsulation
+    const localActiveClub = input ? input.getClubInfo() : null;
+    const localIsPutting = localActiveClub && localActiveClub.name === 'Putter';
+
     if (isCamOnGreen) {
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.24 : 0.19;
+        const baseGreenScale = isMobileScreen ? 0.24 : 0.21;
 
-        // FIXED: Ignore pin distance shrinkage while stationary at address so the ball and putter always start at the exact same uniform size ratio
-        const perspectiveCorrection = !physics.isMoving ? 1.0 : THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
-
-        // Apply perspective correction cleanly to the absolute base scale
-        finalBallTargetScale = !physics.isMoving ? (baseGreenScale * perspectiveCorrection) : ballTargetScale;
-
-        // PROTECT PUTTING PERSPECTIVE: Safely resolve club info locally in this block's scope 
-        // to prevent ReferenceErrors and freezes while the ball is airborne over the green complex.
-        const localActiveClub = input ? input.getClubInfo() : null;
-        const localIsPutting = localActiveClub && localActiveClub.name === 'Putter';
         if (localIsPutting) {
+            // UNIFIED PUTTING SCALE: Bind directly to ballTargetScale uniformly across both rolling and stationary 
+            // address states. This completely eliminates the visual frame snap when the putt comes to a rest.
             finalBallTargetScale = ballTargetScale;
-        }
-
-        // FIXED: Only apply the distance size-boost if the ball is in a long airborne chase-camera sequence.
-        const camDistFromBall = camera.position.distanceTo(ball.position);
-        if (camDistFromBall > 3.0 && physics && !physics.isPutting && isLongShot) {
-            const distanceBoost = 1.0 + (camDistFromBall - 3.0) * 0.085;
-            finalBallTargetScale *= Math.min(2.5, distanceBoost); // Caps maximum boost safely at 2.5x
+        } else {
+            // Standard aerial iron shots or chip approaches landing onto the green surface
+            const perspectiveCorrection = !physics.isMoving ? 1.0 : THREE.MathUtils.clamp(1.0 - (yardsToPin * 0.006), 0.72, 1.0);
+            finalBallTargetScale = !physics.isMoving ? (baseGreenScale * perspectiveCorrection) : ballTargetScale;
         }
 
         // Preserved exactly: Counteract camera height shrinkage when ultra-close to the cup
         if (yardsToPin < 3.5 && !physics.isMoving) {
-            let closeFactor = (3.5 - yardsToPin) / 3.5; // 1 when at the cup, 0 at 3.5 yards out
-            finalBallTargetScale *= (1.0 + closeFactor * 0.05); // Balanced proximity scale
+            let closeFactor = (3.5 - yardsToPin) / 3.5;
+            finalBallTargetScale *= (1.0 + closeFactor * 0.05);
         }
-
     }
 
-
-
-
-    // === REPLACE WITH THIS EXACT BLOCK ===
-    // NEW: Keep full scale during the plunge, only zero out once resting out of sight at the bottom
+    // Keep full scale during the plunge, only zero out once resting out of sight at the bottom
     if (isSinking) {
         if (ball.isSunk) {
             finalBallTargetScale = 0.001;
         }
     }
 
-    // FIXED: Dynamically scale down the ball smoothly if the camera transitions closer, preventing ballooning
+    // UNIFIED CHIPPING PROXIMITY FACTOR: Removed the binary '!physics.isMoving' gate restriction entirely. 
+    // This stops chips and pitches from instantly expanding on frame one of a launch, allowing the 3D camera 
+    // to smoothly scale the size vector down as the ball leaves your close address perspective view.
     const cameraDistanceToBall = camera.position.distanceTo(ball.position);
-    if (cameraDistanceToBall < 9.5 && !isCamOnGreen && !physics.isMoving) { // MODIFIED: Added !physics.isMoving check
-        // NEW: Calculate distance to hole to avoid aggressive shrinking on delicate chips
+    if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
-
-        // Self-contained check query directly from the physics engine ensures this is always in scope!
         const isBallInBunker = physics && physics.isBallInSand();
 
-        // Lower the floor down to 0.15 dynamically when in the sand trap
-        // This allows the ball to keep shrinking as the camera gets ultra close, offsetting the 3D zoom perfectly!
         const chipScaleFloor = isBallInBunker ? 0.15 : (yardsToPin < 25.0 ? 0.55 : 0.55);
-
-        // Clamp the proximity modifier to keep visual scale completely stable during close-up chips and approaches
         const proximityFactor = THREE.MathUtils.clamp(cameraDistanceToBall / 9.5, chipScaleFloor, 1.0);
         finalBallTargetScale *= proximityFactor;
     }
 
-    // CHANGED: Uses finalBallTargetScale instead of ballTargetScale
+    // Apply continuous interpolation glide to eliminate calculation artifacts completely
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
     ball.scale.set(currentScale, currentScale, currentScale);
-
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
     if (clubSwipeElement && input) {
@@ -4123,7 +4106,7 @@ function init() {
                 clubSwipe.classList.add('iron');
             }
 
-        // Kick off the swipe animation
+            // Kick off the swipe animation
             clubSwipe.classList.add('swipe-animation');
 
             // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
