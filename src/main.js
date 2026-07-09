@@ -81,13 +81,13 @@ const HOLES_CONFIG = {
         waypoints: [
             new THREE.Vector3(0, 0, 10),       // Flat Tee Box zone
             new THREE.Vector3(0, 0, -108),     // 327 Yard Elbow (Hill descent ends here)
-            new THREE.Vector3(11, 0, -139)     // 87 Yard Approach Green
+            new THREE.Vector3(20, 0, -139)     // 87 Yard Approach Green
         ],
         hazards: [
-            { type: 'sand', x: -14.5, z: -115.0, radius: 4.2, depth: 0.5 },
-            { type: 'sand', x: 18.5, z: -126.0, radius: 4.0, depth: 0.6 },
-            { type: 'sand', x: 20.0, z: -155.0, radius: 3.8, depth: 0.6 },
-            { type: 'sand', x: 28.5, z: -140.0, radius: 3.5, depth: 0.6 }
+            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 4.5 },
+            { type: 'sand', x: 26.5, z: -119.5, radius: 5.0, depth: 4.6 },
+            { type: 'sand', x: 20.0, z: -151.0, radius: 4.8, depth: 4.6 },
+            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 4.6 }
         ],
 
         customOOB: {
@@ -1089,7 +1089,7 @@ function resetEntireGame(advanceHole = false) {
 
             if (hz.type === 'sand') {
                 let sandDepth = hz.depth || 0.6;              // Modify this line: Change const to let
-                const maxCustomDepthCap = r * 0.085;          // Add this line
+                const maxCustomDepthCap = r * 0.20;         // Add this line
                 sandDepth = Math.min(sandDepth, maxCustomDepthCap); // Add this line
 
                 // Route to polygon generator if configuration matches
