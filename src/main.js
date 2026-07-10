@@ -1291,6 +1291,28 @@ function resetEntireGame(advanceHole = false) {
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
             if (targetMesh === greenFringe) calculatedHeight += 0.018;
 
+            // Calculate real-time drop shadows from obstacles onto the main ground textures
+            let shadowMultiplier = 1.0;
+            if (physics && physics.obstacles) {
+                physics.obstacles.forEach(obs => {
+                    const dx = worldX - obs.x;
+                    const dz = worldZ - obs.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.75 : obs.radius * 1.25;
+
+                    if (dist < shadowRadius) {
+                        const t = dist / shadowRadius;
+                        const factor = t * t * (3 - 2 * t); // Smoothstep curve decay
+                        const localShadow = THREE.MathUtils.lerp(0.45, 1.0, factor); // 45% brightness under trunk
+                        if (localShadow < shadowMultiplier) {
+                            shadowMultiplier = localShadow;
+                        }
+                    }
+                });
+            }
+            colorAttr.setXYZ(i, shadowMultiplier, shadowMultiplier, shadowMultiplier);
+
+
             posAttr.setZ(i, calculatedHeight);
 
             // --- REALISTIC TURF SHADE CONTRAST GENERATOR ---
@@ -1324,28 +1346,9 @@ function resetEntireGame(advanceHole = false) {
             let g = baseG + blend * 0.46;
             let b = baseB + blend * 0.17;
 
-            // Calculate real-time drop shadows from trees and bushes directly onto turf colors
-            let shadowMultiplier = 1.0;
-            if (physics && physics.obstacles && (targetMesh === floor || targetMesh === fairway)) {
-                physics.obstacles.forEach(obs => {
-                    const dx = worldX - obs.x;
-                    const dz = worldZ - obs.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.75 : obs.radius * 1.25;
-
-                    if (dist < shadowRadius) {
-                        const t = dist / shadowRadius;
-                        const factor = t * t * (3 - 2 * t); // Smoothstep gradient drop-off
-                        const localShadow = THREE.MathUtils.lerp(0.50, 1.0, factor); // 50% ambient darkness at core
-                        if (localShadow < shadowMultiplier) {
-                            shadowMultiplier = localShadow;
-                        }
-                    }
-                });
-            }
-
-            colorAttr.setXYZ(i, r * shadowMultiplier, g * shadowMultiplier, b * shadowMultiplier);
+            colorAttr.setXYZ(i, r, g, b);
         }
+        // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
         if (colorAttr) colorAttr.needsUpdate = true;
         targetMesh.geometry.computeVertexNormals();
@@ -1356,6 +1359,15 @@ function resetEntireGame(advanceHole = false) {
         const posAttr = targetMesh.geometry.attributes.position;
         const scaleX = useScale ? targetMesh.scale.x : 1;
         const scaleY = useScale ? targetMesh.scale.y : 1;
+
+        // Initialize or fetch the ground vertex color array dynamically
+        let colorAttr = targetMesh.geometry.attributes.color;
+        if (!colorAttr) {
+            const colors = new Float32Array(posAttr.count * 3);
+            colors.fill(1.0); // Base unshaded white
+            targetMesh.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            colorAttr = targetMesh.geometry.attributes.color;
+        }
 
         // Precompute the dynamic bounding corridor of the current hole's waypoints
         let wpMinX = Infinity, wpMaxX = -Infinity, wpMinZ = Infinity, wpMaxZ = -Infinity;
@@ -3858,8 +3870,7 @@ function init() {
 
 
     // Modify this line to add the emissive property and real-time 3D lighting depth over rough blades
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45 }); // Modify this line
-    floor = new THREE.Mesh(floorGeo, floorMat);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45, vertexColors: true }); // Modify this line    floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
