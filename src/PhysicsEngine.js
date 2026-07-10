@@ -685,11 +685,16 @@ export class PhysicsEngine {
             }
 
             if (!this.isPutting) {
-                // FIXED: Direct wind to 0.0 permanently if the ball has touched the ground, bypassing high bounce loops
+                // REALISM FIX: Wind should only affect the ball when it is genuinely airborne.
+                // If the ball is rolling, skimming, or settling near the turf grass line, wind influence drops to zero.
                 let bounceWindMultiplier = this.hasLanded ? 0.0 : 1.0;
 
-                if (!this.hasLanded && this.ball.position.y < groundY + 1.25) {
-                    bounceWindMultiplier = 0.20;
+                const heightAboveGround = this.ball.position.y - groundY;
+                if (heightAboveGround <= 0.15) {
+                    bounceWindMultiplier = 0.0; // Completely suppresses wind veering for rolling balls/putts
+                } else if (heightAboveGround < 1.5) {
+                    // Smoothly scale wind drag forces up as the ball achieves true atmospheric flight altitude
+                    bounceWindMultiplier *= (heightAboveGround - 0.15) / 1.35;
                 }
 
                 this.velocity.x += this.wind.x * bounceWindMultiplier * timeScale;
@@ -827,9 +832,11 @@ export class PhysicsEngine {
                     this.bushResetZ = obs.z + (obs.radius + 1.8) * Math.sin(angle); // Change this line
                     break;
                 } else {
-                    // High speed entry: Continuous drag friction so powerful shots can survive and exit the bush radius
-                    this.velocity.x *= 0.92; // Change this line
-                    this.velocity.z *= 0.92; // Change this line
+                    // REALISM FIX: Heavy inelastic entry. Thick foliage clusters rapidly swallow kinetic energy.
+                    // Dramatically dampens multi-frame velocity across all 3 spatial axes instead of gliding elastically.
+                    this.velocity.x *= 0.45;
+                    this.velocity.z *= 0.45;
+                    this.velocity.y *= 0.45;
                 }
             }
 
@@ -888,22 +895,35 @@ export class PhysicsEngine {
                     }
                 } // Add this line
 
-                if (isHit) { // Modify this line: Replaced the old distance3D check string
-                    let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
-                    let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
+              if (isHit) {
+                let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
+                let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
 
-                    if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
-                        // Top 5% Clip Zone: Pass through clean but encounter a 25% overhead slowdown
-                        this.velocity.x *= 0.75;
-                        this.velocity.z *= 0.75;
-                    } else {
-                        // Heavy Canopy Core Zone: Strip forward momentum completely and let gravity drop it straight down
-                        this.velocity.x = 0;
-                        this.velocity.z = 0;
-                        if (this.velocity.y > 0) this.velocity.y = 0;
+                // Fire tactical foliage thud/rustle effect upon leaf impact context
+                if (this.sounds) this.sounds.play('rough');
+
+                if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
+                    // Top 5% Clip Zone: Grazing outer leaves
+                    this.velocity.x *= 0.65;
+                    this.velocity.z *= 0.65;
+                    this.velocity.y *= 0.80;
+             } else {
+                    // Heavy Canopy Core Zone inelastic penetration.
+                    this.velocity.x *= 0.15;
+                    this.velocity.z *= 0.15;
+                    
+                    if (this.velocity.y > 0) {
+                        this.velocity.y = 0; // Instantly halts upward climbing momentum
                     }
-                    break;
+                    
+                    // TUNING CONTROL: SLOW DOWN INSIDE THE BRANCH VOLUME ONLY
+                    // This multiplier runs frame-by-frame ONLY while the ball is physically touching the leaves.
+                    // - LOWER this number (e.g., 0.55) to make it crawl even slower through the branches.
+                    // - RAISE this number (e.g., 0.85) to make it fall faster through the branches.
+                    this.velocity.y *= 0.75; 
                 }
+                break;
+            }
             }
         }
 
