@@ -1114,9 +1114,31 @@ function resetEntireGame(advanceHole = false) {
                 waterHazards.push(oceanMesh);
 
                 // MODIFIED: Fully synchronized path metrics and expanded boundaries to perfectly clear the putting green radius cleanly
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x3d352e, roughness: 0.95 });
+                // MODIFIED: Fully synchronized path metrics and expanded boundaries to perfectly clear the putting green radius cleanly
+                const cliffCanvas = document.createElement('canvas');
+                cliffCanvas.width = 64; cliffCanvas.height = 128;
+                const cliffCtx = cliffCanvas.getContext('2d');
+                // Render organic vertical stacked strata layers
+                for (let y = 0; y < 128; y++) {
+                    let strata = Math.sin(y * 0.15) * 0.4 + Math.cos(y * 0.05) * 0.3 + Math.sin(y * 0.4) * 0.1;
+                    if (strata > 0.25) cliffCtx.fillStyle = '#caba94';       // Sandy Tan bands
+                    else if (strata > -0.1) cliffCtx.fillStyle = '#8a7b67'; // Earthy Clay layer
+                    else if (strata > -0.5) cliffCtx.fillStyle = '#595145'; // Darker Rock Strata
+                    else cliffCtx.fillStyle = '#423b32';                    // Deep Bedrock Charcoal
+                    cliffCtx.fillRect(0, y, 64, 1);
+                    if (Math.random() > 0.85) { cliffCtx.fillStyle = 'rgba(0,0,0,0.15)'; cliffCtx.fillRect(0, y, 64, 1); }
+                }
+                // Add random rock grit specks
+                for (let n = 0; n < 400; n++) {
+                    cliffCtx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
+                    cliffCtx.fillRect(Math.floor(Math.random() * 64), Math.floor(Math.random() * 128), 1, 1);
+                }
+                const cliffTexture = new THREE.CanvasTexture(cliffCanvas);
+                cliffTexture.wrapS = THREE.RepeatWrapping; cliffTexture.wrapT = THREE.RepeatWrapping;
+                cliffTexture.repeat.set(1, 3.5); // Loops the layers naturally down the 50-unit height wall
+                const wallMat = new THREE.MeshStandardMaterial({ map: cliffTexture, bumpMap: cliffTexture, bumpScale: 0.14, roughness: 0.95 });
                 const sliceLength = 0.4;
-                const startZ = -51.75;
+                const startZ = -78.0;
                 const endZ = -215.0;
 
                 for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
@@ -1148,27 +1170,29 @@ function resetEntireGame(advanceHole = false) {
                         ruggedIntensity = (-125 - currentZ) / 10.0; // Gracefully blends rock fracturing back in as it climbs up the hill crest
                     }
 
-                    // ADJUST THIS NUMBER: Raise this to make the low wall expand further left into the grass turf
-                    // (e.g., 0.0 is the original thin wall, 1.2 makes it grow 1.2 units wider towards the left)
+                    // ADJUST THESE NUMBERS: leftExtension widens the lower wall, topExtension widens the high plateau wall
                     const leftExtension = 1.2;
+                    const topExtension = 2.0; // Increase this number to push the top cliff wall even further left into the grass
 
-                    // DYNAMIC BULKHEAD PROFILE: Width and position parameters scale together based on leftExtension
-                    // to grow the wall leftward into the rough fields while keeping the ocean side completely flush.
-                    let baseWidth = currentZ >= -125 ? (1.1 + leftExtension) : 5.0;
-                    let yOffset = currentZ >= -125 ? -24.80 : -25.15;
-                    let shiftLeft = currentZ >= -125 ? leftExtension : 0.0;
+                    // DYNAMIC BULKHEAD PROFILE: Width and position parameters scale together to keep the ocean side flush
+                    let baseWidth = currentZ >= -140.0 ? (1.1 + leftExtension) : (5.0 + topExtension);
+                    let yOffset = currentZ >= -140.0 ? -24.80 : -25.15;
+                    let shiftLeft = currentZ >= -140.0 ? leftExtension : topExtension;
 
-                    if (currentZ < -125 && currentZ > -135) {
-                        let tBlend = (-125 - currentZ) / 10.0;
-                        baseWidth = THREE.MathUtils.lerp(1.1 + leftExtension, 5.0, tBlend);
+                    // Smoothly blend the wall parameters over the hill climb (-140.0 down to -152.0)
+                    if (currentZ < -140.0 && currentZ > -152.0) {
+                        let tBlend = (-140.0 - currentZ) / 12.0;
+                        baseWidth = THREE.MathUtils.lerp(1.1 + leftExtension, 5.0 + topExtension, tBlend);
                         yOffset = THREE.MathUtils.lerp(-24.80, -25.15, tBlend);
-                        shiftLeft = THREE.MathUtils.lerp(leftExtension, 0.0, tBlend);
+                        shiftLeft = THREE.MathUtils.lerp(leftExtension, topExtension, tBlend);
                     }
 
                     const rockWidth = baseWidth + (Math.sin(currentZ * 1.5) * 0.3 * ruggedIntensity);
                     const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12 * ruggedIntensity;
 
-                    const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, sliceLength + 0.08);
+                    // Adds a micro-noise jitter to thickness to eliminate machine-smooth flat faces
+                    const organicThickness = sliceLength + 0.08 + (Math.sin(currentZ * 10.0) * 0.03 * ruggedIntensity);
+                    const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, organicThickness);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
 
                     cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03 * ruggedIntensity;
