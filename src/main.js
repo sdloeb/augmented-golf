@@ -195,7 +195,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2551,6 +2551,17 @@ function animate() {
             const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
             if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
                 isOutOfBounds = true;
+            }
+
+            // Hole 3 Cliff Wall OB Rule: If the ball rolls past the grass edge onto the rocks, consider it OB
+            if (currentHoleNumber === 3 && ball.position.z <= -130.0) {
+                let bZ = ball.position.z;
+                let pathCenter = bZ >= -125 ? THREE.MathUtils.lerp(0, -14.0, (10 - bZ) / 135) : THREE.MathUtils.lerp(-14.0, 14.0, Math.min(1.0, (-125 - bZ) / 55));
+                let cliffEdgeLimit = bZ < -115 ? 20.0 : (pathCenter + 15.5);
+
+                if (ball.position.x > cliffEdgeLimit) {
+                    isOutOfBounds = true;
+                }
             }
         }
     }
