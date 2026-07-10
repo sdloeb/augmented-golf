@@ -2250,10 +2250,12 @@ function resetEntireGame(advanceHole = false) {
         const stakeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
 
         // FIXED: Calculate precise game unit equivalent for 25 yards spacing (25 / par scale)
-        const spacingUnits = 25 / 2.76923;
+        const spacingUnits = 50 / 2.76923;
 
         // Reusable internal function to spawn an OOB stake snapped flush to terrain curves
         const spawnOOBStake = (x, z) => {
+            if (currentHoleNumber === 3 && x > 20.0) return; // Clears all stakes from the right-side cliff and ocean
+
             const y = physics.getGroundHeight(x, z);
             const stake = new THREE.Mesh(stakeGeo, stakeMat);
             stake.position.set(x, y + 0.4, z);
