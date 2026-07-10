@@ -114,11 +114,10 @@ const HOLES_CONFIG = {
         hazards: [
             // Bunkers on the left (Shifted back to flank the lower driver landing zone precisely)
             { type: 'sand', x: -27.5, z: -85.0, radius: 3.8, depth: 0.55 },
-
-            { type: 'sand', x: -36.5, z: -100.0, radius: 1.9, depth: 0.50 },  //left bunker
-            { type: 'sand', x: -27.5, z: -101.5, radius: 1.4, depth: 0.45 },
-            { type: 'sand', x: -30.5, z: -102.0, radius: 3.8, depth: 0.60 },
-            { type: 'sand', x: -31.5, z: -111.0, radius: 3.0, depth: 0.60 },
+            { type: 'sand', x: -38.5, z: -100.0, radius: 2.9, depth: 0.50 },  //left bunker
+            { type: 'sand', x: -45.5, z: -101.5, radius: 1.4, depth: 0.45 },
+            { type: 'sand', x: -32.5, z: -104.0, radius: 3.8, depth: 0.60 },
+            { type: 'sand', x: -31.5, z: -112.0, radius: 3.0, depth: 0.60 },
             // Lower driving zone bunker cluster converted into a single long, wide polygon with rounded caps
             {
                 type: 'sand',
