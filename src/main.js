@@ -1462,14 +1462,14 @@ function resetEntireGame(advanceHole = false) {
                 let fW = physics.fairwayWidth;
 
                 if (currentHoleNumber === 3) {
-                    if (worldZ <= -20.0 && worldZ >= -160.0) {
+                    if (worldZ <= -20.0 && worldZ >= -140.0) {
                         fW = 18.0; // Keeps the fairway wide across both the driving area and the hill climb
-                    } else if (worldZ < -160.0 && worldZ >= -172.0) {
-                        // Smoothly taper the fairway width down from 18.0 to 8.0 just before the bunkers
-                        let tTaper = (-160.0 - worldZ) / 12.0;
+                    } else if (worldZ < -140.0 && worldZ >= -152.0) {
+                        // Smoothly taper the fairway width down from 18.0 to 8.0 just before the green approach
+                        let tTaper = (-140.0 - worldZ) / 12.0;
                         fW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
-                    } else if (worldZ < -172.0) {
-                        fW = 8.0; // Clean tight approach into the green entrance
+                    } else if (worldZ < -152.0) {
+                        fW = 8.0; // Clean tight approach into the green entrance (Now longer!)
                     }
                 }
 
