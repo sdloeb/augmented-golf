@@ -895,35 +895,35 @@ export class PhysicsEngine {
                     }
                 } // Add this line
 
-              if (isHit) {
-                let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
-                let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
+                if (isHit) {
+                    let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
+                    let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
 
-                // Fire tactical foliage thud/rustle effect upon leaf impact context
-                if (this.sounds) this.sounds.play('rough');
+                    // Fire tactical foliage thud/rustle effect upon leaf impact context
+                    if (this.sounds) this.sounds.play('rough');
 
-                if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
-                    // Top 5% Clip Zone: Grazing outer leaves
-                    this.velocity.x *= 0.65;
-                    this.velocity.z *= 0.65;
-                    this.velocity.y *= 0.80;
-             } else {
-                    // Heavy Canopy Core Zone inelastic penetration.
-                    this.velocity.x *= 0.15;
-                    this.velocity.z *= 0.15;
-                    
-                    if (this.velocity.y > 0) {
-                        this.velocity.y = 0; // Instantly halts upward climbing momentum
+                    if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
+                        // Top 5% Clip Zone: Grazing outer leaves
+                        this.velocity.x *= 0.65;
+                        this.velocity.z *= 0.65;
+                        this.velocity.y *= 0.80;
+                    } else {
+                        // Heavy Canopy Core Zone inelastic penetration.
+                        this.velocity.x *= 0.15;
+                        this.velocity.z *= 0.15;
+
+                        if (this.velocity.y > 0) {
+                            this.velocity.y = 0; // Instantly halts upward climbing momentum
+                        }
+
+                        // TUNING CONTROL: SLOW DOWN INSIDE THE BRANCH VOLUME ONLY
+                        // This multiplier runs frame-by-frame ONLY while the ball is physically touching the leaves.
+                        // - LOWER this number (e.g., 0.55) to make it crawl even slower through the branches.
+                        // - RAISE this number (e.g., 0.85) to make it fall faster through the branches.
+                        this.velocity.y *= 1.25;
                     }
-                    
-                    // TUNING CONTROL: SLOW DOWN INSIDE THE BRANCH VOLUME ONLY
-                    // This multiplier runs frame-by-frame ONLY while the ball is physically touching the leaves.
-                    // - LOWER this number (e.g., 0.55) to make it crawl even slower through the branches.
-                    // - RAISE this number (e.g., 0.85) to make it fall faster through the branches.
-                    this.velocity.y *= 0.75; 
+                    break;
                 }
-                break;
-            }
             }
         }
 

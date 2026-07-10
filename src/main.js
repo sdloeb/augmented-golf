@@ -1959,6 +1959,7 @@ function resetEntireGame(advanceHole = false) {
 
     if (currentHoleNumber === 2) obstacleAttempts = 320;
     if (currentHoleNumber === 3) obstacleAttempts = 0;
+    if (currentHoleNumber === 1) obstacleAttempts = 60;
 
     // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
     if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
@@ -2058,8 +2059,7 @@ function resetEntireGame(advanceHole = false) {
         const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
         sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-        let generateAsTree = currentHoleNumber === 2 ? (Math.random() < 0.95) : (Math.random() < 0.6);
-        if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
+        let generateAsTree = currentHoleNumber === 2 ? (Math.random() < 0.95) : (currentHoleNumber === 1 ? (Math.random() < 0.85) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
 
         if (generateAsTree) {
             sceneryGroup.userData = { type: 'tree' };
