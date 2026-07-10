@@ -1291,28 +1291,6 @@ function resetEntireGame(advanceHole = false) {
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
             if (targetMesh === greenFringe) calculatedHeight += 0.018;
 
-            // Calculate real-time drop shadows from obstacles onto the main ground textures
-            let shadowMultiplier = 1.0;
-            if (physics && physics.obstacles) {
-                physics.obstacles.forEach(obs => {
-                    const dx = worldX - obs.x;
-                    const dz = worldZ - obs.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.75 : obs.radius * 1.25;
-
-                    if (dist < shadowRadius) {
-                        const t = dist / shadowRadius;
-                        const factor = t * t * (3 - 2 * t); // Smoothstep curve decay
-                        const localShadow = THREE.MathUtils.lerp(0.45, 1.0, factor); // 45% brightness under trunk
-                        if (localShadow < shadowMultiplier) {
-                            shadowMultiplier = localShadow;
-                        }
-                    }
-                });
-            }
-            colorAttr.setXYZ(i, shadowMultiplier, shadowMultiplier, shadowMultiplier);
-
-
             posAttr.setZ(i, calculatedHeight);
 
             // --- REALISTIC TURF SHADE CONTRAST GENERATOR ---
@@ -1727,11 +1705,33 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight += (0.022 - targetMesh.position.y);
             }
 
+            // Calculate real-time drop shadows from obstacles onto the main ground textures
+            let shadowMultiplier = 1.0;
+            if (physics && physics.obstacles) {
+                physics.obstacles.forEach(obs => {
+                    const dx = worldX - obs.x;
+                    const dz = worldZ - obs.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.85 : obs.radius * 1.35;
+
+                    if (dist < shadowRadius) {
+                        const t = dist / shadowRadius;
+                        const factor = t * t * (3 - 2 * t); // Smoothstep curve decay
+                        const localShadow = THREE.MathUtils.lerp(0.48, 1.0, factor); // 48% ambient darkness under foliage center
+                        if (localShadow < shadowMultiplier) {
+                            shadowMultiplier = localShadow;
+                        }
+                    }
+                });
+            }
+            colorAttr.setXYZ(i, shadowMultiplier, shadowMultiplier, shadowMultiplier);
+
             posAttr.setZ(i, calculatedHeight);
         }
 
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
+        if (colorAttr) colorAttr.needsUpdate = true;
         targetMesh.geometry.computeVertexNormals();
     };
 
@@ -3870,7 +3870,8 @@ function init() {
 
 
     // Modify this line to add the emissive property and real-time 3D lighting depth over rough blades
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45, vertexColors: true }); // Modify this line    floor = new THREE.Mesh(floorGeo, floorMat);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45, vertexColors: true });
+    floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
@@ -3880,14 +3881,14 @@ function init() {
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
     const fCtx = fCanvas.getContext('2d');
-    fCtx.fillStyle = '#ffffff'; fCtx.fillRect(0, 0, 64, 4); // Light stripe tint (Add this line)
-    fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4); // Dark stripe tint (Add this line)
+    fCtx.fillStyle = '#ffffff'; fCtx.fillRect(0, 0, 64, 4);
+    fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4);
     const fairwayTexture = new THREE.CanvasTexture(fCanvas);
     fairwayTexture.wrapS = THREE.RepeatWrapping;
     fairwayTexture.repeat.set(55, 1);
 
-    // === FIND AND UPDATE THIS LINE FOR fairwayMat ===
-    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture, vertexColors: true }); fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
+    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture, vertexColors: true });
+    fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
     fairway.rotation.x = -Math.PI / 2;
     fairway.position.set(0, 0.011, 0);
     scene.add(fairway);
