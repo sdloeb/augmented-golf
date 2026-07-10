@@ -1324,7 +1324,27 @@ function resetEntireGame(advanceHole = false) {
             let g = baseG + blend * 0.46;
             let b = baseB + blend * 0.17;
 
-            colorAttr.setXYZ(i, r, g, b);
+            // Calculate real-time drop shadows from trees and bushes directly onto turf colors
+            let shadowMultiplier = 1.0;
+            if (physics && physics.obstacles && (targetMesh === floor || targetMesh === fairway)) {
+                physics.obstacles.forEach(obs => {
+                    const dx = worldX - obs.x;
+                    const dz = worldZ - obs.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.75 : obs.radius * 1.25;
+
+                    if (dist < shadowRadius) {
+                        const t = dist / shadowRadius;
+                        const factor = t * t * (3 - 2 * t); // Smoothstep gradient drop-off
+                        const localShadow = THREE.MathUtils.lerp(0.50, 1.0, factor); // 50% ambient darkness at core
+                        if (localShadow < shadowMultiplier) {
+                            shadowMultiplier = localShadow;
+                        }
+                    }
+                });
+            }
+
+            colorAttr.setXYZ(i, r * shadowMultiplier, g * shadowMultiplier, b * shadowMultiplier);
         }
         posAttr.needsUpdate = true;
         if (colorAttr) colorAttr.needsUpdate = true;
@@ -1709,9 +1729,6 @@ function resetEntireGame(advanceHole = false) {
     deformVisualGreenMesh(greenFringe);
 
 
-    deformCourseMesh(floor, false);
-    deformCourseMesh(fairway, true);
-    sandTraps.forEach(sand => deformCourseMesh(sand, false));
 
     // Snap the flat water shore dirt borders onto the 3D ground contour heightmap
     waterShores.forEach(shore => {
@@ -1861,6 +1878,61 @@ function resetEntireGame(advanceHole = false) {
 
         scene.add(sceneryGroup);
         sceneryObjects.push(sceneryGroup);
+    }
+
+    // Bake real-time drop shadows for trees and bushes onto turf vertices
+    if (physics && physics.obstacles) {
+        [floor, fairway].forEach(mesh => {
+            if (!mesh) return;
+            const posAttr = mesh.geometry.attributes.position;
+            let colorAttr = mesh.geometry.attributes.color;
+
+            // Initialize vertex colors to pure white (unshaded) if they don't exist, or reset them
+            if (!colorAttr) {
+                const colors = new Float32Array(posAttr.count * 3);
+                colors.fill(1.0);
+                mesh.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                colorAttr = mesh.geometry.attributes.color;
+            } else {
+                for (let i = 0; i < colorAttr.count; i++) {
+                    colorAttr.setXYZ(i, 1.0, 1.0, 1.0);
+                }
+            }
+
+            // Read scale offsets to map local plane space to absolute world coordinates
+            const scaleX = (mesh === fairway) ? fairway.scale.x : 1;
+            const scaleY = (mesh === fairway) ? fairway.scale.y : 1;
+
+            for (let i = 0; i < posAttr.count; i++) {
+                const worldX = posAttr.getX(i) * scaleX + mesh.position.x;
+                const worldZ = -posAttr.getY(i) * scaleY + mesh.position.z;
+
+                let shadowIntensity = 1.0;
+
+                physics.obstacles.forEach(obs => {
+                    const dx = worldX - obs.x;
+                    const dz = worldZ - obs.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+
+                    // Trees get shadow coverage based on their foliage extent; bushes get it slightly wider than their radius
+                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.75 : obs.radius * 1.15;
+
+                    if (dist < shadowRadius) {
+                        const t = dist / shadowRadius;
+                        const factor = t * t * (3 - 2 * t); // Smoothstep curve attenuation
+                        const localShadow = THREE.MathUtils.lerp(0.48, 1.0, factor); // Under center is ~48% brightness
+                        if (localShadow < shadowIntensity) {
+                            shadowIntensity = localShadow;
+                        }
+                    }
+                });
+
+                if (shadowIntensity < 1.0) {
+                    colorAttr.setXYZ(i, shadowIntensity, shadowIntensity, shadowIntensity);
+                }
+            }
+            colorAttr.needsUpdate = true;
+        });
     }
 
     // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
@@ -2434,6 +2506,10 @@ function resetEntireGame(advanceHole = false) {
     }
     generateNewWind();
     updateDistanceDisplay();
+
+    deformCourseMesh(floor, false);
+    deformCourseMesh(fairway, true);
+    sandTraps.forEach(sand => deformCourseMesh(sand, false));
 
     const totalDx = ball.position.x - holePosition.x;
     const totalDz = ball.position.z - holePosition.z;
@@ -3799,8 +3875,8 @@ function init() {
     fairwayTexture.wrapS = THREE.RepeatWrapping;
     fairwayTexture.repeat.set(55, 1);
 
-    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture });
-    fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
+    // === FIND AND UPDATE THIS LINE FOR fairwayMat ===
+    const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture, vertexColors: true }); fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
     fairway.rotation.x = -Math.PI / 2;
     fairway.position.set(0, 0.011, 0);
     scene.add(fairway);
