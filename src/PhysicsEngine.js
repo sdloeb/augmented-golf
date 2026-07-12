@@ -112,7 +112,7 @@ export class PhysicsEngine {
         const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius))); // Modify this line
 
         let ripples = 0;
-        if (this.greenCenterZ === -161.5) {
+        if (this.currentHoleNumber === 1) {
             // Cut the heights down significantly to flatten mounds into smooth, subtle breaks
             ripples = Math.sin(dx * 0.55) * Math.cos(dz * 0.55) * 0.04 +
                 Math.cos(dx * 1.10) * Math.sin(dz * 1.10) * 0.015;
@@ -155,7 +155,7 @@ export class PhysicsEngine {
 
 
     getCourseHeight(x, z) {
-        if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
+        if (this.currentHoleNumber === 2) {
             let baseHeight = 0.3; // Default lower fairway height
 
             // Hill starts at -115 and completes its full climb over 21.5 units to finish at -136.5 (~120 yards out)
@@ -219,7 +219,7 @@ export class PhysicsEngine {
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
         // --- CUSTOM HOLE 2 RUNOUT AND HIGHER BUMPY ROUGH ---
-        if (this.greenCenterZ < -128 && this.greenCenterZ > -152) {
+        if (this.currentHoleNumber === 2) {
             let baseHeight = 0.0;
 
 
@@ -271,7 +271,7 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.greenCenterZ === -161.5) {
+        if (this.currentHoleNumber === 1) {
             const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
             height = (flatWave1 * 0.3 + flatWave2 * 0.15); // Gentle ground ripples

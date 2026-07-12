@@ -53,7 +53,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
-        fairwayWidth: 16.25, // 45 yards wide adjusted to game scale units
+        fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
         greenRadius: 10.5,    // Tightly matches the proportions of the photo
         slopeProfile: {
@@ -63,19 +63,19 @@ const HOLES_CONFIG = {
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -161.5) // Total length of 475 yards from the tee
+            new THREE.Vector3(0, 0, -150.5) // Total length of 475 yards from the tee
         ],
         hazards: [
 
             {
                 type: 'lake',
                 x: 0,
-                z: -75.76,
-                radius: 22
+                z: -82.5,
+                radius: 16.5
             },
             // Restores your original twin traps
-            { type: 'sand', x: -8, z: -148, radius: 5.5, depth: 1.5 },
-            { type: 'sand', x: 8, z: -148, radius: 5.5, depth: 1.5 }
+            { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.5 },
+            { type: 'sand', x: 8, z: -138, radius: 5.5, depth: 1.5 }
         ],
         customOOB: {
             type: 'rectangle',
@@ -1045,6 +1045,7 @@ function resetEntireGame(advanceHole = false) {
     if (physics) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
         physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterX, greenCenterZ, generatedWidth);
+        physics.currentHoleNumber = currentHoleNumber;
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
