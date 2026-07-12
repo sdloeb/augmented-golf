@@ -66,15 +66,14 @@ const HOLES_CONFIG = {
         ],
         hazards: [
             {
-                type: 'pond',
+                type: 'lake',
                 x: 0,
-                z: -75.76,          // Centered between the 200 and 275 yard benchmarks
-                width: 120,         // Spans completely across the course boundaries
-                length: 27.08       // Length of the water crossing hazard
+                z: -75.76,
+                radius: 22 // Defines a perfect circular area across the fairway
             },
             // Twin protective bunkers sitting right in front of the green entrance approach
-            { type: 'sand', x: -8, z: -145, radius: 4.5, depth: 0.5 },
-            { type: 'sand', x: 8, z: -145, radius: 4.5, depth: 0.5 }
+            { type: 'sand', x: -8, z: -143, radius: 6.5, depth: 1.5 },
+            { type: 'sand', x: 8, z: -143, radius: 6.5, depth: 1.5 }
         ],
         customOOB: {
             type: 'rectangle',
@@ -1106,23 +1105,51 @@ function resetEntireGame(advanceHole = false) {
                     sandTraps.push(sandMesh);
                 }
             }
-            // NEW: Render the custom rectangular Pacific Ocean body & protective vertical cliff wall geometry
-            else if (hz.type === 'pond') {
-                const pondGeo = new THREE.PlaneGeometry(hz.width, hz.length, 24, 24);
-                const pondMesh = new THREE.Mesh(
-                    pondGeo,
+            else if (hz.type === 'lake') {
+                const r = hz.radius || 15;
+                const waterGeo = new THREE.PlaneGeometry(r * 2, r * 2, 24, 24);
+                const waterGeoPos = waterGeo.attributes.position;
+                for (let j = 0; j < waterGeoPos.count; j++) {
+                    let pX = waterGeoPos.getX(j);
+                    let pY = waterGeoPos.getY(j);
+                    let pDist = Math.sqrt(pX * pX + pY * pY);
+                    if (pDist > r) {
+                        waterGeoPos.setX(j, (pX / pDist) * r);
+                        waterGeoPos.setY(j, (pY / pDist) * r);
+                    }
+                }
+                waterGeo.computeVertexNormals();
+
+                const waterMesh = new THREE.Mesh(
+                    waterGeo,
                     new THREE.MeshPhongMaterial({
                         color: 0x0000ff,
                         specular: 0xffffff,
                         shininess: 150,
-                        side: THREE.DoubleSide
+                        flatShading: true,
+                        polygonOffset: true,
+                        polygonOffsetFactor: -1,
+                        polygonOffsetUnits: -4
                     })
                 );
-                pondMesh.rotation.x = -Math.PI / 2;
-                pondMesh.position.set(hz.x, 0.01, hz.z);
-                pondMesh.userData = { isPond: true, w: hz.width, l: hz.length };
-                scene.add(pondMesh);
-                waterHazards.push(pondMesh);
+                waterMesh.rotation.x = -Math.PI / 2;
+                waterMesh.position.set(hz.x, 0.01, hz.z);
+                waterMesh.userData = { radius: r };
+                scene.add(waterMesh);
+                waterHazards.push(waterMesh);
+
+                const shoreMesh = new THREE.Mesh(
+                    new THREE.RingGeometry(r - 0.05, r + 0.6, 64),
+                    new THREE.MeshStandardMaterial({
+                        color: 0x655545,
+                        roughness: 0.95,
+                        metalness: 0.1
+                    })
+                );
+                shoreMesh.rotation.x = -Math.PI / 2;
+                shoreMesh.position.set(hz.x, 0.015, hz.z);
+                scene.add(shoreMesh);
+                waterShores.push(shoreMesh);
             }
             else if (hz.type === 'ocean') {
                 const oceanGeo = new THREE.PlaneGeometry(hz.width, hz.length, 30, 60);
@@ -1995,7 +2022,7 @@ function resetEntireGame(advanceHole = false) {
 
     if (currentHoleNumber === 2) obstacleAttempts = 320;
     if (currentHoleNumber === 3) obstacleAttempts = 0;
-    if (currentHoleNumber === 1) obstacleAttempts = 60;
+    if (currentHoleNumber === 1) obstacleAttempts = 180;
 
     // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
     if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
@@ -2008,6 +2035,7 @@ function resetEntireGame(advanceHole = false) {
             sampleX += 35.0; // Pushes right-side trees/bushes further right
         }
         let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
+        if (currentHoleNumber === 1 && sampleZ < -125.4) continue; // Stops the forest exactly 100 yards before the green
 
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
         let distanceToTee = Math.sqrt((sampleX - teeBoxX) * (sampleX - teeBoxX) + (sampleZ - 10) * (sampleZ - 10));
@@ -2069,9 +2097,8 @@ function resetEntireGame(advanceHole = false) {
         let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ);
 
         // Allow trees to extend much further out on the right side to climb the new hillside ridge
-        let maxTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? 55.0 : 35.0;
-        let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (physics.fairwayWidth + 6.8);
-
+        let maxTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? 55.0 : (currentHoleNumber === 1 ? 80.0 : 35.0);
+        let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (currentHoleNumber === 1 ? (physics.fairwayWidth + 2.0) : (physics.fairwayWidth + 6.8));
         let isShortcutZone = false; // Add this line
         // Enforce the forest barrier constraint exclusively on procedural dogleg gaps (Hole 4+)
         if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
@@ -2099,7 +2126,7 @@ function resetEntireGame(advanceHole = false) {
 
         if (generateAsTree) {
             sceneryGroup.userData = { type: 'tree' };
-            let randomScale = 3.5 + Math.random() * 1.3;
+            let randomScale = currentHoleNumber === 1 ? (5.0 + Math.random() * 2.0) : (3.5 + Math.random() * 1.3);
             if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
