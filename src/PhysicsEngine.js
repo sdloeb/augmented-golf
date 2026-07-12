@@ -933,16 +933,16 @@ export class PhysicsEngine {
                         }
 
                         // Retain more horizontal velocity so it tumbles forward instead of dropping straight down
-                        this.velocity.x *= 0.75;
-                        this.velocity.z *= 0.75;
+                        this.velocity.x *= 0.90;
+                        this.velocity.z *= 0.90;
 
                         // Jitter/Deflect erratically off internal twigs on the horizontal plane
-                        this.velocity.x += (Math.random() - 0.5) * 0.06;
-                        this.velocity.z += (Math.random() - 0.5) * 0.06;
+                        this.velocity.x += (Math.random() - 0.5) * 0.002; // Tamed from 0.06 to eliminate heavy zig-zags
+                        this.velocity.z += (Math.random() - 0.5) * 0.002; // Tamed from 0.06 to eliminate heavy zig-zags
 
                         // Control the vertical sift speed through the dense leaf volume
                         if (this.velocity.y < 0) {
-                            this.velocity.y = Math.max(-0.14, this.velocity.y * 0.38);
+                            this.velocity.y = Math.max(-0.35, this.velocity.y * 0.97); // Changed from 0.38 to 0.86 for a natural, steady fall speed
 
                             // 15% frame-by-frame chance to strike a solid limb, causing an erratic physical bounce pop
                             if (Math.random() < 0.03) {
