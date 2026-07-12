@@ -54,26 +54,28 @@ const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
         fairwayWidth: 16.25, // 45 yards wide adjusted to game scale units
-        greenShape: 'circle',
+        greenShape: 'kidney', // Changes the circle to the custom organic bean shape
+        greenRadius: 10.5,    // Tightly matches the proportions of the photo
         slopeProfile: {
-            back: { rx: 0.00, rz: 0.02 },
-            mid: { rx: 0.03, rz: 0.00 },
-            front: { rx: -0.02, rz: -0.02 }
+            back: { rx: -0.01, rz: 0.015 },  // Softened uphill back shelf
+            mid: { rx: 0.03, rz: -0.005 },  // Gentle side-breaking ridge (cut from 0.08)
+            front: { rx: 0.01, rz: -0.02 }   // Eased false front rolling to the fairway
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -161.5) // Total length of 475 yards from the tee
         ],
         hazards: [
+
             {
                 type: 'lake',
                 x: 0,
                 z: -75.76,
-                radius: 22 // Defines a perfect circular area across the fairway
+                radius: 22
             },
-            // Twin protective bunkers sitting right in front of the green entrance approach
-            { type: 'sand', x: -8, z: -143, radius: 6.5, depth: 1.5 },
-            { type: 'sand', x: 8, z: -143, radius: 6.5, depth: 1.5 }
+            // Restores your original twin traps
+            { type: 'sand', x: -8, z: -148, radius: 5.5, depth: 1.5 },
+            { type: 'sand', x: 8, z: -148, radius: 5.5, depth: 1.5 }
         ],
         customOOB: {
             type: 'rectangle',

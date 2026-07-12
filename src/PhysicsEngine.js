@@ -110,7 +110,15 @@ export class PhysicsEngine {
         // 3. NEW: Add a protective circular plateau mound foundation (+0.5 units at center)
         // This keeps downhill valleys elevated safely above the flat infinite floor sheet
         const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius))); // Modify this line
-        const combinedHeight = basePlateau + rawSlopeHeight;
+
+        let ripples = 0;
+        if (this.greenCenterZ === -161.5) {
+            // Cut the heights down significantly to flatten mounds into smooth, subtle breaks
+            ripples = Math.sin(dx * 0.55) * Math.cos(dz * 0.55) * 0.04 +
+                Math.cos(dx * 1.10) * Math.sin(dz * 1.10) * 0.015;
+        }
+
+        const combinedHeight = basePlateau + rawSlopeHeight + ripples;
 
         // 4. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
         const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0)); // Modify this line
