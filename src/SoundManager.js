@@ -13,7 +13,10 @@ export class SoundManager {
             // SURFACE EXPLICIT AUDIO CHANNELS: Allocated for independent landing responses
             fairway: Array.from({ length: poolSize }, () => new Audio('./sounds/fairway.wav')), // Add this line
             rough: Array.from({ length: poolSize }, () => new Audio('./sounds/rough.wav')),     // Add this line
-            green: Array.from({ length: poolSize }, () => new Audio('./sounds/green.wav'))      // Add this line
+            green: Array.from({ length: poolSize }, () => new Audio('./sounds/green.wav')),
+            wood: Array.from({ length: poolSize }, () => new Audio('./sounds/wood.wav')),
+            trees: Array.from({ length: poolSize }, () => new Audio('./sounds/trees.wav'))
+            // Add this line
         };
 
         // FIXED: Independent standalone container for background ambient loops
@@ -39,7 +42,9 @@ export class SoundManager {
             sink: 0,
             fairway: 0, // Add this line
             rough: 0,   // Add this line
-            green: 0    // Add this line
+            green: 0,
+            wood: 0,
+            trees: 0   // Add this line
         };
 
         // Pre-adjust short effect volumes
@@ -49,9 +54,11 @@ export class SoundManager {
         this.sounds.putt.forEach(s => s.volume = 0.65);
         this.sounds.sand.forEach(s => s.volume = 0.4);
         this.sounds.sink.forEach(s => s.volume = 0.7);
-        this.sounds.fairway.forEach(s => s.volume = 0.5); // Add this line
-        this.sounds.rough.forEach(s => s.volume = 0.5);   // Add this line
+        this.sounds.fairway.forEach(s => s.volume = 0.5);
+        this.sounds.rough.forEach(s => s.volume = 0.5);
         this.sounds.green.forEach(s => s.volume = 0.5);
+        this.sounds.wood.forEach(s => s.volume = 0.55);
+        this.sounds.trees.forEach(s => s.volume = 0.50);
 
 
         // Force browser cache structures to load files immediately with a try/catch protection wrapper for mobile webviews

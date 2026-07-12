@@ -889,7 +889,7 @@ export class PhysicsEngine {
                     this.ball.position.z = obs.z + (obs.trunkRadius + 0.26) * Math.sin(pushAngle); // Preserved
 
                     hitTreeThisFrame = true;
-                    if (this.sounds && !this.wasInTree) this.sounds.play('trunk');
+                    if (this.sounds && !this.wasInTree) this.sounds.play('wood');
                     break;
                 }
 
