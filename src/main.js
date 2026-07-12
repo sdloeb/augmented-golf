@@ -51,9 +51,10 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 
 // Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
 const HOLES_CONFIG = {
-    1: { // Straight Fairway Tutorial Hole
-        par: 3,
-        greenShape: 'kidney',
+    1: { // 475 Yard Straight Par 4 with Water Crossing
+        par: 4,
+        fairwayWidth: 16.25, // 45 yards wide adjusted to game scale units
+        greenShape: 'circle',
         slopeProfile: {
             back: { rx: 0.00, rz: 0.02 },
             mid: { rx: 0.03, rz: 0.00 },
@@ -61,17 +62,28 @@ const HOLES_CONFIG = {
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -55)
+            new THREE.Vector3(0, 0, -161.5) // Total length of 475 yards from the tee
         ],
-        // ADDED: Individual rectangular stake bounds configuration for Hole 1
+        hazards: [
+            {
+                type: 'pond',
+                x: 0,
+                z: -75.76,          // Centered between the 200 and 275 yard benchmarks
+                width: 120,         // Spans completely across the course boundaries
+                length: 27.08       // Length of the water crossing hazard
+            },
+            // Twin protective bunkers sitting right in front of the green entrance approach
+            { type: 'sand', x: -8, z: -145, radius: 4.5, depth: 0.5 },
+            { type: 'sand', x: 8, z: -145, radius: 4.5, depth: 0.5 }
+        ],
         customOOB: {
             type: 'rectangle',
-            minX: -60,   // Left wall line
-            maxX: 60,    // Right wall line
-            minZ: -110,   // Front wall beyond green
-            maxZ: 35,    // Back wall behind tee box
-            stakesPerSide: 5, // Spacing density down the long sides
-            stakesPerRow: 3    // Spacing density across the narrow walls
+            minX: -60,
+            maxX: 60,
+            minZ: -210,
+            maxZ: 35,
+            stakesPerSide: 12,
+            stakesPerRow: 3
         }
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
@@ -1095,6 +1107,23 @@ function resetEntireGame(advanceHole = false) {
                 }
             }
             // NEW: Render the custom rectangular Pacific Ocean body & protective vertical cliff wall geometry
+            else if (hz.type === 'pond') {
+                const pondGeo = new THREE.PlaneGeometry(hz.width, hz.length, 24, 24);
+                const pondMesh = new THREE.Mesh(
+                    pondGeo,
+                    new THREE.MeshPhongMaterial({
+                        color: 0x0000ff,
+                        specular: 0xffffff,
+                        shininess: 150,
+                        side: THREE.DoubleSide
+                    })
+                );
+                pondMesh.rotation.x = -Math.PI / 2;
+                pondMesh.position.set(hz.x, 0.01, hz.z);
+                pondMesh.userData = { isPond: true, w: hz.width, l: hz.length };
+                scene.add(pondMesh);
+                waterHazards.push(pondMesh);
+            }
             else if (hz.type === 'ocean') {
                 const oceanGeo = new THREE.PlaneGeometry(hz.width, hz.length, 30, 60);
                 const oceanMesh = new THREE.Mesh(
@@ -1113,7 +1142,9 @@ function resetEntireGame(advanceHole = false) {
                 scene.add(oceanMesh);
                 waterHazards.push(oceanMesh);
 
-                // MODIFIED: Fully synchronized path metrics and expanded boundaries to perfectly clear the putting green radius cleanly
+
+
+
                 // MODIFIED: Fully synchronized path metrics and expanded boundaries to perfectly clear the putting green radius cleanly
                 const cliffCanvas = document.createElement('canvas');
                 cliffCanvas.width = 64; cliffCanvas.height = 128;
@@ -1400,6 +1431,11 @@ function resetEntireGame(advanceHole = false) {
                     if (worldZ < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))); }
                     const cliffEdgeLimit = pathCenter + cliffPadding;
                     if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
+                        worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
+                        insideWaterZone = true;
+                    }
+                } else if (water.userData && water.userData.isPond) {
+                    if (worldX >= water.position.x - water.userData.w / 2 && worldX <= water.position.x + water.userData.w / 2 &&
                         worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
                         insideWaterZone = true;
                     }
