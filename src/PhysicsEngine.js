@@ -155,7 +155,7 @@ export class PhysicsEngine {
 
 
     getCourseHeight(x, z) {
-        if (this.currentHoleNumber === 2) {
+        if (this.currentHoleNumber === 3) {
             let baseHeight = 0.3; // Default lower fairway height
 
             // Hill starts at -115 and completes its full climb over 21.5 units to finish at -136.5 (~120 yards out)
@@ -822,6 +822,7 @@ export class PhysicsEngine {
         this.ball.position.z += this.velocity.z * timeScale;
 
         // --- NEW: INTERACTIVE OBSTACLES PHYSICS ENGINE ---
+        let hitTreeThisFrame = false;
         for (let i = 0; i < this.obstacles.length; i++) {
             let obs = this.obstacles[i];
             let dx = this.ball.position.x - obs.x;
@@ -887,7 +888,8 @@ export class PhysicsEngine {
                     this.ball.position.x = obs.x + (obs.trunkRadius + 0.26) * Math.cos(pushAngle); // Preserved
                     this.ball.position.z = obs.z + (obs.trunkRadius + 0.26) * Math.sin(pushAngle); // Preserved
 
-                    if (this.sounds) this.sounds.play('rough'); // Modify this line: Redirected from bounce to rough to prevent code crashes
+                    hitTreeThisFrame = true;
+                    if (this.sounds && !this.wasInTree) this.sounds.play('trunk');
                     break;
                 }
 
@@ -897,50 +899,65 @@ export class PhysicsEngine {
                     if (this.ball.position.y > obs.trunkHeight && this.ball.position.y <= obs.totalHeight) {
                         let t = (this.ball.position.y - obs.trunkHeight) / (obs.totalHeight - obs.trunkHeight);
                         let allowedRadius = obs.foliageRadius * (1.0 - t);
-                        if (distance < (allowedRadius + 0.25)) {
+                        if (distance < (allowedRadius * 0.82)) {
                             isHit = true;
                         }
                     }
                 } else { // Add this line: Sphere Canopy Collision for Oak/Fork/Bent Trees
-                    let canopyCenterY = obs.trunkHeight + (obs.foliageRadius * 0.7);
+                    let canopyCenterY = obs.trunkHeight + (obs.foliageRadius * 0.45);
                     let dyFoliage = this.ball.position.y - canopyCenterY;
                     let distance3D = Math.sqrt(dx * dx + dyFoliage * dyFoliage + dz * dz);
-                    if (distance3D < (obs.foliageRadius + 0.25)) {
+                    // Restrict hit to only trigger if the ball is below the visible crown apex
+                    if (distance3D < (obs.foliageRadius * 0.76) && this.ball.position.y <= (obs.trunkHeight + obs.foliageRadius * 1.25)) {
                         isHit = true;
                     }
-                } // Add this line
-
+                }
                 if (isHit) {
                     let foliageTotalSpan = obs.totalHeight - obs.trunkHeight;
                     let ballRelativeFoliageY = this.ball.position.y - obs.trunkHeight;
 
                     // Fire tactical foliage thud/rustle effect upon leaf impact context
-                    if (this.sounds) this.sounds.play('rough');
+                    hitTreeThisFrame = true;
+                    if (this.sounds && !this.wasInTree) this.sounds.play('trees');
 
                     if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
+                        // Top 5% Clip Zone: Grazing outer leaves
                         // Top 5% Clip Zone: Grazing outer leaves
                         this.velocity.x *= 0.65;
                         this.velocity.z *= 0.65;
                         this.velocity.y *= 0.80;
                     } else {
-                        // Heavy Canopy Core Zone inelastic penetration.
-                        this.velocity.x *= 0.15;
-                        this.velocity.z *= 0.15;
-
-                        if (this.velocity.y > 0) {
-                            this.velocity.y = 0; // Instantly halts upward climbing momentum
+                        // Heavy Canopy Core Zone: Chaotic branch rattling and limb deflections
+                        if (this.velocity.y > 0.05) {
+                            this.velocity.y *= 0.1; // Halt major upward sky-rocket climbs on entry
                         }
 
-                        // TUNING CONTROL: SLOW DOWN INSIDE THE BRANCH VOLUME ONLY
-                        // This multiplier runs frame-by-frame ONLY while the ball is physically touching the leaves.
-                        // - LOWER this number (e.g., 0.55) to make it crawl even slower through the branches.
-                        // - RAISE this number (e.g., 0.85) to make it fall faster through the branches.
-                        this.velocity.y *= 1.25;
+                        // Retain more horizontal velocity so it tumbles forward instead of dropping straight down
+                        this.velocity.x *= 0.75;
+                        this.velocity.z *= 0.75;
+
+                        // Jitter/Deflect erratically off internal twigs on the horizontal plane
+                        this.velocity.x += (Math.random() - 0.5) * 0.06;
+                        this.velocity.z += (Math.random() - 0.5) * 0.06;
+
+                        // Control the vertical sift speed through the dense leaf volume
+                        if (this.velocity.y < 0) {
+                            this.velocity.y = Math.max(-0.14, this.velocity.y * 0.38);
+
+                            // 15% frame-by-frame chance to strike a solid limb, causing an erratic physical bounce pop
+                            if (Math.random() < 0.03) {
+                                this.velocity.y = 0.01 + Math.random() * 0.02;
+                                this.velocity.x += (Math.random() - 0.5) * 0.02; // Lowered from 0.09
+                                this.velocity.z += (Math.random() - 0.5) * 0.02; // Lowered from 0.09
+                            }
+                        }
                     }
                     break;
                 }
             }
         }
+
+        this.wasInTree = hitTreeThisFrame;
 
         // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= groundY) {
