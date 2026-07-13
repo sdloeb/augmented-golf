@@ -369,9 +369,12 @@ function updateDistanceDisplay() {
                     // Surrounding Rough Outer Field
                     ctx.fillStyle = '#225c22';
                     ctx.fillRect(0, 0, 48, 48);
-                    // Isolated Fringe Green Circle Layer
-                    ctx.fillStyle = '#3ca33c';
-                    ctx.beginPath(); ctx.arc(26, 26, 22, 0, Math.PI * 2); ctx.fill();
+                    // Draw a distinct hollow Fringe Ring (Collar) instead of a solid circle
+                    ctx.strokeStyle = '#3ca33c';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(26, 26, 18, 0, Math.PI * 2);
+                    ctx.stroke();
                     break;
 
                 case 'Green':
