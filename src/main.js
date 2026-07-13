@@ -74,8 +74,8 @@ const HOLES_CONFIG = {
                 radius: 16.5
             },
             // Restores your original twin traps
-            { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.5 },
-            { type: 'sand', x: 8, z: -138, radius: 5.5, depth: 1.5 }
+            { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.25 },
+            { type: 'sand', x: 8, z: -138, radius: 5.5, depth: 1.25 }
         ],
         customOOB: {
             type: 'rectangle',
@@ -3394,14 +3394,13 @@ function animate() {
             lookUpOffset = -0.40;
         }
 
-        // Add this block: Overrides the zoom values to be much wider/higher if the shot is still moving
         if (physics.isMoving) { // Modify this line: Removed !physics.isPutting to allow putting camera tracking overrides
             if (physics.isPutting) {
-                // Add this block: A specialized cinematic viewpoint for rolling putts to observe green breaks
-                targetFov = aspect < 1 ? 65 : 45;
-                rigidCamDist = 4.8;               // Backs away slightly to open up the visual field
-                rigidCamHeight = 2.0;             // Elevates the lens angle to look down the breaking line
-                lookUpOffset = -0.25;
+                // Match the tight address view numbers so it stays close to the ball
+                targetFov = aspect < 1 ? 65 : 55;
+                rigidCamDist = 2.4;
+                rigidCamHeight = 1.1;
+                lookUpOffset = -0.40;
             } else {
                 targetFov = aspect < 1 ? 72 : 65; // Normal wider field of view for chips/full shots
                 rigidCamDist = 8.0;               // Pulls camera 8 units back instead of 3.5
@@ -3436,10 +3435,9 @@ function animate() {
             lookUpOffset = THREE.MathUtils.lerp(-0.25, lookUpOffset, factor);
         }
 
-        // MODIFIED: Anchor the camera position base to the stable shot origin (refX, refZ) during an active putt.
-        // This keeps the camera steady behind the initial hitting zone while letting the ball smoothly roll away down the green.
-        const camBaseX = physics.isPutting ? refX : ball.position.x;
-        const camBaseZ = physics.isPutting ? refZ : ball.position.z;
+        // MODIFIED: Anchor the camera base directly to the ball so it follows along behind it
+        const camBaseX = ball.position.x;
+        const camBaseZ = ball.position.z;
 
         // FIXED: Establish a stable height anchor so the camera stays on the green surface while the ball sinks underground
         const stableBallY = isSinking ? (physics.getGroundHeight(holePosition.x, holePosition.z) + 0.25) : ball.position.y;
