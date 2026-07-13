@@ -63,6 +63,7 @@ const HOLES_CONFIG = {
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
+            new THREE.Vector3(0, 0, -70.25),
             new THREE.Vector3(0, 0, -150.5) // Total length of 475 yards from the tee
         ],
         hazards: [
@@ -79,11 +80,11 @@ const HOLES_CONFIG = {
         ],
         customOOB: {
             type: 'rectangle',
-            minX: -60,
-            maxX: 60,
+            minX: -26,
+            maxX: 26,
             minZ: -210,
             maxZ: 35,
-            stakesPerSide: 12,
+            stakesPerSide: 6,
             stakesPerRow: 3
         }
     },
