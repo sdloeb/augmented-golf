@@ -8,6 +8,7 @@ export class PhysicsEngine {
         this.wind = new THREE.Vector3(0, 0, 0); // Holds the active 3D wind forces
         this.isMoving = false;
         this.sandTraps = [];
+        this.currentSurface = 'Tee Box';
         this.waterHazards = [];
         this.hitWater = false;
         this.isPutting = false;
@@ -553,29 +554,21 @@ export class PhysicsEngine {
         }
 
         if (inSand) {
+            this.currentSurface = 'Sand Trap';
             currentFriction = 0.72;
             currentBounceHeight = 0.10;
             currentBounceForwardLoss = 0.25;
         }
         else if (onGreen) {
+            this.currentSurface = 'Green';
             currentBounceHeight = 0.12;
             currentBounceForwardLoss = 0.45;
-
-            // Sets a smooth friction glide for airborne approach shots, but protects your putting calibration
             currentFriction = this.isPutting ? 0.932 : 0.962;
 
             if (!this.isPutting && this.currentLoft) {
                 const loftRatio = Math.max(0.4, Math.min(1.5, this.currentLoft / 0.063));
-
-                // MODIFIED: Boosted the low-loft friction ceiling to 0.998. 
-                // This significantly reduces frame-by-frame velocity decay for Hybrids and Woods, 
-                // allowing long shots to naturally release and roll 15-25 yards across the putting surface.
                 currentFriction = THREE.MathUtils.lerp(0.998, 0.952, (loftRatio - 0.4) / 1.1);
-
-                // Lowers vertical bounce so irons hit with a realistic turf "thud" instead of ballooning upwards
                 currentBounceHeight = 0.14 * (2.0 - loftRatio);
-
-                // Only applies heavy spin check on the very first hop; subsequent hops glide forward smoothly
                 if (this.bounceCount === 0) {
                     currentBounceForwardLoss = THREE.MathUtils.lerp(0.95, 0.76, (loftRatio - 0.4) / 1.1);
                 } else {
@@ -584,21 +577,20 @@ export class PhysicsEngine {
             }
         }
         else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
-            // Tightly-mown Fringe Collar Physics
+            this.currentSurface = 'Fringe';
             currentFriction = 0.94;
             currentBounceHeight = 0.28;
             currentBounceForwardLoss = (this.bounceCount === 0) ? 0.42 : 0.96;
         }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
             ((this.greenCenterZ < -165 && this.greenCenterZ > -185) ? ((this.ball.position.z <= -20.0 && this.ball.position.z > -115) || (this.ball.position.z <= -132.0 && this.ball.position.z >= -180.0)) : (this.ball.position.z <= (this.greenCenterZ < -128 ? -60.0 : -8.0)))) {
-            // Crisp Fairway Turf
+            this.currentSurface = 'Fairway';
             currentFriction = 0.91;
             currentBounceHeight = 0.36;
             currentBounceForwardLoss = (this.bounceCount === 0) ? 0.52 : 0.95;
         }
-        // === REPLACE WITH THIS EXACT BLOCK ===
         else {
-            // Deep Course Rough
+            this.currentSurface = 'Rough';
             currentFriction = 0.74;
             currentBounceHeight = 0.18;
             currentBounceForwardLoss = 0.30;

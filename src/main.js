@@ -297,6 +297,97 @@ function updateDistanceDisplay() {
             distanceText.innerText = yards;
             unitText.innerText = "yards";
         }
+
+        // --- VISUAL LIE ARTWORK RENDER ENGINE ---
+        const canvas = document.getElementById('lieCanvas');
+        if (canvas && physics) {
+            if (physics.isMoving) {
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            // Dynamically clears the canvas based on its actual HTML container attributes
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Automatically scales all internal "52-based" coordinates to your new size
+            ctx.scale(canvas.width / 52, canvas.height / 52);
+
+            let currentType = physics.currentSurface || 'Rough';
+            if (strokeCount === 0 && ball.position.x === 0 && ball.position.z === 0 && !physics.isMoving) {
+                currentType = 'Tee Box';
+            }
+
+            switch (currentType) {
+                case 'Tee Box':
+                    // Green Tee Background
+                    ctx.fillStyle = '#3b8c3b';
+                    ctx.fillRect(0, 0, 48, 48);
+                    // White Tee Peg & Ball Drawing
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(26, 26); ctx.lineTo(26, 40); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(22, 26); ctx.lineTo(30, 26); ctx.stroke();
+
+                    ctx.beginPath(); ctx.arc(26, 18, 6, 0, Math.PI * 2); ctx.fill();
+                    break;
+
+                case 'Fairway':
+                    // Alternating Fairway Mowed Green Stripes
+                    ctx.fillStyle = '#3b8c3b';
+                    ctx.fillRect(0, 0, 48, 48);
+                    ctx.fillStyle = '#499b49';
+                    ctx.fillRect(0, 0, 13, 48);
+                    ctx.fillRect(26, 0, 13, 48);
+                    break;
+
+                case 'Rough':
+                    // Mixed Rough Grass Color Matrix
+                    ctx.fillStyle = '#225c22';
+                    ctx.fillRect(0, 0, 48, 48);
+                    ctx.strokeStyle = '#1b4d1b';
+                    ctx.lineWidth = 2;
+                    [12, 26, 40].forEach((x, i) => {
+                        let h = i === 1 ? 16 : 24;
+                        ctx.beginPath(); ctx.moveTo(x, 44); ctx.lineTo(x - 4, h); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(x, 44); ctx.lineTo(x + 3, h + 4); ctx.stroke();
+                    });
+                    break;
+
+                case 'Sand Trap':
+                    // True Custom Sand Color Base
+                    ctx.fillStyle = '#e3d1b1';
+                    ctx.fillRect(0, 0, 48, 48);
+                    // Granular Hazard Stipple Marks
+                    ctx.fillStyle = '#c2b296';
+                    [[8, 12], [14, 35], [20, 22], [24, 42], [32, 15], [38, 32], [44, 14], [18, 8], [28, 28], [42, 42], [9, 28], [34, 45]].forEach(([sx, sy]) => {
+                        ctx.fillRect(sx, sy, 2, 2);
+                    });
+                    break;
+
+                case 'Fringe':
+                    // Surrounding Rough Outer Field
+                    ctx.fillStyle = '#225c22';
+                    ctx.fillRect(0, 0, 48, 48);
+                    // Isolated Fringe Green Circle Layer
+                    ctx.fillStyle = '#3ca33c';
+                    ctx.beginPath(); ctx.arc(26, 26, 22, 0, Math.PI * 2); ctx.fill();
+                    break;
+
+                case 'Green':
+                    // Surrounding Rough Outer Field
+                    ctx.fillStyle = '#225c22';
+                    ctx.fillRect(0, 0, 48, 48);
+                    // Outer Fringe Green Ring Complex
+                    ctx.fillStyle = '#3ca33c';
+                    ctx.beginPath(); ctx.arc(26, 26, 22, 0, Math.PI * 2); ctx.fill();
+                    // Sharp Inner Green Putting Surface
+                    ctx.fillStyle = '#52be52';
+                    ctx.beginPath(); ctx.arc(26, 26, 16, 0, Math.PI * 2); ctx.fill();
+                    break;
+            }
+            ctx.restore();
+        }
     }
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');

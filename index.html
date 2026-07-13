@@ -36,6 +36,13 @@
         <button id="backspinBtn" class="hidden">BACKSPIN OFF</button>
 
         <div id="scoreContainer">
+
+            <!-- Dynamic Lie Indicator Icon Panel -->
+            <div id="lieIndicatorBox"
+                style="position: absolute; right: 5px; top: 5px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.5); border: 2px solid #ffffff; border-radius: 6px; overflow: hidden;">
+                <canvas id="lieCanvas" width="48" height="48" style="width: 48px; height: 48px;"></canvas>
+            </div>
+
             <div style="font-size: 18px; margin-bottom: 5px; color: #ffffff; font-weight: bold;">Score: <span
                     id="scoreToParText">E</span></div>
 
