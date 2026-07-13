@@ -1543,7 +1543,7 @@ function resetEntireGame(advanceHole = false) {
                     const distToSandSq = dxS * dxS + dzS * dzS;
 
                     // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
-                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.0 : 0.0;
+                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.35 : 0.0;
                     const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
 
                     const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - sandRadius);
@@ -1678,7 +1678,7 @@ function resetEntireGame(advanceHole = false) {
                     if (insideSandZone) {
                         const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                         const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6);
+                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - (0.35 + sandDepthAtVertex * 0.6);
                     }
                 }
 
@@ -1708,7 +1708,7 @@ function resetEntireGame(advanceHole = false) {
                         // FIXED: Apply the dynamic depth cushion to the outer fairway bounds check
                         const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                         const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.35 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) {
@@ -1743,7 +1743,7 @@ function resetEntireGame(advanceHole = false) {
                                 // FIXED: Apply the dynamic depth cushion inside the smooth blending layer to clean up internal wall bleeds
                                 const baseCourseH = physics.getCourseHeight(worldX, worldZ);
                                 const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.05 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
+                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.35 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
                                 // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
                                 calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                             }
@@ -1770,7 +1770,7 @@ function resetEntireGame(advanceHole = false) {
 
                         const visibleHeight = calculatedHeight + cushion;
                         // FIXED: Replaced the deep drop with a uniform -0.05 visual shield to perfectly seal the bunker rims
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.05) : hiddenFairwayH;
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.35) : hiddenFairwayH;
                         // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
                         calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }

@@ -312,10 +312,19 @@ export class PhysicsEngine {
         // MODIFIED: Base height is always the course elevation. If inside the green radius, we seamlessly stack the green contours on top.
         // This completely eliminates the pedestal drop-off and seals the giant canyon hole behind the green.
         let baseHeight = this.getCourseHeight(x, z);
+
+        // NEW: Sculpt a raised step-up plateau specifically around Hole 1's green complex
+        if (this.currentHoleNumber === 1) {
+            const platformRadius = activeRadius + 4.5; // Starts rising 4.5 units before the green rim
+            if (distFromGreen < platformRadius) {
+                const tPlateau = Math.min(1.0, (platformRadius - distFromGreen) / 4.5);
+                const smoothPlateau = tPlateau * tPlateau * (3 - 2 * tPlateau);
+                baseHeight += smoothPlateau * 1.00; // Seamlessly raises the entire green 0.70 units high
+            }
+        }
+
         if (distFromGreen < activeRadius) {
             baseHeight += this.getGreenHeight(x, z);
-
-
         }
 
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
