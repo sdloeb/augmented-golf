@@ -313,7 +313,7 @@ function updateDistanceDisplay() {
             ctx.scale(canvas.width / 52, canvas.height / 52);
 
             let currentType = physics.currentSurface || 'Rough';
-            if (strokeCount === 0 && ball.position.x === 0 && ball.position.z === 0 && !physics.isMoving) {
+            if (strokeCount === 0 && !physics.isMoving) {
                 currentType = 'Tee Box';
             }
 
