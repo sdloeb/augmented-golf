@@ -1485,6 +1485,8 @@ function resetEntireGame(advanceHole = false) {
             // Scan active sand trap footprint borders using correct userData properties
             let insideSandZone = false;
             let activeSandDepth = 0;
+            let shortestDistToBunkerEdge = Infinity; // Track proximity for edge shadow depth
+
             sandTraps.forEach(sand => {
                 // Pre-filter bounding boxes for sand traps to keep calculations extremely fast
                 if (!sand.userData.isPolygon) {
@@ -1508,13 +1510,27 @@ function resetEntireGame(advanceHole = false) {
                     // High-performance Point-in-Polygon check to carve visual grass/fairway meshes
                     const points = sand.userData.points;
                     let inside = false;
+                    let minEdgeDistSq = Infinity;
                     for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
                         const xi = points[i].x, zi = points[i].z;
                         const xj = points[j].x, zj = points[j].z;
                         const intersect = ((zi > worldZ) !== (zj > worldZ))
                             && (worldX < (xj - xi) * (worldZ - zi) / (zj - zi) + xi);
                         if (intersect) inside = !inside;
+
+                        // Calculate distance to this polygon line segment
+                        const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.001;
+                        let t = ((worldX - xi) * (xj - xi) + (worldZ - zi) * (zj - zi)) / l2;
+                        t = Math.max(0, Math.min(1, t));
+                        const projX = xi + t * (xj - xi);
+                        const projZ = zi + t * (zj - zi);
+                        const distSq = (worldX - projX) * (worldX - projX) + (worldZ - projZ) * (worldZ - projZ);
+                        if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                     }
+
+                    const currentEdgeDist = Math.sqrt(minEdgeDistSq);
+                    if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
+
                     if (inside) {
                         insideSandZone = true;
                         const depth = sand.userData.depth || 0.6;
@@ -1529,6 +1545,9 @@ function resetEntireGame(advanceHole = false) {
                     // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
                     const padding = (targetMesh === floor || targetMesh === fairway) ? 0.0 : 0.0;
                     const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
+
+                    const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - sandRadius);
+                    if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
 
                     if (distToSandSq < sandRadius * sandRadius) {
                         insideSandZone = true;
@@ -1772,7 +1791,20 @@ function resetEntireGame(advanceHole = false) {
             }
 
             // Calculate real-time drop shadows from obstacles onto the main ground textures
-            let shadowMultiplier = 1.0;
+            let shadowMultiplier = 1.0; // Moved up here to initialize before use!
+
+            // Apply high-contrast ambient occlusion to mimic deep overhanging sod bunker lips
+            if (sandTraps.includes(targetMesh)) {
+                // Darken the sand mesh as it climbs up the banks toward the grass edge
+                if (shortestDistToBunkerEdge < 2.5) {
+                    const tShadow = 1.0 - (shortestDistToBunkerEdge / 2.5);
+                    shadowMultiplier *= THREE.MathUtils.lerp(1.0, 0.35, tShadow * tShadow);
+                }
+            } else if (!insideSandZone && shortestDistToBunkerEdge < 0.8) {
+                // Darken the actual turf edge right along the rim drop-off for a crisp border line
+                const tTurfShadow = 1.0 - (shortestDistToBunkerEdge / 0.8);
+                shadowMultiplier *= THREE.MathUtils.lerp(1.0, 0.65, tTurfShadow);
+            }
             if (physics && physics.obstacles) {
                 physics.obstacles.forEach(obs => {
                     const dx = worldX - obs.x;
@@ -2032,12 +2064,50 @@ function resetEntireGame(advanceHole = false) {
         obstacleAttempts = Math.max(obstacleAttempts, 450);                                 // Add this line
     }
 
-    for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: Replaced 45 with dynamic attempts counter
-        let sampleX = (Math.random() - 0.5) * 220;
-        if (currentHoleNumber === 2 && sampleX > 0) {
-            sampleX += 35.0; // Pushes right-side trees/bushes further right
+    for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: replaced 45 with dynamic attempts counter
+        // NEW: Creates a deterministic seed specifically for Hole 1 to freeze positions
+        let seed = i + 1;
+        const localRandom = () => {
+            if (currentHoleNumber === 1) {
+                const x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+            return Math.random();
+        };
+
+        let sampleX, sampleZ;
+        if (currentHoleNumber === 1) {
+            // Split attempts into 4 clean rows (0 & 1 on Left, 2 & 3 on Right)
+            const rowPattern = i % 4;
+            const stepIndex = Math.floor(i / 4);
+            const totalSteps = Math.floor(obstacleAttempts / 4);
+
+            // Distribute down the Z axis from Tee Box (10) to 100yds before Green (-125.4)
+            sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
+            sampleZ += (localRandom() - 0.5) * 2.5; // Natural staggered padding down the line
+
+            const fW = 16.0;         // Hole 1 fairway radius width
+            const cushion = 12.0;     // Distance from fairway edge to the 1st row
+            const rowSpacing = 4.2;  // Distance between row 1 and row 2
+
+            if (rowPattern === 0) {
+                sampleX = -fW - cushion;
+            } else if (rowPattern === 1) {
+                sampleX = -fW - cushion - rowSpacing;
+            } else if (rowPattern === 2) {
+                sampleX = fW + cushion;
+            } else {
+                sampleX = fW + cushion + rowSpacing;
+            }
+            sampleX += (localRandom() - 0.5) * 0.4; // Micro-stagger to keep it looking organic
+        } else {
+            // Standard fallback configuration for alternative holes
+            sampleX = (Math.random() - 0.5) * 220;
+            if (currentHoleNumber === 2 && sampleX > 0) {
+                sampleX += 35.0;
+            }
+            sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
         }
-        let sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
         if (currentHoleNumber === 1 && sampleZ < -125.4) continue; // Stops the forest exactly 100 yards before the green
 
         // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
@@ -2116,8 +2186,8 @@ function resetEntireGame(advanceHole = false) {
             }                                                                                    // Add this line
         }                                                                                        // Add this line
 
-        // FIXED: Expanded clearance cushion to clear the smooth transition grass and prevent branches from overlapping the fairway
-        if (fairwayDistance <= minTreeDist || (fairwayDistance > maxTreeDist && !isShortcutZone)) { // Modify this line
+        // FIXED: Shield Hole 1 from the random rough filters to ensure perfect rows are never skipped
+        if (currentHoleNumber !== 1 && (fairwayDistance <= minTreeDist || (fairwayDistance > maxTreeDist && !isShortcutZone))) {
             continue;
         }
 
@@ -2125,18 +2195,18 @@ function resetEntireGame(advanceHole = false) {
         const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
         sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-        let generateAsTree = currentHoleNumber === 2 ? (Math.random() < 0.95) : (currentHoleNumber === 1 ? (Math.random() < 0.85) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
+        let generateAsTree = currentHoleNumber === 2 ? (localRandom() < 0.95) : (currentHoleNumber === 1 ? (Math.random() < 0.85) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
 
         if (generateAsTree) {
             sceneryGroup.userData = { type: 'tree' };
-            let randomScale = currentHoleNumber === 1 ? (5.0 + Math.random() * 2.0) : (3.5 + Math.random() * 1.3);
+            let randomScale = currentHoleNumber === 1 ? (5.0 + localRandom() * 2.0) : (3.5 + Math.random() * 1.3);
             if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
             let calculatedFoliageRad = 1.1 * randomScale;
 
             /// Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
-            let treeVersion = currentHoleNumber === 2 ? 3 : Math.floor(Math.random() * 3); // Modify this line: Force towering pine trees for Hole 2
+            let treeVersion = currentHoleNumber === 2 ? 3 : Math.floor(localRandom() * 3); // Modify this line: Force towering pine trees for Hole 2
 
             // Core trunk base used by all tree archetypes
             let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
