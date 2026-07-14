@@ -1957,7 +1957,7 @@ function resetEntireGame(advanceHole = false) {
     const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10) + 0.071;
 
     // Snap the ball and plastic tee directly to the top of the hill elevation
-    ball.position.set(teeBoxX, currentTeeBoxY + 0.24, 10);
+    ball.position.set(teeBoxX, currentTeeBoxY + 0.20, 10);
     if (golfTee) {
         golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
         golfTee.visible = true;
@@ -3145,7 +3145,7 @@ function animate() {
             } else {
                 // FIXED: Factor in the exact proximity factor active at address so the ball launches at its true rendered size
                 const addressCamDist = camera.position.distanceTo(ball.position);
-                const baseScale = isCurrentMobile ? 0.75 : 0.70;
+                const baseScale = isCurrentMobile ? 0.65 : 0.51;
                 if (addressCamDist < 9.5) {
                     const dxH = holePosition.x - ball.position.x;
                     const dzH = holePosition.z - ball.position.z;
@@ -3262,7 +3262,7 @@ function animate() {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.24 : 0.19;
         } else {
-            ballTargetScale = isMobile ? 0.73 : 0.51; // Fairway, rough, and sand size
+            ballTargetScale = isMobile ? 0.65 : 0.51; // Fairway, rough, and sand size
         }
 
         const isSand = physics && physics.isBallInSand();
