@@ -3145,7 +3145,7 @@ function animate() {
             } else {
                 // FIXED: Factor in the exact proximity factor active at address so the ball launches at its true rendered size
                 const addressCamDist = camera.position.distanceTo(ball.position);
-                const baseScale = isCurrentMobile ? 0.65 : 0.51;
+                const baseScale = isCurrentMobile ? 0.55 : 0.51;
                 if (addressCamDist < 9.5) {
                     const dxH = holePosition.x - ball.position.x;
                     const dzH = holePosition.z - ball.position.z;
@@ -3262,7 +3262,7 @@ function animate() {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.24 : 0.19;
         } else {
-            ballTargetScale = isMobile ? 0.65 : 0.51; // Fairway, rough, and sand size
+            ballTargetScale = isMobile ? 0.55 : 0.51; // Fairway, rough, and sand size
         }
 
         const isSand = physics && physics.isBallInSand();
