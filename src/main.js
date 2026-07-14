@@ -1957,7 +1957,7 @@ function resetEntireGame(advanceHole = false) {
     const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10) + 0.071;
 
     // Snap the ball and plastic tee directly to the top of the hill elevation
-    ball.position.set(teeBoxX, currentTeeBoxY + 0.27, 10);
+    ball.position.set(teeBoxX, currentTeeBoxY + 0.24, 10);
     if (golfTee) {
         golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
         golfTee.visible = true;
