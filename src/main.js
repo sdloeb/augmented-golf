@@ -3166,8 +3166,8 @@ function animate() {
         const trailGreenAngle = Math.atan2(-trailGreenZ, trailGreenX);
         const trailActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(trailGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-        // UPDATE THIS LINE BELOW: Ensure the tracer line only clears once it hits the green surface
-        if (trailGreenDist < trailActiveR && physics.hasLanded) {
+        // UPDATE THIS LINE BELOW: Ensure the tracer line clears the moment the ball touches any ground surface
+        if (physics.hasLanded) {
             tracerPoints = [];
             if (ballTracer) ballTracer.geometry.setFromPoints([]);
         } else {
@@ -3369,7 +3369,7 @@ function animate() {
         const aimDirX = Math.sin(angle);
         const aimDirZ = Math.cos(angle);
 
-        // CHANGED: Query your active club details to cap the flight trajectory right at the yellow target circle range
+        // Query your active club details to cap the flight trajectory right at the yellow target circle range
         const club = input ? input.getClubInfo() : null;
         const ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
 
@@ -3383,57 +3383,67 @@ function animate() {
         const startCamY = physics.getGroundHeight(ball.position.x, ball.position.z) + 6.5;
 
         // Stage 2: Middle point at your custom landing zone/elbow
-        const midCamX = targetX - aimDirX * 12.0; // Modify this line: Changed from 5.0 to 12.0
-        const midCamZ = targetZ - aimDirZ * 12.0; // Modify this line: Changed from 5.0 to 12.0
+        const midCamX = targetX - aimDirX * 12.0;
+        const midCamZ = targetZ - aimDirZ * 12.0;
         const midCamY = physics.getGroundHeight(targetX, targetZ) + 11.0;
 
         // Stage 3: Final destination safely overlooking the actual green hole cup
         const holeDirX = holePosition.x - targetX;
         const holeDirZ = holePosition.z - targetZ;
         const holeLen = Math.sqrt(holeDirX * holeDirX + holeDirZ * holeDirZ) || 1;
-        const endCamX = holePosition.x - (holeDirX / holeLen) * 12.0; // Modify this line: Changed from 5.0 to 12.0
-        const endCamZ = holePosition.z - (holeDirZ / holeLen) * 12.0; // Modify this line: Changed from 5.0 to 12.0
+        const endCamX = holePosition.x - (holeDirX / holeLen) * 12.0;
+        const endCamZ = holePosition.z - (holeDirZ / holeLen) * 12.0;
         const endCamY = physics.getGroundHeight(holePosition.x, holePosition.z) + 11.0;
 
         let currentX, currentZ, currentY;
-        let currentLookX, currentLookZ, currentLookY; // Modify this line
-        const targetGroundY = physics.getGroundHeight(targetX, targetZ); // Add this line
+        let currentLookX, currentLookZ, currentLookY;
+        const targetGroundY = physics.getGroundHeight(targetX, targetZ);
         const holeGroundY = physics.getGroundHeight(holePosition.x, holePosition.z);
 
-        if (previewProgress < 0.5) {
+        // FIXED: Dynamically calculate uniform speed split ratio based on actual leg distances
+        const distLeg1 = Math.sqrt((targetX - ball.position.x) ** 2 + (targetZ - ball.position.z) ** 2);
+        const distLeg2 = Math.sqrt((holePosition.x - targetX) ** 2 + (holePosition.z - targetZ) ** 2);
+        const totalFlightDist = distLeg1 + distLeg2 || 1;
+        const splitPoint = distLeg1 / totalFlightDist;
+
+        if (previewProgress < splitPoint) {
             // PART 1: Fly from Tee Box to your custom Aim Point
-            const t = previewProgress * 2; // Scales local segment progress from 0 to 1
+            const t = previewProgress / splitPoint; // Scales local segment progress uniformly
             currentX = THREE.MathUtils.lerp(startCamX, midCamX, t);
             currentZ = THREE.MathUtils.lerp(startCamZ, midCamZ, t);
 
             const heightArc = Math.sin(t * Math.PI) * 4.0;
             currentY = THREE.MathUtils.lerp(startCamY, midCamY, t) + heightArc;
 
-            // CHANGED: Keeps the camera lens locked down facing directly toward the aim circle marker on the ground
             currentLookX = targetX;
             currentLookZ = targetZ;
-            currentLookY = targetGroundY + 2.0; // Add this line
+            currentLookY = targetGroundY + 2.0;
         } else {
             // PART 2: Fly from your custom Aim Point around the corner directly to the Green
-            const t = (previewProgress - 0.5) * 2; // Scales local segment progress from 0 to 1
+            const t = (previewProgress - splitPoint) / (1 - splitPoint); // Scales local segment progress uniformly
             currentX = THREE.MathUtils.lerp(midCamX, endCamX, t);
             currentZ = THREE.MathUtils.lerp(midCamZ, endCamZ, t);
 
             const heightArc = Math.sin(t * Math.PI) * 4.0;
             currentY = THREE.MathUtils.lerp(midCamY, endCamY, t) + heightArc;
 
-            // CHANGED: Locks the lens focus straight on the hole pin immediately upon turning the corner
-            currentLookX = holePosition.x; // Modify this line: Lock directly to the hole
-            currentLookZ = holePosition.z; // Modify this line: Lock directly to the hole
-            currentLookY = holeGroundY + 2.0; // Modify this line: Lock directly to the hole height
+            currentLookX = holePosition.x;
+            currentLookZ = holePosition.z;
+            currentLookY = holeGroundY + 2.0;
         }
 
         const lookGroundY = physics.getGroundHeight(currentLookX, currentLookZ);
-        const localGroundY = physics.getGroundHeight(currentX, currentZ); // Restored this line: Safe height calculations on every tick
+        const localGroundY = physics.getGroundHeight(currentX, currentZ);
 
-        cameraTargetPos.set(currentX, Math.max(localGroundY + 3.0, currentY), currentZ);
-        cameraLookAt.set(currentLookX, currentLookY, currentLookZ); // Modify this line
-        activeCameraSpeed = 0.08;
+        // FIXED: Smoothly blend the lens focus down the course to eliminate the sudden whip-pan surge at the circle
+        const blendLookX = THREE.MathUtils.lerp(targetX, holePosition.x, previewProgress);
+        const blendLookZ = THREE.MathUtils.lerp(targetZ, holePosition.z, previewProgress);
+        const blendLookY = THREE.MathUtils.lerp(targetGroundY, holeGroundY, previewProgress) + 2.0;
+
+        // FIXED: Removed localGroundY evaluation to let the camera glide on a perfectly smooth vector path
+        cameraTargetPos.set(currentX, currentY, currentZ);
+        cameraLookAt.set(blendLookX, blendLookY, blendLookZ);
+        activeCameraSpeed = 0.14;// Increased tracking speed to keep tracking snappy without rubber-banding
 
         // Automatically snap back behind the ball once the full camera flight completes
         if (previewProgress >= 1) {
@@ -3447,7 +3457,6 @@ function animate() {
             cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
             activeCameraSpeed = 0.02;
         }
-
     }
 
 
