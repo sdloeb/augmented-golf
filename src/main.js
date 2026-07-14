@@ -1957,7 +1957,7 @@ function resetEntireGame(advanceHole = false) {
     const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10) + 0.071;
 
     // Snap the ball and plastic tee directly to the top of the hill elevation
-    ball.position.set(teeBoxX, currentTeeBoxY + 0.37, 10);
+    ball.position.set(teeBoxX, currentTeeBoxY + 0.27, 10);
     if (golfTee) {
         golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
         golfTee.visible = true;
@@ -1975,7 +1975,7 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
     const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const initialTeeScale = isMobileOnStart ? 0.50 : 0.50; /* Matches your custom computer desktop size */
+    const initialTeeScale = isMobileOnStart ? 0.55 : 0.55; /* Matches your custom computer desktop size */
     ballTargetScale = initialTeeScale;
     ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
@@ -3138,7 +3138,7 @@ function animate() {
             const launchedFromGreenSurface = Math.sqrt(launchGreenX * launchGreenX + launchGreenZ * launchGreenZ) < GREEN_RADIUS;
 
             if (teeBox && teeBox.visible) {
-                window.shotStartScale = isCurrentMobile ? 0.50 : 0.50;
+                window.shotStartScale = isCurrentMobile ? 0.55 : 0.55;
             } else if (launchedFromGreenSurface) {
                 // MODIFIED: Changed from 0.30 to 0.22 to match your smaller ball profile at launch
                 window.shotStartScale = 0.22;
@@ -3257,7 +3257,7 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.50 : 0.50; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.55 : 0.55; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.24 : 0.19;
