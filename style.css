@@ -671,7 +671,7 @@ html {
         font-size: 20px !important;
     }
 
-    /* NEW: Overrides the blanket 14px rule above to keep distance text larger on mobile */
+   /* NEW: Overrides the blanket 14px rule above to keep distance text larger on mobile */
     #distanceLine {
         font-size: 16px !important;
     }
@@ -679,6 +679,21 @@ html {
     #windText,
     #scoreContainer div {
         font-size: 14px !important;
+    }
+
+    /* Pull the lie indicator box into a safe relative flex position to stop clipping text on mobile portrait */
+    #lieIndicatorBox {
+        position: relative !important;
+        right: auto !important;
+        top: auto !important;
+        float: right;
+        margin-left: 10px;
+        width: 36px !important;
+        height: 36px !important;
+    }
+    #lieCanvas {
+        width: 36px !important;
+        height: 36px !important;
     }
 
     #overheadBtn {
