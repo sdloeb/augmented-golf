@@ -1975,7 +1975,7 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
     const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const initialTeeScale = isMobileOnStart ? 0.35 : 0.65; /* Matches your custom computer desktop size */
+    const initialTeeScale = isMobileOnStart ? 0.65 : 0.56; /* Matches your custom computer desktop size */
     ballTargetScale = initialTeeScale;
     ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
@@ -3257,7 +3257,7 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.75 : 0.56; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.65 : 0.56; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.24 : 0.19;
