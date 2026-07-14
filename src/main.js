@@ -1975,7 +1975,7 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
     const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const initialTeeScale = isMobileOnStart ? 0.35 : 0.56; /* Matches your custom computer desktop size */
+    const initialTeeScale = isMobileOnStart ? 0.65 : 0.56; /* Matches your custom computer desktop size */
     ballTargetScale = initialTeeScale;
     ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
@@ -3138,7 +3138,7 @@ function animate() {
             const launchedFromGreenSurface = Math.sqrt(launchGreenX * launchGreenX + launchGreenZ * launchGreenZ) < GREEN_RADIUS;
 
             if (teeBox && teeBox.visible) {
-                window.shotStartScale = isCurrentMobile ? 0.9 : 1.0;
+                window.shotStartScale = isCurrentMobile ? 0.65 : 1.0;
             } else if (launchedFromGreenSurface) {
                 // MODIFIED: Changed from 0.30 to 0.22 to match your smaller ball profile at launch
                 window.shotStartScale = 0.22;
