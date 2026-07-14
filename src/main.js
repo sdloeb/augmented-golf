@@ -1975,7 +1975,7 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
     const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const initialTeeScale = isMobileOnStart ? 0.9 : 0.65; /* Matches your custom computer desktop size */
+    const initialTeeScale = isMobileOnStart ? 0.75 : 0.65; /* Matches your custom computer desktop size */
     ballTargetScale = initialTeeScale;
     ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
