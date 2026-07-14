@@ -533,8 +533,11 @@ export class InputHandler {
                 // 3. Apply Penalties
                 if (inSand) {
                     finalPower *= 0.75; // Lose 50% power in sand bunker
-                } else if (!onGreen && !isOnFringe && window.physicsEngine && window.physicsEngine.getDistanceToSpline(this.ballRef.position.x, this.ballRef.position.z) >= 9.0) { // Modify this line: Exempt the clean fringe lie from the rough penalty
-                    finalPower *= 0.85; // Lose 15% power in the rough
+                } else if (!onGreen && !isOnFringe && window.physicsEngine) {
+                    // Check surface explicitly from the unified physics engine state
+                    if (window.physicsEngine.currentSurface === 'Rough') {
+                        finalPower *= 0.85; // Lose 15% power in the rough
+                    }
                 }
             }
         }
