@@ -798,8 +798,16 @@ export class PhysicsEngine {
                 }
             } else {
                 // Apply standard grass/green/rough friction
-                this.velocity.x *= currentFriction;
-                this.velocity.z *= currentFriction;
+                let rollingFriction = currentFriction;
+
+                // If a chip shot is purely rolling on the ground, let it trickle out naturally at low speeds instead of sticking like velcro
+                if (!isAirborne && !this.isPutting && rollingFriction < 0.96 && this.velocity.length() < 0.15) {
+                    let tTrickle = Math.min(1.0, Math.max(0.0, (0.15 - this.velocity.length()) / 0.12));
+                    rollingFriction = THREE.MathUtils.lerp(currentFriction, 0.965, tTrickle);
+                }
+
+                this.velocity.x *= rollingFriction;
+                this.velocity.z *= rollingFriction;
             }
 
             // 4. Accumulate Downhill Gravitational Forces
@@ -1049,8 +1057,17 @@ export class PhysicsEngine {
 
 
                 this.velocity.y = -this.velocity.y * currentBounceHeight; // Preserved
-                this.velocity.x *= currentBounceForwardLoss;
-                this.velocity.z *= currentBounceForwardLoss;
+
+                // Soften forward momentum loss for short chips / low-velocity landings so they don't die on impact
+                const landingSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+                let adaptiveForwardLoss = currentBounceForwardLoss;
+                if (landingSpeed < 0.35 && !inSand && !onGreen) {
+                    let tShort = Math.min(1.0, Math.max(0.0, (0.35 - landingSpeed) / 0.25));
+                    adaptiveForwardLoss = THREE.MathUtils.lerp(currentBounceForwardLoss, 0.85, tShort);
+                }
+
+                this.velocity.x *= adaptiveForwardLoss;
+                this.velocity.z *= adaptiveForwardLoss;
 
                 // Apply dynamic backspin physics depending on which club was chosen
                 if (this.hasBackspin && this.bounceCount === 1 && !inSand) {

@@ -72,7 +72,7 @@ const HOLES_CONFIG = {
                 type: 'lake',
                 x: 0,
                 z: -82.5,
-                radius: 16.5
+                radius: 15.5
             },
             // Restores your original twin traps
             { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.25 },
