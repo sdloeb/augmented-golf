@@ -567,15 +567,16 @@ export class PhysicsEngine {
 
         // UPDATED: Keeps physics fairway wide up the hill climb, tapering smoothly before the bunkers
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
-            if (this.ball.position.z <= -20.0 && this.ball.position.z >= -160.0) {
+            if (this.ball.position.z <= -20.0 && this.ball.position.z >= -140.0) {
                 activeFW = 18.0;
-            } else if (this.ball.position.z < -160.0 && this.ball.position.z >= -172.0) {
-                let tTaper = (-160.0 - this.ball.position.z) / 12.0;
+            } else if (this.ball.position.z < -140.0 && this.ball.position.z >= -152.0) {
+                let tTaper = (-140.0 - this.ball.position.z) / 12.0;
                 activeFW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
-            } else {
-                activeFW = 8.0;
             }
         }
+
+        // Calibrate physical edge to match the exact visual texture intersection point
+        activeFW += 0.80;
 
         if (inSand) {
             this.currentSurface = 'Sand Trap';
@@ -624,7 +625,7 @@ export class PhysicsEngine {
             const distanceToPath = this.getDistanceToSpline(bX, bZ);
 
             // Sync with the exact visual boundary parameters from main.js
-            const fWEdge = activeFW + 3.5;
+            const fWEdge = activeFW + 2.26;
             const fringeOuterR = activeRadius + 1.0;
 
             let floorHeight = greenHeightOffset;
