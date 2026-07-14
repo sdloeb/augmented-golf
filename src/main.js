@@ -2866,7 +2866,7 @@ function animate() {
             }
         }
         // Otherwise, fallback safely to standard track spline distance bounds for other holes
-        else {
+        else if (physics.isMoving) { // FIXED: Only run expensive multi-point spline lookups while the ball is actually moving
             const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
             if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
                 isOutOfBounds = true;
