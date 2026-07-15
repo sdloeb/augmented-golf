@@ -680,6 +680,15 @@ export class PhysicsEngine {
             }
         }
 
+        // VISUAL DEPTH CALIBRATION: Sinks the ball base slightly below the surface line for specific lies
+        if (this.currentSurface === 'Sand Trap') {
+            groundY -= 0.15 * this.ball.scale.x;
+            // Sinks the ball base down into the bunker sand grains so it looks heavy/plugged
+        } else if (this.currentSurface === 'Rough') {
+            groundY -= 0.15 * this.ball.scale.x;
+            // Nestles the ball down into your new organic fine grass blade strokes
+        }
+
         // Add this block here: Ground-snapping stickiness now runs safely with the finalized groundY plane
         if (this.ball.position.y > groundY && this.ball.position.y <= groundY + 0.4 && this.velocity.y <= 0.01) {
             this.ball.position.y = groundY;
