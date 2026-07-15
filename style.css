@@ -738,7 +738,7 @@ html {
 
     /* Targeted override to position the iron on the X-axis for ALL mobile lies */
     #clubSwipe.iron.idle-stance {
-        left: calc(50% - 37px) !important;
+        left: calc(50% - 35px) !important;
         /* TWEAK THIS NUMBER: Increase it (e.g., -35px) to nudge the iron right, 
            or decrease it (e.g., -45px) to nudge it left until it looks perfect on the tee and fairway! */
     }
