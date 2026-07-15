@@ -1080,12 +1080,37 @@ function resetEntireGame(advanceHole = false) {
     greenCenterZ = greenEndpoint.z;
 
     // Calculate a randomized pin location bounded perfectly inside the green's true shape
-    const pinAngle = Math.random() * Math.PI * 2;
-    const maxAllowedR = window.getGreenRadiusAtAngle(pinAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') - 3.0;
-    const pinRadius = Math.random() * Math.max(2.0, maxAllowedR);
+    const minDistanceToFringe = 5.0 / 2.76923; // 15 feet = 5 yards converted precisely to game units
+    let pinX = greenCenterX;
+    let pinZ = greenCenterZ;
 
-    holePosition.x = greenCenterX + Math.cos(pinAngle) * pinRadius;
-    holePosition.z = greenCenterZ + Math.sin(pinAngle) * pinRadius;
+    // Safety loop to ensure complex warped green profiles (like kidney or wavy shapes) strictly adhere to bounds
+    for (let attempt = 0; attempt < 200; attempt++) {
+        const testAngle = Math.random() * Math.PI * 2;
+        const edgeRadius = window.getGreenRadiusAtAngle(testAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+        const maxAllowedR = edgeRadius - minDistanceToFringe;
+
+        if (maxAllowedR > 0) {
+            const testRadius = Math.random() * maxAllowedR;
+            const tx = greenCenterX + Math.cos(testAngle) * testRadius;
+            const tz = greenCenterZ + Math.sin(testAngle) * testRadius;
+
+            // Cross-verify against the point's resolved angle to guarantee safety on asymmetric indentations
+            const resultAngle = Math.atan2(tz - greenCenterZ, tx - greenCenterX);
+            const resultDist = Math.sqrt((tx - greenCenterX) ** 2 + (tz - greenCenterZ) ** 2);
+            const resultEdgeR = window.getGreenRadiusAtAngle(resultAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+
+            if (resultEdgeR - resultDist >= minDistanceToFringe) {
+                pinX = tx;
+                pinZ = tz;
+                break;
+            }
+        }
+    }
+
+    holePosition.x = pinX;
+    holePosition.z = pinZ;
+
 
     // --- 2. PHYSICALLY MOVE THE MESHES TO THE FIXED WAYPOINT CENTER ---
     if (green) green.position.set(greenCenterX, 0.02, greenCenterZ);
@@ -3644,7 +3669,7 @@ function animate() {
     }
 
     // Apply continuous interpolation glide to eliminate calculation artifacts completely
-    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, 0.05);
+    const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, activeCameraSpeed);
     ball.scale.set(currentScale, currentScale, currentScale);
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
