@@ -3631,7 +3631,7 @@ function animate() {
     // UNIFIED CHIPPING PROXIMITY FACTOR: Removed the binary '!physics.isMoving' gate restriction entirely. 
     // This stops chips and pitches from instantly expanding on frame one of a launch, allowing the 3D camera 
     // to smoothly scale the size vector down as the ball leaves your close address perspective view.
-    const cameraDistanceToBall = camera.position.distanceTo(ball.position);
+    const cameraDistanceToBall = !physics.isMoving ? cameraTargetPos.distanceTo(ball.position) : camera.position.distanceTo(ball.position);
     if (cameraDistanceToBall < 9.5 && !isCamOnGreen) {
         const dxH = holePosition.x - ball.position.x;
         const dzH = holePosition.z - ball.position.z;
