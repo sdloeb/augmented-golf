@@ -671,7 +671,7 @@ html {
         font-size: 20px !important;
     }
 
-   /* NEW: Overrides the blanket 14px rule above to keep distance text larger on mobile */
+    /* NEW: Overrides the blanket 14px rule above to keep distance text larger on mobile */
     #distanceLine {
         font-size: 16px !important;
     }
@@ -691,6 +691,7 @@ html {
         width: 36px !important;
         height: 36px !important;
     }
+
     #lieCanvas {
         width: 36px !important;
         height: 36px !important;
@@ -735,7 +736,23 @@ html {
         transform: scale(0.90) !important;
     }
 
+    /* Targeted override to position the iron on the X-axis for ALL mobile lies */
+    #clubSwipe.iron.idle-stance {
+        left: calc(50% - 37px) !important;
+        /* TWEAK THIS NUMBER: Increase it (e.g., -35px) to nudge the iron right, 
+           or decrease it (e.g., -45px) to nudge it left until it looks perfect on the tee and fairway! */
+    }
+
     /* Add this block right below it to override the putter on mobile screens */
+
+    /* Targeted override to position the iron on the X-axis ONLY in the fairway/rough on mobile */
+    #clubSwipe.iron.idle-stance.fairway-rough-lie {
+        left: calc(50% - 39px) !important;
+        /* TWEAK THIS NUMBER: Increase it (e.g., -35px) to nudge the iron right, 
+           or decrease it (e.g., -45px) to nudge it left until it aligns nicely! */
+    }
+
+
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 77.5px) !important;
         bottom: 21% !important;

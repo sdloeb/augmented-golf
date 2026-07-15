@@ -3699,8 +3699,12 @@ function animate() {
                 // Capture if the tutorial is currently highlighting the club before overwriting
                 const tutorialHighlight = clubSwipeElement.classList.contains('tutorial-highlighted') ? ' tutorial-highlighted' : '';
 
+                // Check if the ball is currently out in the fairway or rough (not on the tee box)
+                const isOffTeeBox = teeBox && !teeBox.visible;
+                const surfaceClass = isOffTeeBox ? ' fairway-rough-lie' : '';
+
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}${tutorialHighlight}`;
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}${tutorialHighlight}${surfaceClass}`;
 
                     clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important'); // Add this line: Locks ALL clubs to follow ball height
 
