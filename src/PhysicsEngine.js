@@ -577,7 +577,7 @@ export class PhysicsEngine {
 
         // Calibrate physical edge to match the exact visual texture intersection point
         const isMobilePortrait = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1;
-        activeFW += isMobilePortrait ? 2.20 : 0.80;
+        activeFW += isMobilePortrait ? 1.20 : 0.80;
 
         if (inSand) {
             this.currentSurface = 'Sand Trap';
