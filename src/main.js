@@ -4088,30 +4088,39 @@ function init() {
 
 
     const rCanvas = document.createElement('canvas');
-    rCanvas.width = 64; rCanvas.height = 64;
+    rCanvas.width = 128; rCanvas.height = 128; // Bumping up texture resolution for finer details
     const rCtx = rCanvas.getContext('2d');
-    rCtx.fillStyle = '#c5c5c5'; rCtx.fillRect(0, 0, 64, 64); // Base neutral gray (Add this line)
-    for (let i = 0; i < 500; i++) { // Paints 500 micro grass shadows/highlights per tile (Add this line)
-        rCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#909090'; // Modify this line
-        const bladeHeight = 5 + Math.floor(Math.random() * 5); // Taller strands
-        const bladeWidth = 2 + Math.floor(Math.random() * 2);  // Chunky pixel widths to stand out from afar
-        const xPos = Math.floor(Math.random() * 64);
-        const yPos = Math.floor(Math.random() * 64);
+    rCtx.fillStyle = '#757575'; rCtx.fillRect(0, 0, 128, 128); // Smooth midpoint gray baseline
 
-        // Draw the main grass blade strand with chunky width
-        rCtx.fillRect(xPos, yPos, bladeWidth, bladeHeight);
+    // Draw fine, organic overlapping grass strands instead of square blocks
+    rCtx.lineWidth = 1.2;
+    for (let i = 0; i < 1400; i++) {
+        const xStrand = Math.floor(Math.random() * 128);
+        const yStrand = Math.floor(Math.random() * 128);
+        const length = 6 + Math.floor(Math.random() * 8);
+        const lean = (Math.random() - 0.5) * 4; // Organic slight tilt left or right for realism
 
-        // Draw a distinct dark micro-shadow block to create a clean 2D pixel-art pop
-        rCtx.fillStyle = '#404040';
-        rCtx.fillRect(xPos + bladeWidth, yPos + 1, 1, bladeHeight - 1);
+        // Deep micro-shadow side of the grass blade
+        rCtx.strokeStyle = '#323532';
+        rCtx.beginPath();
+        rCtx.moveTo(xStrand, yStrand);
+        rCtx.lineTo(xStrand + lean, yStrand - length);
+        rCtx.stroke();
+
+        // Dynamic highlight blade face layer
+        rCtx.strokeStyle = Math.random() > 0.45 ? '#ffffff' : '#b0b5b0';
+        rCtx.beginPath();
+        rCtx.moveTo(xStrand - 0.6, yStrand);
+        rCtx.lineTo(xStrand - 0.6 + lean, yStrand - length);
+        rCtx.stroke();
     }
     const roughTexture = new THREE.CanvasTexture(rCanvas);
     roughTexture.wrapS = THREE.RepeatWrapping;
     roughTexture.wrapT = THREE.RepeatWrapping;
-    roughTexture.repeat.set(90, 600);
 
-
-    // Modify this line to add the emissive property and real-time 3D lighting depth over rough blades
+    // FIXED: Setting repeat to 150, 400 perfectly matches the 300x800 plane aspect ratio, 
+    // ensuring tiles are perfectly square and completely eliminating the blocky stretching distortion!
+    roughTexture.repeat.set(150, 400);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45, vertexColors: true });
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
