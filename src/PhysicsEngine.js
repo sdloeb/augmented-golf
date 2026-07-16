@@ -651,7 +651,7 @@ export class PhysicsEngine {
             // B. REPLICATE JAGGED JITTER NOISE: Adds micro-spikes only out in open deep rough fields
             if (distanceToPath > fWEdge && !inSand && distToGreenCenter > fringeOuterR) {
                 const grassJitter = Math.sin(bX * 3.5) * Math.cos(bZ * 3.5) * 0.18 + Math.cos(bX * 7.0) * 0.08;
-                floorHeight += Math.max(0, grassJitter);
+                //floorHeight += Math.max(0, grassJitter);
             }
 
             // C. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across open fields
@@ -690,10 +690,12 @@ export class PhysicsEngine {
 
         // VISUAL DEPTH CALIBRATION: Sinks the ball base slightly below the surface line for specific lies
         if (this.currentSurface === 'Sand Trap') {
-            groundY -= 0.15 * this.ball.scale.x;
+            // FIXED: Standardized the height modifier against a stable radius fraction to keep the bunker depth perfectly even
+            groundY -= 0.15 * (this.ball.scale.x / 0.51);
             // Sinks the ball base down into the bunker sand grains so it looks heavy/plugged
         } else if (this.currentSurface === 'Rough') {
-            groundY -= 0.15 * this.ball.scale.x;
+            // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
+            groundY -= 0.065 * (this.ball.scale.x / 0.51);
             // Nestles the ball down into your new organic fine grass blade strokes
         }
 

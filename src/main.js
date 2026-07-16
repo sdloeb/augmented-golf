@@ -81,7 +81,7 @@ const HOLES_CONFIG = {
         ],
         customOOB: {
             type: 'rectangle',
-            minX: -126,
+            minX: -26,
             maxX: 26,
             minZ: -210,
             maxZ: 35,
