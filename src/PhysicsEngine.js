@@ -22,6 +22,7 @@ export class PhysicsEngine {
         this.frontZone = { rx: 0, rz: 0 };
         this.obstacles = [];
         this.isStuckInBush = false;
+        this.hasHitObstacleOnShot = false;
         this.fairwayPoints = [];
         this.hasLanded = false;
         this.fairwayWidth = 9.0;
@@ -430,8 +431,10 @@ export class PhysicsEngine {
         const totalPower = power * speedScale;
 
         // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
+        // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
         this.spin = isPutting ? 0 : spin;
         this.hasLanded = false;
+        this.hasHitObstacleOnShot = false; // NEW: Reset tracking flag for a clean new shot path
         this.currentLoft = isPutting ? 0 : loft;
 
         // 2. ROTATE THE INITIAL TRAJECTORY OUTWARDS
@@ -872,6 +875,7 @@ export class PhysicsEngine {
 
         // --- NEW: INTERACTIVE OBSTACLES PHYSICS ENGINE ---
         let hitTreeThisFrame = false;
+        let hitObstacleThisFrame = false; // NEW: Track generic foliage and branch interactions
         for (let i = 0; i < this.obstacles.length; i++) {
             let obs = this.obstacles[i];
             let dx = this.ball.position.x - obs.x;
@@ -879,8 +883,10 @@ export class PhysicsEngine {
             let distance = Math.sqrt(dx * dx + dz * dz);
 
             // --- BUSH MECHANICS ---
+
             let bushGroundY = this.getGroundHeight(obs.x, obs.z); // Add this line
             if (obs.type === 'bush' && distance < (obs.radius + 0.25) && this.ball.position.y <= (bushGroundY + obs.radius + 0.25)) { // Change this line
+                hitObstacleThisFrame = true; // NEW: Turn on obstacle flag on bush interaction
                 let speed = this.velocity.length();
                 if (speed < 0.25) {
                     // Trapped inside: stop ball completely and raise penalty flag
@@ -938,6 +944,7 @@ export class PhysicsEngine {
                     this.ball.position.z = obs.z + (obs.trunkRadius + 0.26) * Math.sin(pushAngle); // Preserved
 
                     hitTreeThisFrame = true;
+                    hitObstacleThisFrame = true; // NEW: Turn on obstacle flag on trunk ricochet
                     if (this.sounds && !this.wasInTree) this.sounds.play('wood');
                     break;
                 }
@@ -967,6 +974,7 @@ export class PhysicsEngine {
 
                     // Fire tactical foliage thud/rustle effect upon leaf impact context
                     hitTreeThisFrame = true;
+                    hitObstacleThisFrame = true;
                     if (this.sounds && !this.wasInTree) this.sounds.play('trees');
 
                     if (ballRelativeFoliageY >= foliageTotalSpan * 0.95) {
@@ -991,7 +999,7 @@ export class PhysicsEngine {
 
                         // Control the vertical sift speed through the dense leaf volume
                         if (this.velocity.y < 0) {
-                            this.velocity.y = Math.max(-0.35, this.velocity.y * 0.97); // Changed from 0.38 to 0.86 for a natural, steady fall speed
+                            this.velocity.y = Math.max(-0.85, this.velocity.y * 0.985); // Changed from 0.38 to 0.86 for a natural, steady fall speed
 
                             // 15% frame-by-frame chance to strike a solid limb, causing an erratic physical bounce pop
                             if (Math.random() < 0.03) {
@@ -1007,6 +1015,9 @@ export class PhysicsEngine {
         }
 
         this.wasInTree = hitTreeThisFrame;
+        if (hitObstacleThisFrame) {
+            this.hasHitObstacleOnShot = true; // NEW: Lock persistent flag for the remainder of the shot
+        }
 
         // 3. GROUND COLLISION & HAZARD DETECTION
         if (this.ball.position.y <= groundY) {

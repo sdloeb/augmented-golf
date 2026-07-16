@@ -81,7 +81,7 @@ const HOLES_CONFIG = {
         ],
         customOOB: {
             type: 'rectangle',
-            minX: -26,
+            minX: -126,
             maxX: 26,
             minZ: -210,
             maxZ: 35,
@@ -3193,8 +3193,8 @@ function animate() {
         const trailGreenAngle = Math.atan2(-trailGreenZ, trailGreenX);
         const trailActiveR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(trailGreenAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-        // UPDATE THIS LINE BELOW: Ensure the tracer line clears the moment the ball touches any ground surface
-        if (physics.hasLanded) {
+        // UPDATE THIS LINE BELOW: Ensure the tracer line clears the moment the ball touches any ground surface or enters foliage
+        if (physics.hasLanded || physics.hasHitObstacleOnShot) {
             tracerPoints = [];
             if (ballTracer) ballTracer.geometry.setFromPoints([]);
         } else {
