@@ -304,40 +304,31 @@ html {
 }
 
 /* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
+
+/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
 #clubSwipe.iron {
     zoom: 0.95;
-    /* Main Chassis: Corner curves downscaled by 25% to keep proportions sharp */
     border-radius: 4px 20px 14px 10px;
     width: 78px;
-    /* Exactly 25% smaller than your current 104px width */
     height: 37px;
-    /* Exactly 25% smaller than your current 50px height */
-
+    /* Restored to stable default height */
     background: linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 20%, #ffffff 34%, #b4b8bb 55%, #7f8284 100%);
     border: 1px solid #6c6f72;
     box-shadow:
-        0 9px 18px rgba(0, 0, 0, 0.45),
+        0 6px 12px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.95);
-
-    /* Centered height offset baseline alignment to match camera angles */
     margin-bottom: -4px;
     position: absolute;
 }
 
-/* 1. Recessed Cavity Pocket: Rescaled and shifted to sit neatly inside the smaller chassis */
+/* 1. Recessed Cavity Pocket: Now handles the 3D Loft Tilt independently */
 #clubSwipe.iron::before {
     content: '';
     position: absolute;
-
     top: 17px;
-    /* Downscaled from 23px */
     left: 8px;
-    /* Downscaled from 11px */
     width: 58px;
-    /* Downscaled from 78px */
     height: 16px;
-    /* Downscaled from 21px */
-
     border-radius: 1.5px 10px 8px 2px;
     background: linear-gradient(135deg, #595d60 0%, #8c9093 50%, #414345 100%);
     border: 2px solid #525557;
@@ -345,47 +336,42 @@ html {
         inset 2px 2px 4px rgba(0, 0, 0, 0.8),
         0 1px 1px rgba(255, 255, 255, 0.5);
     pointer-events: none;
+
+    /* Isolates 3D loft distortion strictly to the face plate graphic */
+    transform: perspective(150px) rotateX(var(--loft-angle, 0deg));
+    transform-origin: center top;
 }
 
-/* 2. The Hosel Neck Adapter Offset: Tapered down so the shaft joint looks sleek instead of bulky */
+/* 2. The Hosel Neck Adapter Offset: Locked flat to eliminate 3D warping */
 #clubSwipe.iron::after {
     content: '';
     position: absolute;
-
-    /* Adjusted coordinates to maintain perfect alignment while tilted */
     left: -58px;
     top: 14px;
     width: 64px;
     height: 12px;
-
-
     border-radius: 3px 0 0 3px;
     background: linear-gradient(to right,
             #ced2d5 0%, #ffffff 20%, #9fa2a5 45%,
-            /* Silver Handle/Shaft Segment */
             #1d437a 45%, #1d437a 65%,
-            /* Cobalt Blue Trim Accent (No Black) */
-            #ffffff 65%, #bcbfc2 80%, #7f8284 100%
-            /* Chrome Hosel Adapter Joint */
-        );
+            #ffffff 65%, #bcbfc2 80%, #7f8284 100%);
     border: 1px solid #6c6f72;
     border-right: none;
     box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.2);
 
-    /* Tilts the shaft up towards 10 o'clock and locks the pivot connection point to the right */
+    /* Stabilized 2D rotation matching your original layout alignment */
     transform: rotate(58deg);
     transform-origin: right center;
     pointer-events: none;
 }
 
 /* ==========================================================================
-   DYNAMIC IRON LOFT VISUAL VARIATIONS (5-IRON DOWN TO SAND WEDGE)
+   DYNAMIC IRON LOFT VISUAL VARIATIONS (3D PERSPECTIVE PERSPECTIVE TILT)
    ========================================================================== */
 
-/* 5 Iron: Low loft (27°). Upright vertical blade stance means max back wall height and no face visibility */
+/* 5 Iron: Low loft (27°). Upright vertical blade stance */
 #clubSwipe.iron[class*="5-iron"] {
-    height: 42px;
-    margin-bottom: -9px;
+    --loft-angle: 10deg;
     border-top: 1px solid #6c6f72;
 }
 
@@ -396,8 +382,7 @@ html {
 
 /* 6 Iron: Moderate upright blade (31° loft) */
 #clubSwipe.iron[class*="6-iron"] {
-    height: 40px;
-    margin-bottom: -7px;
+    --loft-angle: 18deg;
     border-top: 2px solid #8b8e91;
 }
 
@@ -408,8 +393,7 @@ html {
 
 /* 7 Iron: Standard middle-iron profile (35° loft) */
 #clubSwipe.iron[class*="7-iron"] {
-    height: 37px;
-    margin-bottom: -4px;
+    --loft-angle: 26deg;
     border-top: 3px solid #9fa2a5;
 }
 
@@ -418,10 +402,9 @@ html {
     height: 16px;
 }
 
-/* 8 Iron: Scoring iron starts leaning back (39° loft). Top edge face line becomes visible */
+/* 8 Iron: Scoring iron starts leaning back (39° loft) */
 #clubSwipe.iron[class*="8-iron"] {
-    height: 34px;
-    margin-bottom: -1px;
+    --loft-angle: 34deg;
     border-top: 5px solid #b4b8bb;
 }
 
@@ -432,8 +415,7 @@ html {
 
 /* 9 Iron: Short scoring blade laying further back (43° loft) */
 #clubSwipe.iron[class*="9-iron"] {
-    height: 31px;
-    margin-bottom: 2px;
+    --loft-angle: 42deg;
     border-top: 7px solid #ced2d5;
 }
 
@@ -442,10 +424,9 @@ html {
     height: 13px;
 }
 
-/* PW Iron (Pitching Wedge): High launch angle (47° loft). Prominent slanted face plate visibility over the rim */
+/* PW Iron (Pitching Wedge): High launch angle (47° loft) */
 #clubSwipe.iron.pw-iron {
-    height: 28px;
-    margin-bottom: 5px;
+    --loft-angle: 48deg;
     border-top: 9px solid #ced2d5;
     background: linear-gradient(to bottom, #ced2d5 0%, #ffffff 15%, #b4b8bb 45%, #7f8284 100%);
 }
@@ -455,10 +436,9 @@ html {
     height: 13px;
 }
 
-/* SW Iron (Sand Wedge): Maximum laid-back profile (56° loft). Shallowest back wall with maximum face exposure */
+/* SW Iron (Sand Wedge): Maximum laid-back profile (56° loft) */
 #clubSwipe.iron.sw-iron {
-    height: 25px;
-    margin-bottom: 8px;
+    --loft-angle: 56deg;
     border-top: 12px solid #e1e4e6;
     background: linear-gradient(to bottom, #ffffff 0%, #b4b8bb 35%, #7f8284 100%);
 }
@@ -467,6 +447,7 @@ html {
     top: 9px;
     height: 12px;
 }
+
 
 /* Top view style of a premium milled blade putter - compact and detailed */
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
@@ -582,12 +563,12 @@ html {
     }
 }
 
-/* NEW: Club resting right behind the ball at address */
 #clubSwipe.idle-stance {
     bottom: 30.5% !important;
     left: 48.25% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.0) !important;
+    /* Restored to clean default */
     opacity: 1 !important;
     transition: opacity 0.1s ease, bottom 0.1s ease, left 0.1s ease, transform 0.1s ease;
 }
@@ -823,14 +804,15 @@ html {
         bottom: 32% !important;
 
         /* ADD THIS LINE BELOW: Adjust this decimal to set your mobile fairway/rough club size */
-        transform: scale(0.90) !important;
+        transform: perspective(400px) rotateX(var(--loft-angle, 0deg)) scale(0.90) !important;
+        transform-origin: 6px 20px !important;
     }
 
-    /* Targeted override to position the iron on the X-axis for ALL mobile lies */
-    #clubSwipe.iron.idle-stance {
-        left: calc(50% - 35px) !important;
-        /* TWEAK THIS NUMBER: Increase it (e.g., -35px) to nudge the iron right, 
-           or decrease it (e.g., -45px) to nudge it left until it looks perfect on the tee and fairway! */
+    #clubSwipe.idle-stance {
+        left: calc(50% - 40px) !important;
+        bottom: 32% !important;
+        transform: scale(0.90) !important;
+        /* Restored to clean default */
     }
 
     /* Add this block right below it to override the putter on mobile screens */
