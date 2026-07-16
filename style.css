@@ -218,102 +218,162 @@ html {
     /* Modify this line: Combines selectors to force 25% opacity over default stance styles */
 }
 
-/* Top view style of a Wood (Driver, 3/5 Woods, Hybrid) - Premium Carbon Crown & Titanium Face Profile */
+/* ==========================================================================
+   WOOD CLUB SUITE - SOLID BACKGROUNDS WITH DYNAMIC SIZE PROGRESSION
+   ========================================================================== */
+
+/* Base Wood Profile: Premium Pear-Shaped Carbon Crown & Titanium Face Silhouette */
 #clubSwipe.wood {
     zoom: 0.75;
-    /* NEW: Change this ONE number to scale the entire wood club up or down instantly! */
-
-    /* Reshaped width and height to give the crown a deep, bulbous driver silhouette */
-    width: 110px;
-    height: 75px;
-
-    /* Re-oriented pear-shaped curve: flatter at the top face, deeply rounded bulbous crown at the bottom-right */
-    border-radius: 20px 40px 75px 45px;
-
-    background:
-        /* UPDATED: Sweet-spot alignment dot moved from 65px to 55px to stay perfectly centered on the new 110px width */
-        radial-gradient(circle at 55px 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
-        /* Aerodynamic crown gloss reflection tracing the front top edge curve */
+    position: absolute;
+    background-color: #1a1c1e;
+    /* FORCE solid graphite base color so it can never be see-through */
+    background-image:
+        radial-gradient(circle at 50% 15px, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 4px),
+        /* Changed 55px to 50% to auto-center on all sizes */
         linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%),
-        /* Deep multi-tone carbon composite dark graphite body weave coloring centered low */
         radial-gradient(circle at 50% 65%, #323538 0%, #1a1c1e 60%, #0a0b0c 100%);
-
     border: 1px solid #141516;
-
-    /* Striking face plate moved to the TOP edge facing directly into the ball */
     border-top: 4px solid #7a7e82;
-
+    /* Titanium face plate facing directly into the ball */
     box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.6),
         inset 0 -8px 16px rgba(0, 0, 0, 0.85),
         inset 0 2px 3px rgba(255, 255, 255, 0.2);
-
-    /* UPDATED: Changed from -15px to -5px to pull the top edge back up exactly to the center equator of the ball */
-    margin-bottom: -20px;
     margin-left: -10px;
+    transition: width 0.1s ease, height 0.1s ease, margin-bottom 0.1s ease;
 }
 
-/* Authentic rear chassis stability perimeter weight cartridge trim */
+/* Authentic Rear Perimeter Stability Weight Trim */
 #clubSwipe.wood::before {
     content: '';
     position: absolute;
-
-    /* UPDATED PLACEMENT: Shifted inward and slightly up to prevent breaking through the new 110x75 perimeter bounds */
-    bottom: 6px;
-    left: 10px;
-    width: 78px;
-    height: 14px;
-
-    /* UPDATED CORNER RADII: Increased the bottom-right radius to 55px so this inner highlight curves inward 
-       and hugs the parent's steep asymmetrical bottom-right edge without popping out of alignment */
-    border-radius: 4px 6px 55px 22px;
-
     background: linear-gradient(to bottom, transparent, #3c3f42, #8b8e91 75%, #1b1c1d);
     opacity: 0.75;
     pointer-events: none;
     box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.2);
+    transition: width 0.1s ease, height 0.1s ease, bottom 0.1s ease, left 0.1s ease, border-radius 0.1s ease;
 }
 
+/* Secure Hosel Adapter: Welded flat to the lower heel axis to stop all warping splits */
 #clubSwipe.wood::after {
     content: '';
     position: absolute;
-
-    /* Positions the connection point securely on the left side of the wood crown */
     left: -58px;
-    top: 14px;
     width: 64px;
     height: 12px;
-
     border-radius: 3px 0 0 3px;
     background: linear-gradient(to right,
             #151617 55%, #ffffff 20%, #9fa2a5 45%,
-            /* Silver Handle/Shaft Segment */
             #151617 55%, #252729 65%,
-            /* Premium Black Trim Accent */
-            #151617 65%, #bcbfc2 80%, #7f8284 100%
-            /* Chrome Hosel Joint */
-        );
+            #151617 65%, #bcbfc2 80%, #7f8284 100%);
     border: 1px solid #141516;
     border-right: none;
     box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.3);
-
-    /* Angled precisely towards 10 o'clock matching your iron stance orientation */
     transform: rotate(55deg);
     transform-origin: right center;
     pointer-events: none;
+    transition: top 0.1s ease;
+}
+
+/* --------------------------------------------------------------------------
+   INDIVIDUAL WOOD MODEL DIMENSION OVERRIDES
+   -------------------------------------------------------------------------- */
+
+/* Driver: Massive, maximum-volume footprint with a deep bulbous rear profile */
+#clubSwipe.wood[class*="driver"] {
+    width: 112px;
+    height: 78px;
+    border-radius: 20px 40px 75px 45px;
+    margin-bottom: -21px;
+}
+
+#clubSwipe.wood[class*="driver"]::before {
+    bottom: 6px;
+    left: 10px;
+    width: 80px;
+    height: 14px;
+    border-radius: 4px 6px 55px 22px;
+}
+
+#clubSwipe.wood[class*="driver"]::after {
+    top: 0px;
+}
+
+/* 3 Wood: Noticeably scaled down. Shallower face-to-back depth for turf clearance */
+#clubSwipe.wood[class*="3-wood"] {
+    width: 102px;
+    height: 68px;
+    border-radius: 18px 36px 65px 40px;
+    margin-bottom: -16px;
+}
+
+#clubSwipe.wood[class*="3-wood"]::before {
+    bottom: 5px;
+    left: 9px;
+    width: 72px;
+    height: 13px;
+    border-radius: 4px 6px 48px 20px;
+}
+
+#clubSwipe.wood[class*="3-wood"]::after {
+    top: 0px;
+}
+
+/* 5 Wood: Slightly tighter fairway metal footprint */
+#clubSwipe.wood[class*="5-wood"] {
+    width: 96px;
+    height: 62px;
+    border-radius: 16px 32px 58px 36px;
+    margin-bottom: -13px;
+}
+
+#clubSwipe.wood[class*="5-wood"]::before {
+    bottom: 5px;
+    left: 8px;
+    width: 66px;
+    height: 12px;
+    border-radius: 3px 5px 42px 18px;
+}
+
+#clubSwipe.wood[class*="5-wood"]::after {
+    top: 0px;
+}
+
+/* Hybrid: Compact rescue profile. Narrow width and compressed body to mimic long iron control */
+#clubSwipe.wood[class*="hybrid"] {
+    width: 88px;
+    height: 54px;
+    border-radius: 14px 28px 48px 30px;
+    margin-bottom: -9px;
+}
+
+#clubSwipe.wood[class*="hybrid"]::before {
+    bottom: 4px;
+    left: 8px;
+    width: 58px;
+    height: 11px;
+    border-radius: 3px 4px 34px 15px;
+}
+
+#clubSwipe.wood[class*="hybrid"]::after {
+    top: 0px;
 }
 
 /* Rear view style of a premium cavity-back Iron chassis */
 #clubSwipe.iron {
     zoom: 0.95;
     width: 80px;
-    height: 40px; /* Locked frame height to ensure absolute stability */
-    border-radius: 5px 24px 10px 12px; /* Authentic high-toe to low-heel profile */
+    height: 40px;
+    /* Locked frame height to ensure absolute stability */
+    border-radius: 5px 24px 10px 12px;
+    /* Authentic high-toe to low-heel profile */
     border: 1px solid #6c6f72;
     box-shadow:
         0 6px 12px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.95);
-    margin-bottom: -6px; /* Aligns the sole baseline perfectly behind the ball */
+    margin-bottom: -6px;
+    /* Aligns the sole baseline perfectly behind the ball */
     position: absolute;
 }
 
@@ -330,7 +390,8 @@ html {
         inset 2px 2px 4px rgba(0, 0, 0, 0.85),
         0 1px 0 rgba(255, 255, 255, 0.4);
     pointer-events: none;
-    transition: all 0.1s ease; /* Smooth visual transitions on selection changes */
+    transition: all 0.1s ease;
+    /* Smooth visual transitions on selection changes */
 
     /* Isolates 3D loft distortion strictly to the face plate graphic */
     transform: perspective(150px) rotateX(var(--loft-angle, 0deg));
@@ -342,13 +403,15 @@ html {
     content: '';
     position: absolute;
     left: -54px;
-    top: 17px; /* Positioned cleanly on the lower heel anchor line */
+    top: 17px;
+    /* Positioned cleanly on the lower heel anchor line */
     width: 60px;
     height: 12px;
     border-radius: 3px 0 0 3px;
     background: linear-gradient(to right,
             #ced2d5 0%, #ffffff 20%, #9fa2a5 45%,
-            #151617 45%, #151617 65%, /* Black ferrule ring accent */
+            #151617 45%, #151617 65%,
+            /* Black ferrule ring accent */
             #ffffff 65%, #bcbfc2 80%, #7f8284 100%);
     border: 1px solid #6c6f72;
     border-right: none;
@@ -366,6 +429,7 @@ html {
 #clubSwipe.iron[class*="5-iron"] {
     background: linear-gradient(to bottom, #caced1 0%, #ffffff 25%, #b4b8bb 55%, #707375 100%);
 }
+
 #clubSwipe.iron[class*="5-iron"]::before {
     top: 17px;
     height: 19px;
@@ -373,10 +437,11 @@ html {
 
 /* 6 Iron: Face lines begin slightly peeking over the top line rim */
 #clubSwipe.iron[class*="6-iron"] {
-    background: 
+    background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 0px, rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 3px) top 3px center / 40px 4px no-repeat,
         linear-gradient(to bottom, #b4b8bb 0%, #caced1 8%, #ffffff 32%, #9fa2a5 60%, #636567 100%);
 }
+
 #clubSwipe.iron[class*="6-iron"]::before {
     top: 19px;
     height: 17px;
@@ -384,10 +449,11 @@ html {
 
 /* 7 Iron: Balanced middle-iron baseline profile with clear top-face scoring */
 #clubSwipe.iron[class*="7-iron"] {
-    background: 
+    background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.18) 0px, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px) top 3px center / 44px 6px no-repeat,
         linear-gradient(to bottom, #9fa2a5 0%, #caced1 14%, #ffffff 38%, #8b8e91 65%, #595b5c 100%);
 }
+
 #clubSwipe.iron[class*="7-iron"]::before {
     top: 21px;
     height: 15px;
@@ -395,10 +461,11 @@ html {
 
 /* 8 Iron: Back muscle moves lower, expanding the grooved face texture downward */
 #clubSwipe.iron[class*="8-iron"] {
-    background: 
+    background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0px, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 3px) top 4px center / 46px 9px no-repeat,
         linear-gradient(to bottom, #8b8e91 0%, #b4b8bb 20%, #ffffff 44%, #76797b 70%, #4a4c4d 100%);
 }
+
 #clubSwipe.iron[class*="8-iron"]::before {
     top: 23px;
     height: 13px;
@@ -406,10 +473,11 @@ html {
 
 /* 9 Iron: Scoring blade leaning back further, accentuating the groove depth */
 #clubSwipe.iron[class*="9-iron"] {
-    background: 
+    background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px, transparent 1px, transparent 3px) top 4px center / 48px 12px no-repeat,
         linear-gradient(to bottom, #76797b 0%, #9fa2a5 25%, #ffffff 50%, #636567 75%, #3a3b3c 100%);
 }
+
 #clubSwipe.iron[class*="9-iron"]::before {
     top: 25px;
     height: 11px;
@@ -417,10 +485,11 @@ html {
 
 /* PW Iron (Pitching Wedge): High launch angle, grooves framing the top half tightly */
 #clubSwipe.iron.pw-iron {
-    background: 
+    background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px) top 4px center / 50px 15px no-repeat,
         linear-gradient(to bottom, #636567 0%, #8b8e91 30%, #ffffff 55%, #525455 80%, #2c2d2e 100%);
 }
+
 #clubSwipe.iron.pw-iron::before {
     top: 27px;
     height: 9px;
@@ -428,10 +497,11 @@ html {
 
 /* SW Iron (Sand Wedge): Maximum laid-back loft. The rear cavity climbs to the absolute top line, exposing a tall, heavy steel muscle back flange at the bottom */
 #clubSwipe.iron.sw-iron {
-    background: 
+    background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px) top 5px center / 52px 18px no-repeat,
         linear-gradient(to bottom, #4d5051 0%, #76797b 36%, #ffffff 60%, #414243 85%, #222324 100%);
 }
+
 #clubSwipe.iron.sw-iron::before {
     top: 29px;
     height: 7px;
