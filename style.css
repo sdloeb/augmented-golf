@@ -432,6 +432,8 @@ html {
 /* 5 Iron: Low loft. Vertical stance leaves the back wall high; zero face or groove exposure */
 #clubSwipe.iron[class*="5-iron"] {
     background: linear-gradient(to bottom, #caced1 0%, #ffffff 25%, #b4b8bb 55%, #707375 100%);
+    --loft-angle: 5deg;
+    transform: perspective(200px) rotateX(6deg);
 }
 
 #clubSwipe.iron[class*="5-iron"]::before {
@@ -444,6 +446,8 @@ html {
     background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 0px, rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 3px) top 3px center / 40px 4px no-repeat,
         linear-gradient(to bottom, #b4b8bb 0%, #caced1 8%, #ffffff 32%, #9fa2a5 60%, #636567 100%);
+    --loft-angle: 10deg;
+    transform: perspective(200px) rotateX(12deg);
 }
 
 #clubSwipe.iron[class*="6-iron"]::before {
@@ -456,6 +460,8 @@ html {
     background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.18) 0px, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px) top 3px center / 44px 6px no-repeat,
         linear-gradient(to bottom, #9fa2a5 0%, #caced1 14%, #ffffff 38%, #8b8e91 65%, #595b5c 100%);
+    --loft-angle: 15deg;
+    transform: perspective(200px) rotateX(18deg);
 }
 
 #clubSwipe.iron[class*="7-iron"]::before {
@@ -468,6 +474,8 @@ html {
     background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0px, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 3px) top 4px center / 46px 9px no-repeat,
         linear-gradient(to bottom, #8b8e91 0%, #b4b8bb 20%, #ffffff 44%, #76797b 70%, #4a4c4d 100%);
+    --loft-angle: 20deg;
+    transform: perspective(200px) rotateX(24deg);
 }
 
 #clubSwipe.iron[class*="8-iron"]::before {
@@ -480,6 +488,8 @@ html {
     background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px, transparent 1px, transparent 3px) top 4px center / 48px 12px no-repeat,
         linear-gradient(to bottom, #76797b 0%, #9fa2a5 25%, #ffffff 50%, #636567 75%, #3a3b3c 100%);
+    --loft-angle: 25deg;
+    transform: perspective(200px) rotateX(30deg);
 }
 
 #clubSwipe.iron[class*="9-iron"]::before {
@@ -492,6 +502,8 @@ html {
     background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px) top 4px center / 50px 15px no-repeat,
         linear-gradient(to bottom, #636567 0%, #8b8e91 30%, #ffffff 55%, #525455 80%, #2c2d2e 100%);
+    --loft-angle: 32deg;
+    transform: perspective(200px) rotateX(36deg);
 }
 
 #clubSwipe.iron.pw-iron::before {
@@ -504,6 +516,8 @@ html {
     background:
         repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px) top 5px center / 52px 18px no-repeat,
         linear-gradient(to bottom, #4d5051 0%, #76797b 36%, #ffffff 60%, #414243 85%, #222324 100%);
+    --loft-angle: 40deg;
+    transform: perspective(200px) rotateX(44deg);
 }
 
 #clubSwipe.iron.sw-iron::before {
