@@ -3704,6 +3704,7 @@ function animate() {
                 }
 
                 // Establish base club layout shapes
+                const clubNameClass = activeClub.name.toLowerCase().replace(' ', '-');
                 let clubTypeClass = 'iron';
                 if (activeClub.name === 'Putter') {
                     clubTypeClass = 'putter';
@@ -3731,7 +3732,7 @@ function animate() {
                 const surfaceClass = isOffTeeBox ? ' fairway-rough-lie' : '';
 
                 if (input.state === 'IDLE') {
-                    clubSwipeElement.className = `idle-stance ${clubTypeClass}${aimClass}${tutorialHighlight}${surfaceClass}`;
+                    clubSwipeElement.className = `idle-stance ${clubTypeClass} ${clubNameClass}${aimClass}${tutorialHighlight}${surfaceClass}`;
 
                     clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important'); // Add this line: Locks ALL clubs to follow ball height
 
@@ -3745,7 +3746,7 @@ function animate() {
                         clubSwipeElement.style.transform = '';
                     }
                 } else if (input.state === 'PULLBACK') {
-                    clubSwipeElement.className = `pullback-stance ${clubTypeClass}${aimClass}`;
+                    clubSwipeElement.className = `pullback-stance ${clubTypeClass} ${clubNameClass}${aimClass}`;
 
                     if (activeClub.name === 'Putter') {
                         // NEW: Dynamically map the club's position directly to the real-time drag ratio
@@ -4525,7 +4526,8 @@ function init() {
                 clubSwipe.style.setProperty('--putter-follow-bottom', followBottom + '%');
             }
 
-            clubSwipe.className = '';
+            const clubNameClass = club.name.toLowerCase().replace(' ', '-');
+            clubSwipe.className = `swipe-animation ${clubNameClass}`;
 
             // Assign the style type based on the active club selection
             if (club.name === 'Putter') {

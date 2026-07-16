@@ -378,6 +378,96 @@ html {
     pointer-events: none;
 }
 
+/* ==========================================================================
+   DYNAMIC IRON LOFT VISUAL VARIATIONS (5-IRON DOWN TO SAND WEDGE)
+   ========================================================================== */
+
+/* 5 Iron: Low loft (27°). Upright vertical blade stance means max back wall height and no face visibility */
+#clubSwipe.iron[class*="5-iron"] {
+    height: 42px;
+    margin-bottom: -9px;
+    border-top: 1px solid #6c6f72;
+}
+
+#clubSwipe.iron[class*="5-iron"]::before {
+    top: 20px;
+    height: 18px;
+}
+
+/* 6 Iron: Moderate upright blade (31° loft) */
+#clubSwipe.iron[class*="6-iron"] {
+    height: 40px;
+    margin-bottom: -7px;
+    border-top: 2px solid #8b8e91;
+}
+
+#clubSwipe.iron[class*="6-iron"]::before {
+    top: 18px;
+    height: 17px;
+}
+
+/* 7 Iron: Standard middle-iron profile (35° loft) */
+#clubSwipe.iron[class*="7-iron"] {
+    height: 37px;
+    margin-bottom: -4px;
+    border-top: 3px solid #9fa2a5;
+}
+
+#clubSwipe.iron[class*="7-iron"]::before {
+    top: 17px;
+    height: 16px;
+}
+
+/* 8 Iron: Scoring iron starts leaning back (39° loft). Top edge face line becomes visible */
+#clubSwipe.iron[class*="8-iron"] {
+    height: 34px;
+    margin-bottom: -1px;
+    border-top: 5px solid #b4b8bb;
+}
+
+#clubSwipe.iron[class*="8-iron"]::before {
+    top: 15px;
+    height: 15px;
+}
+
+/* 9 Iron: Short scoring blade laying further back (43° loft) */
+#clubSwipe.iron[class*="9-iron"] {
+    height: 31px;
+    margin-bottom: 2px;
+    border-top: 7px solid #ced2d5;
+}
+
+#clubSwipe.iron[class*="9-iron"]::before {
+    top: 14px;
+    height: 13px;
+}
+
+/* PW Iron (Pitching Wedge): High launch angle (47° loft). Prominent slanted face plate visibility over the rim */
+#clubSwipe.iron.pw-iron {
+    height: 28px;
+    margin-bottom: 5px;
+    border-top: 9px solid #ced2d5;
+    background: linear-gradient(to bottom, #ced2d5 0%, #ffffff 15%, #b4b8bb 45%, #7f8284 100%);
+}
+
+#clubSwipe.iron.pw-iron::before {
+    top: 11px;
+    height: 13px;
+}
+
+/* SW Iron (Sand Wedge): Maximum laid-back profile (56° loft). Shallowest back wall with maximum face exposure */
+#clubSwipe.iron.sw-iron {
+    height: 25px;
+    margin-bottom: 8px;
+    border-top: 12px solid #e1e4e6;
+    background: linear-gradient(to bottom, #ffffff 0%, #b4b8bb 35%, #7f8284 100%);
+}
+
+#clubSwipe.iron.sw-iron::before {
+    top: 9px;
+    height: 12px;
+}
+
 /* Top view style of a premium milled blade putter - compact and detailed */
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
