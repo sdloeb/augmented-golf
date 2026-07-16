@@ -303,39 +303,34 @@ html {
     pointer-events: none;
 }
 
-/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
-
-/* Top view style of an Iron (Irons, PW, SW) - Ultra-Tall Back & Max Angle Front Profile */
+/* Rear view style of a premium cavity-back Iron chassis */
 #clubSwipe.iron {
     zoom: 0.95;
-    border-radius: 4px 20px 14px 10px;
-    width: 78px;
-    height: 37px;
-    /* Restored to stable default height */
-    background: linear-gradient(to bottom, #bcbfc2 0%, #ced2d5 20%, #ffffff 34%, #b4b8bb 55%, #7f8284 100%);
+    width: 80px;
+    height: 40px; /* Locked frame height to ensure absolute stability */
+    border-radius: 5px 24px 10px 12px; /* Authentic high-toe to low-heel profile */
     border: 1px solid #6c6f72;
     box-shadow:
         0 6px 12px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.95);
-    margin-bottom: -4px;
+    margin-bottom: -6px; /* Aligns the sole baseline perfectly behind the ball */
     position: absolute;
 }
 
-/* 1. Recessed Cavity Pocket: Now handles the 3D Loft Tilt independently */
+/* 1. Recessed Rear Cavity Pocket: Unified to preserve 3D loft transforms and smooth transitions */
 #clubSwipe.iron::before {
     content: '';
     position: absolute;
-    top: 17px;
-    left: 8px;
+    left: 9px;
     width: 58px;
-    height: 16px;
-    border-radius: 1.5px 10px 8px 2px;
-    background: linear-gradient(135deg, #595d60 0%, #8c9093 50%, #414345 100%);
-    border: 2px solid #525557;
+    border-radius: 2px 14px 6px 3px;
+    background: linear-gradient(135deg, #383a3b 0%, #636668 50%, #202122 100%);
+    border: 2px solid #4a4d4f;
     box-shadow:
-        inset 2px 2px 4px rgba(0, 0, 0, 0.8),
-        0 1px 1px rgba(255, 255, 255, 0.5);
+        inset 2px 2px 4px rgba(0, 0, 0, 0.85),
+        0 1px 0 rgba(255, 255, 255, 0.4);
     pointer-events: none;
+    transition: all 0.1s ease; /* Smooth visual transitions on selection changes */
 
     /* Isolates 3D loft distortion strictly to the face plate graphic */
     transform: perspective(150px) rotateX(var(--loft-angle, 0deg));
@@ -346,108 +341,101 @@ html {
 #clubSwipe.iron::after {
     content: '';
     position: absolute;
-    left: -58px;
-    top: 14px;
-    width: 64px;
+    left: -54px;
+    top: 17px; /* Positioned cleanly on the lower heel anchor line */
+    width: 60px;
     height: 12px;
     border-radius: 3px 0 0 3px;
     background: linear-gradient(to right,
             #ced2d5 0%, #ffffff 20%, #9fa2a5 45%,
-            #1d437a 45%, #1d437a 65%,
+            #151617 45%, #151617 65%, /* Black ferrule ring accent */
             #ffffff 65%, #bcbfc2 80%, #7f8284 100%);
     border: 1px solid #6c6f72;
     border-right: none;
     box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.2);
-
-    /* Stabilized 2D rotation matching your original layout alignment */
-    transform: rotate(58deg);
+    transform: rotate(57deg);
     transform-origin: right center;
     pointer-events: none;
 }
 
 /* ==========================================================================
-   DYNAMIC IRON LOFT VISUAL VARIATIONS (3D PERSPECTIVE PERSPECTIVE TILT)
+   DYNAMIC IRON LOFT VISUAL VARIATIONS (REAR-WALL PROFILES WITH FACE GROOVES)
    ========================================================================== */
 
-/* 5 Iron: Low loft (27°). Upright vertical blade stance */
+/* 5 Iron: Low loft. Vertical stance leaves the back wall high; zero face or groove exposure */
 #clubSwipe.iron[class*="5-iron"] {
-    --loft-angle: 10deg;
-    border-top: 1px solid #6c6f72;
+    background: linear-gradient(to bottom, #caced1 0%, #ffffff 25%, #b4b8bb 55%, #707375 100%);
 }
-
 #clubSwipe.iron[class*="5-iron"]::before {
-    top: 20px;
-    height: 18px;
+    top: 17px;
+    height: 19px;
 }
 
-/* 6 Iron: Moderate upright blade (31° loft) */
+/* 6 Iron: Face lines begin slightly peeking over the top line rim */
 #clubSwipe.iron[class*="6-iron"] {
-    --loft-angle: 18deg;
-    border-top: 2px solid #8b8e91;
+    background: 
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 0px, rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 3px) top 3px center / 40px 4px no-repeat,
+        linear-gradient(to bottom, #b4b8bb 0%, #caced1 8%, #ffffff 32%, #9fa2a5 60%, #636567 100%);
 }
-
 #clubSwipe.iron[class*="6-iron"]::before {
-    top: 18px;
+    top: 19px;
     height: 17px;
 }
 
-/* 7 Iron: Standard middle-iron profile (35° loft) */
+/* 7 Iron: Balanced middle-iron baseline profile with clear top-face scoring */
 #clubSwipe.iron[class*="7-iron"] {
-    --loft-angle: 26deg;
-    border-top: 3px solid #9fa2a5;
+    background: 
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.18) 0px, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px) top 3px center / 44px 6px no-repeat,
+        linear-gradient(to bottom, #9fa2a5 0%, #caced1 14%, #ffffff 38%, #8b8e91 65%, #595b5c 100%);
 }
-
 #clubSwipe.iron[class*="7-iron"]::before {
-    top: 17px;
-    height: 16px;
-}
-
-/* 8 Iron: Scoring iron starts leaning back (39° loft) */
-#clubSwipe.iron[class*="8-iron"] {
-    --loft-angle: 34deg;
-    border-top: 5px solid #b4b8bb;
-}
-
-#clubSwipe.iron[class*="8-iron"]::before {
-    top: 15px;
+    top: 21px;
     height: 15px;
 }
 
-/* 9 Iron: Short scoring blade laying further back (43° loft) */
+/* 8 Iron: Back muscle moves lower, expanding the grooved face texture downward */
+#clubSwipe.iron[class*="8-iron"] {
+    background: 
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0px, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 3px) top 4px center / 46px 9px no-repeat,
+        linear-gradient(to bottom, #8b8e91 0%, #b4b8bb 20%, #ffffff 44%, #76797b 70%, #4a4c4d 100%);
+}
+#clubSwipe.iron[class*="8-iron"]::before {
+    top: 23px;
+    height: 13px;
+}
+
+/* 9 Iron: Scoring blade leaning back further, accentuating the groove depth */
 #clubSwipe.iron[class*="9-iron"] {
-    --loft-angle: 42deg;
-    border-top: 7px solid #ced2d5;
+    background: 
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0px, rgba(0, 0, 0, 0.22) 1px, transparent 1px, transparent 3px) top 4px center / 48px 12px no-repeat,
+        linear-gradient(to bottom, #76797b 0%, #9fa2a5 25%, #ffffff 50%, #636567 75%, #3a3b3c 100%);
 }
-
 #clubSwipe.iron[class*="9-iron"]::before {
-    top: 14px;
-    height: 13px;
+    top: 25px;
+    height: 11px;
 }
 
-/* PW Iron (Pitching Wedge): High launch angle (47° loft) */
+/* PW Iron (Pitching Wedge): High launch angle, grooves framing the top half tightly */
 #clubSwipe.iron.pw-iron {
-    --loft-angle: 48deg;
-    border-top: 9px solid #ced2d5;
-    background: linear-gradient(to bottom, #ced2d5 0%, #ffffff 15%, #b4b8bb 45%, #7f8284 100%);
+    background: 
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px) top 4px center / 50px 15px no-repeat,
+        linear-gradient(to bottom, #636567 0%, #8b8e91 30%, #ffffff 55%, #525455 80%, #2c2d2e 100%);
 }
-
 #clubSwipe.iron.pw-iron::before {
-    top: 11px;
-    height: 13px;
+    top: 27px;
+    height: 9px;
 }
 
-/* SW Iron (Sand Wedge): Maximum laid-back profile (56° loft) */
+/* SW Iron (Sand Wedge): Maximum laid-back loft. The rear cavity climbs to the absolute top line, exposing a tall, heavy steel muscle back flange at the bottom */
 #clubSwipe.iron.sw-iron {
-    --loft-angle: 56deg;
-    border-top: 12px solid #e1e4e6;
-    background: linear-gradient(to bottom, #ffffff 0%, #b4b8bb 35%, #7f8284 100%);
+    background: 
+        repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px) top 5px center / 52px 18px no-repeat,
+        linear-gradient(to bottom, #4d5051 0%, #76797b 36%, #ffffff 60%, #414243 85%, #222324 100%);
 }
-
 #clubSwipe.iron.sw-iron::before {
-    top: 9px;
-    height: 12px;
+    top: 29px;
+    height: 7px;
 }
-
 
 /* Top view style of a premium milled blade putter - compact and detailed */
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
