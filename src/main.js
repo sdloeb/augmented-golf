@@ -3016,16 +3016,41 @@ function animate() {
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
-            // Dead center drop condition: sinks immediately if struck true
-            if (distanceToHole < 0.06 && trueWorldSpeed <= 0.42) {
-                isSinking = true;
-                ball.userData.isLipRiding = false;
-                physics.velocity.set(0, 0, 0);
-                physics.isMoving = false;
-                wasMoving = false;
+            // Dead center drop condition: sinks immediately if struck true, otherwise bounces off pin
+            if (distanceToHole < 0.06) {
+                if (trueWorldSpeed <= 0.12) {
+                    isSinking = true;
+                    ball.userData.isLipRiding = false;
+                    physics.velocity.set(0, 0, 0);
+                    physics.isMoving = false;
+                    wasMoving = false;
+                } else if (!ball.userData.hasHitPin) {
+                    // PIN RICOCHET: Struck the flagstick too hot!
+                    ball.userData.hasHitPin = true;
+                    ball.userData.isLipRiding = false;
+
+                    // Reverse the horizontal direction and apply a speed dampening penalty
+                    const currentSpeed = physics.velocity.length();
+                    let bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI + (Math.random() - 0.5) * 0.5;
+
+                    physics.velocity.x = Math.sin(bounceAngle) * currentSpeed * 0.35;
+                    physics.velocity.z = Math.cos(bounceAngle) * currentSpeed * 0.35;
+
+                    // Give it a tiny vertical pop off the rim for realistic physics texture
+                    if (!physics.isPutting) {
+                        physics.velocity.y = 0.08;
+                    }
+
+                    // Play the crisp iron/metallic audio note for hitting the pin
+                    if (sounds) sounds.play('iron');
+                }
             }
-            // Handle off-center lip captures when traveling at look-in speeds
-            else if (rawSpeed > 0.02) {
+            // Handle off-center lip captures when traveling at look-in speeds exclusively
+            else if (rawSpeed > 0.02 && trueWorldSpeed <= 0.45) {
+                if (distanceToHole > 0.25) {
+                    ball.userData.hasHitPin = false;
+                }
+
                 if (!ball.userData.isLipRiding) {
                     ball.userData.isLipRiding = true;
                     ball.userData.lipAngleTraveled = 0;
@@ -3082,9 +3107,14 @@ function animate() {
                         ball.userData.isLipRiding = false;
                     }
                 }
+            } else {
+                if (distanceToHole > 0.25) {
+                    ball.userData.hasHitPin = false;
+                }
             }
         } else {
             ball.userData.isLipRiding = false;
+            ball.userData.hasHitPin = false;
         }
     }
     if (isSinking) {
