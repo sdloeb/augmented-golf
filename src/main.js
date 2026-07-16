@@ -72,7 +72,8 @@ const HOLES_CONFIG = {
                 type: 'lake',
                 x: 0,
                 z: -82.5,
-                radius: 15.5
+                radiusX: 24.0, // Keeps original width
+                radiusZ: 11.0   // Shortens length down the fairway
             },
             // Restores your original twin traps
             { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.25 },
@@ -1093,10 +1094,10 @@ function resetEntireGame(advanceHole = false) {
         if (maxAllowedR > 0) {
             const testRadius = Math.random() * maxAllowedR;
             const tx = greenCenterX + Math.cos(testAngle) * testRadius;
-            const tz = greenCenterZ + Math.sin(testAngle) * testRadius;
+            const tz = greenCenterZ - Math.sin(testAngle) * testRadius; // FIXED: Inverted Z axis to match standard game angle mapping
 
             // Cross-verify against the point's resolved angle to guarantee safety on asymmetric indentations
-            const resultAngle = Math.atan2(tz - greenCenterZ, tx - greenCenterX);
+            const resultAngle = Math.atan2(-(tz - greenCenterZ), tx - greenCenterX); // FIXED: Added negative sign to match main.js coordinate alignment
             const resultDist = Math.sqrt((tx - greenCenterX) ** 2 + (tz - greenCenterZ) ** 2);
             const resultEdgeR = window.getGreenRadiusAtAngle(resultAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
 
@@ -1229,16 +1230,18 @@ function resetEntireGame(advanceHole = false) {
                 }
             }
             else if (hz.type === 'lake') {
-                const r = hz.radius || 15;
-                const waterGeo = new THREE.PlaneGeometry(r * 2, r * 2, 24, 24);
+                const rx = hz.radiusX || hz.radius || 15;
+                const rz = hz.radiusZ || hz.radius || 15;
+                const waterGeo = new THREE.PlaneGeometry(rx * 2, rz * 2, 24, 24);
                 const waterGeoPos = waterGeo.attributes.position;
                 for (let j = 0; j < waterGeoPos.count; j++) {
                     let pX = waterGeoPos.getX(j);
                     let pY = waterGeoPos.getY(j);
-                    let pDist = Math.sqrt(pX * pX + pY * pY);
-                    if (pDist > r) {
-                        waterGeoPos.setX(j, (pX / pDist) * r);
-                        waterGeoPos.setY(j, (pY / pDist) * r);
+                    let normDist = (pX / rx) * (pX / rx) + (pY / rz) * (pY / rz);
+                    if (normDist > 1) {
+                        let angle = Math.atan2(pY, pX);
+                        waterGeoPos.setX(j, Math.cos(angle) * rx);
+                        waterGeoPos.setY(j, Math.sin(angle) * rz);
                     }
                 }
                 waterGeo.computeVertexNormals();
@@ -1257,12 +1260,12 @@ function resetEntireGame(advanceHole = false) {
                 );
                 waterMesh.rotation.x = -Math.PI / 2;
                 waterMesh.position.set(hz.x, 0.01, hz.z);
-                waterMesh.userData = { radius: r };
+                waterMesh.userData = { radiusX: rx, radiusZ: rz };
                 scene.add(waterMesh);
                 waterHazards.push(waterMesh);
 
                 const shoreMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(r - 0.05, r + 0.6, 64),
+                    new THREE.RingGeometry(rx - 0.05, rx + 0.6, 64),
                     new THREE.MeshStandardMaterial({
                         color: 0x655545,
                         roughness: 0.95,
@@ -1270,6 +1273,7 @@ function resetEntireGame(advanceHole = false) {
                     })
                 );
                 shoreMesh.rotation.x = -Math.PI / 2;
+                shoreMesh.scale.set(1, rz / rx, 1);
                 shoreMesh.position.set(hz.x, 0.015, hz.z);
                 scene.add(shoreMesh);
                 waterShores.push(shoreMesh);
@@ -1566,7 +1570,6 @@ function resetEntireGame(advanceHole = false) {
                     if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
                 }
 
-                // MODIFIED: Constrained the rectangular ocean check to only apply to coordinates past our curved cliff face line
                 if (water.userData && water.userData.isRectangular) {
                     let pathCenter = 0;
                     if (worldZ >= -125) {
@@ -1577,8 +1580,7 @@ function resetEntireGame(advanceHole = false) {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
                     }
-                    let cliffPadding = 15.5;
-                    if (worldZ < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))); }
+                    let cliffPadding = worldZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))) : 15.5;
                     const cliffEdgeLimit = pathCenter + cliffPadding;
                     if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
                         worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
@@ -1592,16 +1594,16 @@ function resetEntireGame(advanceHole = false) {
                 } else {
                     const dxW = worldX - water.position.x;
                     const dzW = worldZ - water.position.z;
-                    // FIXED: Use squared distance to avoid heavy Math.sqrt calculations on every single vertex
-                    const distToWaterSq = dxW * dxW + dzW * dzW;
-                    const lakeRadius = water.userData.radius || 5;
+                    const rx = water.userData.radiusX || water.userData.radius || 5;
+                    const rz = water.userData.radiusZ || water.userData.radius || 5;
+                    const wAngle = Math.atan2(dzW, dxW);
+                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
                     const maxRadius = lakeRadius + 0.1;
-                    if (distToWaterSq < maxRadius * maxRadius) { // Pull grass down inside the shore ring boundary to prevent jagged clips
+                    if (dxW * dxW + dzW * dzW < maxRadius * maxRadius) {
                         insideWaterZone = true;
                     }
                 }
             });
-
             // Scan active sand trap footprint borders using correct userData properties
             let insideSandZone = false;
             let activeSandDepth = 0;
@@ -1963,7 +1965,7 @@ function resetEntireGame(advanceHole = false) {
     // Snap the flat water shore dirt borders onto the 3D ground contour heightmap
     waterShores.forEach(shore => {
         if (shore.geometry && shore.geometry.type === 'RingGeometry') {
-            deformCourseMesh(shore, false);
+            deformCourseMesh(shore, true); // FIXED: Set to true to account for the oval scale properties
         }
     });
 
@@ -3833,10 +3835,16 @@ function animate() {
                 // Prevent the ring from sinking into water hazard trenches
                 if (physics.waterHazards) { // Add this line
                     physics.waterHazards.forEach(water => { // Add this line
+                        if (water.userData.isRectangular) return;
                         const dxW = ringX - water.position.x; // Add this line
                         const dzW = ringZ - water.position.z; // Add this line
                         const distToWater = Math.sqrt(dxW * dxW + dzW * dzW); // Add this line
-                        const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5; // Add this line
+
+                        const rx = water.userData.radiusX || water.userData.radius || 5;
+                        const rz = water.userData.radiusZ || water.userData.radius || 5;
+                        const wAngle = Math.atan2(dzW, dxW);
+                        const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+
                         if (distToWater < lakeRadius + 0.6) { // Add this line
                             baseGroundY = Math.max(baseGroundY, water.position.y); // Add this line
                         } // Add this line
@@ -3856,10 +3864,16 @@ function animate() {
                     let vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
                     if (physics.waterHazards) {
                         physics.waterHazards.forEach(water => {
+                            if (water.userData.isRectangular) return;
                             const dxW = vWorldX - water.position.x;
                             const dzW = vWorldZ - water.position.z;
                             const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                            const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+
+                            const rx = water.userData.radiusX || water.userData.radius || 5;
+                            const rz = water.userData.radiusZ || water.userData.radius || 5;
+                            const wAngle = Math.atan2(dzW, dxW);
+                            const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+
                             if (distToWater < lakeRadius + 0.6) {
                                 vGroundY = Math.max(vGroundY, water.position.y);
                             }

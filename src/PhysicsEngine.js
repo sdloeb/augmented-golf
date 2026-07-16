@@ -356,7 +356,12 @@ export class PhysicsEngine {
                     const dxW = x - water.position.x;
                     const dzW = z - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                    const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+
+                    const rx = water.userData.radiusX || water.userData.radius || 5;
+                    const rz = water.userData.radiusZ || water.userData.radius || 5;
+                    const wAngle = Math.atan2(dzW, dxW);
+                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+
                     const centerLakeHeight = water.position.y - 0.01;
 
                     if (distToWater < lakeRadius) {
@@ -1035,7 +1040,12 @@ export class PhysicsEngine {
                     const dxW = this.ball.position.x - water.position.x;
                     const dzW = this.ball.position.z - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-                    const lakeRadius = water.userData && water.userData.radius ? water.userData.radius : 5;
+
+                    const rx = water.userData.radiusX || water.userData.radius || 5;
+                    const rz = water.userData.radiusZ || water.userData.radius || 5;
+                    const wAngle = Math.atan2(dzW, dxW);
+                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+
                     if (distToWater < lakeRadius) {
                         this.hitWater = true;
                         this.velocity.set(0, 0, 0);
