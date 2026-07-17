@@ -2935,7 +2935,14 @@ function animate() {
 
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-            ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+            // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
+            let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+            if (physics.currentSurface === 'Sand Trap') {
+                restingSandY -= 0.065 * (ball.scale.x / 0.51);
+            } else if (physics.currentSurface === 'Rough') {
+                restingSandY -= 0.065 * (ball.scale.x / 0.51);
+            }
+            ball.position.y = restingSandY;
             ball.visible = true;
 
             if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
@@ -2976,7 +2983,14 @@ function animate() {
 
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-            ball.position.y = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+            // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
+            let secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
+            if (physics.currentSurface === 'Sand Trap') {
+                secondaryRestY -= 0.065 * (ball.scale.x / 0.51);
+            } else if (physics.currentSurface === 'Rough') {
+                secondaryRestY -= 0.065 * (ball.scale.x / 0.51);
+            }
+            ball.position.y = secondaryRestY;
             ball.visible = true;
 
             // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
@@ -3372,9 +3386,12 @@ function animate() {
             const camZ = ball.position.z - aimDirZ * camDist; // Add this line
             const camGroundY = physics.getGroundHeight(camX, camZ); // Add this line: Samples the hill height behind the ball
 
-            // FIXED: Prevent the camera from plunging if the ball is sinking into the cup
+            // FIXED: Camera tracking now always anchors to the true terrain surface level, preventing the lens from clipping under bunker walls
+            // FIXED: Restore natural ball height tracking so the camera stays low and perfectly level behind the club
             const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
-            const camY = isSand ? (stableBallHeight + camHeight) : Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
+
+            // FIXED: Remove the conditional check so sand traps use the exact same hill-clipping guard as the fairway and rough
+            const camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
 
             cameraTargetPos.set(camX, camY, camZ); // Modify this line
             cameraLookAt.set(lookTargetX, lookTargetY + 3 + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
@@ -3703,6 +3720,20 @@ function animate() {
     // Apply continuous interpolation glide to eliminate calculation artifacts completely
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, activeCameraSpeed);
     ball.scale.set(currentScale, currentScale, currentScale);
+    // FIXED: Continuously adjust stationary ball height against its live shrinking scale
+    // to keep it perfectly nestled into the surface lines from low horizon camera views
+    if (!physics.isMoving && !isSinking && !isOverheadActive) {
+        const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
+        const ballRadius = 0.25 * currentScale;
+
+        let surfaceHeight = terrainH + ballRadius; // Perfect surface touch point for Fairway/Green
+        if (physics.currentSurface === 'Sand Trap') {
+            surfaceHeight -= ballRadius * 0.85; // Sinks 85% of its live radius so it stays heavily plugged
+        } else if (physics.currentSurface === 'Rough') {
+            surfaceHeight -= ballRadius * 0.50; // Sinks 50% of its live radius into the grass blades
+        }
+        ball.position.y = surfaceHeight;
+    }
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
     if (clubSwipeElement && input) {
@@ -3718,11 +3749,15 @@ function animate() {
 
                 // === REPLACE WITH THIS EXACT BLOCK ===
                 // Add these lines: Calculates the ball's real-time 2D screen percentage height
+
                 const tempProj = new THREE.Vector3();
                 ball.getWorldPosition(tempProj);
                 tempProj.project(camera);
                 const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
-                const dynamicBottom = ballBottomPercent - 4.0; // Automatically tracks ball equator with calibration offset
+
+                // FIXED: Since the 3D ball is physically lowered into the sand, the 2D overlay tracks the new equator automatically. 
+                // Standardizing clubCushion to 4.0 across all lies prevents the double-sinking visual gap.
+                const dynamicBottom = ballBottomPercent - 4.0;
 
                 // NEW: Dynamically bind the backspin button position relative to the club's Y baseline coordinates
                 const backspinBtnEl = document.getElementById('backspinBtn');
