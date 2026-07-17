@@ -667,14 +667,9 @@ export class PhysicsEngine {
             }
             floorHeight += roughLift * 0.3;
 
-            // D. ANTICIPATE RESTING SCALE: Look ahead to find what size the ball will snap to when it stops.
-            // This eliminates the height-popping artifact when transitioning from moving to stationary!
-            const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-            const targetRestingScale = isMobileScreen ? 0.73 : 0.51;
-            const targetRestingRadius = 0.25 * targetRestingScale;
-
-            // To visually swallow exactly 1/4 of the ball, the center must sit half a resting radius above the grass line
-            groundY = floorHeight + (targetRestingRadius * 0.5);
+            // D. ANTICIPATE RESTING SCALE: Use floorHeight so the rolling ball rides perfectly on top of the lifted rough
+            const currentBallRadius = 0.25 * this.ball.scale.x;
+            groundY = floorHeight + currentBallRadius;
         }
 
         // Cleaned up putting override loop so it doesn't break approach shot rollouts

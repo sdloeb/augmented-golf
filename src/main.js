@@ -3727,10 +3727,67 @@ function animate() {
         const ballRadius = 0.25 * currentScale;
 
         let surfaceHeight = terrainH + ballRadius; // Perfect surface touch point for Fairway/Green
-        if (physics.currentSurface === 'Sand Trap') {
+        if (teeBox && teeBox.visible) {
+            surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
+        } else if (physics.currentSurface === 'Sand Trap') {
             surfaceHeight -= ballRadius * 0.85; // Sinks 85% of its live radius so it stays heavily plugged
         } else if (physics.currentSurface === 'Rough') {
-            surfaceHeight -= ballRadius * 0.50; // Sinks 50% of its live radius into the grass blades
+            // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
+            const bX = ball.position.x;
+            const bZ = ball.position.z;
+            const distanceToPath = physics.getDistanceToSpline(bX, bZ);
+
+            const gX = bX - physics.greenCenterX;
+            const gZ = bZ - physics.greenCenterZ;
+            const distToGreenCenter = Math.sqrt(gX * gX + gZ * gZ);
+            const ballAngle = Math.atan2(-gZ, gX);
+            const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+            const fringeOuterR = activeRadius + 1.0;
+
+            const approachDot = (physics.approachDirX !== undefined) ? (gX * physics.approachDirX + gZ * physics.approachDirZ) : -999;
+            const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
+
+            let activeFW = physics.fairwayWidth;
+            if (!(physics.greenCenterZ < -165 && physics.greenCenterZ > -185)) {
+                const apronStart = -activeRadius - 12.0;
+                const apronEnd = -activeRadius;
+                if (approachDot > apronStart && approachDot <= apronEnd) {
+                    let tApron = (approachDot - apronStart) / 12.0;
+                    activeFW = THREE.MathUtils.lerp(physics.fairwayWidth, Math.max(physics.fairwayWidth, activeRadius + 1.0), tApron);
+                } else if (approachDot > apronEnd) {
+                    activeFW = Math.max(physics.fairwayWidth, activeRadius + 1.0);
+                }
+            }
+            if (physics.greenCenterZ < -128 && physics.greenCenterZ > -152 && bZ < -125) {
+                let t = Math.min(1.0, Math.max(0.0, (-125 - bZ) / 14.0));
+                activeFW = THREE.MathUtils.lerp(physics.fairwayWidth, 16.0, t);
+            }
+            if (physics.greenCenterZ < -165 && physics.greenCenterZ > -185) {
+                if (bZ <= -20.0 && bZ >= -140.0) activeFW = 18.0;
+                else if (bZ < -140.0 && bZ >= -152.0) activeFW = THREE.MathUtils.lerp(18.0, 8.0, (-140.0 - bZ) / 12.0);
+            }
+            const isMobilePortrait = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1;
+            activeFW += isMobilePortrait ? 1.09 : 0.80;
+
+            let visualFloorHeight = terrainH;
+            if (distanceToPath <= activeFW) {
+                visualFloorHeight -= 0.12;
+            } else if (distanceToPath <= activeFW + 2.26) {
+                const t = (distanceToPath - activeFW) / 3.5;
+                const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
+                visualFloorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
+            }
+
+            let roughLift = 0;
+            if (isPastFairway) {
+                if (distToGreenCenter > fringeOuterR) roughLift = 1.0;
+            } else {
+                if (distanceToPath > activeFW) roughLift = 1.0;
+            }
+            visualFloorHeight += roughLift * 0.3;
+
+            // Now apply the 50% sinking depth cleanly against the true visual surface line
+            surfaceHeight = visualFloorHeight + ballRadius - (ballRadius * 0.50);
         }
         ball.position.y = surfaceHeight;
     }
