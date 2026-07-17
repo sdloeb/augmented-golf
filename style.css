@@ -259,14 +259,16 @@ html {
 #clubSwipe.wood::after {
     content: '';
     position: absolute;
-    left: -58px;
-    width: 64px;
-    height: 12px;
-    border-radius: 3px 0 0 3px;
-    background: linear-gradient(to right,
-            #151617 55%, #ffffff 20%, #9fa2a5 45%,
-            #151617 55%, #252729 65%,
-            #151617 65%, #bcbfc2 80%, #7f8284 100%);
+    left: -345px;
+    /* CHANGED: Shifted left to accommodate the full length */
+    width: 350px;
+    /* CHANGED: Extended to a full-length shaft */
+    height: 8px;
+    /* CHANGED: Made sleeker and more realistic */
+    border-radius: 0;
+    background:
+        linear-gradient(to bottom, #161718 0%, #3a3c3e 30%, #252728 60%, #0b0c0c 100%) left / 100px 100% no-repeat,
+        linear-gradient(to bottom, #8a8e93 0%, #ffffff 30%, #a2a6a8 60%, #4b4d4f 100%);
     border: 1px solid #141516;
     border-right: none;
     box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.3);
@@ -384,26 +386,28 @@ html {
     display: none;
 }
 
-/* The Hosel Neck Adapter Offset: Adjusted to weld seamlessly into the heel curve of the SVG blade */
+/* 2. The Hosel Neck Adapter Offset: Locked flat to eliminate 3D warping */
 #clubSwipe.iron::after {
     content: '';
     position: absolute;
-    left: -44px;
-    /* Shifted right to close the alignment gap completely */
-    top: 26px;
-    /* Seated flush into the lower heel anchor line */
-    width: 58px;
-    height: 11px;
-    border-radius: 3px 0 0 3px;
-    background: linear-gradient(to right,
-            #9fa2a5 0%, #ffffff 25%, #8c9093 50%,
-            #151617 50%, #151617 68%,
-            #ffffff 68%, #bcbfc2 85%, #7f8284 100%);
-    box-shadow: -2px 3px 5px rgba(0, 0, 0, 0.25);
-    transform: rotate(61deg);
+    left: -315px;
+    /* MATCHED: Shifted left to fit the 350px shaft length on the iron heel */
+    top: 20px;
+    /* Positioned cleanly on the lower heel anchor line */
+    width: 325px;
+    /* MATCHED: Extended to match your full-length wood shaft */
+    height: 8px;
+    /* MATCHED: Uniform thickness across your whole club set */
+    border-radius: 0;
+    background:
+        linear-gradient(to bottom, #161718 0%, #3a3c3e 30%, #252728 60%, #0b0c0c 100%) left / 100px 100% no-repeat,
+        linear-gradient(to bottom, #8a8e93 0%, #ffffff 30%, #a2a6a8 60%, #4b4d4f 100%);
+    border: 1px solid #6c6f72;
+    border-right: none;
+    box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.2);
+    transform: rotate(57deg);
     transform-origin: right center;
     pointer-events: none;
-    z-index: 2;
 }
 
 /* ==========================================================================
