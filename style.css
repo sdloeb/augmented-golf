@@ -224,7 +224,7 @@ html {
 
 /* Base Wood Profile: Premium Pear-Shaped Carbon Crown & Titanium Face Silhouette */
 #clubSwipe.wood {
-    zoom: 0.75;
+    zoom: .85;
     position: absolute;
     background-color: #1a1c1e;
     /* FORCE solid graphite base color so it can never be see-through */
