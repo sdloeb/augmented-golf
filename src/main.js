@@ -2936,10 +2936,11 @@ function animate() {
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
             // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
+            // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
             let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
             if (physics.currentSurface === 'Sand Trap') {
                 const ballRadius = 0.25 * ball.scale.x;
-                restingSandY -= ballRadius * 0.25; // Always exactly 1/4 down in the sand
+                restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.02 + ballRadius - (ballRadius * 0.30);
             } else if (physics.currentSurface === 'Rough') {
                 restingSandY -= 0.065 * (ball.scale.x / 0.51);
             }
@@ -2987,7 +2988,8 @@ function animate() {
             // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
             let secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
             if (physics.currentSurface === 'Sand Trap') {
-                secondaryRestY -= 0.065 * (ball.scale.x / 0.51);
+                const ballRadius = 0.25 * ball.scale.x;
+                secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.02 + ballRadius - (ballRadius * 0.30);
             } else if (physics.currentSurface === 'Rough') {
                 secondaryRestY -= 0.065 * (ball.scale.x / 0.51);
             }
@@ -3727,16 +3729,26 @@ function animate() {
     const currentScale = THREE.MathUtils.lerp(ball.scale.x, finalBallTargetScale, activeCameraSpeed);
     ball.scale.set(currentScale, currentScale, currentScale);
     // FIXED: Continuously adjust stationary ball height against its live shrinking scale
-    // to keep it perfectly nestled into the surface lines from low horizon camera views
     if (!physics.isMoving && !isSinking && !isOverheadActive) {
         const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
         const ballRadius = 0.25 * currentScale;
 
+        let ballIsOverSand = physics.currentSurface === 'Sand Trap';
+        if (!ballIsOverSand && physics.sandTraps) {
+            for (let sand of physics.sandTraps) {
+                const dx = ball.position.x - sand.position.x;
+                const dz = ball.position.z - sand.position.z;
+                const sRad = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.4;
+                if (Math.sqrt(dx * dx + dz * dz) < sRad) { ballIsOverSand = true; break; }
+            }
+        }
+
         let surfaceHeight = terrainH + ballRadius; // Perfect surface touch point for Fairway/Green
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
-        } else if (physics.currentSurface === 'Sand Trap') {
-            surfaceHeight -= ballRadius * 0.02; // Always exactly 1/4 down in the sand
+        } else if (ballIsOverSand) {
+            // FIXED: Keeps the stationary ball matching the physics engine checks to remain sunk by 25% everywhere
+            surfaceHeight = terrainH + ballRadius - (ballRadius * 0.25);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const bX = ball.position.x;

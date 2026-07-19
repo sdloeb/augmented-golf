@@ -684,10 +684,20 @@ export class PhysicsEngine {
         }
 
         // VISUAL DEPTH CALIBRATION: Sinks the ball base slightly below the surface line for specific lies
-        if (this.currentSurface === 'Sand Trap') {
+        let ballIsOverSand = this.currentSurface === 'Sand Trap';
+        if (!ballIsOverSand && this.sandTraps) {
+            for (let sand of this.sandTraps) {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
+                const sRad = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.4;
+                if (Math.sqrt(dx * dx + dz * dz) < sRad) { ballIsOverSand = true; break; }
+            }
+        }
+
+        if (ballIsOverSand) {
             const ballRadius = 0.25 * this.ball.scale.x;
-            groundY -= ballRadius * 0.02; // Always exactly 1/4 down in the sand
-            // Sinks the ball base down into the bunker sand grains so it looks heavy/plugged
+            // FIXED: Forces a uniform 25% sink depth below the local sand contour height, spanning all high edges perfectly
+            groundY = greenHeightOffset + ballRadius - (ballRadius * 0.25);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);
