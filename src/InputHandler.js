@@ -420,8 +420,8 @@ export class InputHandler {
             if (this.backswingDuration > 650) {
                 tempoModifier = Math.max(0.80, 1.0 - (this.backswingDuration - 650) * 0.005);
             }
-            // Only apply a ratio penalty if the forward downswing is abnormally slow/lazy compared to backswing
-            if (tempoRatio > 1.8) {
+            // Only apply a ratio penalty if the forward downswing is abnormally slow/lazy compared to backswing (exempt short control chips)
+            if (tempoRatio > 1.8 && actualForwardDistance > 45) {
                 tempoModifier *= Math.max(0.45, 1.8 / tempoRatio);
             }
         }
@@ -434,14 +434,14 @@ export class InputHandler {
             finalPower *= (360 / 160); // Scale compensation so you don't lose physical power from the shorter drag range!
         }
 
-        // 2. BASELINE RE-ACCELERATION DOWNSWING SPEED CHECK
-        if (!club.isGreen) {
+        // 2. BASELINE RE-ACCELERATION DOWNSWING SPEED CHECK (exempt short control chips)
+        if (!club.isGreen && actualForwardDistance > 45) {
             let speedMultiplier = 1.0;
             if (forwardDuration > 130) {
                 speedMultiplier = Math.max(0.4, 1.0 - (forwardDuration - 130) * 0.0025);
             }
             finalPower *= speedMultiplier;
-        }
+        } 
 
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits

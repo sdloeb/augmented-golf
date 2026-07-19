@@ -685,8 +685,8 @@ export class PhysicsEngine {
 
         // VISUAL DEPTH CALIBRATION: Sinks the ball base slightly below the surface line for specific lies
         if (this.currentSurface === 'Sand Trap') {
-            // FIXED: Standardized the height modifier against a stable radius fraction to keep the bunker depth perfectly even
-            groundY -= 0.065 * (this.ball.scale.x / 0.51);
+            const ballRadius = 0.25 * this.ball.scale.x;
+            groundY -= ballRadius * 0.02; // Always exactly 1/4 down in the sand
             // Sinks the ball base down into the bunker sand grains so it looks heavy/plugged
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations

@@ -2938,7 +2938,8 @@ function animate() {
             // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
             let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
             if (physics.currentSurface === 'Sand Trap') {
-                restingSandY -= 0.065 * (ball.scale.x / 0.51);
+                const ballRadius = 0.25 * ball.scale.x;
+                restingSandY -= ballRadius * 0.25; // Always exactly 1/4 down in the sand
             } else if (physics.currentSurface === 'Rough') {
                 restingSandY -= 0.065 * (ball.scale.x / 0.51);
             }
@@ -3348,7 +3349,7 @@ function animate() {
         // === REPLACE WITH THIS EXACT BLOCK ===
         // ADJUSTED: Lift camera height and tighten distance specifically for deep sand traps so you can see over the bunker lip
         const camDist = onGreen ? 2.5 : (isSand ? 1.5 : (isChippingClose ? 4.5 : 7.5));
-        const camHeight = onGreen ? 1.0 : (isSand ? 0.1 : (isChippingClose ? 1.4 : 2.2));
+        const camHeight = onGreen ? 1.0 : (isSand ? 0.35 : (isChippingClose ? 1.4 : 2.2));
         const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : (isChippingClose ? 8.0 : 15.0));
         if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
@@ -3391,10 +3392,15 @@ function animate() {
             const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
 
             // FIXED: Remove the conditional check so sand traps use the exact same hill-clipping guard as the fairway and rough
-            const camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
+            let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
+            let activeLookUp = 3.0;
+            if (isSand) {
+                camY = stableBallHeight + camHeight; // Force camera to stay low inside the sand trap with the ball
+                activeLookUp = 0.4;                  // Lower the lens pitch so the ball stays centered on screen
+            }
 
             cameraTargetPos.set(camX, camY, camZ); // Modify this line
-            cameraLookAt.set(lookTargetX, lookTargetY + 3 + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
+            cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
         }
     }
 
@@ -3730,7 +3736,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (physics.currentSurface === 'Sand Trap') {
-            surfaceHeight -= ballRadius * 0.85; // Sinks 85% of its live radius so it stays heavily plugged
+            surfaceHeight -= ballRadius * 0.02; // Always exactly 1/4 down in the sand
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const bX = ball.position.x;
