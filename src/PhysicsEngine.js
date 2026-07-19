@@ -321,7 +321,7 @@ export class PhysicsEngine {
             if (distFromGreen < platformRadius) {
                 const tPlateau = Math.min(1.0, (platformRadius - distFromGreen) / 4.5);
                 const smoothPlateau = tPlateau * tPlateau * (3 - 2 * tPlateau);
-                baseHeight += smoothPlateau * 1.00; // Seamlessly raises the entire green 0.70 units high
+                baseHeight += smoothPlateau * 0.70; // Seamlessly raises the entire green 0.70 units high
             }
         }
 
@@ -1163,7 +1163,7 @@ export class PhysicsEngine {
         const stopThreshold = this.isPutting ? 0.018 : (onGreen ? 0.018 : 0.01);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
-            this.isMoving = false;
+            this.isMoving = false;  
             this.isPutting = false;
         }
     }

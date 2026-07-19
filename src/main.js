@@ -3798,15 +3798,20 @@ function animate() {
 
             let roughLift = 0;
             if (isPastFairway) {
-                if (distToGreenCenter > fringeOuterR) roughLift = 1.0;
-            } else {
-                if (distanceToPath > activeFW) roughLift = 1.0;
-            }
-            visualFloorHeight += roughLift * 0.3;
+                if (isPastFairway) {
+                    if (distToGreenCenter > fringeOuterR) roughLift = 1.0;
+                } else {
+                    if (distanceToPath > activeFW) roughLift = 1.0;
+                }
+                visualFloorHeight += roughLift * 0.3;
 
-            // Now apply the 50% sinking depth cleanly against the true visual surface line
-            surfaceHeight = visualFloorHeight + ballRadius - (ballRadius * 0.50);
-        }
+                // Now apply the 50% sinking depth cleanly against the true visual surface line
+                surfaceHeight = visualFloorHeight + ballRadius - (ballRadius * 0.50);
+            } // <--- MOVE THIS BRACKET HERE (directly after the 50% sinking calculation)
+
+            ball.position.y = surfaceHeight;
+        } // <--- This bracket closes the outer "!physics.isMoving" check
+
         ball.position.y = surfaceHeight;
     }
     // --- DYNAMIC CLUB STANCE STATE MACHINE ---
