@@ -314,7 +314,7 @@ function updateDistanceDisplay() {
             ctx.scale(canvas.width / 52, canvas.height / 52);
 
             let currentType = physics.currentSurface || 'Rough';
-            if (strokeCount === 0 && !physics.isMoving) {
+            if (teeBox && teeBox.visible && !physics.isMoving) {
                 currentType = 'Tee Box';
             }
 
@@ -2949,6 +2949,10 @@ function animate() {
 
             if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
                 teeBox.visible = true;
+                if (golfTee) {
+                    golfTee.position.set(ball.position.x, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.131, ball.position.z);
+                    golfTee.visible = true;
+                }
             }
 
             // Re-align the camera safely behind the ball looking toward the hole cup
@@ -2999,6 +3003,10 @@ function animate() {
             // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
             if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
                 teeBox.visible = true;
+                if (golfTee) {
+                    golfTee.position.set(ball.position.x, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.131, ball.position.z);
+                    golfTee.visible = true;
+                }
             }
 
             // Re-align the camera safely behind the ball looking toward the hole cup
@@ -4548,6 +4556,7 @@ function init() {
         const isOffTee = teeBox && teeBox.visible;
 
         if (teeBox) teeBox.visible = false;
+        if (golfTee) golfTee.visible = false;
         tracerPoints = [];
 
 
