@@ -3734,7 +3734,7 @@ function animate() {
         const ballRadius = 0.25 * currentScale;
 
         let ballIsOverSand = physics.currentSurface === 'Sand Trap';
-        if (!ballIsOverSand && physics.sandTraps) {
+        if (!ballIsOverSand && physics.currentSurface !== 'Green' && physics.sandTraps) {
             for (let sand of physics.sandTraps) {
                 const dx = ball.position.x - sand.position.x;
                 const dz = ball.position.z - sand.position.z;
@@ -3743,7 +3743,7 @@ function animate() {
             }
         }
 
-        let surfaceHeight = terrainH + ballRadius; // Perfect surface touch point for Fairway/Green
+        let surfaceHeight = terrainH + 0.25; // Perfect surface touch point for Fairway/Green
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (ballIsOverSand) {
@@ -3798,19 +3798,15 @@ function animate() {
 
             let roughLift = 0;
             if (isPastFairway) {
-                if (isPastFairway) {
-                    if (distToGreenCenter > fringeOuterR) roughLift = 1.0;
-                } else {
-                    if (distanceToPath > activeFW) roughLift = 1.0;
-                }
-                visualFloorHeight += roughLift * 0.3;
+                if (distToGreenCenter > fringeOuterR) roughLift = 1.0;
+            } else {
+                if (distanceToPath > activeFW) roughLift = 1.0;
+            }
+            visualFloorHeight += roughLift * 0.3;
 
-                // Now apply the 50% sinking depth cleanly against the true visual surface line
-                surfaceHeight = visualFloorHeight + ballRadius - (ballRadius * 0.50);
-            } // <--- MOVE THIS BRACKET HERE (directly after the 50% sinking calculation)
-
-            ball.position.y = surfaceHeight;
-        } // <--- This bracket closes the outer "!physics.isMoving" check
+            // Now apply the 50% sinking depth cleanly against the true visual surface line
+            surfaceHeight = visualFloorHeight + ballRadius - (ballRadius * 0.50);
+        }
 
         ball.position.y = surfaceHeight;
     }
