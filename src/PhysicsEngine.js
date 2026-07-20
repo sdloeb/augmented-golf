@@ -648,13 +648,7 @@ export class PhysicsEngine {
                 floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
             }
 
-            // B. REPLICATE JAGGED JITTER NOISE: Adds micro-spikes only out in open deep rough fields
-            if (distanceToPath > fWEdge && !inSand && distToGreenCenter > fringeOuterR) {
-                const grassJitter = Math.sin(bX * 3.5) * Math.cos(bZ * 3.5) * 0.18 + Math.cos(bX * 7.0) * 0.08;
-                //floorHeight += Math.max(0, grassJitter);
-            }
-
-            // C. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across open fields
+            // B. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across open fields
             let roughLift = 0;
             if (isPastFairway) {
                 if (distToGreenCenter > fringeOuterR) {
@@ -1163,7 +1157,7 @@ export class PhysicsEngine {
         const stopThreshold = this.isPutting ? 0.018 : (onGreen ? 0.018 : 0.01);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
-            this.isMoving = false;  
+            this.isMoving = false;
             this.isPutting = false;
         }
     }
