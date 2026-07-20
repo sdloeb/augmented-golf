@@ -168,33 +168,6 @@ export class InputHandler {
         this.isSwinging = false;
         this.state = 'IDLE';
         return;
-
-        this.isSwingingFromClub = false;
-        this.isSwinging = true;
-        this.state = 'PULLBACK';
-        this.maxPullY = touch.clientY;
-        this.pullbackStartTime = performance.now(); // Captures baseline immediate touch timestamp
-        this.pullbackDriftX = 0;
-        this.pullbackAtMaxX = touch.clientX;
-
-        this.gauge.classList.remove('hidden');
-        this.gaugeFill.style.height = '0%';
-
-        const club = this.getClubInfo();
-        const targetPullDistance = this.maxPullY - this.startY;
-        const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
-        const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
-        this.pullRatio = pullRatio;
-
-        this.gaugeFill.style.height = `${pullRatio * 100}%`; // Keep this line! Resets the color bar layout instantly
-        if (club.isGreen) {
-            const maxFeet = this.getPutterMaxFeet();
-            const feet = Math.round(pullRatio * maxFeet);
-            this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
-        } else {
-            this.gaugeLabel.innerText = `${club.name}: 0 yds`;
-        }
-        this.gaugeLabel.style.top = '0px';
     }
 
     onTouchMove(e) {
@@ -294,25 +267,6 @@ export class InputHandler {
         this.isSwinging = false;
         this.state = 'IDLE';
         return;
-
-        this.isSwingingFromClub = false;
-        this.isSwinging = true;
-        this.state = 'PULLBACK';
-        this.maxPullY = e.clientY;
-        this.pullbackStartTime = performance.now(); // Captures baseline immediate click timestamp
-        this.pullbackDriftX = 0;
-        this.pullbackAtMaxX = e.clientX;
-
-        this.gauge.classList.remove('hidden');
-        this.gaugeFill.style.height = '0%';
-
-        const club = this.getClubInfo();
-        if (club.isGreen) {
-            this.gaugeLabel.innerText = `${club.name}: 0 ft`;
-        } else {
-            this.gaugeLabel.innerText = `${club.name}: 0 yds`;
-        }
-        this.gaugeLabel.style.top = '0px';
     }
 
     onMouseMove(e) {
@@ -441,7 +395,7 @@ export class InputHandler {
                 speedMultiplier = Math.max(0.4, 1.0 - (forwardDuration - 130) * 0.0025);
             }
             finalPower *= speedMultiplier;
-        } 
+        }
 
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
