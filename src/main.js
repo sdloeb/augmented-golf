@@ -2940,7 +2940,7 @@ function animate() {
             let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
             if (physics.currentSurface === 'Sand Trap') {
                 const ballRadius = 0.25 * ball.scale.x;
-                restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.02 + ballRadius - (ballRadius * 0.30);
+                secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + ballRadius - (ballRadius * 0.03);
             } else if (physics.currentSurface === 'Rough') {
                 restingSandY -= 0.065 * (ball.scale.x / 0.51);
             }
@@ -2993,7 +2993,7 @@ function animate() {
             let secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
             if (physics.currentSurface === 'Sand Trap') {
                 const ballRadius = 0.25 * ball.scale.x;
-                secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.02 + ballRadius - (ballRadius * 0.30);
+                secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + ballRadius - (ballRadius * 0.20);
             } else if (physics.currentSurface === 'Rough') {
                 secondaryRestY -= 0.065 * (ball.scale.x / 0.51);
             }
@@ -3741,22 +3741,14 @@ function animate() {
         const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
         const ballRadius = 0.25 * currentScale;
 
-        let ballIsOverSand = physics.currentSurface === 'Sand Trap';
-        if (!ballIsOverSand && physics.currentSurface !== 'Green' && physics.sandTraps) {
-            for (let sand of physics.sandTraps) {
-                const dx = ball.position.x - sand.position.x;
-                const dz = ball.position.z - sand.position.z;
-                const sRad = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.4;
-                if (Math.sqrt(dx * dx + dz * dz) < sRad) { ballIsOverSand = true; break; }
-            }
-        }
+        let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand());
 
         let surfaceHeight = terrainH + 0.25; // Perfect surface touch point for Fairway/Green
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (ballIsOverSand) {
-            // FIXED: Keeps the stationary ball matching the physics engine checks to remain sunk by 25% everywhere
-            surfaceHeight = terrainH + ballRadius - (ballRadius * 0.25);
+            // Starts at Fairway height (0.25) and dips 0.02 units into the sand
+            surfaceHeight = terrainH + 0.25 - 0.22;
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const bX = ball.position.x;
