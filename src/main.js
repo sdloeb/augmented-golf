@@ -3747,8 +3747,20 @@ function animate() {
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (ballIsOverSand) {
-            // Starts at Fairway height (0.25) and dips 0.02 units into the sand
-            surfaceHeight = terrainH + 0.25 - 0.22;
+            const bX = ball.position.x;
+            const bZ = ball.position.z;
+            const delta = 0.05;
+            const hL = physics.getGroundHeight(bX - delta, bZ);
+            const hR = physics.getGroundHeight(bX + delta, bZ);
+            const hB = physics.getGroundHeight(bX, bZ - delta);
+            const hF = physics.getGroundHeight(bX, bZ + delta);
+            const sX = (hL - hR) / (2 * delta);
+            const sZ = (hB - hF) / (2 * delta);
+            // Clamped to max 1.0 to eliminate extreme lip height spikes
+            const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
+
+            // Unified sand height: Base sand surface + ballRadius - sink depth + clamped slope compensation
+            surfaceHeight = terrainH + 0.02 + ballRadius - 0.025 + (localSlope * 0.10);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const bX = ball.position.x;

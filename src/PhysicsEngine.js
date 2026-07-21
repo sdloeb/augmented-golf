@@ -47,7 +47,7 @@ export class PhysicsEngine {
             } else {
                 const dx = this.ball.position.x - sand.position.x;
                 const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.6;
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.3;
                 if (Math.sqrt(dx * dx + dz * dz) < sandRadius) return true;
             }
         }
@@ -513,34 +513,7 @@ export class PhysicsEngine {
         const currentGreenR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
         const onGreen = ballDist < currentGreenR;
 
-        let inSand = false;
-        for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                let inside = false;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                    if (intersect) inside = !inside;
-                }
-                if (inside) {
-                    inSand = true;
-                    break;
-                }
-            } else {
-                const dx = this.ball.position.x - sand.position.x;
-                const dz = this.ball.position.z - sand.position.z;
-
-                // FIXED: Removed shapeWarp so ball friction state matches the clean circular visual mesh perfectly
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                    inSand = true;
-                    break;
-                }
-            }
-        }
+        let inSand = this.isBallInSand();
 
         // FIXED: Balanced ball physics boundaries to perfectly mirror the new clean front apron green visual limits
         const relX = this.ball.position.x - this.greenCenterX;
@@ -589,9 +562,9 @@ export class PhysicsEngine {
 
         if (inSand) {
             this.currentSurface = 'Sand Trap';
-            currentFriction = 0.72;
-            currentBounceHeight = 0.10;
-            currentBounceForwardLoss = 0.25;
+            currentFriction = 0.70;
+            currentBounceHeight = 0.05;          // Minimal bounce height on sand impact
+            currentBounceForwardLoss = 0.12;     // Absorbs 88% of forward speed on impact (ball plugs in sand)
         }
         else if (onGreen) {
             this.currentSurface = 'Green';
@@ -680,8 +653,21 @@ export class PhysicsEngine {
         let ballIsOverSand = this.currentSurface === 'Sand Trap' || this.isBallInSand();
 
         if (ballIsOverSand) {
-            // Starts at Fairway height (0.25) and dips 0.02 units into the sand
-            groundY = greenHeightOffset + 0.25 - 0.22;
+            const bX = this.ball.position.x;
+            const bZ = this.ball.position.z;
+            const delta = 0.05;
+            const hL = this.getGroundHeight(bX - delta, bZ);
+            const hR = this.getGroundHeight(bX + delta, bZ);
+            const hB = this.getGroundHeight(bX, bZ - delta);
+            const hF = this.getGroundHeight(bX, bZ + delta);
+            const sX = (hL - hR) / (2 * delta);
+            const sZ = (hB - hF) / (2 * delta);
+            // Clamped to max 1.0 to eliminate extreme lip height spikes
+            const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
+
+            const ballRadius = 0.25 * this.ball.scale.x;
+            // Unified sand height: Base sand surface + ballRadius - sink depth + clamped slope compensation
+            groundY = greenHeightOffset + 0.02 + ballRadius - 0.025 + (localSlope * 0.10);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);
@@ -767,44 +753,13 @@ export class PhysicsEngine {
             this.slopeZ = rawSlopeZ * 0.0075;
 
             // 2. Scan active sand trap borders using unified visible boundary
-            let currentlyInSand = false;
-            if (this.sandTraps) {
-                this.sandTraps.forEach(sand => {
-                    if (sand.userData && sand.userData.isPolygon) {
-                        const points = sand.userData.points;
-                        let inside = false;
-                        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                            const xi = points[i].x, zi = points[i].z;
-                            const xj = points[j].x, zj = points[j].z;
-                            const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                                && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                            if (intersect) inside = !inside;
-                        }
-                        if (inside) {
-                            currentlyInSand = true;
-                        }
-                    } else {
-                        const dxS = this.ball.position.x - sand.position.x;
-                        const dzS = this.ball.position.z - sand.position.z;
-                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                        if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) {
-                            currentlyInSand = true;
-                        }
-                    }
-                });
-            }
+            let currentlyInSand = this.isBallInSand() || this.currentSurface === 'Sand Trap';
 
             // 3. Apply Dynamic Surface Friction Matrix
             if (currentlyInSand) {
-                if (slopeMagnitude > 0.15) {
-                    // Ball is on the steep bunker wall: drop friction to allow a smooth gravity slide
-                    this.velocity.x *= 0.91;
-                    this.velocity.z *= 0.91;
-                } else {
-                    // Ball is on the flat bunker floor: apply heavy drag to plug/settle the ball
-                    this.velocity.x *= 0.82;
-                    this.velocity.z *= 0.82;
-                }
+                // Heavy realistic sand drag stops the ball quickly everywhere in the bunker (flat or sloped)
+                this.velocity.x *= 0.72;
+                this.velocity.z *= 0.72;
             } else {
                 // Apply standard grass/green/rough friction
                 let rollingFriction = currentFriction;
@@ -820,8 +775,8 @@ export class PhysicsEngine {
             }
 
             // 4. Accumulate Downhill Gravitational Forces
-            // Boost gravity pull dynamically inside sand hazards so they trickle down to the flat basin
-            const gravityRollPower = currentlyInSand ? 0.18 : 1.0;
+            // Dampen slope gravity pull inside sand so balls hold their position on bunker walls instead of sliding down
+            const gravityRollPower = currentlyInSand ? 0.02 : 1.0;
 
             // Add this block: Cuts down gravity acceleration on slopes by 65% when stuck in thick rough grass
             let slopeGravityModifier = 1.0;
