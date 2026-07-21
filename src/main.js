@@ -3756,11 +3756,11 @@ function animate() {
             const hF = physics.getGroundHeight(bX, bZ + delta);
             const sX = (hL - hR) / (2 * delta);
             const sZ = (hB - hF) / (2 * delta);
-            // Clamped to max 1.0 to eliminate extreme lip height spikes
             const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
 
-            // Unified sand height: Base sand surface + ballRadius - sink depth + clamped slope compensation
-            surfaceHeight = terrainH + 0.02 + ballRadius - 0.025 + (localSlope * 0.10);
+            // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
+            const trueFloorH = physics.getGroundHeight(bX, bZ);
+            surfaceHeight = trueFloorH + 0.02 + ballRadius - 0.025 + (localSlope * 0.12);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const bX = ball.position.x;

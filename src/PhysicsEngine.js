@@ -662,12 +662,12 @@ export class PhysicsEngine {
             const hF = this.getGroundHeight(bX, bZ + delta);
             const sX = (hL - hR) / (2 * delta);
             const sZ = (hB - hF) / (2 * delta);
-            // Clamped to max 1.0 to eliminate extreme lip height spikes
             const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
 
             const ballRadius = 0.25 * this.ball.scale.x;
-            // Unified sand height: Base sand surface + ballRadius - sink depth + clamped slope compensation
-            groundY = greenHeightOffset + 0.02 + ballRadius - 0.025 + (localSlope * 0.10);
+            // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
+            const trueFloorH = this.getGroundHeight(bX, bZ);
+            groundY = trueFloorH + 0.02 + ballRadius - 0.025 + (localSlope * 0.12);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);
