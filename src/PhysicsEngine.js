@@ -504,8 +504,7 @@ export class PhysicsEngine {
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
-        let groundY = 0.25 + greenHeightOffset; // Changed to let to allow dynamic adjustments below
-
+let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
         const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
         const ballDist = Math.sqrt(gX * gX + gZ * gZ);
@@ -583,7 +582,7 @@ export class PhysicsEngine {
                 }
             }
         }
-        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
+        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
             this.currentSurface = 'Fringe';
             currentFriction = 0.94;
             currentBounceHeight = 0.28;
@@ -642,7 +641,7 @@ export class PhysicsEngine {
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
         if (this.isPutting) {
             // Allow putting state to remain active across both the putting surface and fringe collar complex
-            if (distToGreenCenter > activeRadius + 2.5) {
+            if (distToGreenCenter > activeRadius + 1.0) {
                 // Terminate putting status instantly if it completely leaves the green complex
                 this.isPutting = false;
             } else {
@@ -1021,7 +1020,7 @@ export class PhysicsEngine {
                         this.sounds.play('sand'); // Preserved: Sand path remains clean
                     } else if (onGreen) {
                         this.sounds.play('green'); // Triggers on green grass bounce
-                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
+                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
                         this.sounds.play('fairway'); // Modified: Fringe plays crisp fairway turf sound
                     } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                         this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {
@@ -1062,7 +1061,7 @@ export class PhysicsEngine {
                         let surfaceFactor = 0.0;
                         if (onGreen) {
                             surfaceFactor = 1.0;
-                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 2.5)) {
+                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
                             surfaceFactor = 0.75; // Modified: Fringe gets a crisp 75% backspin check-up grab!
                         } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                             this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {

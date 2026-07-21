@@ -368,7 +368,7 @@ html {
 
 /* Rear view style of a premium cavity-back Iron chassis */
 #clubSwipe.iron {
-    zoom: 0.95;
+    zoom: 0.72;
     width: 90px;
     height: 44px;
     border: none;
@@ -532,26 +532,29 @@ html {
     content: '';
     position: absolute;
 
-    /* Positions the shaft connection point cleanly on the heel/left edge of the putter */
-    left: -58px;
-    top: 14px;
-    width: 64px;
+    /* Extended steel shaft pushes the Cruiser grip up toward the hands */
+    left: -560px;
+    top: 13px;
+    width: 580px;
     height: 14px;
 
-    border-radius: 3px 0 0 3px;
-    background: linear-gradient(to right,
-            #ced2d5 0%, #ffffff 20%, #9fa2a5 45%,
-            /* Silver Handle/Shaft Segment */
-            #3c3e3f 45%, #404243 75%,
-            /* Dark Graphite/Black Ferrule Ring */
-            #ffffff 65%, #bcbfc2 80%, #a2a6a8 100%
-            /* Polished Putter Steel Joint */
-        );
-    border: 1px solid #5a5d5f;
-    border-right: none;
-    box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.2);
+    background:
+        /* 1. Black Top Butt Cap on Grip */
+        linear-gradient(to right, #111111 0px, #222222 8px, transparent 8px) left top / 100% 100% no-repeat,
+        /* 2. Black Ferrule Collar Ring where grip meets steel */
+        linear-gradient(to right, transparent 152px, #1a1c1e 152px, #1a1c1e 160px, transparent 160px) left top / 100% 100% no-repeat,
+        /* 3. Navy Blue & White Oversized Grip Body */
+        linear-gradient(135deg,
+            #ffffff 0%, #ffffff 30%,
+            #0f2b5c 30%, #1d4ed8 55%,
+            #ffffff 55%, #f1f5f9 100%) left / 152px 14px no-repeat,
+        /* 4. Polished Chrome Steel Shaft (7px thick, 520px long steel reach) */
+        linear-gradient(to bottom, #7d8287 0%, #ffffff 30%, #9fa3a7 65%, #444648 100%) left 160px top 3.5px / 420px 7px no-repeat;
 
-    /* Angled precisely towards 10 o'clock matching your other club variations */
+    border: none;
+    box-shadow: -2px 3px 5px rgba(0, 0, 0, 0.25);
+
+    /* Steeper 80deg tilt for upright putter stance */
     transform: rotate(80deg);
     transform-origin: right center;
     pointer-events: none;

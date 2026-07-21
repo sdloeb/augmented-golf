@@ -410,8 +410,7 @@ function updateDistanceDisplay() {
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
         const distToGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
         const isOnGreen = distToGreen < activeR;
-        const isOnFringe = distToGreen >= activeR && distToGreen <= (activeR + 2.5); // Tracks the fringe boundary line
-
+        const isOnFringe = distToGreen >= activeR && distToGreen <= (activeR + 1.0); // Tracks the fringe boundary line
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
             return;
@@ -1447,8 +1446,8 @@ function resetEntireGame(advanceHole = false) {
 
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            // Prevent the putting green complex from clipping into overlapping sand traps
-            let insideSandZoneCheck = false;
+            // Prevent the putting green complex from clipping into overlapping sand traps with smooth edge blending
+            let sandOverlapFactor = 0;
             sandTraps.forEach(sand => {
                 if (sand.userData && sand.userData.isPolygon) {
                     const points = sand.userData.points;
@@ -1460,16 +1459,21 @@ function resetEntireGame(advanceHole = false) {
                             && (worldX < (xj - xi) * (worldZ - zi) / (zj - zi) + xi);
                         if (intersect) inside = !inside;
                     }
-                    if (inside) insideSandZoneCheck = true;
+                    if (inside) sandOverlapFactor = 1.0;
                 } else {
                     const dxS = worldX - sand.position.x;
                     const dzS = worldZ - sand.position.z;
+                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
                     const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    if (Math.sqrt(dxS * dxS + dzS * dzS) < sandRadius) insideSandZoneCheck = true;
+                    if (distToSand < sandRadius + 0.5) {
+                        const tOverlap = Math.min(1.0, Math.max(0.0, (sandRadius + 0.5 - distToSand) / 1.0));
+                        const smoothOverlap = tOverlap * tOverlap * (3 - 2 * tOverlap);
+                        if (smoothOverlap > sandOverlapFactor) sandOverlapFactor = smoothOverlap;
+                    }
                 }
             });
-            if (insideSandZoneCheck) {
-                calculatedHeight -= 1.5;
+            if (sandOverlapFactor > 0) {
+                calculatedHeight -= sandOverlapFactor * 1.5;
             }
 
             if (targetMesh === green) calculatedHeight += 0.02;
@@ -2937,8 +2941,7 @@ function animate() {
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
             // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
             // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
-            let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
-            if (physics.currentSurface === 'Sand Trap') {
+            let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + (0.5 * ball.scale.x); if (physics.currentSurface === 'Sand Trap') {
                 const ballRadius = 0.25 * ball.scale.x;
                 secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + ballRadius - (ballRadius * 0.03);
             } else if (physics.currentSurface === 'Rough') {
@@ -3743,7 +3746,7 @@ function animate() {
 
         let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand());
 
-        let surfaceHeight = terrainH + 0.25; // Perfect surface touch point for Fairway/Green
+        let surfaceHeight = terrainH + (0.5 * ball.scale.x); // Dynamic surface touch point matching ball scale        
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (ballIsOverSand) {
@@ -4600,8 +4603,7 @@ function init() {
         const trueGreenR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
         const distToGreenCenter = Math.sqrt(gX * gX + gZ * gZ);
         const isOnGreen = distToGreenCenter < trueGreenR;
-        const isOnFringe = distToGreenCenter >= trueGreenR && distToGreenCenter <= (trueGreenR + 2.5);
-
+        const isOnFringe = distToGreenCenter >= trueGreenR && distToGreenCenter <= (trueGreenR + 1.0);
         // NEW: Spawn a 3D turf divot patch when hitting from the fairway or rough (exempt green and fringe)
         if (!isOnGreen && !isOnFringe && !launchedFromSand && !isOffTee) {
             const divotGeo = new THREE.CircleGeometry(0.15, 8);
@@ -4895,8 +4897,7 @@ function updateGreenGrid() {
 
     const activeClub = input ? input.getClubInfo() : null;
     const isPutter = activeClub && activeClub.name === 'Putter';
-    const isBallOnGreenOrFringe = gridBallDist < (activeR + (isPutter ? 2.5 : 1.5));
-
+    const isBallOnGreenOrFringe = gridBallDist < (activeR + 1.0);
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
     // Automatically activates aiming dots if the putter is selected, matching normal green behavior
     const isAiming = input && input.isAimMode;
