@@ -945,14 +945,15 @@ export class PhysicsEngine {
                         this.velocity.z += (Math.random() - 0.5) * 0.002; // Tamed from 0.06 to eliminate heavy zig-zags
 
                         // Control the vertical sift speed through the dense leaf volume
-                        if (this.velocity.y < 0) {
-                            this.velocity.y = Math.max(-0.85, this.velocity.y * 0.985); // Changed from 0.38 to 0.86 for a natural, steady fall speed
 
-                            // 15% frame-by-frame chance to strike a solid limb, causing an erratic physical bounce pop
-                            if (Math.random() < 0.03) {
-                                this.velocity.y = 0.01 + Math.random() * 0.02;
-                                this.velocity.x += (Math.random() - 0.5) * 0.02; // Lowered from 0.09
-                                this.velocity.z += (Math.random() - 0.5) * 0.02; // Lowered from 0.09
+                        if (this.velocity.y < 0) {
+                            // Ensure a steady downward fall rate through leaves
+                            this.velocity.y = Math.min(this.velocity.y, -0.06);
+
+                            // Occasional horizontal branch deflection without stopping downward fall
+                            if (Math.random() < 0.05) {
+                                this.velocity.x += (Math.random() - 0.5) * 0.03;
+                                this.velocity.z += (Math.random() - 0.5) * 0.03;
                             }
                         }
                     }
