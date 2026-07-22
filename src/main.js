@@ -2179,7 +2179,7 @@ function resetEntireGame(advanceHole = false) {
 
     if (currentHoleNumber === 2) obstacleAttempts = 320;
     if (currentHoleNumber === 3) obstacleAttempts = 0;
-    if (currentHoleNumber === 1) obstacleAttempts = 180;
+    if (currentHoleNumber === 1) obstacleAttempts = 60;
 
     // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
     if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
@@ -2321,7 +2321,7 @@ function resetEntireGame(advanceHole = false) {
 
         if (generateAsTree) {
             sceneryGroup.userData = { type: 'tree' };
-            let randomScale = currentHoleNumber === 1 ? (5.0 + localRandom() * 2.0) : (3.5 + Math.random() * 1.3);
+            let randomScale = currentHoleNumber === 1 ? (7.5 + localRandom() * 2.5) : (3.5 + Math.random() * 1.3);
             if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
             let calculatedTrunkRad = 0.25 * randomScale;
             let calculatedTrunkH = 1.4 * randomScale;
