@@ -1791,6 +1791,9 @@ function resetEntireGame(advanceHole = false) {
                                 roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
                             }
                         }
+                        if (shortestDistToBunkerEdge < 2.0) {
+                            roughLift *= (shortestDistToBunkerEdge / 2.0);
+                        }
                         calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
                     }
 
@@ -1808,9 +1811,7 @@ function resetEntireGame(advanceHole = false) {
 
                     // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
                     if (insideSandZone) {
-                        const baseCourseH = physics.getCourseHeight(worldX, worldZ);
-                        const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - (0.35 + sandDepthAtVertex * 0.6);
+                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.50;
                     }
                 }
 
@@ -1837,10 +1838,7 @@ function resetEntireGame(advanceHole = false) {
                     // Isolate boundary/sand hiding rules from green-blending rules
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
                     if (insideSandZone || isOutsideFairwayBounds) {
-                        // FIXED: Apply the dynamic depth cushion to the outer fairway bounds check
-                        const baseCourseH = physics.getCourseHeight(worldX, worldZ);
-                        const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.35 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
+                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.50) : hiddenFairwayH;
                     } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) {
@@ -1857,7 +1855,7 @@ function resetEntireGame(advanceHole = false) {
                             let normalFairwayHeight = calculatedHeight;
                             if (distanceToPath <= fW) {
                                 let cushion = -0.05;
-                                if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
+                                if (distToGreenCenter < fringeOuterR + 3.0) {
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                                     cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                                 }
@@ -1866,26 +1864,21 @@ function resetEntireGame(advanceHole = false) {
                                 const t = (distanceToPath - fW) / 3.5;
                                 const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
-                                let cushion = closeToWater ? 0.0 : -0.05; // Neutralize the step highlight around lakes
-                                if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
+                                let cushion = closeToWater ? 0.0 : -0.05;
+                                if (distToGreenCenter < fringeOuterR + 3.0) {
                                     let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                                     cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                                 }
                                 const visibleHeight = calculatedHeight + cushion;
-                                // FIXED: Apply the dynamic depth cushion inside the smooth blending layer to clean up internal wall bleeds
-                                const baseCourseH = physics.getCourseHeight(worldX, worldZ);
-                                const sandDepthAtVertex = Math.max(0, baseCourseH - physics.getGroundHeight(worldX, worldZ));
-                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - (0.35 + sandDepthAtVertex * 0.6)) : hiddenFairwayH;
-                                // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
-                                calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
+                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.50) : hiddenFairwayH; calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                             }
 
                             // Blend the normal height cleanly down into the subterranean clearance zone
                             calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, hiddenFairwayH, smoothTFairway);
                         }
                     } else if (distanceToPath <= fW) {
-                        let cushion = closeToWater ? 0.0 : -0.05; // Neutralize the step highlight around lakes
-                        if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
+                        let cushion = closeToWater ? 0.0 : -0.05;
+                        if (distToGreenCenter < fringeOuterR + 3.0) {
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                             cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                         }
@@ -1895,16 +1888,13 @@ function resetEntireGame(advanceHole = false) {
                         const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
 
                         let cushion = -0.05;
-                        if (distToGreenCenter < fringeOuterR + 3.0) { // FIXED: Removed isCustomHole flag to make blend universal
+                        if (distToGreenCenter < fringeOuterR + 3.0) {
                             let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
                             cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
                         }
 
                         const visibleHeight = calculatedHeight + cushion;
-                        // FIXED: Replaced the deep drop with a uniform -0.05 visual shield to perfectly seal the bunker rims
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.35) : hiddenFairwayH;
-                        // Preserved exactly: Smooth blending calculation prevents jagged/staired fairway margins
-                        calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
+                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.50) : hiddenFairwayH; calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
                 }
             } else {
@@ -3825,6 +3815,24 @@ function animate() {
             } else {
                 if (distanceToPath > activeFW) roughLift = 1.0;
             }
+
+            // Check proximity to nearest sand trap edge to match the visual grass lip smooth step
+            let distToBunkerEdge = Infinity;
+            if (physics && physics.sandTraps) {
+                physics.sandTraps.forEach(sand => {
+                    if (!sand.userData.isPolygon) {
+                        const dxS = bX - sand.position.x;
+                        const dzS = bZ - sand.position.z;
+                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                        const d = Math.abs(Math.sqrt(dxS * dxS + dzS * dzS) - sandRadius);
+                        if (d < distToBunkerEdge) distToBunkerEdge = d;
+                    }
+                });
+            }
+            if (distToBunkerEdge < 2.0) {
+                roughLift *= (distToBunkerEdge / 2.0);
+            }
+
             visualFloorHeight += roughLift * 0.3;
 
             // Now apply the 50% sinking depth cleanly against the true visual surface line
@@ -4575,7 +4583,7 @@ function init() {
         tracerPoints = [];
 
 
-   // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
+        // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
         let launchedFromSand = physics ? physics.isBallInSand() : false;
         if (launchedFromSand && typeof window.triggerSandSpray === 'function') {
             window.triggerSandSpray(ball.position.x, ball.position.y, ball.position.z, 25, 1.4);
