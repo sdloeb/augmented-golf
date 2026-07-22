@@ -4922,7 +4922,7 @@ function updateGreenGrid() {
     const dirZ = Math.cos(angle);
 
     const travelSteps = Math.max(12, Math.floor(pathLen / 0.35));
-    const delta = 0.1;
+    const delta = 0.05;
 
     let cumulativeDrift = 0;
     let sideVelocity = 0;
