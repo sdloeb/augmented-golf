@@ -382,7 +382,9 @@ export class PhysicsEngine {
 
         // 2. Apply sand trap 3D parabolic depressions to carve smooth, seamless craters into the heightmap
         if (this.sandTraps && this.sandTraps.length > 0) {
+            let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
+                let drop = 0;
                 if (sand.userData && sand.userData.isPolygon) {
                     // High-performance Point-in-Polygon ray casting check
                     const points = sand.userData.points;
@@ -395,16 +397,14 @@ export class PhysicsEngine {
                         if (intersect) inside = !inside;
                     }
                     if (inside) {
-                        const sandDepth = sand.userData.depth || 0.6;
-                        baseHeight -= sandDepth; // Locks a perfectly flat uniform floor across the entire polygon shape
+                        drop = sand.userData.depth || 0.6;
                     }
                 } else {
                     // Preserves circular sloped trap height deformations completely unmodified
                     const dxS = x - sand.position.x;
                     const dzS = z - sand.position.z;
-                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS); // Keep this line
+                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
-                    // FIXED: Removed irregular shapeWarp to match physics heights cleanly to the visual circular traps
                     const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                     const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
 
@@ -413,15 +413,17 @@ export class PhysicsEngine {
                         const flatRadius = sandRadius * floorFraction;
 
                         if (distToSand <= flatRadius) {
-                            baseHeight -= sandDepth;
+                            drop = sandDepth;
                         } else {
                             const t = (distToSand - flatRadius) / (sandRadius - flatRadius);
                             const smoothSlope = t * t * (3 - 2 * t);
-                            baseHeight -= THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
+                            drop = THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
                         }
                     }
                 }
+                if (drop > maxSandDrop) maxSandDrop = drop;
             });
+            baseHeight -= maxSandDrop;
         }
         return baseHeight;
     }
@@ -504,7 +506,7 @@ export class PhysicsEngine {
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
-let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
+        let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
         const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
         const ballDist = Math.sqrt(gX * gX + gZ * gZ);
@@ -666,7 +668,7 @@ let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset
             const ballRadius = 0.25 * this.ball.scale.x;
             // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
             const trueFloorH = this.getGroundHeight(bX, bZ);
-            groundY = trueFloorH + 0.02 + ballRadius - 0.025 + (localSlope * 0.12);
+            groundY = trueFloorH + 0.02 + ballRadius - (ballRadius * 0.15) + (localSlope * 0.04);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);

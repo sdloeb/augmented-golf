@@ -89,7 +89,9 @@ export class InputHandler {
         if (distanceInFeet <= 20) return 30;
         if (distanceInFeet <= 30) return 40;
         if (distanceInFeet <= 45) return 60;
-        return 90;
+        if (distanceInFeet <= 65) return 90;
+        if (distanceInFeet <= 95) return 120;
+        return 150;
     }
 
 
@@ -482,12 +484,18 @@ export class InputHandler {
 
                 // MODIFIED: Swapped hardcoded values out for true dynamic hole blueprint calculations
                 const activeR = window.activeGreenRadius || 12.0;
-                const isOnFringe = distToGreenCenter >= activeR && distToGreenCenter <= (activeR + 2.5);
+                const isOnFringe = distToGreenCenter >= activeR && distToGreenCenter <= (activeR + 1.0);
 
                 // 3. Apply Penalties
                 if (inSand) {
-                    finalPower *= 0.75; // Lose 50% power in sand bunker
-                } else if (!onGreen && !isOnFringe && window.physicsEngine) {
+                    finalPower *= 0.75; // Lose 25% power in sand bunker
+                } else if (isOnFringe) {
+                    if (club.name === 'Putter') {
+                        finalPower *= 0.90; // Lose 10% power putting off the fringe
+                    } else {
+                        finalPower *= 0.95; // Lose 5% power chipping off the fringe
+                    }
+                } else if (!onGreen && window.physicsEngine) {
                     // Check surface explicitly from the unified physics engine state
                     if (window.physicsEngine.currentSurface === 'Rough') {
                         finalPower *= 0.85; // Lose 15% power in the rough

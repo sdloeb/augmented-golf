@@ -285,10 +285,12 @@ function updateDistanceDisplay() {
         const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
         const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
-        // MODIFIED: Fetch club selection state to unify short game tracking readouts
-        // Check if strictly on the green surface container footprint
-        if (ballDist < activeR) {
-            // Putting surface and fringe complex display precisely in feet matching visual perspective
+        const currentActiveClub = input ? input.getClubInfo() : null;
+        const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
+        const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
+
+        if (ballDist < activeR || isOnFringe || isPuttingClub) {
+            // Display precisely in feet matching visual putting perspective
             const feet = Math.round(gameDistance * 1.75);
             distanceText.innerText = feet;
             unitText.innerText = "feet";
@@ -494,7 +496,12 @@ function updateDistanceDisplay() {
         yardsSpan.style.fontSize = '16px'; // Slightly smaller font scale for perfect hierarchy
         yardsSpan.style.fontWeight = 'bold';
         yardsSpan.style.marginTop = '2px';
-        yardsSpan.innerText = `(${clubList[currentIdx].maxYards} yds)`;
+        if (clubList[currentIdx].name === 'Putter') {
+            const maxFt = input.getPutterMaxFeet();
+            yardsSpan.innerText = `(${maxFt} ft)`;
+        } else {
+            yardsSpan.innerText = `(${clubList[currentIdx].maxYards} yds)`;
+        }
 
         // Append text elements into our new vertical sub-layout frame
         clubLabelWrapper.appendChild(nameSpan);
@@ -1668,10 +1675,9 @@ function resetEntireGame(advanceHole = false) {
                     // FIXED: Use squared distance to optimize circular bunker boundary checks inside the tight grid loop
                     const distToSandSq = dxS * dxS + dzS * dzS;
 
-                    // FIXED: Removed irregular shapeWarp to align perfectly with the unwarped circular sand trap mesh geometry
-                    const padding = (targetMesh === floor || targetMesh === fairway) ? 0.35 : 0.0;
+                    // FIXED: Removed irregular shapeWarp to match physics heights cleanly to the visual circular traps
+                    const padding = 0.0;
                     const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
-
                     const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - sandRadius);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
 
@@ -2939,15 +2945,16 @@ function animate() {
 
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-            // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
-            // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
-            let restingSandY = physics.getGroundHeight(ball.position.x, ball.position.z) + (0.5 * ball.scale.x); if (physics.currentSurface === 'Sand Trap') {
-                const ballRadius = 0.25 * ball.scale.x;
-                secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + ballRadius - (ballRadius * 0.03);
+            const ballRadius = 0.25 * ball.scale.x;
+            const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
+            let obRestY = terrainH + ballRadius;
+
+            if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
+                obRestY = terrainH + 0.02 + ballRadius - 0.025;
             } else if (physics.currentSurface === 'Rough') {
-                restingSandY -= 0.065 * (ball.scale.x / 0.51);
+                obRestY -= 0.065 * (ball.scale.x / 0.51);
             }
-            ball.position.y = restingSandY;
+            ball.position.y = obRestY;
             ball.visible = true;
 
             if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
@@ -2992,15 +2999,16 @@ function animate() {
 
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-            // FIXED: Replicate visual lie sinking parameters so the ball stays heavy/plugged while stationary
-            let secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25;
-            if (physics.currentSurface === 'Sand Trap') {
-                const ballRadius = 0.25 * ball.scale.x;
-                secondaryRestY = physics.getGroundHeight(ball.position.x, ball.position.z) + ballRadius - (ballRadius * 0.20);
+            const ballRadius = 0.25 * ball.scale.x;
+            const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
+            let waterRestY = terrainH + ballRadius;
+
+            if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
+                waterRestY = terrainH + 0.02 + ballRadius - 0.025;
             } else if (physics.currentSurface === 'Rough') {
-                secondaryRestY -= 0.065 * (ball.scale.x / 0.51);
+                waterRestY -= 0.065 * (ball.scale.x / 0.51);
             }
-            ball.position.y = secondaryRestY;
+            ball.position.y = waterRestY;
             ball.visible = true;
 
             // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
@@ -3763,7 +3771,7 @@ function animate() {
 
             // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
             const trueFloorH = physics.getGroundHeight(bX, bZ);
-            surfaceHeight = trueFloorH + 0.02 + ballRadius - 0.025 + (localSlope * 0.12);
+            surfaceHeight = trueFloorH + 0.02 + ballRadius - (ballRadius * 0.15) + (localSlope * 0.04); surfaceHeight = trueFloorH + 0.02 + ballRadius - 0.025 + (localSlope * 0.12);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const bX = ball.position.x;
@@ -4567,20 +4575,8 @@ function init() {
         tracerPoints = [];
 
 
-        // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
-        let launchedFromSand = false;
-        for (let sand of sandTraps) {
-            const dx = ball.position.x - sand.position.x;
-            const dz = ball.position.z - sand.position.z;
-
-            const angle = Math.atan2(dz, dx); // Add this line
-            const shapeWarp = 1.0 + Math.sin(angle * 3) * 0.25 + Math.cos(angle * 1.5) * 0.15; // Add this line
-            const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) * shapeWarp; // Modify this line
-            if (Math.sqrt(dx * dx + dz * dz) < sandRadius) {
-                launchedFromSand = true;
-                break;
-            }
-        }
+   // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
+        let launchedFromSand = physics ? physics.isBallInSand() : false;
         if (launchedFromSand && typeof window.triggerSandSpray === 'function') {
             window.triggerSandSpray(ball.position.x, ball.position.y, ball.position.z, 25, 1.4);
         }
