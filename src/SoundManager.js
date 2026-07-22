@@ -56,7 +56,7 @@ export class SoundManager {
         this.sounds.sink.forEach(s => s.volume = 0.7);
         this.sounds.fairway.forEach(s => s.volume = 0.5);
         this.sounds.rough.forEach(s => s.volume = 0.5);
-        this.sounds.green.forEach(s => s.volume = 0.5);
+        this.sounds.green.forEach(s => s.volume = 0.3);
         this.sounds.wood.forEach(s => s.volume = 0.55);
         this.sounds.trees.forEach(s => s.volume = 0.50);
 

@@ -365,7 +365,7 @@ export class PhysicsEngine {
 
                     const centerLakeHeight = water.position.y - 0.01;
 
-                    if (distToWater < lakeRadius) {
+                    if (distToWater < lakeRadius && this.ball.position.y <= water.position.y + 0.1) {
                         baseHeight = centerLakeHeight;
                         if (distToWater < lakeRadius - 0.4) {
                             baseHeight -= 1.2;
@@ -988,8 +988,8 @@ export class PhysicsEngine {
                     // End of added lines
 
                     if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 && // Modify this line: Replaced left boundary check with cliffEdgeLimit
-                        this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {
-                        this.hitWater = true;
+                        this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2 && this.ball.position.y <= water.position.y + 0.1) {
+                            this.hitWater = true;
                         this.velocity.set(0, 0, 0);
                         this.isMoving = false;
                         if (this.sounds) this.sounds.play('water');

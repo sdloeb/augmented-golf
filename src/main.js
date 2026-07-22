@@ -3020,7 +3020,7 @@ function animate() {
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
 
             updateDistanceDisplay(); // Add this line
-        }, 30); // Add this line
+        }, 1200); // Add this line
         return;
     }
 
