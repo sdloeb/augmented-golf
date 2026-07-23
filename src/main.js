@@ -1664,7 +1664,7 @@ function resetEntireGame(advanceHole = false) {
                     const currentEdgeDist = Math.sqrt(minEdgeDistSq);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
 
-                    if (inside) {
+                    if (inside || currentEdgeDist < 0.8) {
                         insideSandZone = true;
                         const depth = sand.userData.depth || 0.6;
                         if (depth > activeSandDepth) activeSandDepth = depth;
@@ -1676,7 +1676,7 @@ function resetEntireGame(advanceHole = false) {
                     const distToSandSq = dxS * dxS + dzS * dzS;
 
                     // FIXED: Removed irregular shapeWarp to match physics heights cleanly to the visual circular traps
-                    const padding = 0.0;
+                    const padding = 0.8;
                     const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
                     const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - sandRadius);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
@@ -3383,7 +3383,6 @@ function animate() {
             const lookTargetZ = ball.position.z + aimDirZ * lookDist;
             let lookTargetY = physics.getGroundHeight(lookTargetX, lookTargetZ); // Modify this line: Changed 'const' to 'let'
 
-            // Add this block: Overrides the downward tilt at the tee box so the 2D club overlay aligns perfectly
             if (teeBox && teeBox.visible) {
                 lookTargetY = ball.position.y - 0.37;
             }
@@ -3391,6 +3390,10 @@ function animate() {
             // instead of looking way up at the high ground outside the trap!
             else if (isSand) {
                 lookTargetY = ball.position.y - 0.25;
+            }
+            else {
+                // Prevents camera from tilting down into deep bunkers/hazards ahead when ball is on grass
+                lookTargetY = Math.max(lookTargetY, ball.position.y - 0.2);
             }
 
 
@@ -3739,34 +3742,23 @@ function animate() {
     ball.scale.set(currentScale, currentScale, currentScale);
     // FIXED: Continuously adjust stationary ball height against its live shrinking scale
     if (!physics.isMoving && !isSinking && !isOverheadActive) {
-        const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
+        const bX = ball.position.x;
+        const bZ = ball.position.z;
+        const terrainH = physics.getGroundHeight(bX, bZ);
         const ballRadius = 0.25 * currentScale;
 
-        let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand());
-
+        let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand()) || (physics.getCourseHeight(bX, bZ) - terrainH > 0.05);
         let surfaceHeight = terrainH + (0.5 * ball.scale.x); // Dynamic surface touch point matching ball scale        
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (ballIsOverSand) {
-            const bX = ball.position.x;
-            const bZ = ball.position.z;
-            const delta = 0.05;
-            const hL = physics.getGroundHeight(bX - delta, bZ);
-            const hR = physics.getGroundHeight(bX + delta, bZ);
-            const hB = physics.getGroundHeight(bX, bZ - delta);
-            const hF = physics.getGroundHeight(bX, bZ + delta);
-            const sX = (hL - hR) / (2 * delta);
-            const sZ = (hB - hF) / (2 * delta);
-            const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
-
             // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
             const trueFloorH = physics.getGroundHeight(bX, bZ);
-            surfaceHeight = trueFloorH + 0.02 + ballRadius - (ballRadius * 0.15) + (localSlope * 0.04); surfaceHeight = trueFloorH + 0.02 + ballRadius - 0.025 + (localSlope * 0.12);
+            surfaceHeight = trueFloorH + 0.02 + (ballRadius * 0.80);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
-            const bX = ball.position.x;
-            const bZ = ball.position.z;
             const distanceToPath = physics.getDistanceToSpline(bX, bZ);
+
 
             const gX = bX - physics.greenCenterX;
             const gZ = bZ - physics.greenCenterZ;

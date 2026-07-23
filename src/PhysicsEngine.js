@@ -32,6 +32,11 @@ export class PhysicsEngine {
     }
 
     isBallInSand() {
+        // Automatically returns true if terrain height is lowered by a sand bunker depression
+        const courseH = this.getCourseHeight(this.ball.position.x, this.ball.position.z);
+        const groundH = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
+        if (courseH - groundH > 0.05) return true;
+
         for (let sand of this.sandTraps) {
             if (sand.userData && sand.userData.isPolygon) {
                 const points = sand.userData.points;
@@ -47,7 +52,7 @@ export class PhysicsEngine {
             } else {
                 const dx = this.ball.position.x - sand.position.x;
                 const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.3;
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.5;
                 if (Math.sqrt(dx * dx + dz * dz) < sandRadius) return true;
             }
         }
@@ -365,14 +370,14 @@ export class PhysicsEngine {
 
                     const centerLakeHeight = water.position.y - 0.01;
 
-                    if (distToWater < lakeRadius && this.ball.position.y <= water.position.y + 0.1) {
+                    if (distToWater < lakeRadius) {
                         baseHeight = centerLakeHeight;
                         if (distToWater < lakeRadius - 0.4) {
                             baseHeight -= 1.2;
                         }
                     } else if (distToWater < lakeRadius + 4.0) {
                         // Smoothly slope your natural rolling hills down to meet the water rim over 4 units
-                        const t = (distToWater - lakeRadius) / 4.0;
+                        const t = Math.max(0, Math.min(1, (distToWater - lakeRadius) / 4.0));
                         const smoothT = t * t * (3 - 2 * t);
                         baseHeight = THREE.MathUtils.lerp(centerLakeHeight, baseHeight, smoothT);
                     }
@@ -668,7 +673,7 @@ export class PhysicsEngine {
             const ballRadius = 0.25 * this.ball.scale.x;
             // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
             const trueFloorH = this.getGroundHeight(bX, bZ);
-            groundY = trueFloorH + 0.02 + ballRadius - (ballRadius * 0.15) + (localSlope * 0.04);
+            groundY = trueFloorH + 0.02 + (ballRadius * 0.80);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);
@@ -989,7 +994,7 @@ export class PhysicsEngine {
 
                     if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 && // Modify this line: Replaced left boundary check with cliffEdgeLimit
                         this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2 && this.ball.position.y <= water.position.y + 0.1) {
-                            this.hitWater = true;
+                        this.hitWater = true;
                         this.velocity.set(0, 0, 0);
                         this.isMoving = false;
                         if (this.sounds) this.sounds.play('water');
