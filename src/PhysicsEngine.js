@@ -32,28 +32,35 @@ export class PhysicsEngine {
     }
 
     isBallInSand() {
-        // Automatically returns true if terrain height is lowered by a sand bunker depression
-        const courseH = this.getCourseHeight(this.ball.position.x, this.ball.position.z);
-        const groundH = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
-        if (courseH - groundH > 0.05) return true;
+        if (!this.sandTraps || this.sandTraps.length === 0) return false;
 
         for (let sand of this.sandTraps) {
             if (sand.userData && sand.userData.isPolygon) {
                 const points = sand.userData.points;
                 let inside = false;
+                let minEdgeDistSq = Infinity;
                 for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
                     const xi = points[i].x, zi = points[i].z;
                     const xj = points[j].x, zj = points[j].z;
                     const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
                         && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
                     if (intersect) inside = !inside;
+
+                    const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.0001;
+                    let t = ((this.ball.position.x - xi) * (xj - xi) + (this.ball.position.z - zi) * (zj - zi)) / l2;
+                    t = Math.max(0, Math.min(1, t));
+                    const projX = xi + t * (xj - xi);
+                    const projZ = zi + t * (zj - zi);
+                    const distSq = (this.ball.position.x - projX) ** 2 + (this.ball.position.z - projZ) ** 2;
+                    if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                 }
-                if (inside) return true;
+                // 1.2 units edge margin ensures sloped bunker walls are fully recognized
+                if (inside || minEdgeDistSq < 1.44) return true;
             } else {
                 const dx = this.ball.position.x - sand.position.x;
                 const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 0.5;
-                if (Math.sqrt(dx * dx + dz * dz) < sandRadius) return true;
+                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.2;
+                if (dx * dx + dz * dz < sandRadius * sandRadius) return true;
             }
         }
         return false;
@@ -330,8 +337,18 @@ export class PhysicsEngine {
             }
         }
 
-        if (distFromGreen < activeRadius) {
-            baseHeight += this.getGreenHeight(x, z);
+       // Smoothly blend green elevation and contours outward past the fringe onto the apron mound (3.0 units wide)
+        const outerApronRadius = activeRadius + 3.0;
+        if (distFromGreen < outerApronRadius) {
+            const greenContour = this.getGreenHeight(x, z);
+            if (distFromGreen < activeRadius) {
+                baseHeight += greenContour;
+            } else {
+                // Taper green contours smoothly down to fairway/rough floor level
+                const tApron = (distFromGreen - activeRadius) / 3.0;
+                const smoothApron = 1.0 - (tApron * tApron * (3 - 2 * tApron));
+                baseHeight += greenContour * smoothApron;
+            }
         }
 
         // 1. Apply water hazard physical terrain shifts so the physics engine drops the ball into the basin
@@ -391,31 +408,44 @@ export class PhysicsEngine {
             this.sandTraps.forEach(sand => {
                 let drop = 0;
                 if (sand.userData && sand.userData.isPolygon) {
-                    // High-performance Point-in-Polygon ray casting check
                     const points = sand.userData.points;
                     let inside = false;
+                    let minEdgeDistSq = Infinity;
                     for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
                         const xi = points[i].x, zi = points[i].z;
                         const xj = points[j].x, zj = points[j].z;
                         const intersect = ((zi > z) !== (zj > z))
                             && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
                         if (intersect) inside = !inside;
+
+                        const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.0001;
+                        let t = ((x - xi) * (xj - xi) + (z - zi) * (zj - zi)) / l2;
+                        t = Math.max(0, Math.min(1, t));
+                        const projX = xi + t * (xj - xi);
+                        const projZ = zi + t * (zj - zi);
+                        const distSq = (x - projX) ** 2 + (z - projZ) ** 2;
+                        if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                     }
+                    const edgeDist = Math.sqrt(minEdgeDistSq);
+                    const sandDepth = sand.userData.depth || 0.6;
                     if (inside) {
-                        drop = sand.userData.depth || 0.6;
+                        drop = sandDepth;
+                    } else if (edgeDist < 0.8) {
+                        const t = edgeDist / 0.8;
+                        const smoothSlope = t * t * (3 - 2 * t);
+                        drop = THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
                     }
                 } else {
-                    // Preserves circular sloped trap height deformations completely unmodified
                     const dxS = x - sand.position.x;
                     const dzS = z - sand.position.z;
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
-                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const sandRadius = baseRadius + 0.8;
                     const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
 
                     if (distToSand < sandRadius) {
-                        const floorFraction = 0.60;
-                        const flatRadius = sandRadius * floorFraction;
+                        const flatRadius = baseRadius * 0.60;
 
                         if (distToSand <= flatRadius) {
                             drop = sandDepth;
@@ -671,9 +701,9 @@ export class PhysicsEngine {
             const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
 
             const ballRadius = 0.25 * this.ball.scale.x;
-            // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
+            // FIXED: Rests ball cleanly on top of visual sand surface to prevent mesh triangle clipping
             const trueFloorH = this.getGroundHeight(bX, bZ);
-            groundY = trueFloorH + 0.02 + (ballRadius * 0.80);
+            groundY = trueFloorH + ballRadius + 0.02;
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);

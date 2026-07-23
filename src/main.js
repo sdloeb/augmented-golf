@@ -1797,16 +1797,11 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
                     }
 
-                    // 2. GREEN PROTECTION: Slope the grass floor underneath the putting green complex to prevent overlapping lines
-                    if (distToGreen < fringeOuterR) {
-                        const transitionZone = 2.0;
-                        if (distToGreen < fringeOuterR - transitionZone) {
-                            calculatedHeight -= 1.5;
-                        } else {
-                            const tFloor = (fringeOuterR - distToGreen) / transitionZone;
-                            const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
-                            calculatedHeight -= smoothTFloor * 1.5;
-                        }
+                    // Smoothly slope terrain floor beneath green fringe to prevent sharp edge clipping
+                    if (distToGreen < fringeOuterR + 1.5) {
+                        const tFloor = Math.max(0, Math.min(1, (fringeOuterR + 1.5 - distToGreen) / 3.0));
+                        const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
+                        calculatedHeight -= smoothTFloor * 0.15; // Subtle 0.15 drop under fringe to prevent z-fighting without creating deep canyons
                     }
 
                     // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
@@ -1817,85 +1812,42 @@ function resetEntireGame(advanceHole = false) {
 
                 if (targetMesh === fairway) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
-                    // Use the angle-warped green radius so the fairway mesh conforms to the kidney shape bounds
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+                    const fringeR = activeR + 1.0;
 
-                    // NEW: Calculate a tight sub-surface depth to hide clipped margins without building vertical cliffs
-                    let rLift = 0;
-                    if (isPastFairway) {
-                        if (distToGreen > fringeOuterR) {
-                            const tGreen = Math.min(1, (distToGreen - fringeOuterR) / 3.5);
-                            rLift = THREE.MathUtils.smoothstep(tGreen, 0, 1);
-                        }
-                    } else {
-                        if (distanceToPath > fW) {
-                            const tPath = Math.min(1, (distanceToPath - fW) / 3.5);
-                            rLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
-                        }
-                    }
-                    const hiddenFairwayH = floorHeight + (rLift * 0.3) - 0.08;
+                    // Deep hidden height for out-of-bounds or buried fairway grid points
+                    const hiddenFairwayH = floorHeight - 0.50;
 
-                    // Isolate boundary/sand hiding rules from green-blending rules
-                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) || (!isCustomHole && worldZ > -8.0) || (isCustomHole && currentHoleNumber === 2 && worldZ > -60) || (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
+                    // Boundary checks for fairway corridor
+                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
+                        (!isCustomHole && worldZ > -8.0) ||
+                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
+
                     if (insideSandZone || isOutsideFairwayBounds) {
-                        calculatedHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.50) : hiddenFairwayH;
-                    } else if (isOnGreenSidesOrBack && distToGreenCenter >= activeR) {
                         calculatedHeight = hiddenFairwayH;
-                    } else if (!insideSandZone && (distToGreenCenter < activeR || isPastFairway || isOnGreenSidesOrBack)) {
-                        // Smoothly slope the fairway mesh underground as it meets and slips beneath the green apron
-                        const transitionStart = fringeOuterR + 0.2; // Adjusted to start diving seamlessly right before the fringe edge
-                        const transitionEnd = activeR - 3.0;
-                        if (distToGreenCenter <= transitionEnd || isPastFairway || isOnGreenSidesOrBack) {
-                            calculatedHeight = hiddenFairwayH;
-                        } else {
-                            const tFairway = (transitionStart - distToGreenCenter) / (transitionStart - transitionEnd);
-                            const smoothTFairway = Math.max(0, Math.min(1, tFairway * tFairway * (3 - 2 * tFairway)));
-
-                            // Track what the normal fairway height should have been
-                            let normalFairwayHeight = calculatedHeight;
-                            if (distanceToPath <= fW) {
-                                let cushion = -0.05;
-                                if (distToGreenCenter < fringeOuterR + 3.0) {
-                                    let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                                    cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
-                                }
-                                normalFairwayHeight += cushion;
-                            } else {
-                                const t = (distanceToPath - fW) / 3.5;
-                                const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-
-                                let cushion = closeToWater ? 0.0 : -0.05;
-                                if (distToGreenCenter < fringeOuterR + 3.0) {
-                                    let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                                    cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
-                                }
-                                const visibleHeight = calculatedHeight + cushion;
-                                const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.50) : hiddenFairwayH; calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
-                            }
-
-                            // Blend the normal height cleanly down into the subterranean clearance zone
-                            calculatedHeight = THREE.MathUtils.lerp(normalFairwayHeight, hiddenFairwayH, smoothTFairway);
-                        }
-                    } else if (distanceToPath <= fW) {
-                        let cushion = closeToWater ? 0.0 : -0.05;
-                        if (distToGreenCenter < fringeOuterR + 3.0) {
-                            let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
-                        }
-                        calculatedHeight += cushion;
+                    } else if (distToGreenCenter < fringeR) {
+                        // Smoothly tuck fairway mesh under the green fringe collar (over 2.0 units) without sharp grid steps
+                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
+                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothTuck);
+                    } else if (approachDot > 3.0 && distToGreenCenter > fringeR) {
+                        // Smoothly fade out fairway behind the green complex into the rough
+                        const tBack = Math.min(1, (approachDot - 3.0) / 4.0);
+                        const smoothBack = tBack * tBack * (3 - 2 * tBack);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothBack);
                     } else {
-                        const t = (distanceToPath - fW) / 3.5;
-                        const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-
-                        let cushion = -0.05;
-                        if (distToGreenCenter < fringeOuterR + 3.0) {
-                            let tFade = (distToGreenCenter - fringeOuterR) / 3.0;
-                            cushion = THREE.MathUtils.lerp(0.02, -0.05, Math.max(0, Math.min(1, tFade)));
+                        // Smooth side edge taper matching the fairway cut width
+                        if (distanceToPath > fW) {
+                            const tEdge = (distanceToPath - fW) / 2.26;
+                            const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
+                            calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
+                        } else {
+                            calculatedHeight -= 0.03;
                         }
-
-                        const visibleHeight = calculatedHeight + cushion;
-                        const hiddenHeight = insideSandZone ? (physics.getGroundHeight(worldX, worldZ) - 0.50) : hiddenFairwayH; calculatedHeight = THREE.MathUtils.lerp(visibleHeight, hiddenHeight, smoothT);
                     }
+
+
                 }
             } else {
                 // Pull grass meshes underground inside water lines to prevent clipping at the banks
@@ -3747,14 +3699,13 @@ function animate() {
         const terrainH = physics.getGroundHeight(bX, bZ);
         const ballRadius = 0.25 * currentScale;
 
-        let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand()) || (physics.getCourseHeight(bX, bZ) - terrainH > 0.05);
-        let surfaceHeight = terrainH + (0.5 * ball.scale.x); // Dynamic surface touch point matching ball scale        
+        let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand()); let surfaceHeight = terrainH + (0.5 * ball.scale.x); // Dynamic surface touch point matching ball scale        
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (ballIsOverSand) {
-            // FIXED: Anchors to true terrain floor height so the ball never drops below the surrounding rim
+            // FIXED: Rests ball cleanly on top of visual sand surface to prevent mesh triangle clipping
             const trueFloorH = physics.getGroundHeight(bX, bZ);
-            surfaceHeight = trueFloorH + 0.02 + (ballRadius * 0.80);
+            surfaceHeight = trueFloorH + ballRadius + 0.02;
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const distanceToPath = physics.getDistanceToSpline(bX, bZ);
