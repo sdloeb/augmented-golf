@@ -407,6 +407,10 @@ export class PhysicsEngine {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
                 let drop = 0;
+                // Cap maximum bunker depth at 0.35 to eliminate steep vertical grid cliffs
+                const rawDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.4;
+                const sandDepth = Math.min(0.35, rawDepth * 0.35);
+
                 if (sand.userData && sand.userData.isPolygon) {
                     const points = sand.userData.points;
                     let inside = false;
@@ -427,11 +431,10 @@ export class PhysicsEngine {
                         if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                     }
                     const edgeDist = Math.sqrt(minEdgeDistSq);
-                    const sandDepth = sand.userData.depth || 0.6;
                     if (inside) {
                         drop = sandDepth;
-                    } else if (edgeDist < 0.8) {
-                        const t = edgeDist / 0.8;
+                    } else if (edgeDist < 2.0) {
+                        const t = edgeDist / 2.0;
                         const smoothSlope = t * t * (3 - 2 * t);
                         drop = THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
                     }
@@ -441,11 +444,11 @@ export class PhysicsEngine {
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
                     const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    const sandRadius = baseRadius + 0.8;
-                    const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
+                    const transitionMargin = 2.2;
+                    const sandRadius = baseRadius + transitionMargin;
 
                     if (distToSand < sandRadius) {
-                        const flatRadius = baseRadius * 0.60;
+                        const flatRadius = Math.max(0.5, baseRadius * 0.30);
 
                         if (distToSand <= flatRadius) {
                             drop = sandDepth;
@@ -699,7 +702,6 @@ export class PhysicsEngine {
             const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
 
             const ballRadius = 0.25 * this.ball.scale.x;
-            // Embed physics ground plane to match visual ball resting depth
             const trueFloorH = this.getGroundHeight(bX, bZ);
             groundY = trueFloorH + ballRadius - (ballRadius * 0.35);
         } else if (this.currentSurface === 'Rough') {

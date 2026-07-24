@@ -1664,7 +1664,7 @@ function resetEntireGame(advanceHole = false) {
                     const currentEdgeDist = Math.sqrt(minEdgeDistSq);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
 
-                    if (inside || currentEdgeDist < 0.8) {
+                    if (inside) {
                         insideSandZone = true;
                         const depth = sand.userData.depth || 0.6;
                         if (depth > activeSandDepth) activeSandDepth = depth;
@@ -1672,16 +1672,13 @@ function resetEntireGame(advanceHole = false) {
                 } else {
                     const dxS = worldX - sand.position.x;
                     const dzS = worldZ - sand.position.z;
-                    // FIXED: Use squared distance to optimize circular bunker boundary checks inside the tight grid loop
                     const distToSandSq = dxS * dxS + dzS * dzS;
 
-                    // FIXED: Removed irregular shapeWarp to match physics heights cleanly to the visual circular traps
-                    const padding = 0.8;
-                    const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + padding;
-                    const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - sandRadius);
+                    const baseSandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5);
+                    const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - baseSandRadius);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
 
-                    if (distToSandSq < sandRadius * sandRadius) {
+                    if (distToSandSq < baseSandRadius * baseSandRadius) {
                         insideSandZone = true;
                         const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
                         if (depth > activeSandDepth) activeSandDepth = depth;
