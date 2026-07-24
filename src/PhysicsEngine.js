@@ -337,7 +337,7 @@ export class PhysicsEngine {
             }
         }
 
-       // Smoothly blend green elevation and contours outward past the fringe onto the apron mound (3.0 units wide)
+        // Smoothly blend green elevation and contours outward past the fringe onto the apron mound (3.0 units wide)
         const outerApronRadius = activeRadius + 3.0;
         if (distFromGreen < outerApronRadius) {
             const greenContour = this.getGreenHeight(x, z);
@@ -686,9 +686,7 @@ export class PhysicsEngine {
             }
         }
 
-        let ballIsOverSand = this.currentSurface === 'Sand Trap' || this.isBallInSand();
-
-        if (ballIsOverSand) {
+        if (inSand) {
             const bX = this.ball.position.x;
             const bZ = this.ball.position.z;
             const delta = 0.05;
@@ -701,9 +699,9 @@ export class PhysicsEngine {
             const localSlope = Math.min(1.0, Math.sqrt(sX * sX + sZ * sZ));
 
             const ballRadius = 0.25 * this.ball.scale.x;
-            // FIXED: Rests ball cleanly on top of visual sand surface to prevent mesh triangle clipping
+            // Embed physics ground plane to match visual ball resting depth
             const trueFloorH = this.getGroundHeight(bX, bZ);
-            groundY = trueFloorH + ballRadius + 0.02;
+            groundY = trueFloorH + ballRadius - (ballRadius * 0.35);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);

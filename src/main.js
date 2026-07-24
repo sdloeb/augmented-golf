@@ -3307,13 +3307,13 @@ function animate() {
         const dzHole = holePosition.z - ball.position.z;
         // MODIFIED: Corrected the Z-axis component typo from (dxHole * dzHole) to (dzHole * dzHole)
         const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
+        // LINE ABOVE:
         const isChippingClose = !onGreen && holeDistYards < 25.0;
 
-        // === REPLACE WITH THIS EXACT BLOCK ===
-        // ADJUSTED: Lift camera height and tighten distance specifically for deep sand traps so you can see over the bunker lip
-        const camDist = onGreen ? 2.5 : (isSand ? 1.5 : (isChippingClose ? 4.5 : 7.5));
-        const camHeight = onGreen ? 1.0 : (isSand ? 0.35 : (isChippingClose ? 1.4 : 2.2));
-        const lookDist = onGreen ? 6.0 : (isSand ? 4.0 : (isChippingClose ? 8.0 : 15.0));
+        // ADJUSTED: Lift camera height and pitch in sand traps so view clears the bunker lip cleanly
+        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 4.5 : 7.5));
+        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.4 : 2.2));
+        const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 8.0 : 15.0));
         if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -3697,15 +3697,17 @@ function animate() {
         const bX = ball.position.x;
         const bZ = ball.position.z;
         const terrainH = physics.getGroundHeight(bX, bZ);
+        // LINE ABOVE:
         const ballRadius = 0.25 * currentScale;
 
-        let ballIsOverSand = physics.currentSurface === 'Sand Trap' || (physics.isBallInSand && physics.isBallInSand()); let surfaceHeight = terrainH + (0.5 * ball.scale.x); // Dynamic surface touch point matching ball scale        
+        let surfaceHeight = terrainH + (0.5 * ball.scale.x);
+
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
-        } else if (ballIsOverSand) {
-            // FIXED: Rests ball cleanly on top of visual sand surface to prevent mesh triangle clipping
+        } else if (physics.isBallInSand()) {
+            // Embed the ball slightly into the sand grain plane (35% ball radius drop) for a natural lie
             const trueFloorH = physics.getGroundHeight(bX, bZ);
-            surfaceHeight = trueFloorH + ballRadius + 0.02;
+            surfaceHeight = trueFloorH + ballRadius - (ballRadius * 0.35);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const distanceToPath = physics.getDistanceToSpline(bX, bZ);
