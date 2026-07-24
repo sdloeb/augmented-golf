@@ -3563,24 +3563,9 @@ function animate() {
 
         // UPDATED: Starting the tilt sooner (3.5 yards) and dropping lookAheadDist to 0.0 for a clean top-down view when close
         let lookAheadDist = 6.0;
-        // Preserved from Step 1: Keeps tracking stable during active ball movement
-        const distToHole = Math.sqrt((holePosition.x - refX) * (holePosition.x - refX) + (holePosition.z - refZ) * (holePosition.z - refZ));
-        if (distToHole < 3.5) {
-            const factor = distToHole / 3.5; // 0 when right at the cup, 1 when 3.5 yards away
-
-            // Frames the view slightly ahead of the ball, tracking cleanly toward the cup
-            lookAheadDist = THREE.MathUtils.lerp(distToHole, 6.0, factor);
-
-            // Pull the camera BACK further behind the ball as you get close
-            // This clearly outlines the gap to the cup and keeps everything in perfect proportion
-            rigidCamDist = THREE.MathUtils.lerp(3.2, rigidCamDist, factor);
-
-            // Keep the camera height lower to maintain a true "behind" view instead of "looking over"
-            rigidCamHeight = THREE.MathUtils.lerp(1.25, rigidCamHeight, factor);
-
-            // Gently tilt the lens angle to keep the horizon line natural near the cup
-            lookUpOffset = THREE.MathUtils.lerp(-0.25, lookUpOffset, factor);
-        }
+        if (physics.isMoving) {
+            lookAheadDist = 0.0;
+        }   
 
         // MODIFIED: Anchor the camera base directly to the ball so it follows along behind it
         const camBaseX = ball.position.x;
@@ -3657,11 +3642,6 @@ function animate() {
             finalBallTargetScale = !physics.isMoving ? (baseGreenScale * perspectiveCorrection) : ballTargetScale;
         }
 
-        // Preserved exactly: Counteract camera height shrinkage when ultra-close to the cup
-        if (yardsToPin < 3.5 && !physics.isMoving) {
-            let closeFactor = (3.5 - yardsToPin) / 3.5;
-            finalBallTargetScale *= (1.0 + closeFactor * 0.05);
-        }
     }
 
     // Keep full scale during the plunge, only zero out once resting out of sight at the bottom
