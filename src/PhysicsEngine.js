@@ -1023,6 +1023,7 @@ export class PhysicsEngine {
 
                     if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 &&
                         this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {
+                        this.hitWater = true;
                         this.velocity.set(0, 0, 0);
                         this.isMoving = false;
                         if (this.sounds) this.sounds.play('water');
