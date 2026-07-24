@@ -407,9 +407,8 @@ export class PhysicsEngine {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
                 let drop = 0;
-                // Cap maximum bunker depth at 0.35 to eliminate steep vertical grid cliffs
-                const rawDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.4;
-                const sandDepth = Math.min(0.35, rawDepth * 0.35);
+                // Restores full natural bunker depth
+                const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.8;
 
                 if (sand.userData && sand.userData.isPolygon) {
                     const points = sand.userData.points;
@@ -1022,9 +1021,8 @@ export class PhysicsEngine {
                     const cliffEdgeLimit = pathCenter + (this.ball.position.z <= -125 ? 10.5 : 15.5);
                     // End of added lines
 
-                    if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 && // Modify this line: Replaced left boundary check with cliffEdgeLimit
-                        this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2 && this.ball.position.y <= water.position.y + 0.1) {
-                        this.hitWater = true;
+                    if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 &&
+                        this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {
                         this.velocity.set(0, 0, 0);
                         this.isMoving = false;
                         if (this.sounds) this.sounds.play('water');

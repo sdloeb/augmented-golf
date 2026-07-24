@@ -210,7 +210,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1453,35 +1453,7 @@ function resetEntireGame(advanceHole = false) {
 
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            // Prevent the putting green complex from clipping into overlapping sand traps with smooth edge blending
-            let sandOverlapFactor = 0;
-            sandTraps.forEach(sand => {
-                if (sand.userData && sand.userData.isPolygon) {
-                    const points = sand.userData.points;
-                    let inside = false;
-                    for (let k = 0, j = points.length - 1; k < points.length; j = k++) {
-                        const xi = points[k].x, zi = points[k].z;
-                        const xj = points[j].x, zj = points[j].z;
-                        const intersect = ((zi > worldZ) !== (zj > worldZ))
-                            && (worldX < (xj - xi) * (worldZ - zi) / (zj - zi) + xi);
-                        if (intersect) inside = !inside;
-                    }
-                    if (inside) sandOverlapFactor = 1.0;
-                } else {
-                    const dxS = worldX - sand.position.x;
-                    const dzS = worldZ - sand.position.z;
-                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-                    const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    if (distToSand < sandRadius + 0.5) {
-                        const tOverlap = Math.min(1.0, Math.max(0.0, (sandRadius + 0.5 - distToSand) / 1.0));
-                        const smoothOverlap = tOverlap * tOverlap * (3 - 2 * tOverlap);
-                        if (smoothOverlap > sandOverlapFactor) sandOverlapFactor = smoothOverlap;
-                    }
-                }
-            });
-            if (sandOverlapFactor > 0) {
-                calculatedHeight -= sandOverlapFactor * 1.5;
-            }
+
 
             if (targetMesh === green) calculatedHeight += 0.02;
             if (targetMesh === greenGrid) calculatedHeight += 0.03;
@@ -1824,15 +1796,10 @@ function resetEntireGame(advanceHole = false) {
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {
-                        // Smoothly tuck fairway mesh under the green fringe collar (over 2.0 units) without sharp grid steps
+                        // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothTuck);
-                    } else if (approachDot > 3.0 && distToGreenCenter > fringeR) {
-                        // Smoothly fade out fairway behind the green complex into the rough
-                        const tBack = Math.min(1, (approachDot - 3.0) / 4.0);
-                        const smoothBack = tBack * tBack * (3 - 2 * tBack);
-                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothBack);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
                     } else {
                         // Smooth side edge taper matching the fairway cut width
                         if (distanceToPath > fW) {
@@ -2969,7 +2936,7 @@ function animate() {
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
 
             updateDistanceDisplay(); // Add this line
-        }, 1200); // Add this line
+        }, 30); // Add this line
         return;
     }
 
@@ -3565,7 +3532,7 @@ function animate() {
         let lookAheadDist = 6.0;
         if (physics.isMoving) {
             lookAheadDist = 0.0;
-        }   
+        }
 
         // MODIFIED: Anchor the camera base directly to the ball so it follows along behind it
         const camBaseX = ball.position.x;
