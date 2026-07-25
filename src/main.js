@@ -632,7 +632,7 @@ function addSandTrap(x, z, r, depth) {
         })
     );
     sandMesh.rotation.x = -Math.PI / 2;
-    sandMesh.position.set(x, 0.01, z); // Slightly raised to avoid z-fighting
+    sandMesh.position.set(x, 0, z); // Set to 0 so vertex deformation handles elevation cleanly
     sandMesh.userData = { radius: r, depth: depth };
     scene.add(sandMesh);
     sandTraps.push(sandMesh);
@@ -705,7 +705,7 @@ function generateHazards() {
         );
         if (waterAttempts > 50) continue;
 
-        let currentWaterGroundY = physics.getGroundHeight(x, z);
+        currentWaterGroundY = physics.getGroundHeight(x, z);
 
         if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
             currentWaterGroundY += 0.035;
@@ -736,24 +736,24 @@ function generateHazards() {
                 polygonOffsetUnits: -4                  // Keep this line
             })
         );
+        const currentWaterGroundY = physics.getGroundHeight(hz.x, hz.z);
         waterMesh.rotation.x = -Math.PI / 2;
-        // FIXED: Lowered from +0.06 to +0.01 to snap the water surface flush against the terrain hills
-        waterMesh.position.set(x, currentWaterGroundY + 0.01 - 1.5, z);
-        waterMesh.userData = { radius: r };
+        waterMesh.position.set(hz.x, currentWaterGroundY + 0.01 - 1.5, hz.z);
+        waterMesh.userData = { radiusX: rx, radiusZ: rz };
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
 
         const shoreMesh = new THREE.Mesh(
-            new THREE.RingGeometry(r - 0.05, r + 0.6, 64), // Blends slightly into water, extends 0.6 units out
+            new THREE.RingGeometry(rx - 0.05, rx + 0.6, 64),
             new THREE.MeshStandardMaterial({
-                color: 0x655545,             // Natural rock/dirt brownish-gray
-                roughness: 0.95,             // Flat, matte finish for earth texture
+                color: 0x655545,
+                roughness: 0.95,
                 metalness: 0.1
             })
         );
         shoreMesh.rotation.x = -Math.PI / 2;
-        // FIXED: Lowered from +0.07 to +0.015 to securely bind the shore ring down to the grass without floating disc artifacts
-        shoreMesh.position.set(x, currentWaterGroundY + 0.015 - 1.5, z);
+        shoreMesh.scale.set(1, rz / rx, 1);
+        shoreMesh.position.set(hz.x, currentWaterGroundY + 0.015 - 1.5, hz.z);
         scene.add(shoreMesh);
         waterShores.push(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
@@ -1120,9 +1120,9 @@ function resetEntireGame(advanceHole = false) {
 
 
     // --- 2. PHYSICALLY MOVE THE MESHES TO THE FIXED WAYPOINT CENTER ---
-    if (green) green.position.set(greenCenterX, 0.02, greenCenterZ);
-    if (greenGrid) greenGrid.position.set(greenCenterX, 0.021, greenCenterZ);
-    if (greenFringe) greenFringe.position.set(greenCenterX, 0.018, greenCenterZ);
+    if (green) green.position.set(greenCenterX, 0, greenCenterZ);
+    if (greenGrid) greenGrid.position.set(greenCenterX, 0, greenCenterZ);
+    if (greenFringe) greenFringe.position.set(greenCenterX, 0, greenCenterZ);
 
     // --- 3. SYNC PHYSICS ENGINE TO THE FIXED GREEN LOCATION ---
     if (physics) {
@@ -1264,8 +1264,9 @@ function resetEntireGame(advanceHole = false) {
                         polygonOffsetUnits: -4
                     })
                 );
+                const lakeGroundY = physics.getGroundHeight(hz.x, hz.z);
                 waterMesh.rotation.x = -Math.PI / 2;
-                waterMesh.position.set(hz.x, 0.01, hz.z);
+                waterMesh.position.set(hz.x, lakeGroundY + 0.01 - 1.5, hz.z);
                 waterMesh.userData = { radiusX: rx, radiusZ: rz };
                 scene.add(waterMesh);
                 waterHazards.push(waterMesh);
@@ -1280,7 +1281,7 @@ function resetEntireGame(advanceHole = false) {
                 );
                 shoreMesh.rotation.x = -Math.PI / 2;
                 shoreMesh.scale.set(1, rz / rx, 1);
-                shoreMesh.position.set(hz.x, 0.015, hz.z);
+                shoreMesh.position.set(hz.x, lakeGroundY + 0.015 - 1.5, hz.z);
                 scene.add(shoreMesh);
                 waterShores.push(shoreMesh);
             }
