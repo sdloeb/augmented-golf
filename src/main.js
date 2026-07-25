@@ -736,15 +736,14 @@ function generateHazards() {
                 polygonOffsetUnits: -4                  // Keep this line
             })
         );
-        const currentWaterGroundY = physics.getGroundHeight(hz.x, hz.z);
         waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(hz.x, currentWaterGroundY + 0.01 - 1.5, hz.z);
-        waterMesh.userData = { radiusX: rx, radiusZ: rz };
+        waterMesh.position.set(x, currentWaterGroundY + 0.01 - 1.5, z);
+        waterMesh.userData = { radius: r };
         scene.add(waterMesh);
         waterHazards.push(waterMesh);
 
         const shoreMesh = new THREE.Mesh(
-            new THREE.RingGeometry(rx - 0.05, rx + 0.6, 64),
+            new THREE.RingGeometry(r - 0.05, r + 0.6, 64),
             new THREE.MeshStandardMaterial({
                 color: 0x655545,
                 roughness: 0.95,
@@ -752,8 +751,7 @@ function generateHazards() {
             })
         );
         shoreMesh.rotation.x = -Math.PI / 2;
-        shoreMesh.scale.set(1, rz / rx, 1);
-        shoreMesh.position.set(hz.x, currentWaterGroundY + 0.015 - 1.5, hz.z);
+        shoreMesh.position.set(x, currentWaterGroundY + 0.015 - 1.5, z);
         scene.add(shoreMesh);
         waterShores.push(shoreMesh);
         // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
@@ -1739,7 +1737,10 @@ function resetEntireGame(advanceHole = false) {
 
                 // Add jagged 3D micro-spikes to the actual geometry vertices to break the flat plane lines in the rough
                 if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
-                    const grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
+                    let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
+                    if (shortestDistToBunkerEdge < 2.0) {
+                        grassJitter *= (shortestDistToBunkerEdge / 2.0);
+                    }
                     floorHeight += Math.max(0, grassJitter);
                 }
 
@@ -1776,7 +1777,7 @@ function resetEntireGame(advanceHole = false) {
 
                     // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
                     if (insideSandZone) {
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.50;
+                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.75;
                     }
                 }
 
