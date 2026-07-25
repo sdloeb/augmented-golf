@@ -159,7 +159,8 @@ const HOLES_CONFIG = {
                 ]
             },
             // 2. The single intermediate bunker in the left rough before the green
-            { type: 'sand', x: -30.5, z: -163.0, radius: 2.3, depth: 0.60 },
+            { type: 'sand', shape: 'snake', depth: 0.60, radius: 3.0, path: [{ x: -30.5, z: -130.0 }, { x: -30.5, z: -150.0 }] },
+            { type: 'sand', x: -25.5, z: -159.0, radius: 2.2, depth: 0.60 },
 
             // 3. The green-side bunker positioned tightly to the left of your x: -3 green
             { type: 'sand', x: -15.5, z: -183.0, radius: 2.5, depth: 0.60 },
@@ -210,7 +211,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
