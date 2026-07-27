@@ -174,13 +174,22 @@ const HOLES_CONFIG = {
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
+        fairwayWidth: 9.5,
+        greenRadius: 9.0,
         waypoints: [
             new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),   // Modify this line: Drives straight down further
-            new THREE.Vector3(45, 0, -85),  // Modify this line: Extends elbow outward
-            new THREE.Vector3(85, 0, -85)   // Modify this line: Safe Par 4 distance (~355 yards away)
-        ]
-    }, // Add this block
+            new THREE.Vector3(0, 0, -85),   // Drives straight down further
+            new THREE.Vector3(45, 0, -85),  // Extends elbow outward
+            new THREE.Vector3(85, 0, -85)   // Safe Par 4 distance (~355 yards away)
+        ],
+        customOOB: {
+            type: 'l_shape',
+            // Leg 1: Tee corridor running straight down
+            leg1: { minX: -22, maxX: 18, minZ: -115, maxZ: 30 },
+            // Leg 2: Approach corridor running right toward the green
+            leg2: { minX: -22, maxX: 115, minZ: -115, maxZ: -60 }
+        }
+    },
     5: { // Sharp 90-Degree Dogleg Left Hole
         par: 4,
         waypoints: [
@@ -211,7 +220,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 4; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2572,19 +2581,49 @@ function resetEntireGame(advanceHole = false) {
                 spawnOOBStake(oob.maxX, z);
             }
 
-            // 3. Spacing along the Back Wall behind the Tee (maxZ) - Skip corners to prevent overlapping duplicates
+            // 3. Spacing along the Back Wall behind the Tee (maxZ)
             for (let i = 1; i < stakesPerRow - 1; i++) {
                 const t = i / (stakesPerRow - 1);
                 const x = THREE.MathUtils.lerp(oob.minX, oob.maxX, t);
                 spawnOOBStake(x, oob.maxZ);
             }
 
-            // 4. Spacing along the Front Wall beyond the Green (minZ) - Skip corners to prevent overlapping duplicates
+            // 4. Spacing along the Front Wall beyond the Green (minZ)
             for (let i = 1; i < stakesPerRow - 1; i++) {
                 const t = i / (stakesPerRow - 1);
                 const x = THREE.MathUtils.lerp(oob.minX, oob.maxX, t);
                 spawnOOBStake(x, oob.minZ);
             }
+        }
+        else if (currentHoleConfig && currentHoleConfig.customOOB && currentHoleConfig.customOOB.type === 'l_shape') {
+            const oob = currentHoleConfig.customOOB;
+            const l1 = oob.leg1;
+            const l2 = oob.leg2;
+
+            // Define the 6 perimeter edge segments outlining the L-shape
+            const edgeSegments = [
+                // 1. Back wall behind Tee
+                { start: { x: l1.minX, z: l1.maxZ }, end: { x: l1.maxX, z: l1.maxZ }, count: 5 },
+                // 2. Right wall of drive leg (cuts off shortcut tree corner)
+                { start: { x: l1.maxX, z: l1.maxZ }, end: { x: l1.maxX, z: l2.maxZ }, count: 9 },
+                // 3. Top wall of approach leg (cuts off shortcut tree corner from top)
+                { start: { x: l1.maxX, z: l2.maxZ }, end: { x: l2.maxX, z: l2.maxZ }, count: 10 },
+                // 4. Far right wall behind Green
+                { start: { x: l2.maxX, z: l2.maxZ }, end: { x: l2.maxX, z: l2.minZ }, count: 6 },
+                // 5. Bottom wall running past the elbow
+                { start: { x: l2.maxX, z: l2.minZ }, end: { x: l1.minX, z: l1.minZ }, count: 12 },
+                // 6. Left wall running up alongside the drive back to Tee
+                { start: { x: l1.minX, z: l1.minZ }, end: { x: l1.minX, z: l1.maxZ }, count: 12 }
+            ];
+
+            edgeSegments.forEach(seg => {
+                for (let i = 0; i < seg.count; i++) {
+                    const t = i / (seg.count - 1);
+                    const x = THREE.MathUtils.lerp(seg.start.x, seg.end.x, t);
+                    const z = THREE.MathUtils.lerp(seg.start.z, seg.end.z, t);
+                    spawnOOBStake(x, z);
+                }
+            });
         }
         // BRANCH B: Fallback automatically to standard procedural distance tracking for other curved holes
         else {
@@ -2804,11 +2843,22 @@ function animate() {
     let isOutOfBounds = false;
     if (physics) {
         // If the current hole has a custom rectangle boundary configured, check against those exact box walls
-        if (currentHoleConfig && currentHoleConfig.customOOB && currentHoleConfig.customOOB.type === 'rectangle') {
+        // If the current hole has a custom boundary configured, check against those exact box walls
+        if (currentHoleConfig && currentHoleConfig.customOOB) {
             const oob = currentHoleConfig.customOOB;
-            if (ball.position.x < oob.minX || ball.position.x > oob.maxX ||
-                ball.position.z > oob.maxZ || ball.position.z < oob.minZ) {
-                isOutOfBounds = true;
+            if (oob.type === 'rectangle') {
+                if (ball.position.x < oob.minX || ball.position.x > oob.maxX ||
+                    ball.position.z > oob.maxZ || ball.position.z < oob.minZ) {
+                    isOutOfBounds = true;
+                }
+            } else if (oob.type === 'l_shape') {
+                const inLeg1 = (ball.position.x >= oob.leg1.minX && ball.position.x <= oob.leg1.maxX &&
+                    ball.position.z >= oob.leg1.minZ && ball.position.z <= oob.leg1.maxZ);
+                const inLeg2 = (ball.position.x >= oob.leg2.minX && ball.position.x <= oob.leg2.maxX &&
+                    ball.position.z >= oob.leg2.minZ && ball.position.z <= oob.leg2.maxZ);
+                if (!inLeg1 && !inLeg2) {
+                    isOutOfBounds = true;
+                }
             }
         }
         // Otherwise, fallback safely to standard track spline distance bounds for other holes
