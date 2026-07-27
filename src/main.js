@@ -715,7 +715,7 @@ function generateHazards() {
         );
         if (waterAttempts > 50) continue;
 
-        currentWaterGroundY = physics.getGroundHeight(x, z);
+        let currentWaterGroundY = physics.getGroundHeight(x, z);
 
         if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
             currentWaterGroundY += 0.035;
