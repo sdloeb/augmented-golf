@@ -174,20 +174,77 @@ const HOLES_CONFIG = {
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
-        fairwayWidth: 9.5,
-        greenRadius: 9.0,
+        treeScale: 5.0, // Adjust this number to change tree height for Hole 4
+        fairwayWidth: 18.5,
+        greenRadius: 11.0,
+        greenShape: 'circle',
+        theme: 'standard',
+        slopeProfile: {
+            back: { rx: 0.005, rz: 0.005 },
+            mid: { rx: 0.005, rz: -0.005 },
+            front: { rx: 0.005, rz: 0.005 }
+        },
         waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),   // Drives straight down further
-            new THREE.Vector3(45, 0, -85),  // Extends elbow outward
-            new THREE.Vector3(85, 0, -85)   // Safe Par 4 distance (~355 yards away)
+            new THREE.Vector3(0, 0, 10),    // Tee Box
+            new THREE.Vector3(0, 0, -85),   // Elbow Turn
+            new THREE.Vector3(45, 0, -85),  // Approach Fairway
+            new THREE.Vector3(85, 0, -85)   // Green Location (~355 yards total)
+        ],
+        hazards: [
+            // 1. Water at the elbow of the dogleg (inside corner)
+            { type: 'lake', x: 12, z: -73, radiusX: 9.5, radiusZ: 8.5 },
+
+            // 2. Bunker straight out off the tee in the left rough at the turn
+            { type: 'sand', x: -25, z: -110, radius: 10.5, depth: 0.75 },
+
+            // 3. Bunker to the right of the green
+            { type: 'sand', x: 83, z: -65, radius: 6.5, depth: 0.7 },
+
+            // 4. Bunker to the left of the green
+            { type: 'sand', x: 83, z: -105, radius: 6.5, depth: 0.7 }
+        ],
+        customTrees: [
+            // --- LEFT SIDE OF TEE (Single clean row) ---
+            { x: -25, z: 25 },
+            { x: -25, z: 10 },
+            { x: -25, z: -5 },
+            { x: -25, z: -20 },
+            { x: -25, z: -35 },
+            { x: -25, z: -50 },
+            { x: -25, z: -65 },
+
+            // --- RIGHT SIDE OF TEE (7-Layer Dense Forest filling the open field) ---
+            // Row 1 (X = 20)
+            { x: 23, z: 25 }, { x: 23, z: 10 }, { x: 23, z: -5 }, { x: 23, z: -20 }, { x: 23, z: -35 }, { x: 23, z: -50 }, { x: 23, z: -62 },
+            // Row 2 (X = 26)
+            { x: 26, z: 20 }, { x: 26, z: 5 }, { x: 26, z: -10 }, { x: 26, z: -25 }, { x: 26, z: -40 }, { x: 26, z: -55 }, { x: 26, z: -67 },
+            // Row 3 (X = 32)
+            { x: 32, z: 25 }, { x: 32, z: 10 }, { x: 32, z: -5 }, { x: 32, z: -20 }, { x: 32, z: -35 }, { x: 32, z: -50 }, { x: 32, z: -62 },
+            // Row 4 (X = 38)
+            { x: 38, z: 20 }, { x: 38, z: 5 }, { x: 38, z: -10 }, { x: 38, z: -25 }, { x: 38, z: -40 }, { x: 38, z: -55 }, { x: 38, z: -67 },
+            // Row 5 (X = 44)
+            { x: 44, z: 25 }, { x: 44, z: 10 }, { x: 44, z: -5 }, { x: 44, z: -20 }, { x: 44, z: -35 }, { x: 44, z: -50 }, { x: 44, z: -62 },
+            // Row 6 (X = 50)
+            { x: 50, z: 20 }, { x: 50, z: 5 }, { x: 50, z: -10 }, { x: 50, z: -25 }, { x: 50, z: -40 }, { x: 50, z: -55 }, { x: 50, z: -67 },
+            // Row 7 (X = 56)
+            { x: 56, z: 25 }, { x: 56, z: 10 }, { x: 56, z: -5 }, { x: 56, z: -20 }, { x: 56, z: -35 }, { x: 56, z: -50 }, { x: 56, z: -62 },
+
+            // --- RIGHT SIDE OF DOGLEG / APPROACH (Z: -98 to -108, ending before Green) ---
+            { x: -40, z: -140 }, { x: -35, z: -134 },
+            { x: -25, z: -140 }, { x: -20, z: -134 },
+            { x: -10, z: -140 }, { x: -5, z: -134 },
+            { x: 5, z: -140 }, { x: 10, z: -134 },
+            { x: 20, z: -140 }, { x: 25, z: -134 },
+            { x: 35, z: -140 }, { x: 40, z: -134 },
+            { x: 50, z: -140 }, { x: 55, z: -134 },
+
+            // --- LEFT SIDE OF APPROACH (Sparse) ---
+            { x: 25, z: -68 }, { x: 40, z: -68 }, { x: 55, z: -68 }
         ],
         customOOB: {
             type: 'l_shape',
-            // Leg 1: Tee corridor running straight down
-            leg1: { minX: -22, maxX: 18, minZ: -115, maxZ: 30 },
-            // Leg 2: Approach corridor running right toward the green
-            leg2: { minX: -22, maxX: 115, minZ: -115, maxZ: -60 }
+            leg1: { minX: -44, maxX: 60, minZ: -145, maxZ: 30 },
+            leg2: { minX: -44, maxX: 115, minZ: -145, maxZ: -30 }
         }
     },
     5: { // Sharp 90-Degree Dogleg Left Hole
@@ -2098,444 +2155,505 @@ function resetEntireGame(advanceHole = false) {
     // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
     if (physics) physics.obstacles = [];
 
-    let obstacleAttempts = currentHoleConfig.theme === 'open' ? 12 : (currentHoleConfig.theme === 'forest' ? 145 : 45);
-
-    // Add this block: 50% chance to turn the rough into a dense forest barrier forcing precise fairway play
-    if (Math.random() < 0.5) {
-        obstacleAttempts = 275;
-    }
-
-    if (currentHoleNumber === 2) obstacleAttempts = 320;
-    if (currentHoleNumber === 3) obstacleAttempts = 0;
-    if (currentHoleNumber === 1) obstacleAttempts = 60;
-
-    // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
-    if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
-        obstacleAttempts = Math.max(obstacleAttempts, 450);                                 // Add this line
-    }
-
-    for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: replaced 45 with dynamic attempts counter
-        // NEW: Creates a deterministic seed specifically for Hole 1 to freeze positions
-        let seed = i + 1;
-        const localRandom = () => {
-            if (currentHoleNumber === 1) {
-                const x = Math.sin(seed++) * 10000;
-                return x - Math.floor(x);
-            }
-            return Math.random();
-        };
-
-        let sampleX, sampleZ;
-        if (currentHoleNumber === 1) {
-            // Split attempts into 4 clean rows (0 & 1 on Left, 2 & 3 on Right)
-            const rowPattern = i % 4;
-            const stepIndex = Math.floor(i / 4);
-            const totalSteps = Math.floor(obstacleAttempts / 4);
-
-            // Distribute down the Z axis from Tee Box (10) to 100yds before Green (-125.4)
-            sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
-            sampleZ += (localRandom() - 0.5) * 2.5; // Natural staggered padding down the line
-
-            const fW = 16.0;         // Hole 1 fairway radius width
-            const cushion = 12.0;     // Distance from fairway edge to the 1st row
-            const rowSpacing = 4.2;  // Distance between row 1 and row 2
-
-            if (rowPattern === 0) {
-                sampleX = -fW - cushion;
-            } else if (rowPattern === 1) {
-                sampleX = -fW - cushion - rowSpacing;
-            } else if (rowPattern === 2) {
-                sampleX = fW + cushion;
-            } else {
-                sampleX = fW + cushion + rowSpacing;
-            }
-            sampleX += (localRandom() - 0.5) * 0.4; // Micro-stagger to keep it looking organic
-        } else {
-            // Standard fallback configuration for alternative holes
-            sampleX = (Math.random() - 0.5) * 220;
-            if (currentHoleNumber === 2 && sampleX > 0) {
-                sampleX += 35.0;
-            }
-            sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
-        }
-        if (currentHoleNumber === 1 && sampleZ < -125.4) continue; // Stops the forest exactly 100 yards before the green
-
-        // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
-        let distanceToTee = Math.sqrt((sampleX - teeBoxX) * (sampleX - teeBoxX) + (sampleZ - 10) * (sampleZ - 10));
-        let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
-        // LINE ABOVE FOR FIND: let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
-        if (distanceToTee < 9.03 || distanceToHole < 9.03) {
-            continue;
-        }
-
-        // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
-        let distanceToGreenCenter = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
-        if (distanceToGreenCenter < 15.0) {
-            continue;
-        }
-        // Prevent spawning inside sand traps (+1.0 unit buffer padding)
-        let insideSandTrap = sandTraps.some(sandMesh => {
-            if (sandMesh.userData && sandMesh.userData.isPolygon) { // Add this line
-                const points = sandMesh.userData.points;            // Add this line
-                let inside = false;                                 // Add this line
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) { // Add this line
-                    const xi = points[i].x, zi = points[i].z;       // Add this line
-                    const xj = points[j].x, zj = points[j].z;       // Add this line
-                    const intersect = ((zi > sampleZ) !== (zj > sampleZ)) && (sampleX < (xj - xi) * (sampleZ - zi) / (zj - zi) + xi); // Add this line
-                    if (intersect) inside = !inside;                // Add this line
-                }                                                   // Add this line
-                return inside;                                      // Add this line
-            }                                                       // Add this line
-            let dxS = sampleX - sandMesh.position.x;
-            let dzS = sampleZ - sandMesh.position.z;
-            // FIXED: Look up our live userData radius property, and add a +1.5 buffer cushion to clear foliage limbs
-            let sandRadius = (sandMesh.userData && sandMesh.userData.radius ? sandMesh.userData.radius : 5) + 1.5; return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0);
-        });
-        if (insideSandTrap) continue;
-
-        // Prevent spawning inside water hazards (+1.5 unit buffer padding)
-        let insideWaterHazard = waterHazards.some(waterMesh => {
-            if (waterMesh.userData && waterMesh.userData.isRectangular) { // Add this line
-                let pathCenter = 0;                                       // Add this line
-                if (sampleZ >= -125) {                                    // Add this line
-                    let t = (10 - sampleZ) / 135;                         // Add this line
-                    pathCenter = THREE.MathUtils.lerp(0, -14.0, t);       // Add this line
-                } else {                                                  // Add this line
-                    let t = (-125 - sampleZ) / 55;                        // Add this line
-                    t = Math.min(1.0, t);                                 // Add this line
-                    pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);    // Add this line
-                }                                                         // Add this line
-                let cliffPadding = sampleZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - sampleZ) / 20.0))) : 15.5; // Add this line
-                const cliffEdgeLimit = pathCenter + cliffPadding;         // Add this line
-                return sampleX > (cliffEdgeLimit - 1.5);                  // Add this line
-            }                                                             // Add this line
-            let dxW = sampleX - waterMesh.position.x;
-            let dzW = sampleZ - waterMesh.position.z;
-            let waterRadius = waterMesh.userData.radius || 0;
-            return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
-        });
-        if (insideWaterHazard) continue;
-
-        // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
-        let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ);
-
-        // Allow trees to extend much further out on the right side to climb the new hillside ridge
-        let maxTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? 55.0 : (currentHoleNumber === 1 ? 80.0 : 35.0);
-        let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (currentHoleNumber === 1 ? (physics.fairwayWidth + 2.0) : (physics.fairwayWidth + 6.8));
-        let isShortcutZone = false; // Add this line
-        // Enforce the forest barrier constraint exclusively on procedural dogleg gaps (Hole 4+)
-        if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
-            const tee = currentHoleConfig.waypoints[0];                                          // Add this line
-            const greenPt = currentHoleConfig.waypoints[currentHoleConfig.waypoints.length - 1]; // Add this line
-            const minX = Math.min(tee.x, greenPt.x) - 15.0;                                      // Add this line
-            const maxX = Math.max(tee.x, greenPt.x) + 15.0;                                      // Add this line
-            const minZ = Math.min(tee.z, greenPt.z) - 15.0;                                      // Add this line
-            const maxZ = Math.max(tee.z, greenPt.z) + 15.0;                                      // Add this line
-            if (sampleX >= minX && sampleX <= maxX && sampleZ >= minZ && sampleZ <= maxZ) {      // Add this line
-                isShortcutZone = true;                                                           // Add this line
-            }                                                                                    // Add this line
-        }                                                                                        // Add this line
-
-        // FIXED: Shield Hole 1 from the random rough filters to ensure perfect rows are never skipped
-        if (currentHoleNumber !== 1 && (fairwayDistance <= minTreeDist || (fairwayDistance > maxTreeDist && !isShortcutZone))) {
-            continue;
-        }
-
-        const sceneryGroup = new THREE.Group();
-        const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
-        sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
-
-        let generateAsTree = currentHoleNumber === 2 ? (localRandom() < 0.95) : (currentHoleNumber === 1 ? (Math.random() < 0.85) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
-
-        if (generateAsTree) {
+    if (currentHoleConfig && currentHoleConfig.customTrees) {
+        currentHoleConfig.customTrees.forEach(pt => {
+            const sceneryGroup = new THREE.Group();
+            const courseHeight = physics.getGroundHeight(pt.x, pt.z);
+            sceneryGroup.position.set(pt.x, courseHeight, pt.z);
             sceneryGroup.userData = { type: 'tree' };
-            let randomScale = currentHoleNumber === 1 ? (7.5 + localRandom() * 2.5) : (3.5 + Math.random() * 1.3);
-            if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
-            let calculatedTrunkRad = 0.25 * randomScale;
-            let calculatedTrunkH = 1.4 * randomScale;
-            let calculatedFoliageRad = 1.1 * randomScale;
 
-            /// Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
-            let treeVersion = currentHoleNumber === 2 ? 3 : Math.floor(localRandom() * 3); // Modify this line: Force towering pine trees for Hole 2
+            const randomScale = currentHoleConfig.treeScale || 3.8;
+            const calculatedTrunkRad = 0.25 * randomScale;
+            const calculatedTrunkH = 1.4 * randomScale;
+            const calculatedFoliageRad = 1.1 * randomScale;
 
-            // Core trunk base used by all tree archetypes
-            let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
-            let trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
+            const trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
+            const trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
             trunkMesh.position.y = calculatedTrunkH / 2;
             sceneryGroup.add(trunkMesh);
 
-            let finalizedFoliageRadius = calculatedFoliageRad * 0.9;
-            let finalizedTotalHeight = calculatedTrunkH + (finalizedFoliageRadius * 1.4);
+            const finalizedFoliageRadius = calculatedFoliageRad * 1.1;
+            const finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
 
-            // ==========================================
-            // VERSION 0: CLASSIC WIDE OAK TREE (BALANCED CANOPY)
-            // ==========================================
-            if (treeVersion === 0) {
-                // Left structural accent branch
-                let branchGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
-                let branchL = new THREE.Mesh(branchGeoL, trunkMat);
-                branchL.position.set(-finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
-                branchL.rotation.z = 0.6; // Angle out left
-                sceneryGroup.add(branchL);
+            const positions = [
+                [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],
+                [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
+                [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
+                [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45],
+                [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]
+            ];
 
-                // Right structural accent branch
-                let branchGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
-                let branchR = new THREE.Mesh(branchGeoR, trunkMat);
-                branchR.position.set(finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
-                branchR.rotation.z = -0.6; // Angle out right
-                sceneryGroup.add(branchR);
+            positions.forEach(p => {
+                const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
+                const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                leafMesh.position.set(p[0], p[1], p[2]);
+                sceneryGroup.add(leafMesh);
+            });
 
-                // Left twig extending deep into the left foliage puff
-                let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
-                let twigL = new THREE.Mesh(twigGeoL, trunkMat);
-                twigL.position.set(-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
-                twigL.rotation.z = 0.8;
-                sceneryGroup.add(twigL);
-
-                // Right twig extending deep into the right foliage puff
-                let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
-                let twigR = new THREE.Mesh(twigGeoR, trunkMat);
-                twigR.position.set(finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
-                twigR.rotation.z = -0.8;
-                sceneryGroup.add(twigR);
-
-                // Overlapping full foliage puffs
-                let positions = [
-                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],          // Center Crown
-                    [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55], // Left Flank
-                    [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],  // Right Flank
-                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45], // Rear
-                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]   // Foreground
-                ];
-
-                positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
-                    let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
-                    leafMesh.position.set(p[0], p[1], p[2]);
-                    sceneryGroup.add(leafMesh);
-                });
-            }
-
-            // ==========================================
-            // VERSION 1: TALL FORK TREE (Y-SPLIT CANOPY)
-            // ==========================================
-            else if (treeVersion === 1) {
-                // Left main split fork extension limb
-                let forkGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.7, 8);
-                let forkL = new THREE.Mesh(forkGeoL, trunkMat);
-                forkL.position.set(-calculatedFoliageRad * 0.25, calculatedTrunkH + calculatedTrunkH * 0.2, 0);
-                forkL.rotation.z = 0.35;
-                sceneryGroup.add(forkL);
-
-                // Right main split fork extension limb
-                let forkGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.7, 8);
-                let forkR = new THREE.Mesh(forkGeoR, trunkMat);
-                forkR.position.set(calculatedFoliageRad * 0.25, calculatedTrunkH + calculatedTrunkH * 0.2, 0);
-                forkR.rotation.z = -0.35;
-                sceneryGroup.add(forkR);
-
-                // Center fork branch sticking up through the middle canopy gap
-                let forkCenterGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.9, 8);
-                let forkCenter = new THREE.Mesh(forkCenterGeo, trunkMat);
-                forkCenter.position.set(0, calculatedTrunkH + calculatedTrunkH * 0.4, 0.1);
-                forkCenter.rotation.x = 0.2; // Leans slightly forward to look natural
-                sceneryGroup.add(forkCenter);
-
-                // Twin high separated leaf cloud systems sitting on top of the fork limbs
-                let positions = [
-                    [-calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedTrunkH * 0.5, 0, 0.6], // Left Crown
-                    [calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedTrunkH * 0.5, 0, 0.6],  // Right Crown
-                    [0, calculatedTrunkH + calculatedTrunkH * 0.7, 0, 0.45]                           // Bridging puff
-                ];
-
-                positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
-                    let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
-                    leafMesh.position.set(p[0], p[1], p[2]);
-                    sceneryGroup.add(leafMesh);
-                });
-
-                finalizedFoliageRadius = calculatedFoliageRad * 1.1; // Expands check for wider fork
-                finalizedTotalHeight = calculatedTrunkH + (calculatedTrunkH * 0.5) + (calculatedFoliageRad * 0.6); // Adjusts total elevation check
-            }
-
-            // ==========================================
-            // VERSION 2: ASYMMETRIC BENT TREE (WINDSWEPT CANOPY)
-            // ==========================================
-            else if (treeVersion === 2) { // Change this line from "else {" to "else if (treeVersion === 2) {"
-                // Massive horizontal crooked side limb reaching out far right
-                let heavyLimbGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.3, calculatedTrunkRad * 0.5, calculatedTrunkH * 0.8, 8);
-                let heavyLimb = new THREE.Mesh(heavyLimbGeo, trunkMat);
-                heavyLimb.position.set(calculatedFoliageRad * 0.4, calculatedTrunkH * 0.9, 0);
-                heavyLimb.rotation.z = -1.1; // Heavy lean angle
-                sceneryGroup.add(heavyLimb);
-
-                // Offshoot twig reaching upwards into the main right foliage puff
-                let leanTwigGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.12, calculatedTrunkRad * 0.25, calculatedFoliageRad * 0.7, 8);
-                let leanTwig = new THREE.Mesh(leanTwigGeo, trunkMat);
-                leanTwig.position.set(calculatedFoliageRad * 0.6, calculatedTrunkH * 1.2, 0.1);
-                leanTwig.rotation.z = -0.4; // Points straighter up into the leaves
-                sceneryGroup.add(leanTwig);
-
-                // Foliage cloud layout heavily prioritized over the stretching limb side
-                let positions = [
-                    [0, calculatedTrunkH + calculatedFoliageRad * 0.6, 0, 0.55],         // Center Top
-                    [calculatedFoliageRad * 0.7, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.65], // Massive Right Flank Puff
-                    [calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.5, -calculatedFoliageRad * 0.3, 0.45],
-                    [calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.5, calculatedFoliageRad * 0.3, 0.45]
-                ];
-
-                positions.forEach(p => {
-                    let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
-                    let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
-                    leafMesh.position.set(p[0], p[1], p[2]);
-                    sceneryGroup.add(leafMesh);
-                });
-
-                finalizedFoliageRadius = calculatedFoliageRad * 1.2; // Wider footprint due to heavy leaning limb
-            } else if (treeVersion === 3) { // Add this block 
-                let pineLayers = [
-                    { bottomH: calculatedTrunkH * 0.9, radius: calculatedFoliageRad * 1.1, height: calculatedFoliageRad * 1.3 },
-                    { bottomH: calculatedTrunkH + calculatedFoliageRad * 0.6, radius: calculatedFoliageRad * 0.85, height: calculatedFoliageRad * 1.1 },
-                    { bottomH: calculatedTrunkH + calculatedFoliageRad * 1.2, radius: calculatedFoliageRad * 0.6, height: calculatedFoliageRad * 0.9 }
-                ];
-                const evergreenMat = new THREE.MeshStandardMaterial({ color: 0x113318, roughness: 0.8 });
-                pineLayers.forEach(layer => {
-                    let coneGeo = new THREE.ConeGeometry(layer.radius, layer.height, 8);
-                    let coneMesh = new THREE.Mesh(coneGeo, evergreenMat);
-                    coneMesh.position.y = layer.bottomH + (layer.height / 2);
-                    sceneryGroup.add(coneMesh);
-                });
-                finalizedFoliageRadius = calculatedFoliageRad * 1.1;
-                finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
-            } // Add this block
-
-
-
-
-
-            // Push the customized boundary data values down to the collision tracker matrix cleanly
             physics.obstacles.push({
                 type: 'tree',
-                x: sampleX,
-                z: sampleZ,
+                x: pt.x,
+                z: pt.z,
                 trunkRadius: calculatedTrunkRad,
                 trunkHeight: calculatedTrunkH,
                 foliageRadius: finalizedFoliageRadius,
                 totalHeight: finalizedTotalHeight,
-                version: treeVersion
+                version: 0
             });
 
-            // --- DELETE AND REPLACE THE ENTIRE "else" BUSH SCAFFOLD IN src/main.js ---
-        } else {
-            sceneryGroup.userData = { type: 'bush' };
-            let randomBushRad = 0.7 + Math.random() * 1.2;
-
-            // Create a base structural container group to combine twigs, shadow core, and leaf cards
-            const bushGroup = new THREE.Group();
-
-            // 1. BASE STEM STRUCTURE: Render exposed dark wood anchor branches at the floor line
-            const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.95 });
-            const stemCount = 5 + Math.floor(Math.random() * 3);
-
-            for (let s = 0; s < stemCount; s++) {
-                const stemH = randomBushRad * 0.45;
-                const stemGeo = new THREE.CylinderGeometry(0.012, 0.03, stemH, 5);
-                const stemMesh = new THREE.Mesh(stemGeo, stemMat);
-
-                const stemAngle = (s / stemCount) * Math.PI * 2;
-                const outwardTilt = 0.3 + Math.random() * 0.2;
-
-                stemMesh.position.set(
-                    Math.cos(stemAngle) * (randomBushRad * 0.12),
-                    stemH / 2 - 0.03,
-                    Math.sin(stemAngle) * (randomBushRad * 0.12)
-                );
-
-                stemMesh.rotation.z = Math.cos(stemAngle) * outwardTilt;
-                stemMesh.rotation.x = Math.sin(stemAngle) * outwardTilt;
-                bushGroup.add(stemMesh);
-            }
-
-            // 2. DARK INTERNAL CORE: Solid dark green center ball to block light and give internal depth
-            const shadowMat = new THREE.MeshStandardMaterial({ color: 0x0c260c, roughness: 0.95 });
-            const shadowGeo = new THREE.SphereGeometry(randomBushRad * 0.65, 8, 8);
-            const shadowCore = new THREE.Mesh(shadowGeo, shadowMat);
-            shadowCore.position.y = randomBushRad * 0.4;
-            shadowCore.scale.set(1, 0.8, 1); // Flatten slightly to match base dimensions
-            bushGroup.add(shadowCore);
-
-            // 3. CARTVECT ILLUSTRATED LEAF LAYER: Layout flat oval card plates facing outward
-            const foliageColors = [
-                0x144414, // Tier 0: Deep shadow backdrop green
-                0x1e5c1e, // Tier 1: Rich vector foliage mid-tone
-                0x2c821a, // Tier 2: Bright accent leaf blade green
-                0x5cb814  // Tier 3: Chartreuse sun highlight green
-            ];
-
-            // Dynamically scale leaf count by the overall random asset radius to protect performance
-            const leafCount = Math.floor(45 + (randomBushRad * 45));
-            // Standard circle mesh shape that we will squash and stretch into an organic leaf profile
-            const leafGeo = new THREE.CircleGeometry(randomBushRad * 0.22, 6);
-
-            for (let l = 0; l < leafCount; l++) {
-                // Mathematically distribute coordinates evenly across a upper hemisphere shell
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(Math.random() * 0.88); // Prioritizes standard outward/upward facings
-
-                const surfaceDist = randomBushRad * (0.82 + Math.random() * 0.24);
-                const pX = Math.sin(phi) * Math.cos(theta) * surfaceDist;
-                const pZ = Math.sin(phi) * Math.sin(theta) * surfaceDist;
-                const pY = Math.cos(phi) * surfaceDist * 0.85 + (randomBushRad * 0.12);
-
-                const normalizedHeight = pY / (randomBushRad * 1.1);
-                let colorIdx = 1;
-
-                if (normalizedHeight > 0.74) {
-                    colorIdx = Math.random() > 0.4 ? 3 : 2; // Bright highlights on crown clusters
-                } else if (normalizedHeight < 0.38) {
-                    colorIdx = 0; // Drop low hidden base foliage to shadow tier
-                } else {
-                    colorIdx = Math.random() > 0.5 ? 2 : 1; // Blend middle body leaves
-                }
-
-                const leafMat = new THREE.MeshStandardMaterial({
-                    color: foliageColors[colorIdx],
-                    roughness: 0.65,
-                    side: THREE.DoubleSide // Essential to allow two-way visibility during target rotations
-                });
-
-                const leafMesh = new THREE.Mesh(leafGeo, leafMat);
-                leafMesh.position.set(pX, pY, pZ);
-
-                // Point the leaf face directly away from the root center core
-                leafMesh.lookAt(new THREE.Vector3(pX * 2, pY + 0.15, pZ * 2));
-                // Add a micro random spin twist to avoid computerized patterns
-                leafMesh.rotation.z += (Math.random() - 0.5) * 0.6;
-
-                // squash width and extend height to sculpt an illustrated leaf blade contour shape
-                leafMesh.scale.set(
-                    0.65 + Math.random() * 0.25,
-                    1.35 + Math.random() * 0.35,
-                    1.0
-                );
-
-                bushGroup.add(leafMesh);
-            }
-
-            sceneryGroup.add(bushGroup);
-
-            // Sync structural bounds with physical engine limits safely
-            physics.obstacles.push({
-                type: 'bush',
-                x: sampleX,
-                z: sampleZ,
-                radius: randomBushRad
-            });
+            scene.add(sceneryGroup);
+            sceneryObjects.push(sceneryGroup);
+        });
+    } else {
+        let obstacleAttempts = currentHoleConfig.theme === 'open' ? 12 : (currentHoleConfig.theme === 'forest' ? 145 : 45);
+        // Add this block: 50% chance to turn the rough into a dense forest barrier forcing precise fairway play
+        if (Math.random() < 0.5) {
+            obstacleAttempts = 275;
         }
 
-        scene.add(sceneryGroup);
-        sceneryObjects.push(sceneryGroup);
+        if (currentHoleNumber === 2) obstacleAttempts = 320;
+        if (currentHoleNumber === 3) obstacleAttempts = 0;
+        if (currentHoleNumber === 1) obstacleAttempts = 60;
+
+        // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
+        if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
+            obstacleAttempts = Math.max(obstacleAttempts, 450);                                 // Add this line
+        }
+        if (currentHoleConfig && currentHoleConfig.customTrees) {
+            obstacleAttempts = currentHoleConfig.customTrees.length;
+        }
+
+        for (let i = 0; i < obstacleAttempts; i++) { // Modify this line: replaced 45 with dynamic attempts counter
+            // NEW: Creates a deterministic seed specifically for Hole 1 to freeze positions
+            let seed = i + 1;
+            const localRandom = () => {
+                if (currentHoleNumber === 1) {
+                    const x = Math.sin(seed++) * 10000;
+                    return x - Math.floor(x);
+                }
+                return Math.random();
+            };
+
+            let sampleX, sampleZ;
+            if (currentHoleConfig && currentHoleConfig.customTrees) {
+                sampleX = currentHoleConfig.customTrees[i].x;
+                sampleZ = currentHoleConfig.customTrees[i].z;
+            } else if (currentHoleNumber === 1) {
+                // Split attempts into 4 clean rows (0 & 1 on Left, 2 & 3 on Right)
+                const rowPattern = i % 4;
+                const stepIndex = Math.floor(i / 4);
+                const totalSteps = Math.floor(obstacleAttempts / 4);
+
+                // Distribute down the Z axis from Tee Box (10) to 100yds before Green (-125.4)
+                sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
+                sampleZ += (localRandom() - 0.5) * 2.5; // Natural staggered padding down the line
+
+                const fW = 16.0;         // Hole 1 fairway radius width
+                const cushion = 12.0;     // Distance from fairway edge to the 1st row
+                const rowSpacing = 4.2;  // Distance between row 1 and row 2
+
+                if (rowPattern === 0) {
+                    sampleX = -fW - cushion;
+                } else if (rowPattern === 1) {
+                    sampleX = -fW - cushion - rowSpacing;
+                } else if (rowPattern === 2) {
+                    sampleX = fW + cushion;
+                } else {
+                    sampleX = fW + cushion + rowSpacing;
+                }
+                sampleX += (localRandom() - 0.5) * 0.4; // Micro-stagger to keep it looking organic
+            } else {
+                // Standard fallback configuration for alternative holes
+                sampleX = (Math.random() - 0.5) * 220;
+                if (currentHoleNumber === 2 && sampleX > 0) {
+                    sampleX += 35.0;
+                }
+                sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
+            }
+            if (currentHoleNumber === 1 && sampleZ < -125.4) continue; // Stops the forest exactly 100 yards before the green
+
+            // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
+            // FIXED: Move isShortcutZone here so the whole function can access it
+            let isShortcutZone = false;
+
+            if (!currentHoleConfig || !currentHoleConfig.customTrees) {
+                // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
+                let distanceToTee = Math.sqrt((sampleX - teeBoxX) * (sampleX - teeBoxX) + (sampleZ - 10) * (sampleZ - 10));
+                let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
+                // LINE ABOVE FOR FIND: let distanceToHole = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
+                if (distanceToTee < 9.03 || distanceToHole < 9.03) {
+                    continue;
+                }
+
+                // Prevent spawning on or overlapping the putting green (12.0 radius + 3.0 branch buffer)
+                let distanceToGreenCenter = Math.sqrt((sampleX - holePosition.x) * (sampleX - holePosition.x) + (sampleZ - holePosition.z) * (sampleZ - holePosition.z));
+                if (distanceToGreenCenter < 15.0) {
+                    continue;
+                }
+                // Prevent spawning inside sand traps (+1.0 unit buffer padding)
+                let insideSandTrap = sandTraps.some(sandMesh => {
+                    if (sandMesh.userData && sandMesh.userData.isPolygon) { // Add this line
+                        const points = sandMesh.userData.points;            // Add this line
+                        let inside = false;                                 // Add this line
+                        for (let i = 0, j = points.length - 1; i < points.length; j = i++) { // Add this line
+                            const xi = points[i].x, zi = points[i].z;       // Add this line
+                            const xj = points[j].x, zj = points[j].z;       // Add this line
+                            const intersect = ((zi > sampleZ) !== (zj > sampleZ)) && (sampleX < (xj - xi) * (sampleZ - zi) / (zj - zi) + xi); // Add this line
+                            if (intersect) inside = !inside;                // Add this line
+                        }                                                   // Add this line
+                        return inside;                                      // Add this line
+                    }                                                       // Add this line
+                    let dxS = sampleX - sandMesh.position.x;
+                    let dzS = sampleZ - sandMesh.position.z;
+                    // FIXED: Look up our live userData radius property, and add a +1.5 buffer cushion to clear foliage limbs
+                    let sandRadius = (sandMesh.userData && sandMesh.userData.radius ? sandMesh.userData.radius : 5) + 1.5; return Math.sqrt(dxS * dxS + dzS * dzS) < (sandRadius + 1.0);
+                });
+                if (insideSandTrap) continue;
+
+                // Prevent spawning inside water hazards (+1.5 unit buffer padding)
+                let insideWaterHazard = waterHazards.some(waterMesh => {
+                    if (waterMesh.userData && waterMesh.userData.isRectangular) { // Add this line
+                        let pathCenter = 0;                                       // Add this line
+                        if (sampleZ >= -125) {                                    // Add this line
+                            let t = (10 - sampleZ) / 135;                         // Add this line
+                            pathCenter = THREE.MathUtils.lerp(0, -14.0, t);       // Add this line
+                        } else {                                                  // Add this line
+                            let t = (-125 - sampleZ) / 55;                        // Add this line
+                            t = Math.min(1.0, t);                                 // Add this line
+                            pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);    // Add this line
+                        }                                                         // Add this line
+                        let cliffPadding = sampleZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - sampleZ) / 20.0))) : 15.5; // Add this line
+                        const cliffEdgeLimit = pathCenter + cliffPadding;         // Add this line
+                        return sampleX > (cliffEdgeLimit - 1.5);                  // Add this line
+                    }                                                             // Add this line
+                    let dxW = sampleX - waterMesh.position.x;
+                    let dzW = sampleZ - waterMesh.position.z;
+                    let waterRadius = waterMesh.userData.radius || 0;
+                    return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
+                });
+                if (insideWaterHazard) continue;
+
+                // Evaluate Course Boundaries: Keep play-space obstacles securely grouped near the fairway lane
+                let fairwayDistance = physics.getDistanceToSpline(sampleX, sampleZ);
+
+                // Allow trees to extend much further out on the right side to climb the new hillside ridge
+                let maxTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? 55.0 : (currentHoleNumber === 1 ? 80.0 : 35.0);
+                let minTreeDist = (currentHoleNumber === 2 && sampleX > 0) ? (physics.fairwayWidth + 14.5) : (currentHoleNumber === 1 ? (physics.fairwayWidth + 2.0) : (physics.fairwayWidth + 6.8));
+                let isShortcutZone = false; // Add this line
+                // Enforce the forest barrier constraint exclusively on procedural dogleg gaps (Hole 4+)
+                if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
+                    const tee = currentHoleConfig.waypoints[0];                                          // Add this line
+                    const greenPt = currentHoleConfig.waypoints[currentHoleConfig.waypoints.length - 1]; // Add this line
+                    const minX = Math.min(tee.x, greenPt.x) - 15.0;                                      // Add this line
+                    const maxX = Math.max(tee.x, greenPt.x) + 15.0;                                      // Add this line
+                    const minZ = Math.min(tee.z, greenPt.z) - 15.0;                                      // Add this line
+                    const maxZ = Math.max(tee.z, greenPt.z) + 15.0;                                      // Add this line
+                    if (sampleX >= minX && sampleX <= maxX && sampleZ >= minZ && sampleZ <= maxZ) {      // Add this line
+                        isShortcutZone = true;                                                           // Add this line
+                    }                                                                                    // Add this line
+                }                                                                                        // Add this line
+
+                // FIXED: Shield Hole 1 from the random rough filters to ensure perfect rows are never skipped
+                if (currentHoleNumber !== 1 && (fairwayDistance <= minTreeDist || (fairwayDistance > maxTreeDist && !isShortcutZone))) {
+                    continue;
+                }
+            }
+            const sceneryGroup = new THREE.Group();
+            const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
+            sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
+
+            let generateAsTree = currentHoleNumber === 2 ? (localRandom() < 0.95) : (currentHoleNumber === 1 ? (Math.random() < 0.85) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
+
+            if (generateAsTree) {
+                sceneryGroup.userData = { type: 'tree' };
+                let randomScale = currentHoleNumber === 1 ? (7.5 + localRandom() * 2.5) : (3.5 + Math.random() * 1.3);
+                if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
+                let calculatedTrunkRad = 0.25 * randomScale;
+                let calculatedTrunkH = 1.4 * randomScale;
+                let calculatedFoliageRad = 1.1 * randomScale;
+
+                /// Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
+                let treeVersion = currentHoleNumber === 2 ? 3 : Math.floor(localRandom() * 3); // Modify this line: Force towering pine trees for Hole 2
+
+                // Core trunk base used by all tree archetypes
+                let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
+                let trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
+                trunkMesh.position.y = calculatedTrunkH / 2;
+                sceneryGroup.add(trunkMesh);
+
+                let finalizedFoliageRadius = calculatedFoliageRad * 0.9;
+                let finalizedTotalHeight = calculatedTrunkH + (finalizedFoliageRadius * 1.4);
+
+                // ==========================================
+                // VERSION 0: CLASSIC WIDE OAK TREE (BALANCED CANOPY)
+                // ==========================================
+                if (treeVersion === 0) {
+                    // Left structural accent branch
+                    let branchGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
+                    let branchL = new THREE.Mesh(branchGeoL, trunkMat);
+                    branchL.position.set(-finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
+                    branchL.rotation.z = 0.6; // Angle out left
+                    sceneryGroup.add(branchL);
+
+                    // Right structural accent branch
+                    let branchGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.5, 8);
+                    let branchR = new THREE.Mesh(branchGeoR, trunkMat);
+                    branchR.position.set(finalizedFoliageRadius * 0.2, calculatedTrunkH * 0.8, 0);
+                    branchR.rotation.z = -0.6; // Angle out right
+                    sceneryGroup.add(branchR);
+
+                    // Left twig extending deep into the left foliage puff
+                    let twigGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
+                    let twigL = new THREE.Mesh(twigGeoL, trunkMat);
+                    twigL.position.set(-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
+                    twigL.rotation.z = 0.8;
+                    sceneryGroup.add(twigL);
+
+                    // Right twig extending deep into the right foliage puff
+                    let twigGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, finalizedFoliageRadius * 0.8, 8);
+                    let twigR = new THREE.Mesh(twigGeoR, trunkMat);
+                    twigR.position.set(finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.3, 0.1);
+                    twigR.rotation.z = -0.8;
+                    sceneryGroup.add(twigR);
+
+                    // Overlapping full foliage puffs
+                    let positions = [
+                        [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],          // Center Crown
+                        [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55], // Left Flank
+                        [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],  // Right Flank
+                        [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45], // Rear
+                        [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]   // Foreground
+                    ];
+
+                    positions.forEach(p => {
+                        let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
+                        let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                        leafMesh.position.set(p[0], p[1], p[2]);
+                        sceneryGroup.add(leafMesh);
+                    });
+                }
+
+                // ==========================================
+                // VERSION 1: TALL FORK TREE (Y-SPLIT CANOPY)
+                // ==========================================
+                else if (treeVersion === 1) {
+                    // Left main split fork extension limb
+                    let forkGeoL = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.7, 8);
+                    let forkL = new THREE.Mesh(forkGeoL, trunkMat);
+                    forkL.position.set(-calculatedFoliageRad * 0.25, calculatedTrunkH + calculatedTrunkH * 0.2, 0);
+                    forkL.rotation.z = 0.35;
+                    sceneryGroup.add(forkL);
+
+                    // Right main split fork extension limb
+                    let forkGeoR = new THREE.CylinderGeometry(calculatedTrunkRad * 0.4, calculatedTrunkRad * 0.6, calculatedTrunkH * 0.7, 8);
+                    let forkR = new THREE.Mesh(forkGeoR, trunkMat);
+                    forkR.position.set(calculatedFoliageRad * 0.25, calculatedTrunkH + calculatedTrunkH * 0.2, 0);
+                    forkR.rotation.z = -0.35;
+                    sceneryGroup.add(forkR);
+
+                    // Center fork branch sticking up through the middle canopy gap
+                    let forkCenterGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.3, calculatedFoliageRad * 0.9, 8);
+                    let forkCenter = new THREE.Mesh(forkCenterGeo, trunkMat);
+                    forkCenter.position.set(0, calculatedTrunkH + calculatedTrunkH * 0.4, 0.1);
+                    forkCenter.rotation.x = 0.2; // Leans slightly forward to look natural
+                    sceneryGroup.add(forkCenter);
+
+                    // Twin high separated leaf cloud systems sitting on top of the fork limbs
+                    let positions = [
+                        [-calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedTrunkH * 0.5, 0, 0.6], // Left Crown
+                        [calculatedFoliageRad * 0.5, calculatedTrunkH + calculatedTrunkH * 0.5, 0, 0.6],  // Right Crown
+                        [0, calculatedTrunkH + calculatedTrunkH * 0.7, 0, 0.45]                           // Bridging puff
+                    ];
+
+                    positions.forEach(p => {
+                        let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
+                        let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                        leafMesh.position.set(p[0], p[1], p[2]);
+                        sceneryGroup.add(leafMesh);
+                    });
+
+                    finalizedFoliageRadius = calculatedFoliageRad * 1.1; // Expands check for wider fork
+                    finalizedTotalHeight = calculatedTrunkH + (calculatedTrunkH * 0.5) + (calculatedFoliageRad * 0.6); // Adjusts total elevation check
+                }
+
+                // ==========================================
+                // VERSION 2: ASYMMETRIC BENT TREE (WINDSWEPT CANOPY)
+                // ==========================================
+                else if (treeVersion === 2) { // Change this line from "else {" to "else if (treeVersion === 2) {"
+                    // Massive horizontal crooked side limb reaching out far right
+                    let heavyLimbGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.3, calculatedTrunkRad * 0.5, calculatedTrunkH * 0.8, 8);
+                    let heavyLimb = new THREE.Mesh(heavyLimbGeo, trunkMat);
+                    heavyLimb.position.set(calculatedFoliageRad * 0.4, calculatedTrunkH * 0.9, 0);
+                    heavyLimb.rotation.z = -1.1; // Heavy lean angle
+                    sceneryGroup.add(heavyLimb);
+
+                    // Offshoot twig reaching upwards into the main right foliage puff
+                    let leanTwigGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.12, calculatedTrunkRad * 0.25, calculatedFoliageRad * 0.7, 8);
+                    let leanTwig = new THREE.Mesh(leanTwigGeo, trunkMat);
+                    leanTwig.position.set(calculatedFoliageRad * 0.6, calculatedTrunkH * 1.2, 0.1);
+                    leanTwig.rotation.z = -0.4; // Points straighter up into the leaves
+                    sceneryGroup.add(leanTwig);
+
+                    // Foliage cloud layout heavily prioritized over the stretching limb side
+                    let positions = [
+                        [0, calculatedTrunkH + calculatedFoliageRad * 0.6, 0, 0.55],         // Center Top
+                        [calculatedFoliageRad * 0.7, calculatedTrunkH + calculatedFoliageRad * 0.4, 0, 0.65], // Massive Right Flank Puff
+                        [calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.5, -calculatedFoliageRad * 0.3, 0.45],
+                        [calculatedFoliageRad * 0.4, calculatedTrunkH + calculatedFoliageRad * 0.5, calculatedFoliageRad * 0.3, 0.45]
+                    ];
+
+                    positions.forEach(p => {
+                        let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
+                        let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                        leafMesh.position.set(p[0], p[1], p[2]);
+                        sceneryGroup.add(leafMesh);
+                    });
+
+                    finalizedFoliageRadius = calculatedFoliageRad * 1.2; // Wider footprint due to heavy leaning limb
+                } else if (treeVersion === 3) { // Add this block 
+                    let pineLayers = [
+                        { bottomH: calculatedTrunkH * 0.9, radius: calculatedFoliageRad * 1.1, height: calculatedFoliageRad * 1.3 },
+                        { bottomH: calculatedTrunkH + calculatedFoliageRad * 0.6, radius: calculatedFoliageRad * 0.85, height: calculatedFoliageRad * 1.1 },
+                        { bottomH: calculatedTrunkH + calculatedFoliageRad * 1.2, radius: calculatedFoliageRad * 0.6, height: calculatedFoliageRad * 0.9 }
+                    ];
+                    const evergreenMat = new THREE.MeshStandardMaterial({ color: 0x113318, roughness: 0.8 });
+                    pineLayers.forEach(layer => {
+                        let coneGeo = new THREE.ConeGeometry(layer.radius, layer.height, 8);
+                        let coneMesh = new THREE.Mesh(coneGeo, evergreenMat);
+                        coneMesh.position.y = layer.bottomH + (layer.height / 2);
+                        sceneryGroup.add(coneMesh);
+                    });
+                    finalizedFoliageRadius = calculatedFoliageRad * 1.1;
+                    finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
+                } // Add this block
+
+
+
+
+
+                // Push the customized boundary data values down to the collision tracker matrix cleanly
+                physics.obstacles.push({
+                    type: 'tree',
+                    x: sampleX,
+                    z: sampleZ,
+                    trunkRadius: calculatedTrunkRad,
+                    trunkHeight: calculatedTrunkH,
+                    foliageRadius: finalizedFoliageRadius,
+                    totalHeight: finalizedTotalHeight,
+                    version: treeVersion
+                });
+
+                // --- DELETE AND REPLACE THE ENTIRE "else" BUSH SCAFFOLD IN src/main.js ---
+            } else {
+                sceneryGroup.userData = { type: 'bush' };
+                let randomBushRad = 0.7 + Math.random() * 1.2;
+
+                // Create a base structural container group to combine twigs, shadow core, and leaf cards
+                const bushGroup = new THREE.Group();
+
+                // 1. BASE STEM STRUCTURE: Render exposed dark wood anchor branches at the floor line
+                const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.95 });
+                const stemCount = 5 + Math.floor(Math.random() * 3);
+
+                for (let s = 0; s < stemCount; s++) {
+                    const stemH = randomBushRad * 0.45;
+                    const stemGeo = new THREE.CylinderGeometry(0.012, 0.03, stemH, 5);
+                    const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+
+                    const stemAngle = (s / stemCount) * Math.PI * 2;
+                    const outwardTilt = 0.3 + Math.random() * 0.2;
+
+                    stemMesh.position.set(
+                        Math.cos(stemAngle) * (randomBushRad * 0.12),
+                        stemH / 2 - 0.03,
+                        Math.sin(stemAngle) * (randomBushRad * 0.12)
+                    );
+
+                    stemMesh.rotation.z = Math.cos(stemAngle) * outwardTilt;
+                    stemMesh.rotation.x = Math.sin(stemAngle) * outwardTilt;
+                    bushGroup.add(stemMesh);
+                }
+
+                // 2. DARK INTERNAL CORE: Solid dark green center ball to block light and give internal depth
+                const shadowMat = new THREE.MeshStandardMaterial({ color: 0x0c260c, roughness: 0.95 });
+                const shadowGeo = new THREE.SphereGeometry(randomBushRad * 0.65, 8, 8);
+                const shadowCore = new THREE.Mesh(shadowGeo, shadowMat);
+                shadowCore.position.y = randomBushRad * 0.4;
+                shadowCore.scale.set(1, 0.8, 1); // Flatten slightly to match base dimensions
+                bushGroup.add(shadowCore);
+
+                // 3. CARTVECT ILLUSTRATED LEAF LAYER: Layout flat oval card plates facing outward
+                const foliageColors = [
+                    0x144414, // Tier 0: Deep shadow backdrop green
+                    0x1e5c1e, // Tier 1: Rich vector foliage mid-tone
+                    0x2c821a, // Tier 2: Bright accent leaf blade green
+                    0x5cb814  // Tier 3: Chartreuse sun highlight green
+                ];
+
+                // Dynamically scale leaf count by the overall random asset radius to protect performance
+                const leafCount = Math.floor(45 + (randomBushRad * 45));
+                // Standard circle mesh shape that we will squash and stretch into an organic leaf profile
+                const leafGeo = new THREE.CircleGeometry(randomBushRad * 0.22, 6);
+
+                for (let l = 0; l < leafCount; l++) {
+                    // Mathematically distribute coordinates evenly across a upper hemisphere shell
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.random() * 0.88); // Prioritizes standard outward/upward facings
+
+                    const surfaceDist = randomBushRad * (0.82 + Math.random() * 0.24);
+                    const pX = Math.sin(phi) * Math.cos(theta) * surfaceDist;
+                    const pZ = Math.sin(phi) * Math.sin(theta) * surfaceDist;
+                    const pY = Math.cos(phi) * surfaceDist * 0.85 + (randomBushRad * 0.12);
+
+                    const normalizedHeight = pY / (randomBushRad * 1.1);
+                    let colorIdx = 1;
+
+                    if (normalizedHeight > 0.74) {
+                        colorIdx = Math.random() > 0.4 ? 3 : 2; // Bright highlights on crown clusters
+                    } else if (normalizedHeight < 0.38) {
+                        colorIdx = 0; // Drop low hidden base foliage to shadow tier
+                    } else {
+                        colorIdx = Math.random() > 0.5 ? 2 : 1; // Blend middle body leaves
+                    }
+
+                    const leafMat = new THREE.MeshStandardMaterial({
+                        color: foliageColors[colorIdx],
+                        roughness: 0.65,
+                        side: THREE.DoubleSide // Essential to allow two-way visibility during target rotations
+                    });
+
+                    const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+                    leafMesh.position.set(pX, pY, pZ);
+
+                    // Point the leaf face directly away from the root center core
+                    leafMesh.lookAt(new THREE.Vector3(pX * 2, pY + 0.15, pZ * 2));
+                    // Add a micro random spin twist to avoid computerized patterns
+                    leafMesh.rotation.z += (Math.random() - 0.5) * 0.6;
+
+                    // squash width and extend height to sculpt an illustrated leaf blade contour shape
+                    leafMesh.scale.set(
+                        0.65 + Math.random() * 0.25,
+                        1.35 + Math.random() * 0.35,
+                        1.0
+                    );
+
+                    bushGroup.add(leafMesh);
+                }
+
+                sceneryGroup.add(bushGroup);
+
+                // Sync structural bounds with physical engine limits safely
+                physics.obstacles.push({
+                    type: 'bush',
+                    x: sampleX,
+                    z: sampleZ,
+                    radius: randomBushRad
+                });
+            }
+
+            scene.add(sceneryGroup);
+            sceneryObjects.push(sceneryGroup);
+        }
     }
 
     // NEW: Generate visual 3D White Stakes along the exact Out of Bounds boundary lines

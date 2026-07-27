@@ -284,12 +284,15 @@ export class PhysicsEngine {
         const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
-        // Intercept Hole 1 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 1) {
+        // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
+        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4) {
             const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
-            height = (flatWave1 * 0.3 + flatWave2 * 0.15); // Gentle ground ripples
-            this.hasBigFeature = false; // Completely disables the random mountain generator
+
+            // Reduced multipliers for an ultra-flat fairway with clear line-of-sight
+            height = (flatWave1 * 0.05 + flatWave2 * 0.02);
+
+            this.hasBigFeature = false; // Disables big random mountain features
         }
 
         // Occasional larger feature (big hill or drop-off)
