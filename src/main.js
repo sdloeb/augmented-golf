@@ -174,15 +174,17 @@ const HOLES_CONFIG = {
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
-        treeScale: 5.0, // Adjust this number to change tree height for Hole 4
+        treeScale: 5.5, // Adjust this number to change tree height for Hole 4
+        treeHeightScale: 1.8,
         fairwayWidth: 18.5,
         greenRadius: 11.0,
         greenShape: 'circle',
         theme: 'standard',
+
         slopeProfile: {
-            back: { rx: 0.005, rz: 0.005 },
-            mid: { rx: 0.005, rz: -0.005 },
-            front: { rx: 0.005, rz: 0.005 }
+            back: { rx: -0.025, rz: 0.035 },  // Uphill back tier with a right-to-left feed
+            mid: { rx: 0.040, rz: -0.040 },   // Strong left-to-right breaking middle ridge
+            front: { rx: -0.015, rz: 0.030 }  // False front sloping down toward the fairway
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),    // Tee Box
@@ -217,15 +219,15 @@ const HOLES_CONFIG = {
             // Row 1 (X = 20)
             { x: 23, z: 25 }, { x: 23, z: 10 }, { x: 23, z: -5 }, { x: 23, z: -20 }, { x: 23, z: -35 }, { x: 23, z: -50 }, { x: 23, z: -62 },
             // Row 2 (X = 26)
-            { x: 26, z: 20 }, { x: 26, z: 5 }, { x: 26, z: -10 }, { x: 26, z: -25 }, { x: 26, z: -40 }, { x: 26, z: -55 }, { x: 26, z: -67 },
+            { x: 26, z: 20 }, { x: 26, z: 5 }, { x: 26, z: -10 }, { x: 26, z: -25 }, { x: 26, z: -40 }, { x: 26, z: -55 },
             // Row 3 (X = 32)
             { x: 32, z: 25 }, { x: 32, z: 10 }, { x: 32, z: -5 }, { x: 32, z: -20 }, { x: 32, z: -35 }, { x: 32, z: -50 }, { x: 32, z: -62 },
             // Row 4 (X = 38)
-            { x: 38, z: 20 }, { x: 38, z: 5 }, { x: 38, z: -10 }, { x: 38, z: -25 }, { x: 38, z: -40 }, { x: 38, z: -55 }, { x: 38, z: -67 },
+            { x: 38, z: 20 }, { x: 38, z: 5 }, { x: 38, z: -10 }, { x: 38, z: -25 }, { x: 38, z: -40 }, { x: 38, z: -55 },
             // Row 5 (X = 44)
             { x: 44, z: 25 }, { x: 44, z: 10 }, { x: 44, z: -5 }, { x: 44, z: -20 }, { x: 44, z: -35 }, { x: 44, z: -50 }, { x: 44, z: -62 },
             // Row 6 (X = 50)
-            { x: 50, z: 20 }, { x: 50, z: 5 }, { x: 50, z: -10 }, { x: 50, z: -25 }, { x: 50, z: -40 }, { x: 50, z: -55 }, { x: 50, z: -67 },
+            { x: 50, z: 20 }, { x: 50, z: 5 }, { x: 50, z: -10 }, { x: 50, z: -25 }, { x: 50, z: -40 }, { x: 50, z: -55 },
             // Row 7 (X = 56)
             { x: 56, z: 25 }, { x: 56, z: 10 }, { x: 56, z: -5 }, { x: 56, z: -20 }, { x: 56, z: -35 }, { x: 56, z: -50 }, { x: 56, z: -62 },
 
@@ -238,8 +240,7 @@ const HOLES_CONFIG = {
             { x: 35, z: -140 }, { x: 40, z: -134 },
             { x: 50, z: -140 }, { x: 55, z: -134 },
 
-            // --- LEFT SIDE OF APPROACH (Sparse) ---
-            { x: 25, z: -68 }, { x: 40, z: -68 }, { x: 55, z: -68 }
+
         ],
         customOOB: {
             type: 'l_shape',
@@ -2022,7 +2023,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        if (currentHoleNumber === 3) continue; // Add this line: Skips background foliage/houses on Hole 3 entirely
+        if (currentHoleConfig && currentHoleConfig.customTrees) continue; // Skips random background trees/houses on any hole with a customTree layout
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
@@ -2163,8 +2164,9 @@ function resetEntireGame(advanceHole = false) {
             sceneryGroup.userData = { type: 'tree' };
 
             const randomScale = currentHoleConfig.treeScale || 3.8;
+            const heightScale = currentHoleConfig.treeHeightScale || 1.0;
             const calculatedTrunkRad = 0.25 * randomScale;
-            const calculatedTrunkH = 1.4 * randomScale;
+            const calculatedTrunkH = 1.4 * randomScale * heightScale;
             const calculatedFoliageRad = 1.1 * randomScale;
 
             const trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
