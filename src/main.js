@@ -175,7 +175,7 @@ const HOLES_CONFIG = {
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
         treeScale: 5.5, // Adjust this number to change tree height for Hole 4
-        treeHeightScale: 1.8,
+        treeHeightScale: 2.0,
         fairwayWidth: 18.5,
         greenRadius: 11.0,
         greenShape: 'circle',
@@ -2177,6 +2177,7 @@ function resetEntireGame(advanceHole = false) {
             const finalizedFoliageRadius = calculatedFoliageRad * 1.1;
             const finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
 
+            // Main top canopy (Original sizes preserved)
             const positions = [
                 [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],
                 [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
@@ -2191,6 +2192,48 @@ function resetEntireGame(advanceHole = false) {
                 leafMesh.position.set(p[0], p[1], p[2]);
                 sceneryGroup.add(leafMesh);
             });
+
+            // Full wooden limbs with leafy branch canopies
+            if (heightScale > 1.0) {
+                const numTiers = 3; // 3 main branch levels along the trunk
+                for (let tier = 1; tier <= numTiers; tier++) {
+                    const tierY = calculatedTrunkH * (0.28 + (tier - 1) * 0.18); // Heights at 28%, 46%, and 64% up trunk
+                    const clusterCount = 3; // 3 branches per level
+
+                    for (let c = 0; c < clusterCount; c++) {
+                        // Spiral branches around the trunk
+                        const angle = (c * (Math.PI * 2 / clusterCount)) + (tier * 1.5);
+                        const branchLength = finalizedFoliageRadius * 0.85; // Reaches significantly further out
+
+                        const branchGroup = new THREE.Group();
+                        branchGroup.position.set(0, tierY, 0);
+                        branchGroup.rotation.y = angle;
+                        branchGroup.rotation.z = -0.50; // Angled ~30 degrees upward
+                        branchGroup.rotation.order = 'YXZ';
+
+                        // 1. Thick wooden branch tapering from base to tip
+                        const branchGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.38, branchLength, 6);
+                        branchGeo.translate(0, branchLength / 2, 0);
+                        const branchMesh = new THREE.Mesh(branchGeo, trunkMat);
+                        branchGroup.add(branchMesh);
+
+                        // --- CHANGE THIS NUMBER ANYTIME TO ADD MORE OR FEWER LEAVES ---
+                        const leavesPerBranch = 5;
+
+                        const leafPadGeo = new THREE.SphereGeometry(finalizedFoliageRadius * 0.08, 12, 8);
+                        for (let l = 1; l <= leavesPerBranch; l++) {
+                            const leafMesh = new THREE.Mesh(leafPadGeo, foliageMat);
+                            const posAlongBranch = (l / leavesPerBranch); // Spreads leaves evenly along branch
+                            const sideOffset = (l % 2 === 0 ? 0.08 : -0.08); // Alternates left & right sides
+                            leafMesh.scale.set(0.7, 0.22, 0.6);
+                            leafMesh.position.set(sideOffset, branchLength * posAlongBranch, 0);
+                            branchGroup.add(leafMesh);
+                        }
+
+                        sceneryGroup.add(branchGroup);
+                    }
+                }
+            }
 
             physics.obstacles.push({
                 type: 'tree',
