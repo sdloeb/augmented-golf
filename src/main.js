@@ -4743,7 +4743,7 @@ function init() {
 
         if (isOnGreen || club.name === 'Putter') {
             // Calibrated down from 2.10 to 1.30 so visual target distances align 1-to-1 with ball rollouts
-            finalPower *= 2.10;
+            finalPower *= 2.30;
 
             // Dampener specifically for putting from off the green (fringe/fairway)
             // MODIFIED: Exempt the fringe collar layout from this penalty cliff completely
