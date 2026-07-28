@@ -55,11 +55,11 @@ export class PhysicsEngine {
                     if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                 }
                 // 1.2 units edge margin ensures sloped bunker walls are fully recognized
-                if (inside || minEdgeDistSq < 1.44) return true;
+                if (inside) return true;
             } else {
                 const dx = this.ball.position.x - sand.position.x;
                 const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.2;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                 if (dx * dx + dz * dz < sandRadius * sandRadius) return true;
             }
         }
