@@ -3167,7 +3167,7 @@ function animate() {
         // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
         const collisionClub = input ? input.getClubInfo() : null;
         const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? (0.17 + 0.25 * ball.scale.x) : 0.38;
+        const maxLipRadius = collisionIsPutting ? (0.11 + 0.25 * ball.scale.x) : 0.38;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -4603,7 +4603,7 @@ function init() {
 
     holeCup = new THREE.Group();
 
-    const whiteRimGeo = new THREE.RingGeometry(0.17, 0.20, 32);
+    const whiteRimGeo = new THREE.RingGeometry(0.11, 0.13, 32);
     const whiteRimMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -4616,7 +4616,7 @@ function init() {
     whiteRim.position.y = 0.002;
     holeCup.add(whiteRim);
 
-    const darkCupGeo = new THREE.CircleGeometry(0.17, 32);
+    const darkCupGeo = new THREE.CircleGeometry(0.11, 32);
     const darkCupMat = new THREE.MeshBasicMaterial({
         color: 0x151515,
         side: THREE.DoubleSide,
