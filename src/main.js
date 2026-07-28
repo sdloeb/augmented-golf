@@ -278,7 +278,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 4; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1572,6 +1572,8 @@ function resetEntireGame(advanceHole = false) {
         const posAttr = targetMesh.geometry.attributes.position;
         const scaleX = useScale ? targetMesh.scale.x : 1;
         const scaleY = useScale ? targetMesh.scale.y : 1;
+        const uvAttr = targetMesh.geometry.attributes.uv;
+
 
         // Initialize or fetch the ground vertex color array dynamically
         let colorAttr = targetMesh.geometry.attributes.color;
@@ -1850,6 +1852,31 @@ function resetEntireGame(advanceHole = false) {
                 }
 
                 if (targetMesh === fairway) {
+                    // Dynamically curve mow lines along the fairway centerline path
+                    if (uvAttr && physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
+                        const points = physics.fairwayPoints;
+                        let minDistSq = Infinity;
+                        let closestIdx = 0;
+                        const step = 4;
+                        for (let j = 0; j < points.length; j += step) {
+                            const pt = points[j];
+                            const dSq = (worldX - pt.x) * (worldX - pt.x) + (worldZ - pt.z) * (worldZ - pt.z);
+                            if (dSq < minDistSq) {
+                                minDistSq = dSq;
+                                closestIdx = j;
+                            }
+                        }
+                        const p = points[closestIdx];
+                        const pNext = points[Math.min(points.length - 1, closestIdx + 2)];
+                        const pPrev = points[Math.max(0, closestIdx - 2)];
+                        let tanX = pNext.x - pPrev.x;
+                        let tanZ = pNext.z - pPrev.z;
+                        const tanLen = Math.sqrt(tanX * tanX + tanZ * tanZ) || 1;
+                        const perpX = -tanZ / tanLen;
+                        const perpZ = tanX / tanLen;
+                        const signedDist = (worldX - p.x) * perpX + (worldZ - p.z) * perpZ;
+                        uvAttr.setX(i, signedDist / 5.5);
+                    }
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                     const fringeR = activeR + 1.0;
@@ -1938,6 +1965,8 @@ function resetEntireGame(advanceHole = false) {
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
         posAttr.needsUpdate = true;
         if (colorAttr) colorAttr.needsUpdate = true;
+        if (targetMesh === fairway && uvAttr) uvAttr.needsUpdate = true;
+        targetMesh.geometry.computeVertexNormals();
         targetMesh.geometry.computeVertexNormals();
     };
 
@@ -4453,7 +4482,7 @@ function init() {
     fCtx.fillStyle = '#b8b8b8'; fCtx.fillRect(64, 0, 64, 4);
     const fairwayTexture = new THREE.CanvasTexture(fCanvas);
     fairwayTexture.wrapS = THREE.RepeatWrapping;
-    fairwayTexture.repeat.set(55, 1);
+    fairwayTexture.repeat.set(1, 1);
 
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture, vertexColors: true });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
