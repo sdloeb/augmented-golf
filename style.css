@@ -856,7 +856,7 @@ html {
 
 
     #clubSwipe.putter.idle-stance {
-        left: calc(50% - 77.5px) !important;
+        left: calc(50% - 83px) !important;
         bottom: 21% !important;
         transform: rotate(0deg) scale(0.60) !important;
         /* Kept at 35% to line up perfectly with closer portrait putter camera view */
