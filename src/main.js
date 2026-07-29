@@ -2017,7 +2017,7 @@ function resetEntireGame(advanceHole = false) {
     ballTargetScale = 1.0;
     // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
     const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const initialTeeScale = isMobileOnStart ? 0.55 : 0.55; /* Matches your custom computer desktop size */
+    const initialTeeScale = isMobileOnStart ? 0.53 : 0.53; /* Matches your custom computer desktop size */
     ballTargetScale = initialTeeScale;
     ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
@@ -3501,12 +3501,12 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.55 : 0.55; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.53 : 0.53; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
             ballTargetScale = isMobile ? 0.16 : 0.13;
         } else {
-            ballTargetScale = isMobile ? 0.55 : 0.51; // Fairway, rough, and sand size
+            ballTargetScale = isMobile ? 0.53 : 0.49; // Fairway, rough, and sand size
         }
 
         const isSand = physics && physics.isBallInSand();
