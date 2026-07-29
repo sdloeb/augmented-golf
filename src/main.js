@@ -3377,6 +3377,20 @@ function animate() {
         if (!wasMoving) {
             wasMoving = true;
             shotStartTime = performance.now(); // Record launch timestamp
+            // Capture the shot/putt heading direction so camera follows the ball's actual path
+            const vX = physics.velocity.x;
+            const vZ = physics.velocity.z;
+            const vLen = Math.sqrt(vX * vX + vZ * vZ);
+            if (vLen > 0.0001) {
+                window.shotHeadingX = vX / vLen;
+                window.shotHeadingZ = vZ / vLen;
+            } else {
+                const dX = holePosition.x - ball.position.x;
+                const dZ = holePosition.z - ball.position.z;
+                const len = Math.sqrt(dX * dX + dZ * dZ) || 1;
+                window.shotHeadingX = dX / len;
+                window.shotHeadingZ = dZ / len;
+            }
 
 
             // Calculate initial distance to the hole pin in true game yards
@@ -3471,8 +3485,8 @@ function animate() {
         }
         if (isLongShot) {
             if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) {
-                const dirX = holePosition.x - ball.position.x;
-                const dirZ = holePosition.z - ball.position.z;
+                const dirX = window.shotHeadingX !== undefined ? window.shotHeadingX : (holePosition.x - ball.position.x);
+                const dirZ = window.shotHeadingZ !== undefined ? window.shotHeadingZ : (holePosition.z - ball.position.z);
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
                 // ADJUSTED: Pushed horizontal cushion back to 20.0 to stay further behind the ball
@@ -3737,19 +3751,18 @@ function animate() {
     const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
 
     if ((checkDist < activeR || (currentClub && currentClub.name === 'Putter')) && !isOverheadActive) {
-        // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
-        const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
-        const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
-
-        // Modify these two lines: Use the new stable references instead of the raw moving ball positions
-        const dX = holePosition.x - refX;
-        const dZ = holePosition.z - refZ;
-
-        let angle = Math.atan2(dX, dZ);
-        if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
-        const dirX = Math.sin(angle);
-        const dirZ = Math.cos(angle);
-
+        let dirX, dirZ;
+        if (physics.isMoving && window.shotHeadingX !== undefined) {
+            dirX = window.shotHeadingX;
+            dirZ = window.shotHeadingZ;
+        } else {
+            const dX = holePosition.x - ball.position.x;
+            const dZ = holePosition.z - ball.position.z;
+            let angle = Math.atan2(dX, dZ);
+            if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+            dirX = Math.sin(angle);
+            dirZ = Math.cos(angle);
+        }
         // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
         const aspect = window.innerWidth / window.innerHeight;
         let targetFov, rigidCamDist, rigidCamHeight, lookUpOffset;
