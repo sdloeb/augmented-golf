@@ -4210,7 +4210,7 @@ function animate() {
         } // Add this line
     } // Add this line
 
-    // Dynamic flag and pole removal (evaluated only when ball is at rest for the next shot)
+    // Dynamic flag and pole removal (evaluated when ball is at rest for the next shot)
     if (pin && flag && ball && physics && !physics.isMoving) {
         const gX = ball.position.x - (green ? green.position.x : 0);
         const gZ = ball.position.z - greenCenterZ;
@@ -4223,14 +4223,13 @@ function animate() {
         const distToHole = Math.sqrt(dxHole * dxHole + dzHole * dzHole);
         const distInFeet = distToHole * 1.75;
 
-        const isOnGreen = distToGreenCenter < activeR;
+        // Include green, fringe collar, or active putter selection
+        const isOnGreenOrFringe = distToGreenCenter <= (activeR + 1.0);
         const activeClub = input ? input.getClubInfo() : null;
         const isPutter = activeClub && activeClub.name === 'Putter';
 
-        // 15-foot limit when using the putter, 20-foot limit for other clubs resting on the green
-        const distanceThreshold = isPutter ? 15 : 20;
-
-        if (isOnGreen && distInFeet <= distanceThreshold) {
+        // Disappear if on the green, fringe, or using putter within 20 feet
+        if ((isOnGreenOrFringe || isPutter) && distInFeet <= 20) {
             pin.visible = false;
             flag.visible = false;
         } else {
