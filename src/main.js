@@ -3433,7 +3433,7 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
         if (isPuttingStroke || activeLaunchScale === 0.30) {
             // FIXED: Start with your original clean base green sizing
-            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.24 : 0.19;
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.15 : 0.12;
 
             // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
             // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
@@ -3504,7 +3504,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.55 : 0.55; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.24 : 0.19;
+            ballTargetScale = isMobile ? 0.15 : 0.12;
         } else {
             ballTargetScale = isMobile ? 0.55 : 0.51; // Fairway, rough, and sand size
         }
@@ -3842,7 +3842,7 @@ function animate() {
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.24 : 0.21;
+        const baseGreenScale = isMobileScreen ? 0.15 : 0.12;
 
         if (localIsPutting) {
             // UNIFIED PUTTING SCALE: Bind directly to ballTargetScale uniformly across both rolling and stationary 
@@ -4045,7 +4045,7 @@ function animate() {
                     if (activeClub.name === 'Putter') {
                         // Delete the old inline style bottom line from here
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.4 : 1.1})`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.0 : 1.1})`, 'important');
                     } else {
                         // Delete clubSwipeElement.style.bottom = ''; from here
                         clubSwipeElement.style.left = '';
@@ -4063,7 +4063,7 @@ function animate() {
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', currentLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${ballOnGreen ? 1.4 : 1.10})`, 'important');
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${ballOnGreen ? 1.0 : 1.10})`, 'important');
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
@@ -4632,7 +4632,7 @@ function init() {
 
     holeCup = new THREE.Group();
 
-    const whiteRimGeo = new THREE.RingGeometry(0.11, 0.13, 32);
+    const whiteRimGeo = new THREE.RingGeometry(0.121, 0.143, 32);
     const whiteRimMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -4645,7 +4645,7 @@ function init() {
     whiteRim.position.y = 0.002;
     holeCup.add(whiteRim);
 
-    const darkCupGeo = new THREE.CircleGeometry(0.11, 32);
+    const darkCupGeo = new THREE.CircleGeometry(0.121, 32);
     const darkCupMat = new THREE.MeshBasicMaterial({
         color: 0x151515,
         side: THREE.DoubleSide,
