@@ -3433,7 +3433,7 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
         if (isPuttingStroke || activeLaunchScale === 0.30) {
             // FIXED: Start with your original clean base green sizing
-            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.16 : 0.13;
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.16 : 0.10;
 
             // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
             // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
@@ -3504,7 +3504,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.16 : 0.16;
+            ballTargetScale = isMobile ? 0.16 : 0.10;
         } else {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
@@ -3805,7 +3805,7 @@ function animate() {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.04) : 0.04;
+        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.08) : 0.08;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
@@ -3823,7 +3823,7 @@ function animate() {
     // NEW: Post-shot camera fader to create a slow cinematic pan into your address stance position
     let timeSinceStop = performance.now() - shotStoppedTime;
     if (!physics.isMoving && timeSinceStop < POST_SHOT_DELAY && !isOverheadActive && !isSinking) {
-        activeCameraSpeed = 0.007; // Drastically lower interpolation speed for a luxurious tracking glide
+        activeCameraSpeed = 0.05; // Drastically lower interpolation speed for a luxurious tracking glide
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Existing line below your new addition
@@ -3842,7 +3842,7 @@ function animate() {
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.16 : 0.13;
+        const baseGreenScale = isMobileScreen ? 0.16 : 0.10;
 
         if (localIsPutting) {
             // UNIFIED PUTTING SCALE: Bind directly to ballTargetScale uniformly across both rolling and stationary 
@@ -4043,11 +4043,13 @@ function animate() {
                     clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important'); // Add this line: Locks ALL clubs to follow ball height
 
                     if (activeClub.name === 'Putter') {
-                        // Delete the old inline style bottom line from here
+                        // 2. Adjust up/down height offset here (- 6.0 pulls it down, - 2.0 pushes it up):
+                        const putterBottom = dynamicBottom - 2.25;
+                        clubSwipeElement.style.setProperty('bottom', `${putterBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
                         clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.0 : 1.1})`, 'important');
                     } else {
-                        // Delete clubSwipeElement.style.bottom = ''; from here
+                        clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
                         clubSwipeElement.style.left = '';
                         clubSwipeElement.style.transform = '';
                     }
