@@ -54,13 +54,14 @@ export class PhysicsEngine {
                     const distSq = (this.ball.position.x - projX) ** 2 + (this.ball.position.z - projZ) ** 2;
                     if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                 }
-                // 1.2 units edge margin ensures sloped bunker walls are fully recognized
-                if (inside || minEdgeDistSq < 1.44) return true;
+        // 0.8 units edge margin ensures sloped grass lips around bunker walls are recognized as grass
+                if (inside && Math.sqrt(minEdgeDistSq) >= 0.8) return true;
             } else {
                 const dx = this.ball.position.x - sand.position.x;
                 const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5) + 1.2;
-                if (dx * dx + dz * dz < sandRadius * sandRadius) return true;
+                const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                const innerSandRadius = Math.max(0.5, baseRadius - 0.8);
+                if (dx * dx + dz * dz < innerSandRadius * innerSandRadius) return true;
             }
         }
         return false;
