@@ -3501,12 +3501,12 @@ function animate() {
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
-            ballTargetScale = isMobile ? 0.53 : 0.53; // Change first number for mobile, second for desktop
+            ballTargetScale = isMobile ? 0.35 : 0.35; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.16 : 0.13;
+            ballTargetScale = isMobile ? 0.16 : 0.16;
         } else {
-            ballTargetScale = isMobile ? 0.53 : 0.49; // Fairway, rough, and sand size
+            ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
 
         const isSand = physics && physics.isBallInSand();
