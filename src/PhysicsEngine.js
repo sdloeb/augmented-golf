@@ -819,7 +819,7 @@ export class PhysicsEngine {
             // Add this block: Cuts down gravity acceleration on slopes by 65% when stuck in thick rough grass
             let slopeGravityModifier = 1.0;
             if (!onGreen && !currentlyInSand && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) > activeFW) {
-                slopeGravityModifier = 0.35;
+                slopeGravityModifier = 0.85;
             }
 
             // NEW: Anti-infinite rolling capture mechanism on green slopes
@@ -1138,7 +1138,8 @@ export class PhysicsEngine {
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
         // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
         // while leaving regular green shots and rough/fairway stops completely un-impacted.
-        const stopThreshold = this.isPutting ? 0.018 : (onGreen ? 0.018 : 0.01);
+        const isRough = !onGreen && !this.isPutting && !inSand;
+        const stopThreshold = this.isPutting ? 0.018 : (onGreen ? 0.018 : (isRough ? 0.035 : 0.01));
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
