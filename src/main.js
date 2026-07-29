@@ -3998,7 +3998,7 @@ function animate() {
 
                 // FIXED: Since the 3D ball is physically lowered into the sand, the 2D overlay tracks the new equator automatically. 
                 // Standardizing clubCushion to 4.0 across all lies prevents the double-sinking visual gap.
-                const dynamicBottom = ballBottomPercent - 4.0;
+                const dynamicBottom = ballBottomPercent - 2.0;
 
                 // NEW: Dynamically bind the backspin button position relative to the club's Y baseline coordinates
                 const backspinBtnEl = document.getElementById('backspinBtn');

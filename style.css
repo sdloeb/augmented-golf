@@ -221,10 +221,15 @@ html {
 /* ==========================================================================
    WOOD CLUB SUITE - SOLID BACKGROUNDS WITH DYNAMIC SIZE PROGRESSION
    ========================================================================== */
+/* Move all Woods down/back from the ball in address stance */
+#clubSwipe.wood.idle-stance {
+    margin-bottom: -30px !important; /* Make more negative (e.g., -25px or -30px) to pull woods further down/away from the ball */
+}
+
 
 /* Base Wood Profile: Premium Pear-Shaped Carbon Crown & Titanium Face Silhouette */
 #clubSwipe.wood {
-    zoom: .85;
+    zoom: .65;
     position: absolute;
     background-color: #1a1c1e;
     /* FORCE solid graphite base color so it can never be see-through */
@@ -368,7 +373,7 @@ html {
 
 /* Rear view style of a premium cavity-back Iron chassis */
 #clubSwipe.iron {
-    zoom: 0.72;
+    zoom: 0.65;
     width: 90px;
     height: 44px;
     border: none;
@@ -595,7 +600,7 @@ html {
 
 #clubSwipe.idle-stance {
     bottom: 30.5% !important;
-    left: 48.25% !important;
+    left: 48.45% !important;
     right: auto !important;
     transform: rotate(0deg) scale(1.0) !important;
     /* Restored to clean default */
