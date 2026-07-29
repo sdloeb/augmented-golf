@@ -2944,6 +2944,7 @@ function resetEntireGame(advanceHole = false) {
 
 
 function animate() {
+    if (teeBox) teeBox.visible = window.isOnTeeBox;
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
@@ -4443,6 +4444,8 @@ function animate() {
         });
     }
 
+
+    if (teeBox) teeBox.visible = true;
     renderer.render(scene, camera); // Preserved: Main renderer pipeline stays intact
 }
 
@@ -4751,12 +4754,10 @@ function init() {
 
         if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
 
-        // FIXED: Capture if the ball is struck off the tee box before hiding its template mesh structure
-        const isOffTee = teeBox && teeBox.visible;
+        const isOffTee = window.isOnTeeBox;
+        window.isOnTeeBox = false;
 
-        if (teeBox) teeBox.visible = false;
         if (golfTee) golfTee.visible = false;
-        tracerPoints = [];
 
 
         // NEW: Detect if striking from sand to explode a huge cloud of spray particles forward
