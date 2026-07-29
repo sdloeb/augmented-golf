@@ -384,7 +384,7 @@ function updateDistanceDisplay() {
             ctx.scale(canvas.width / 52, canvas.height / 52);
 
             let currentType = physics.currentSurface || 'Rough';
-            if (teeBox && teeBox.visible && !physics.isMoving) {
+            if (window.isOnTeeBox && !physics.isMoving) {
                 currentType = 'Tee Box';
             }
 
@@ -1992,10 +1992,10 @@ function resetEntireGame(advanceHole = false) {
 
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
+    window.isOnTeeBox = true;
     if (teeBox) {
         teeBox.position.set(teeBoxX, physics.getGroundHeight(teeBoxX, 10) + 0.072, 10);
         teeBox.visible = true;
-
         // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
         const firstTarget = holeConfig.waypoints[1];
         teeBox.lookAt(new THREE.Vector3(firstTarget.x, teeBox.position.y, firstTarget.z)); // Modify this line
@@ -3114,12 +3114,16 @@ function animate() {
             ball.position.y = obRestY;
             ball.visible = true;
 
-            if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
-                teeBox.visible = true;
+            if (window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
+                window.isOnTeeBox = true;
+                if (teeBox) teeBox.visible = true;
                 if (golfTee) {
                     golfTee.position.set(ball.position.x, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.131, ball.position.z);
                     golfTee.visible = true;
                 }
+            } else {
+                window.isOnTeeBox = false;
+                if (golfTee) golfTee.visible = false;
             }
 
             // Re-align the camera safely behind the ball looking toward the hole cup
@@ -3169,12 +3173,16 @@ function animate() {
             ball.visible = true;
 
             // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
-            if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
-                teeBox.visible = true;
+            if (window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
+                window.isOnTeeBox = true;
+                if (teeBox) teeBox.visible = true;
                 if (golfTee) {
                     golfTee.position.set(ball.position.x, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.131, ball.position.z);
                     golfTee.visible = true;
                 }
+            } else {
+                window.isOnTeeBox = false;
+                if (golfTee) golfTee.visible = false;
             }
 
             // Re-align the camera safely behind the ball looking toward the hole cup
