@@ -1482,8 +1482,14 @@ function resetEntireGame(advanceHole = false) {
     const specificPinCupY = physics.getGroundHeight(holePosition.x, holePosition.z);
 
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
-    if (pin) pin.position.set(holePosition.x, 1.5 + specificPinCupY, holePosition.z);
-    if (flag) flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
+    if (pin) {
+        pin.position.set(holePosition.x, 1.5 + specificPinCupY, holePosition.z);
+        pin.visible = true;
+    }
+    if (flag) {
+        flag.position.set(holePosition.x + 0.4, 2.75 + specificPinCupY, holePosition.z);
+        flag.visible = true;
+    }
     if (holeCup) { // Change this line
         const cupDelta = 0.1; // Add this line: Resolution boundary for sampling local slopes
         // MODIFIED: Swapped slope anchors to getGroundHeight to align the contour angles with the cliff table
@@ -3433,7 +3439,7 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
         if (isPuttingStroke || activeLaunchScale === 0.30) {
             // FIXED: Start with your original clean base green sizing
-            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.15 : 0.12;
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.15 : 0.17;
 
             // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
             // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
@@ -3504,7 +3510,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.55 : 0.55; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.15 : 0.12;
+            ballTargetScale = isMobile ? 0.15 : 0.17;
         } else {
             ballTargetScale = isMobile ? 0.55 : 0.51; // Fairway, rough, and sand size
         }
@@ -3842,7 +3848,7 @@ function animate() {
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.15 : 0.12;
+        const baseGreenScale = isMobileScreen ? 0.15 : 0.17;
 
         if (localIsPutting) {
             // UNIFIED PUTTING SCALE: Bind directly to ballTargetScale uniformly across both rolling and stationary 
@@ -4203,6 +4209,35 @@ function animate() {
             clubLandingBeacon.visible = false;
         } // Add this line
     } // Add this line
+
+    // Dynamic flag and pole removal (evaluated only when ball is at rest for the next shot)
+    if (pin && flag && ball && physics && !physics.isMoving) {
+        const gX = ball.position.x - (green ? green.position.x : 0);
+        const gZ = ball.position.z - greenCenterZ;
+        const distToGreenCenter = Math.sqrt(gX * gX + gZ * gZ);
+        const ballAngle = Math.atan2(-gZ, gX);
+        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+
+        const dxHole = ball.position.x - holePosition.x;
+        const dzHole = ball.position.z - holePosition.z;
+        const distToHole = Math.sqrt(dxHole * dxHole + dzHole * dzHole);
+        const distInFeet = distToHole * 1.75;
+
+        const isOnGreen = distToGreenCenter < activeR;
+        const activeClub = input ? input.getClubInfo() : null;
+        const isPutter = activeClub && activeClub.name === 'Putter';
+
+        // 15-foot limit when using the putter, 20-foot limit for other clubs resting on the green
+        const distanceThreshold = isPutter ? 15 : 20;
+
+        if (isOnGreen && distInFeet <= distanceThreshold) {
+            pin.visible = false;
+            flag.visible = false;
+        } else {
+            pin.visible = true;
+            flag.visible = true;
+        }
+    }
 
     // Animate the red flag rippling dynamically with wind speed
     if (flag && flag.geometry.attributes.position) { // Add this line
