@@ -4044,7 +4044,7 @@ function animate() {
 
                     if (activeClub.name === 'Putter') {
                         // 2. Adjust up/down height offset here (- 6.0 pulls it down, - 2.0 pushes it up):
-                        const putterBottom = dynamicBottom - 2.25;
+                        const putterBottom = dynamicBottom - 2.00;
                         clubSwipeElement.style.setProperty('bottom', `${putterBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
                         clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.0 : 1.1})`, 'important');
