@@ -3433,7 +3433,7 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
         if (isPuttingStroke || activeLaunchScale === 0.30) {
             // FIXED: Start with your original clean base green sizing
-            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.15 : 0.12;
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.16 : 0.13;
 
             // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
             // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
@@ -3504,7 +3504,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.55 : 0.55; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.15 : 0.12;
+            ballTargetScale = isMobile ? 0.16 : 0.13;
         } else {
             ballTargetScale = isMobile ? 0.55 : 0.51; // Fairway, rough, and sand size
         }
@@ -3842,7 +3842,7 @@ function animate() {
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.15 : 0.12;
+        const baseGreenScale = isMobileScreen ? 0.16 : 0.13;
 
         if (localIsPutting) {
             // UNIFIED PUTTING SCALE: Bind directly to ballTargetScale uniformly across both rolling and stationary 
