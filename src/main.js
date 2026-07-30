@@ -371,7 +371,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 5; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3713,8 +3713,10 @@ function animate() {
 
 
     // Hole preview path fly-through logic
-    if (isOverheadActive) {
-        previewProgress += 0.002;
+if (isOverheadActive) {
+        const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
+        const flightSpeed = holeDist < 80 ? 0.005 : 0.003;
+        previewProgress += flightSpeed;
         if (previewProgress > 1) previewProgress = 1;
 
         // Calculate the base alignment heading vector matching the player's current aim
@@ -4270,7 +4272,7 @@ function animate() {
 
                 clubLandingRing.position.set(ringX, 0, ringZ);
 
-                // Deform the ring vertices so it perfectly contours to hills and always appears full
+       // Deform the ring vertices so it perfectly contours to hills and always appears full
                 const ringPosAttr = clubLandingRing.geometry.attributes.position;
                 for (let i = 0; i < ringPosAttr.count; i++) {
                     const lx = ringPosAttr.getX(i);
@@ -4278,28 +4280,10 @@ function animate() {
                     const vWorldX = ringX + lx;
                     const vWorldZ = ringZ - ly;
 
-                    let vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
-                    if (physics.waterHazards) {
-                        physics.waterHazards.forEach(water => {
-                            if (water.userData.isRectangular) return;
-                            const dxW = vWorldX - water.position.x;
-                            const dzW = vWorldZ - water.position.z;
-                            const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-
-                            const rx = water.userData.radiusX || water.userData.radius || 5;
-                            const rz = water.userData.radiusZ || water.userData.radius || 5;
-                            const wAngle = Math.atan2(dzW, dxW);
-                            const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
-
-                            if (distToWater < lakeRadius + 0.6) {
-                                vGroundY = Math.max(vGroundY, water.position.y);
-                            }
-                        });
-                    }
+                    const vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
                     ringPosAttr.setZ(i, vGroundY + 0.04);
                 }
                 ringPosAttr.needsUpdate = true;
-                clubLandingRing.geometry.computeVertexNormals();
 
                 clubLandingRing.visible = true;
                 clubLandingBeacon.position.set(ringX, baseGroundY + 0.25 + 75, ringZ);
