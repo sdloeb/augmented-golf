@@ -484,7 +484,7 @@ html {
 /* Top view style of a premium milled blade putter - compact and detailed */
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
-    zoom: 0.55;
+    zoom: 0.57;
     /* NEW: Change this ONE number to scale the entire putter asset up or down instantly! */
 
     border-radius: 4px 4px 6px 6px;

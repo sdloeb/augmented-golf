@@ -369,6 +369,15 @@ function updateDistanceDisplay() {
             unitText.innerText = "yards";
         }
 
+        // Auto-hide flag and pole for the next shot when the ball comes to rest on the green within 20 feet
+        if (pin && flag && physics && !physics.isMoving) {
+            const feetToHole = Math.round(gameDistance * 1.75);
+            const isOnGreen = ballDist < activeR || isPuttingClub;
+            const hideFlag = isOnGreen && feetToHole <= 20;
+            pin.visible = !hideFlag;
+            flag.visible = !hideFlag;
+        }
+
         // --- VISUAL LIE ARTWORK RENDER ENGINE ---
         const canvas = document.getElementById('lieCanvas');
         if (canvas && physics) {
@@ -3433,7 +3442,7 @@ function animate() {
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
         if (isPuttingStroke || activeLaunchScale === 0.30) {
             // FIXED: Start with your original clean base green sizing
-            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.16 : 0.10;
+            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.16 : 0.14;
 
             // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
             // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
@@ -3504,7 +3513,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Change first number for mobile, second for desktop
         } else if (onGreen) {
             // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.16 : 0.10;
+            ballTargetScale = isMobile ? 0.16 : 0.14;
         } else {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
@@ -3842,7 +3851,7 @@ function animate() {
         const yardsToPin = Math.sqrt(dxH * dxH + dzH * dzH) * 2.76923;
 
         const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-        const baseGreenScale = isMobileScreen ? 0.16 : 0.10;
+        const baseGreenScale = isMobileScreen ? 0.16 : 0.14;
 
         if (localIsPutting) {
             // UNIFIED PUTTING SCALE: Bind directly to ballTargetScale uniformly across both rolling and stationary 
@@ -4620,7 +4629,7 @@ function init() {
     greenFringe.position.set(0, 0.018, -55); // Add this line
     scene.add(greenFringe); // Add this line
 
-    const pinGeo = new THREE.CylinderGeometry(0.04, 0.04, 3, 8);
+    const pinGeo = new THREE.CylinderGeometry(0.025, 0.025, 3, 8);
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     pin = new THREE.Mesh(pinGeo, pinMat);
     pin.position.set(0, 1.5, -55);
