@@ -278,7 +278,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 4; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1086,6 +1086,7 @@ function resetEntireGame(advanceHole = false) {
     }
 
     currentHoleConfig = holeConfig;
+    window.currentHoleConfig = holeConfig;
     window.activeGreenRadius = (holeConfig && holeConfig.greenRadius) ? holeConfig.greenRadius : 12.0;
 
     // Assign shape style (supports specific manual profiles or cycles variety across procedural tracks)

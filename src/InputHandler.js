@@ -94,6 +94,83 @@ export class InputHandler {
         return 150;
     }
 
+    getTreeBackswingCap() {
+        if (!this.ballRef || !window.physicsEngine || !window.physicsEngine.obstacles) {
+            return 1.0;
+        }
+
+        const ballX = this.ballRef.position.x;
+        const ballZ = this.ballRef.position.z;
+
+        // Determine current aim direction
+        let targetX = this.holePositionRef ? this.holePositionRef.x : 0;
+        let targetZ = this.holePositionRef ? this.holePositionRef.z : -55;
+
+        // If on tee box with a waypoint target
+        if (this.teeBoxRef && this.teeBoxRef.visible && window.currentHoleConfig && window.currentHoleConfig.waypoints) {
+            const firstLeg = window.currentHoleConfig.waypoints[1];
+            if (firstLeg) {
+                targetX = firstLeg.x;
+                targetZ = firstLeg.z;
+            }
+        }
+
+        const dX = targetX - ballX;
+        const dZ = targetZ - ballZ;
+        let angle = Math.atan2(dX, dZ);
+        if (this.aimAngleOffset) {
+            angle += this.aimAngleOffset;
+        }
+
+        const aimDirX = Math.sin(angle);
+        const aimDirZ = Math.cos(angle);
+
+        // Vector pointing directly behind the ball for backswing
+        const backDirX = -aimDirX;
+        const backDirZ = -aimDirZ;
+
+        // Vector perpendicular to swing path
+        const perpX = -aimDirZ;
+        const perpZ = aimDirX;
+
+        const FULL_BACKSWING_DIST = 4.0; // World units required for 100% backswing
+        let minAllowedCap = 1.0;
+
+        const obstacles = window.physicsEngine.obstacles;
+        for (let i = 0; i < obstacles.length; i++) {
+            const obs = obstacles[i];
+            if (obs.type !== 'tree') continue;
+
+            const vecX = obs.x - ballX;
+            const vecZ = obs.z - ballZ;
+
+            // Distance behind the ball along the backswing vector
+            const distBehind = vecX * backDirX + vecZ * backDirZ;
+
+            // Perpendicular side distance from the backswing line
+            const distSide = Math.abs(vecX * perpX + vecZ * perpZ);
+
+            const treeRadius = obs.trunkRadius || obs.radius || 0.8;
+            const clearanceRadius = treeRadius + 1.2; // Trunk radius + swing clearance
+
+            // Only restrict if tree is directly behind in the backswing path
+            if (distBehind > 0 && distSide <= clearanceRadius) {
+                const availableDist = distBehind - treeRadius;
+                let cap = 1.0;
+                if (availableDist <= 0) {
+                    cap = 0.15; // Minimum backswing (15%) when tree is right against back of ball
+                } else if (availableDist < FULL_BACKSWING_DIST) {
+                    cap = Math.max(0.15, availableDist / FULL_BACKSWING_DIST);
+                }
+
+                if (cap < minAllowedCap) {
+                    minAllowedCap = cap;
+                }
+            }
+        }
+
+        return minAllowedCap;
+    }
 
     initEvents() {
         // MODIFIED: Injected global tutorial input locks to keep swing logic insulated
@@ -213,7 +290,8 @@ export class InputHandler {
             const club = this.getClubInfo();
             const targetPullDistance = this.maxPullY - this.startY;
             const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
-            const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+            const backswingCap = this.getTreeBackswingCap();
+            const pullRatio = Math.min(targetPullDistance / maxPullPixels, backswingCap);
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
@@ -314,7 +392,8 @@ export class InputHandler {
 
             const targetPullDistance = this.maxPullY - this.startY;
             const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
-            const pullRatio = Math.min(targetPullDistance / maxPullPixels, 1);
+            const backswingCap = this.getTreeBackswingCap();
+            const pullRatio = Math.min(targetPullDistance / maxPullPixels, backswingCap);
             this.pullRatio = pullRatio;
 
             this.gaugeFill.style.height = `${pullRatio * 100}%`;
@@ -352,8 +431,9 @@ export class InputHandler {
     executeLaunch(endX, endY) {
         const club = this.getClubInfo();
 
-        const targetPullDistance = Math.min(club.isGreen ? 160 : 180, this.maxPullY - this.startY); // Changed 360 to 160
-        const actualForwardDistance = this.maxPullY - endY;
+        const backswingCap = this.getTreeBackswingCap();
+        const maxPullPixels = (club.isGreen ? 160 : 180) * backswingCap;
+        const targetPullDistance = Math.min(maxPullPixels, this.maxPullY - this.startY); const actualForwardDistance = this.maxPullY - endY;
 
         const powerMultiplier = Math.min(1.0, actualForwardDistance / targetPullDistance);
         const basePower = targetPullDistance * 0.05;
