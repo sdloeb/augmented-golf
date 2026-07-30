@@ -20,6 +20,7 @@ export class PhysicsEngine {
         this.backZone = { rx: 0, rz: 0 };
         this.midZone = { rx: 0, rz: 0 };
         this.frontZone = { rx: 0, rz: 0 };
+        this.slopeProfile = null;
         this.obstacles = [];
         this.isStuckInBush = false;
         this.hasHitObstacleOnShot = false;
@@ -67,29 +68,53 @@ export class PhysicsEngine {
     }
 
     // NEW: Receives the shuffled configurations from the map setup
-    setGreenContours(back, mid, front, centerX, centerZ, randomWidth) {
-        this.backZone = back;
-        this.midZone = mid;
-        this.frontZone = front;
-        this.greenCenterX = centerX;
-        this.greenCenterZ = centerZ;
-        this.fairwayWidth = randomWidth || 8.5;
+    setGreenContours(profileOrBack, midOrCenterX, frontOrCenterZ, centerXOrWidth, centerZ, randomWidth) {
+        if (profileOrBack && typeof profileOrBack === 'object' && ('backLeft' in profileOrBack || 'features' in profileOrBack || 'back' in profileOrBack || 'rx' in profileOrBack)) {
+            if ('rx' in profileOrBack) {
+                // Legacy 3-zone call fallback
+                this.backZone = profileOrBack;
+                this.midZone = midOrCenterX || { rx: 0, rz: 0 };
+                this.frontZone = frontOrCenterZ || { rx: 0, rz: 0 };
+                this.slopeProfile = {
+                    backLeft: this.backZone, backRight: this.backZone,
+                    midLeft: this.midZone, midRight: this.midZone,
+                    frontLeft: this.frontZone, frontRight: this.frontZone
+                };
+                this.greenCenterX = centerXOrWidth;
+                this.greenCenterZ = centerZ;
+                this.fairwayWidth = randomWidth || 8.5;
+            } else {
+                // New 6-zone / Feature Profile call
+                this.slopeProfile = profileOrBack;
+                this.backZone = profileOrBack.back || profileOrBack.backLeft || { rx: 0, rz: 0 };
+                this.midZone = profileOrBack.mid || profileOrBack.midLeft || { rx: 0, rz: 0 };
+                this.frontZone = profileOrBack.front || profileOrBack.frontLeft || { rx: 0, rz: 0 };
+                this.greenCenterX = midOrCenterX;
+                this.greenCenterZ = frontOrCenterZ;
+                this.fairwayWidth = centerXOrWidth || 8.5;
+            }
+        } else {
+            this.backZone = profileOrBack || { rx: 0, rz: 0 };
+            this.midZone = midOrCenterX || { rx: 0, rz: 0 };
+            this.frontZone = frontOrCenterZ || { rx: 0, rz: 0 };
+            this.greenCenterX = centerXOrWidth;
+            this.greenCenterZ = centerZ;
+            this.fairwayWidth = randomWidth || 8.5;
+        }
 
         // Randomize fairway/rough course contours for the new hole
-        this.courseSeedX1 = Math.random() * 50; // Add this line
-        this.courseSeedZ1 = Math.random() * 50; // Add this line
-        this.courseSeedX2 = Math.random() * 50; // Add this line
-        this.courseSeedZ2 = Math.random() * 50; // Add this line
+        this.courseSeedX1 = Math.random() * 50;
+        this.courseSeedZ1 = Math.random() * 50;
+        this.courseSeedX2 = Math.random() * 50;
+        this.courseSeedZ2 = Math.random() * 50;
 
-        this.obstacles = []; // Add this line to store the trees and bushes
-
-
+        this.obstacles = [];
 
         // Occasional big feature toggle (60% chance of a major hill or drop-off)
-        this.hasBigFeature = Math.random() > 0.4; // Add this line
-        this.bigFeatureX = (Math.random() - 0.5) * 25; // Add this line
-        this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120; // Add this line
-        this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2); // Add this line
+        this.hasBigFeature = Math.random() > 0.4;
+        this.bigFeatureX = (Math.random() - 0.5) * 25;
+        this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120;
+        this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2);
     }
 
     getGreenHeight(x, z) {
@@ -107,41 +132,100 @@ export class PhysicsEngine {
         const distanceSq = dist * dist;
         const r = dist;
 
-
-        // 1. Calculate smooth transition blending weights along the Z axis (Front to Back)
+        // 1. Calculate smooth transition blending weights along Z axis (Front to Back)
         let wBack = Math.max(0, Math.min(1, (-dz - 1.5) / 5));
         let wFront = Math.max(0, Math.min(1, (dz - 1.5) / 5));
         wBack = wBack * wBack * (3 - 2 * wBack);
         wFront = wFront * wFront * (3 - 2 * wFront);
         let wMid = 1 - wBack - wFront;
 
-        // 2. Accumulate the active randomized slope breaks across the tiers
-        const hBack = this.backZone.rx * dx + this.backZone.rz * dz;
-        const hMid = this.midZone.rx * dx + this.midZone.rz * dz;
-        const hFront = this.frontZone.rx * dx + this.frontZone.rz * dz;
-        const rawSlopeHeight = hBack * wBack + hMid * wMid + hFront * wFront;
+        // 2. Calculate smooth transition blending weights along X axis (Left to Right)
+        let wRight = Math.max(0, Math.min(1, (dx + 2.5) / 5));
+        let smoothWRight = wRight * wRight * (3 - 2 * wRight);
+        let smoothWLeft = 1.0 - smoothWRight;
 
-        // 3. NEW: Add a protective circular plateau mound foundation (+0.5 units at center)
-        // This keeps downhill valleys elevated safely above the flat infinite floor sheet
-        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius))); // Modify this line
+        // Fetch 6-zone profiles (or fallback to 3-zone / default)
+        const prof = this.slopeProfile || {};
+        const bl = prof.backLeft || prof.back || this.backZone || { rx: 0, rz: 0 };
+        const br = prof.backRight || prof.back || this.backZone || { rx: 0, rz: 0 };
+        const ml = prof.midLeft || prof.mid || this.midZone || { rx: 0, rz: 0 };
+        const mr = prof.midRight || prof.mid || this.midZone || { rx: 0, rz: 0 };
+        const fl = prof.frontLeft || prof.front || this.frontZone || { rx: 0, rz: 0 };
+        const fr = prof.frontRight || prof.front || this.frontZone || { rx: 0, rz: 0 };
+
+        const hBL = (bl.rx || 0) * dx + (bl.rz || 0) * dz;
+        const hBR = (br.rx || 0) * dx + (br.rz || 0) * dz;
+        const hML = (ml.rx || 0) * dx + (ml.rz || 0) * dz;
+        const hMR = (mr.rx || 0) * dx + (mr.rz || 0) * dz;
+        const hFL = (fl.rx || 0) * dx + (fl.rz || 0) * dz;
+        const hFR = (fr.rx || 0) * dx + (fr.rz || 0) * dz;
+
+        const rawSlopeHeight = (hBL * wBack * smoothWLeft) +
+            (hBR * wBack * smoothWRight) +
+            (hML * wMid * smoothWLeft) +
+            (hMR * wMid * smoothWRight) +
+            (hFL * wFront * smoothWLeft) +
+            (hFR * wFront * smoothWRight);
+
+        // 3. Accumulate custom local features (mounds, bowls, ridges, tiers)
+        let featureHeight = 0;
+        const features = prof.features || [];
+        for (let i = 0; i < features.length; i++) {
+            const feat = features[i];
+            const fType = feat.type || 'mound';
+            if (fType === 'mound' || fType === 'bowl') {
+                const fx = feat.x || 0;
+                const fz = feat.z || 0;
+                const fRad = feat.radius || 5.0;
+                const fAmp = (fType === 'mound') ? (feat.height || 0.1) : -(feat.depth || feat.height || 0.1);
+                const fDist = Math.sqrt((dx - fx) * (dx - fx) + (dz - fz) * (dz - fz));
+                if (fDist < fRad) {
+                    const factor = (1.0 + Math.cos((fDist / fRad) * Math.PI)) * 0.5;
+                    featureHeight += fAmp * factor;
+                }
+            } else if (fType === 'tier' || fType === 'step') {
+                const pos = feat.position || 0;
+                const width = feat.width || 3.0;
+                const height = feat.height || 0.15;
+                const axis = feat.axis || 'z';
+                const val = (axis === 'z') ? dz : dx;
+                const t = Math.max(0, Math.min(1, (val - (pos - width / 2)) / width));
+                const smoothStep = t * t * (3 - 2 * t);
+                featureHeight += height * smoothStep;
+            } else if (fType === 'ridge') {
+                const p1 = feat.p1 || { x: -5, z: 0 };
+                const p2 = feat.p2 || { x: 5, z: 0 };
+                const rWidth = feat.width || 4.0;
+                const rHeight = feat.height || 0.12;
+                const l2 = (p2.x - p1.x) * (p2.x - p1.x) + (p2.z - p1.z) * (p2.z - p1.z) || 0.001;
+                const tProj = Math.max(0, Math.min(1, ((dx - p1.x) * (p2.x - p1.x) + (dz - p1.z) * (p2.z - p1.z)) / l2));
+                const projX = p1.x + tProj * (p2.x - p1.x);
+                const projZ = p1.z + tProj * (p2.z - p1.z);
+                const rDist = Math.sqrt((dx - projX) * (dx - projX) + (dz - projZ) * (dz - projZ));
+                if (rDist < rWidth) {
+                    const factor = (1.0 + Math.cos((rDist / rWidth) * Math.PI)) * 0.5;
+                    featureHeight += rHeight * factor;
+                }
+            }
+        }
+
+        // 4. Circular plateau mound foundation (+0.20 units at center)
+        const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius)));
 
         let ripples = 0;
         if (this.currentHoleNumber === 1) {
-            // Cut the heights down significantly to flatten mounds into smooth, subtle breaks
             ripples = Math.sin(dx * 0.55) * Math.cos(dz * 0.55) * 0.04 +
                 Math.cos(dx * 1.10) * Math.sin(dz * 1.10) * 0.015;
         }
 
-        const combinedHeight = basePlateau + rawSlopeHeight + ripples;
+        const combinedHeight = basePlateau + rawSlopeHeight + featureHeight + ripples;
 
-        // 4. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
-        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0)); // Modify this line
+        // 5. Smoothly taper the outer edge of the mound to lock flush with the fairway turf
+        const edgeFade = Math.min(1, Math.max(0, (activeRadius - r) / 2.0));
         const smoothFade = edgeFade * edgeFade * (3 - 2 * edgeFade);
 
-        // Mathematical floor guard ensures the mesh can never drop below baseline ground level
         return Math.max(0.001, combinedHeight * smoothFade);
-    } // Find this closing bracket of getGreenHeight
-
+    }
     // Add this method: Calculates distance from any coordinate to our curved spline path
     getDistanceToSpline(x, z) {
         if (!this.fairwayPoints || this.fairwayPoints.length === 0) {
@@ -1035,7 +1119,7 @@ export class PhysicsEngine {
                         if (this.sounds) this.sounds.play('water');
                         return;
                     }
-              } else {
+                } else {
                     const dxW = this.ball.position.x - water.position.x;
                     const dzW = this.ball.position.z - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
