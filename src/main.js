@@ -401,6 +401,7 @@ let holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green targe
 
 // NEW: Animation state tracker to let the ball physically drop into the cup
 let isSinking = false;
+let flagHideTimeout = null;
 
 const GREEN_RADIUS = 12.0;
 
@@ -462,13 +463,30 @@ function updateDistanceDisplay() {
             unitText.innerText = "yards";
         }
 
-        // Auto-hide flag and pole for the next shot when the ball comes to rest on the green within 20 feet
+        // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
         if (pin && flag && physics && !physics.isMoving) {
             const feetToHole = Math.round(gameDistance * 1.75);
             const isOnGreen = ballDist < activeR || isPuttingClub;
-            const hideFlag = isOnGreen && feetToHole <= 20;
-            pin.visible = !hideFlag;
-            flag.visible = !hideFlag;
+            const shouldHide = isOnGreen && feetToHole <= 20;
+
+            if (shouldHide) {
+                if (!flagHideTimeout && pin.visible) {
+                    // Delay = 600ms camera pan + 1000ms (1 second after camera view is set)
+                    const delay = (POST_SHOT_DELAY || 600) + 1000;
+                    flagHideTimeout = setTimeout(() => {
+                        if (pin) pin.visible = false;
+                        if (flag) flag.visible = false;
+                        flagHideTimeout = null;
+                    }, delay);
+                }
+            } else {
+                if (flagHideTimeout) {
+                    clearTimeout(flagHideTimeout);
+                    flagHideTimeout = null;
+                }
+                pin.visible = true;
+                flag.visible = true;
+            }
         }
 
         // --- VISUAL LIE ARTWORK RENDER ENGINE ---
@@ -3713,7 +3731,7 @@ function animate() {
 
 
     // Hole preview path fly-through logic
-if (isOverheadActive) {
+    if (isOverheadActive) {
         const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
         const flightSpeed = holeDist < 80 ? 0.005 : 0.003;
         previewProgress += flightSpeed;
@@ -4272,7 +4290,7 @@ if (isOverheadActive) {
 
                 clubLandingRing.position.set(ringX, 0, ringZ);
 
-       // Deform the ring vertices so it perfectly contours to hills and always appears full
+                // Deform the ring vertices so it perfectly contours to hills and always appears full
                 const ringPosAttr = clubLandingRing.geometry.attributes.position;
                 for (let i = 0; i < ringPosAttr.count; i++) {
                     const lx = ringPosAttr.getX(i);
@@ -4787,6 +4805,13 @@ function init() {
     physics.sounds = sounds;
 
     input = new InputHandler((power, angle, spin, loft) => {
+        if (flagHideTimeout) {
+            clearTimeout(flagHideTimeout);
+            flagHideTimeout = null;
+        }
+        if (pin) pin.visible = true;
+        if (flag) flag.visible = true;
+
         window.shotStartX = ball.position.x; // Add this line
         window.shotStartZ = ball.position.z;
         isOverheadActive = false;
@@ -4942,7 +4967,14 @@ function init() {
             }, swingDuration);
         }
 
-        strokeCount++;
+        if (flagHideTimeout) {
+            clearTimeout(flagHideTimeout);
+            flagHideTimeout = null;
+        }
+        if (pin) pin.visible = true;
+        if (flag) flag.visible = true;
+
+        strokeCount = 0;
         document.getElementById('strokeText').innerText = strokeCount;
     }, () => {
         // FIXED: Tracks the green boundaries accurately from the true center point during click-drags using shape-aware angles
