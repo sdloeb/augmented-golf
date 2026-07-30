@@ -248,15 +248,48 @@ const HOLES_CONFIG = {
             leg2: { minX: -44, maxX: 115, minZ: -145, maxZ: -30 }
         }
     },
-    5: { // Sharp 90-Degree Dogleg Left Hole
-        par: 4,
+    5: { // 185-Yard Par 3 Island Green
+        par: 3,
+        fairwayWidth: 0,
+        greenRadius: 18.0,
+        greenShape: 'circle',
+        theme: 'standard',
+        treeScale: 1.5,
+        treeHeightScale: 1.2,
+
+        slopeProfile: {
+            back: { rx: -0.015, rz: 0.020 },
+            mid: { rx: 0.025, rz: -0.015 },
+            front: { rx: 0.010, rz: -0.020 }
+        },
         waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -85),   // Modify this line
-            new THREE.Vector3(-45, 0, -85), // Modify this line
-            new THREE.Vector3(-85, 0, -85)  // Modify this line
-        ]
-    } // Add this block
+            new THREE.Vector3(0, 0, 10),     // Tee Box
+            new THREE.Vector3(0, 0, -56.8)   // 185 Yards to Green Center
+        ],
+        hazards: [
+            // Expanded Island Lake (Wider water hazard extending closer to tee)
+            { type: 'lake', x: 0, z: -56.8, radiusX: 55.0, radiusZ: 49.0 },
+
+            // Front-Left Bunker (positioned along edge of larger green)
+            { type: 'sand', x: -8.5, z: -47.5, radius: 4.5, depth: 0.65 },
+
+            // Back-Right Bunker
+            { type: 'sand', x: 8.5, z: -65.5, radius: 4.0, depth: 0.65 }
+        ],
+        customTrees: [
+            // Trees framing the expanded edges of the island
+
+        ],
+        customOOB: {
+            type: 'rectangle',
+            minX: -50,
+            maxX: 50,
+            minZ: -105,
+            maxZ: 30,
+            stakesPerSide: 6,
+            stakesPerRow: 3
+        }
+    }
 };
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
@@ -278,7 +311,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 4; //1st hole start
+let currentHoleNumber = 5; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;

@@ -285,7 +285,7 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4) {
+        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5) {
             const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
@@ -391,9 +391,12 @@ export class PhysicsEngine {
                     const centerLakeHeight = water.position.y - 0.01;
 
                     if (distToWater < lakeRadius) {
-                        baseHeight = centerLakeHeight;
-                        if (distToWater < lakeRadius - 0.4) {
-                            baseHeight -= 1.2;
+                        // Keep island green and fringe elevated above the lake water
+                        if (distFromGreen >= activeRadius + 2.0) {
+                            baseHeight = centerLakeHeight;
+                            if (distToWater < lakeRadius - 0.4) {
+                                baseHeight -= 1.2;
+                            }
                         }
                     } else if (distToWater < lakeRadius + 4.0) {
                         // Smoothly slope your natural rolling hills down to meet the water rim over 4 units
