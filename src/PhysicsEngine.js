@@ -1035,7 +1035,7 @@ export class PhysicsEngine {
                         if (this.sounds) this.sounds.play('water');
                         return;
                     }
-                } else {
+              } else {
                     const dxW = this.ball.position.x - water.position.x;
                     const dzW = this.ball.position.z - water.position.z;
                     const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
@@ -1046,11 +1046,21 @@ export class PhysicsEngine {
                     const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
 
                     if (distToWater < lakeRadius) {
-                        this.hitWater = true;
-                        this.velocity.set(0, 0, 0);
-                        this.isMoving = false;
-                        if (this.sounds) this.sounds.play('water');
-                        return;
+                        // Check if the ball landed safely on the island green or fringe collar
+                        const gX = this.ball.position.x - this.greenCenterX;
+                        const gZ = this.ball.position.z - this.greenCenterZ;
+                        const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
+                        const ballAngle = Math.atan2(-gZ, gX);
+                        const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
+
+                        // Only trigger water hit if the ball is outside the green and fringe collar
+                        if (distFromGreen >= activeRadius + 1.0) {
+                            this.hitWater = true;
+                            this.velocity.set(0, 0, 0);
+                            this.isMoving = false;
+                            if (this.sounds) this.sounds.play('water');
+                            return;
+                        }
                     }
                 }
             }
