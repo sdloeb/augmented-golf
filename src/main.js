@@ -463,16 +463,32 @@ function updateDistanceDisplay() {
             unitText.innerText = "yards";
         }
 
-        // Auto-hide flag and pole for the next shot when the ball comes to rest on the green within 20 feet
+        // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
         if (pin && flag && physics) {
             const feetToHole = Math.round(gameDistance * 1.75);
-            const isOnGreen = ballDist < activeR || isOnFringe || isPuttingClub;
+            const isOnGreen = ballDist < activeR || isPuttingClub;
+            const shouldHide = isOnGreen && feetToHole <= 20;
 
-            // Only update flag visibility when the ball is stopped at address
-            if (!physics.isMoving) {
-                const hideFlag = isOnGreen && feetToHole <= 20;
-                pin.visible = !hideFlag;
-                flag.visible = !hideFlag;
+            if (shouldHide) {
+                if (!flagHideTimeout && pin.visible) {
+                    // Delay = 600ms camera pan + 1000ms (1 second after camera view is set)
+                    const delay = (POST_SHOT_DELAY || 600) + 1000;
+                    flagHideTimeout = setTimeout(() => {
+                        if (pin) pin.visible = false;
+                        if (flag) flag.visible = false;
+                        flagHideTimeout = null;
+                    }, delay);
+                } else if (!flagHideTimeout) {
+                    if (pin) pin.visible = false;
+                    if (flag) flag.visible = false;
+                }
+            } else {
+                if (flagHideTimeout) {
+                    clearTimeout(flagHideTimeout);
+                    flagHideTimeout = null;
+                }
+                pin.visible = true;
+                flag.visible = true;
             }
         }
 
@@ -4796,8 +4812,6 @@ function init() {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
         }
-        if (pin) pin.visible = true;
-        if (flag) flag.visible = true;
 
         window.shotStartX = ball.position.x; // Add this line
         window.shotStartZ = ball.position.z;
@@ -4958,8 +4972,6 @@ function init() {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
         }
-        if (pin) pin.visible = true;
-        if (flag) flag.visible = true;
 
         strokeCount = 0;
         document.getElementById('strokeText').innerText = strokeCount;
