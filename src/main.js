@@ -56,10 +56,22 @@ const HOLES_CONFIG = {
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
         greenRadius: 10.5,    // Tightly matches the proportions of the photo
+
+        // 6-Zone Slope Profile with Center Collection Bowl & Back Ridge
         slopeProfile: {
-            back: { rx: -0.01, rz: 0.015 },  // Softened uphill back shelf
-            mid: { rx: 0.03, rz: -0.005 },  // Gentle side-breaking ridge (cut from 0.08)
-            front: { rx: 0.01, rz: -0.02 }   // Eased false front rolling to the fairway
+            backLeft: { rx: -0.020, rz: 0.025 },
+            backRight: { rx: 0.025, rz: 0.020 },
+            midLeft: { rx: -0.010, rz: -0.005 },
+            midRight: { rx: 0.015, rz: -0.010 },
+            frontLeft: { rx: 0.015, rz: -0.025 },
+            frontRight: { rx: -0.020, rz: -0.030 },
+
+            features: [
+                // Soft collection bowl in the middle-left landing area
+                { type: 'bowl', x: -3.0, z: 0.0, radius: 4.5, depth: 0.08 },
+                // Transverse ridge separating the back shelf from the mid-green
+                { type: 'ridge', p1: { x: -6.0, z: -3.0 }, p2: { x: 6.0, z: -3.0 }, width: 3.0, height: 0.10 }
+            ]
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),
@@ -93,6 +105,22 @@ const HOLES_CONFIG = {
         par: 4,
         fairwayWidth: 9.5,
         greenRadius: 9.0,
+
+        // 6-Zone Slope Profile with Left-to-Right Downhill Funnel
+        slopeProfile: {
+            backLeft: { rx: -0.035, rz: 0.015 },
+            backRight: { rx: -0.015, rz: 0.025 },
+            midLeft: { rx: -0.030, rz: -0.010 },
+            midRight: { rx: -0.010, rz: -0.015 },
+            frontLeft: { rx: -0.020, rz: -0.035 },
+            frontRight: { rx: -0.010, rz: -0.040 },
+
+            features: [
+                // Protective mound guarding the back-right pin location
+                { type: 'mound', x: 3.5, z: -4.0, radius: 3.5, height: 0.12 }
+            ]
+        },
+
         waypoints: [
             new THREE.Vector3(0, 0, 10),       // Flat Tee Box zone
             new THREE.Vector3(0, 0, -108),     // 327 Yard Elbow (Hill descent ends here)
@@ -120,6 +148,24 @@ const HOLES_CONFIG = {
         par: 5,
         fairwayWidth: 8.0,
         greenRadius: 8.5,
+
+        // 6-Zone Slope Profile with Bi-Level Tier & False Front
+        slopeProfile: {
+            backLeft: { rx: -0.040, rz: 0.020 },
+            backRight: { rx: -0.030, rz: 0.025 },
+            midLeft: { rx: -0.045, rz: 0.000 },
+            midRight: { rx: -0.035, rz: 0.000 },
+            frontLeft: { rx: -0.030, rz: -0.030 },
+            frontRight: { rx: -0.020, rz: -0.035 },
+
+            features: [
+                // Step-up tier separating the upper back shelf from the lower front
+                { type: 'tier', axis: 'z', position: -1.5, width: 3.5, height: 0.16 },
+                // Catchment bowl on the back-left corner near the cliff edge
+                { type: 'bowl', x: -3.5, z: -3.5, radius: 3.5, depth: 0.10 }
+            ]
+        },
+
         waypoints: [
             new THREE.Vector3(0, 0, 10),
             new THREE.Vector3(0, 0, -65),
@@ -181,10 +227,19 @@ const HOLES_CONFIG = {
         greenShape: 'circle',
         theme: 'standard',
 
+        // 6-Zone Slope Profile with Diagonal Ridge Break
         slopeProfile: {
-            back: { rx: -0.025, rz: 0.035 },  // Uphill back tier with a right-to-left feed
-            mid: { rx: 0.040, rz: -0.040 },   // Strong left-to-right breaking middle ridge
-            front: { rx: -0.015, rz: 0.030 }  // False front sloping down toward the fairway
+            backLeft: { rx: -0.030, rz: 0.035 },
+            backRight: { rx: 0.020, rz: 0.030 },
+            midLeft: { rx: 0.040, rz: -0.035 },
+            midRight: { rx: 0.035, rz: -0.045 },
+            frontLeft: { rx: -0.015, rz: 0.025 },
+            frontRight: { rx: 0.010, rz: 0.030 },
+
+            features: [
+                // Diagonal spine running across the middle of the green
+                { type: 'ridge', p1: { x: -5.0, z: -3.0 }, p2: { x: 5.0, z: 3.0 }, width: 4.0, height: 0.14 }
+            ]
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),    // Tee Box
@@ -250,17 +305,26 @@ const HOLES_CONFIG = {
     },
     5: { // 185-Yard Par 3 Island Green
         par: 3,
-        fairwayWidth: 0,
-        greenRadius: 18.0,
+        fairwayWidth: 10,
+        greenRadius: 17.0,
         greenShape: 'circle',
         theme: 'standard',
         treeScale: 1.5,
         treeHeightScale: 1.2,
 
+        // 6-Zone Slope Profile with Central Crown Mound
         slopeProfile: {
-            back: { rx: -0.015, rz: 0.020 },
-            mid: { rx: 0.025, rz: -0.015 },
-            front: { rx: 0.010, rz: -0.020 }
+            backLeft: { rx: -0.020, rz: 0.025 },
+            backRight: { rx: 0.025, rz: 0.020 },
+            midLeft: { rx: 0.020, rz: -0.015 },
+            midRight: { rx: -0.020, rz: -0.015 },
+            frontLeft: { rx: 0.015, rz: -0.020 },
+            frontRight: { rx: -0.015, rz: -0.025 },
+
+            features: [
+                // Crown mound in the center that repels offline shots toward the water
+                { type: 'mound', x: 0.0, z: 0.0, radius: 6.0, height: 0.15 }
+            ]
         },
         waypoints: [
             new THREE.Vector3(0, 0, 10),     // Tee Box
@@ -270,11 +334,7 @@ const HOLES_CONFIG = {
             // Expanded Island Lake (Wider water hazard extending closer to tee)
             { type: 'lake', x: 0, z: -56.8, radiusX: 55.0, radiusZ: 49.0 },
 
-            // Front-Left Bunker (positioned along edge of larger green)
-            { type: 'sand', x: -8.5, z: -47.5, radius: 4.5, depth: 0.65 },
 
-            // Back-Right Bunker
-            { type: 'sand', x: 8.5, z: -65.5, radius: 4.0, depth: 0.65 }
         ],
         customTrees: [
             // Trees framing the expanded edges of the island
@@ -311,7 +371,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 5; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -341,6 +401,7 @@ let holePosition = new THREE.Vector3(0, 0.25, -55); // Center of the green targe
 
 // NEW: Animation state tracker to let the ball physically drop into the cup
 let isSinking = false;
+let flagHideTimeout = null;
 
 const GREEN_RADIUS = 12.0;
 
@@ -1261,30 +1322,35 @@ function resetEntireGame(advanceHole = false) {
         [horizontalOptions[i], horizontalOptions[j]] = [horizontalOptions[j], horizontalOptions[i]];
     }
 
-    // === PASTE THIS REPLACEMENT CODE BLOCK ===
     const verticalOptions = [0.03, -0.03, 0.0];
 
-    // Build the 3 distinct randomized tier zones configuration blocks
-    let backZoneProfile = { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] };
-    let midZoneProfile = { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] };
-    let frontZoneProfile = { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] };
+    // Build 6 distinct randomized quadrant zone configuration blocks for procedural holes
+    let generatedSlopeProfile = {
+        backLeft: { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] },
+        backRight: { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] },
+        midLeft: { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] },
+        midRight: { rx: horizontalOptions[0], rz: verticalOptions[Math.floor(Math.random() * 3)] },
+        frontLeft: { rx: horizontalOptions[1], rz: verticalOptions[Math.floor(Math.random() * 3)] },
+        frontRight: { rx: horizontalOptions[2], rz: verticalOptions[Math.floor(Math.random() * 3)] }
+    };
 
-    // FIXED: Dynamically load individual slope configurations from blueprints if specified
     if (holeConfig && holeConfig.slopeProfile) {
-        if (holeConfig.slopeProfile.back) backZoneProfile = holeConfig.slopeProfile.back;
-        if (holeConfig.slopeProfile.mid) midZoneProfile = holeConfig.slopeProfile.mid;
-        if (holeConfig.slopeProfile.front) frontZoneProfile = holeConfig.slopeProfile.front;
+        generatedSlopeProfile = holeConfig.slopeProfile;
     } else if (currentHoleNumber === 3) {
-        // Fallback safety check preservation for standard non-configured tracks
-        backZoneProfile = { rx: -0.04, rz: 0.01 };
-        midZoneProfile = { rx: -0.05, rz: 0.00 };
-        frontZoneProfile = { rx: -0.03, rz: -0.02 };
+        generatedSlopeProfile = {
+            backLeft: { rx: -0.04, rz: 0.01 },
+            backRight: { rx: -0.03, rz: 0.01 },
+            midLeft: { rx: -0.05, rz: 0.00 },
+            midRight: { rx: -0.04, rz: 0.00 },
+            frontLeft: { rx: -0.03, rz: -0.02 },
+            frontRight: { rx: -0.02, rz: -0.02 }
+        };
     }
 
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
-        physics.setGreenContours(backZoneProfile, midZoneProfile, frontZoneProfile, greenCenterX, greenCenterZ, generatedWidth);
+        physics.setGreenContours(generatedSlopeProfile, greenCenterX, greenCenterZ, generatedWidth);
         physics.currentHoleNumber = currentHoleNumber;
         // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
@@ -3653,7 +3719,9 @@ function animate() {
 
     // Hole preview path fly-through logic
     if (isOverheadActive) {
-        previewProgress += 0.002;
+        const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
+        const flightSpeed = holeDist < 80 ? 0.005 : 0.003;
+        previewProgress += flightSpeed;
         if (previewProgress > 1) previewProgress = 1;
 
         // Calculate the base alignment heading vector matching the player's current aim
@@ -4217,28 +4285,10 @@ function animate() {
                     const vWorldX = ringX + lx;
                     const vWorldZ = ringZ - ly;
 
-                    let vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
-                    if (physics.waterHazards) {
-                        physics.waterHazards.forEach(water => {
-                            if (water.userData.isRectangular) return;
-                            const dxW = vWorldX - water.position.x;
-                            const dzW = vWorldZ - water.position.z;
-                            const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-
-                            const rx = water.userData.radiusX || water.userData.radius || 5;
-                            const rz = water.userData.radiusZ || water.userData.radius || 5;
-                            const wAngle = Math.atan2(dzW, dxW);
-                            const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
-
-                            if (distToWater < lakeRadius + 0.6) {
-                                vGroundY = Math.max(vGroundY, water.position.y);
-                            }
-                        });
-                    }
+                    const vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
                     ringPosAttr.setZ(i, vGroundY + 0.04);
                 }
                 ringPosAttr.needsUpdate = true;
-                clubLandingRing.geometry.computeVertexNormals();
 
                 clubLandingRing.visible = true;
                 clubLandingBeacon.position.set(ringX, baseGroundY + 0.25 + 75, ringZ);
@@ -4742,6 +4792,13 @@ function init() {
     physics.sounds = sounds;
 
     input = new InputHandler((power, angle, spin, loft) => {
+        if (flagHideTimeout) {
+            clearTimeout(flagHideTimeout);
+            flagHideTimeout = null;
+        }
+        if (pin) pin.visible = true;
+        if (flag) flag.visible = true;
+
         window.shotStartX = ball.position.x; // Add this line
         window.shotStartZ = ball.position.z;
         isOverheadActive = false;
@@ -4897,7 +4954,14 @@ function init() {
             }, swingDuration);
         }
 
-        strokeCount++;
+        if (flagHideTimeout) {
+            clearTimeout(flagHideTimeout);
+            flagHideTimeout = null;
+        }
+        if (pin) pin.visible = true;
+        if (flag) flag.visible = true;
+
+        strokeCount = 0;
         document.getElementById('strokeText').innerText = strokeCount;
     }, () => {
         // FIXED: Tracks the green boundaries accurately from the true center point during click-drags using shape-aware angles
