@@ -403,12 +403,16 @@ function updateDistanceDisplay() {
         }
 
         // Auto-hide flag and pole for the next shot when the ball comes to rest on the green within 20 feet
-        if (pin && flag && physics && !physics.isMoving) {
+        if (pin && flag && physics) {
             const feetToHole = Math.round(gameDistance * 1.75);
-            const isOnGreen = ballDist < activeR || isPuttingClub;
-            const hideFlag = isOnGreen && feetToHole <= 20;
-            pin.visible = !hideFlag;
-            flag.visible = !hideFlag;
+            const isOnGreen = ballDist < activeR || isOnFringe || isPuttingClub;
+
+            // Only update flag visibility when the ball is stopped at address
+            if (!physics.isMoving) {
+                const hideFlag = isOnGreen && feetToHole <= 20;
+                pin.visible = !hideFlag;
+                flag.visible = !hideFlag;
+            }
         }
 
         // --- VISUAL LIE ARTWORK RENDER ENGINE ---
