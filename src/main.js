@@ -1605,6 +1605,80 @@ function resetEntireGame(advanceHole = false) {
         }
     } // This bracket cleanly closes the outer "else" statement of the hazard checker
 
+    // --- HOLE 5 ISLAND GREEN WOODEN BULKHEAD RETAINING WALL ---
+    if (currentHoleNumber === 5) {
+        const wallSegments = 64;
+        const baseRadius = (currentHoleConfig && currentHoleConfig.greenRadius) ? currentHoleConfig.greenRadius : 17.0;
+        const outerWallRadius = baseRadius + 0.95; // Positioned flush along the outer fringe collar edge
+
+        // Create procedural dark wood timber texture
+        const woodCanvas = document.createElement('canvas');
+        woodCanvas.width = 128; woodCanvas.height = 128;
+        const woodCtx = woodCanvas.getContext('2d');
+        woodCtx.fillStyle = '#4a2f1b';
+        woodCtx.fillRect(0, 0, 128, 128);
+
+        // Draw vertical plank lines & wood grain texture
+        woodCtx.fillStyle = '#2d1c10';
+        for (let x = 0; x < 128; x += 16) {
+            woodCtx.fillRect(x, 0, 2, 128); // Vertical plank gaps
+        }
+        woodCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        for (let y = 0; y < 128; y += 4) {
+            if (Math.random() > 0.3) woodCtx.fillRect(0, y, 128, 2);
+        }
+
+        const woodTex = new THREE.CanvasTexture(woodCanvas);
+        woodTex.wrapS = THREE.RepeatWrapping;
+        woodTex.wrapT = THREE.RepeatWrapping;
+        woodTex.repeat.set(16, 1);
+
+        const bulkheadMat = new THREE.MeshStandardMaterial({
+            map: woodTex,
+            roughness: 0.85,
+            metalness: 0.1,
+            side: THREE.DoubleSide
+        });
+
+        // Construct 3D cylinder wall mesh
+        const wallGeo = new THREE.BufferGeometry();
+        const pos = [];
+        const uvs = [];
+        const indices = [];
+
+        const waterLevelY = -1.48; // Water surface baseline
+
+        for (let i = 0; i <= wallSegments; i++) {
+            const theta = (i / wallSegments) * Math.PI * 2;
+            const wx = greenCenterX + Math.cos(theta) * outerWallRadius;
+            const wz = greenCenterZ - Math.sin(theta) * outerWallRadius;
+            const topY = physics.getGroundHeight(wx, wz) + 0.02;
+
+            pos.push(wx, topY, wz);
+            pos.push(wx, waterLevelY, wz);
+
+            uvs.push(i / wallSegments * 16, 1);
+            uvs.push(i / wallSegments * 16, 0);
+        }
+
+        for (let i = 0; i < wallSegments; i++) {
+            const top1 = i * 2;
+            const bot1 = i * 2 + 1;
+            const top2 = (i + 1) * 2;
+            const bot2 = (i + 1) * 2 + 1;
+            indices.push(top1, bot1, top2);
+            indices.push(top2, bot1, bot2);
+        }
+
+        wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        wallGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        wallGeo.setIndex(indices);
+        wallGeo.computeVertexNormals();
+
+        const bulkheadMesh = new THREE.Mesh(wallGeo, bulkheadMat);
+        scene.add(bulkheadMesh);
+        waterShores.push(bulkheadMesh);
+    }
 
     // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
     // MODIFIED: Changed from getGreenHeight to getGroundHeight so the pin objects snap to the clifftop table
