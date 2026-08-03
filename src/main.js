@@ -467,7 +467,7 @@ function updateDistanceDisplay() {
         if (pin && flag && physics) {
             const feetToHole = Math.round(gameDistance * 1.75);
             const isOnGreen = ballDist < activeR || isPuttingClub;
-            const shouldHide = isOnGreen && feetToHole <= 20;
+            const shouldHide = !physics.isMoving && isOnGreen && feetToHole <= 20;
 
             if (shouldHide) {
                 if (!flagHideTimeout && pin.visible) {
