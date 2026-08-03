@@ -337,8 +337,35 @@ const HOLES_CONFIG = {
 
         ],
         customTrees: [
-            // Trees framing the expanded edges of the island
+            // Left Outer Shoreline (Outside Water)
+            { x: -60, z: -10, scale: 1.8 },
+            { x: -62, z: -30, scale: 4.0 },
+            { x: -59, z: -45, scale: 1.6 },
+            { x: -60, z: -70, scale: 4.2 },
+            { x: -63, z: -85, scale: 1.8 },
+            { x: -58, z: -100, scale: 3.8 },
 
+            // Right Outer Shoreline (Outside Water)
+            { x: 60, z: -10, scale: 4.0 },
+            { x: 62, z: -28, scale: 1.7 },
+            { x: 59, z: -45, scale: 4.2 },
+            { x: 63, z: -60, scale: 1.8 },
+            { x: 60, z: -75, scale: 4.0 },
+            { x: 62, z: -90, scale: 1.6 },
+            { x: 58, z: -100, scale: 3.8 },
+
+            // Back Shoreline (Behind Green)
+            { x: -40, z: -110, scale: 1.7 },
+            { x: -20, z: -112, scale: 4.2 },
+            { x: 0, z: -114, scale: 1.8 },
+            { x: 20, z: -112, scale: 4.0 },
+            { x: 40, z: -110, scale: 1.6 },
+
+            // Front / Tee Shore Framing
+            { x: -32, z: 5, scale: 3.8 },
+            { x: -20, z: 12, scale: 1.7 },
+            { x: 20, z: 12, scale: 1.8 },
+            { x: 32, z: 5, scale: 4.0 }
         ],
         customOOB: {
             type: 'rectangle',
@@ -1677,8 +1704,8 @@ function resetEntireGame(advanceHole = false) {
 
         const bulkheadMesh = new THREE.Mesh(wallGeo, bulkheadMat);
         scene.add(bulkheadMesh);
-        
-// --- HOLE 5 WOODEN FOOTBRIDGE ---
+
+        // --- HOLE 5 WOODEN FOOTBRIDGE ---
         const bridgeGroup = new THREE.Group();
         const bridgeStartX = greenCenterX - 51.0; // Left rough shoreline
         const bridgeEndX = greenCenterX - 17.2;   // Left edge of green fringe
@@ -1765,7 +1792,7 @@ function resetEntireGame(advanceHole = false) {
 
         scene.add(bridgeGroup);
         waterShores.push(bridgeGroup);
-        
+
     }
 
     // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
@@ -2487,7 +2514,7 @@ function resetEntireGame(advanceHole = false) {
             sceneryGroup.position.set(pt.x, courseHeight, pt.z);
             sceneryGroup.userData = { type: 'tree' };
 
-            const randomScale = currentHoleConfig.treeScale || 3.8;
+            const randomScale = pt.scale || currentHoleConfig.treeScale || 3.8;
             const heightScale = currentHoleConfig.treeHeightScale || 1.0;
             const calculatedTrunkRad = 0.25 * randomScale;
             const calculatedTrunkH = 1.4 * randomScale * heightScale;
