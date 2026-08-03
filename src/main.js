@@ -1677,7 +1677,95 @@ function resetEntireGame(advanceHole = false) {
 
         const bulkheadMesh = new THREE.Mesh(wallGeo, bulkheadMat);
         scene.add(bulkheadMesh);
-        waterShores.push(bulkheadMesh);
+        
+// --- HOLE 5 WOODEN FOOTBRIDGE ---
+        const bridgeGroup = new THREE.Group();
+        const bridgeStartX = greenCenterX - 51.0; // Left rough shoreline
+        const bridgeEndX = greenCenterX - 17.2;   // Left edge of green fringe
+        const bridgeSpan = bridgeEndX - bridgeStartX;
+        const bridgeCenterX = (bridgeStartX + bridgeEndX) / 2;
+        const bridgeCenterZ = greenCenterZ;
+        const bridgeWidth = 2.4; // Walkway width
+        const deckThickness = 0.2;
+
+        const bridgeY = physics.getGroundHeight(bridgeEndX, bridgeCenterZ) + -.03;
+
+        const bridgeWoodMat = new THREE.MeshStandardMaterial({
+            color: 0x5a3a22,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const railingMat = new THREE.MeshStandardMaterial({
+            color: 0x422612,
+            roughness: 0.7
+        });
+        const postMat = new THREE.MeshStandardMaterial({
+            color: 0x2e1a0e,
+            roughness: 0.9
+        });
+
+        // 1. Main Deck Frame
+        const deckGeo = new THREE.BoxGeometry(bridgeSpan, deckThickness, bridgeWidth);
+        const deckMesh = new THREE.Mesh(deckGeo, bridgeWoodMat);
+        deckMesh.position.set(bridgeCenterX, bridgeY, bridgeCenterZ);
+        bridgeGroup.add(deckMesh);
+
+        // 2. Individual Plank Grooves
+        const plankCount = Math.floor(bridgeSpan / 0.5);
+        const plankGeo = new THREE.BoxGeometry(0.42, 0.04, bridgeWidth + 0.1);
+        for (let p = 0; p < plankCount; p++) {
+            const px = bridgeStartX + (p + 0.5) * (bridgeSpan / plankCount);
+            const plankMesh = new THREE.Mesh(plankGeo, railingMat);
+            plankMesh.position.set(px, bridgeY + deckThickness / 2 + 0.02, bridgeCenterZ);
+            bridgeGroup.add(plankMesh);
+        }
+
+        // 3. Support Pilings (Vertical Posts in Water)
+        const pilingSpacing = 7.0;
+        const numPilingPairs = Math.floor(bridgeSpan / pilingSpacing);
+        const pilingGeo = new THREE.CylinderGeometry(0.18, 0.22, 5.0, 10);
+
+        for (let k = 1; k <= numPilingPairs; k++) {
+            const px = bridgeStartX + k * (bridgeSpan / (numPilingPairs + 1));
+            // Front and Back pilings
+            [bridgeCenterZ - bridgeWidth / 2 + 0.2, bridgeCenterZ + bridgeWidth / 2 - 0.2].forEach(pz => {
+                const piling = new THREE.Mesh(pilingGeo, postMat);
+                piling.position.set(px, bridgeY - 2.4, pz);
+                bridgeGroup.add(piling);
+            });
+        }
+
+        // 4. Handrails & Posts
+        const railingHeight = 1.1;
+        const railPostGeo = new THREE.BoxGeometry(0.12, railingHeight, 0.12);
+        const railBarGeo = new THREE.BoxGeometry(bridgeSpan, 0.1, 0.12);
+
+        [-bridgeWidth / 2 + 0.08, bridgeWidth / 2 - 0.08].forEach(sideZ => {
+            const zPos = bridgeCenterZ + sideZ;
+
+            // Top Railing Bar
+            const topRail = new THREE.Mesh(railBarGeo, railingMat);
+            topRail.position.set(bridgeCenterX, bridgeY + railingHeight, zPos);
+            bridgeGroup.add(topRail);
+
+            // Mid Railing Bar
+            const midRail = new THREE.Mesh(railBarGeo, railingMat);
+            midRail.position.set(bridgeCenterX, bridgeY + railingHeight * 0.5, zPos);
+            bridgeGroup.add(midRail);
+
+            // Railing Posts along the span
+            const numPosts = Math.floor(bridgeSpan / 4.5);
+            for (let i = 0; i <= numPosts; i++) {
+                const px = bridgeStartX + i * (bridgeSpan / numPosts);
+                const post = new THREE.Mesh(railPostGeo, railingMat);
+                post.position.set(px, bridgeY + railingHeight / 2, zPos);
+                bridgeGroup.add(post);
+            }
+        });
+
+        scene.add(bridgeGroup);
+        waterShores.push(bridgeGroup);
+        
     }
 
     // Calculate the dynamic 3D ground level height exactly where the random pin cup is spawned
