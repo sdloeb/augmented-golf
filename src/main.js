@@ -1609,7 +1609,7 @@ function resetEntireGame(advanceHole = false) {
     if (currentHoleNumber === 5) {
         const wallSegments = 64;
         const baseRadius = (currentHoleConfig && currentHoleConfig.greenRadius) ? currentHoleConfig.greenRadius : 17.0;
-        const outerWallRadius = baseRadius + 0.95; // Positioned flush along the outer fringe collar edge
+        const outerWallRadius = baseRadius + 1.0; // Positioned flush along the outer fringe collar edge
 
         // Create procedural dark wood timber texture
         const woodCanvas = document.createElement('canvas');
@@ -1631,7 +1631,7 @@ function resetEntireGame(advanceHole = false) {
         const woodTex = new THREE.CanvasTexture(woodCanvas);
         woodTex.wrapS = THREE.RepeatWrapping;
         woodTex.wrapT = THREE.RepeatWrapping;
-        woodTex.repeat.set(16, 1);
+        woodTex.repeat.set(24, 1);
 
         const bulkheadMat = new THREE.MeshStandardMaterial({
             map: woodTex,
@@ -1646,7 +1646,7 @@ function resetEntireGame(advanceHole = false) {
         const uvs = [];
         const indices = [];
 
-        const waterLevelY = -1.48; // Water surface baseline
+        const waterLevelY = -2.50; // Water surface baseline
 
         for (let i = 0; i <= wallSegments; i++) {
             const theta = (i / wallSegments) * Math.PI * 2;
@@ -1821,8 +1821,8 @@ function resetEntireGame(advanceHole = false) {
             waterHazards.forEach(water => {
                 // Bounding-box optimization filter for circular lakes
                 if (!water.userData.isRectangular) {
-                    const rLimit = (water.userData.radius || 5) + 1.5;
-                    if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
+                    const maxR = Math.max(water.userData.radiusX || 0, water.userData.radiusZ || 0) || water.userData.radius || 5;
+                    const rLimit = maxR + 1.5; if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
                 }
 
                 if (water.userData && water.userData.isRectangular) {
@@ -2022,7 +2022,7 @@ function resetEntireGame(advanceHole = false) {
                     calculatedHeight = floorHeight;
 
                     // 1. HILLS: Calculate a smooth gradual step-up right where the fairway and green fringe end
-                    if (!insideSandZone && !insideWaterZone) {
+                    if (!insideSandZone && !insideWaterZone && currentHoleNumber !== 5) {
                         let roughLift = 0;
                         if (isPastFairway) {
                             if (distToGreen > fringeOuterR) {
@@ -2043,9 +2043,13 @@ function resetEntireGame(advanceHole = false) {
 
                     // Smoothly slope terrain floor beneath green fringe to prevent sharp edge clipping
                     if (distToGreen < fringeOuterR + 1.5) {
-                        const tFloor = Math.max(0, Math.min(1, (fringeOuterR + 1.5 - distToGreen) / 3.0));
-                        const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
-                        calculatedHeight -= smoothTFloor * 0.15; // Subtle 0.15 drop under fringe to prevent z-fighting without creating deep canyons
+                        if (currentHoleNumber === 5) {
+                            calculatedHeight -= 1.5; // Pull rough floor underground on Hole 5 island green so it doesn't poke out of the retaining wall
+                        } else {
+                            const tFloor = Math.max(0, Math.min(1, (fringeOuterR + 1.5 - distToGreen) / 3.0));
+                            const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
+                            calculatedHeight -= smoothTFloor * 0.15; // Subtle 0.15 drop under fringe to prevent z-fighting without creating deep canyons
+                        }
                     }
 
                     // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
@@ -2091,7 +2095,8 @@ function resetEntireGame(advanceHole = false) {
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0));
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
+                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0);
 
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
@@ -2276,8 +2281,7 @@ function resetEntireGame(advanceHole = false) {
         let insideWater = waterHazards.some(waterMesh => {
             let dxW = x - waterMesh.position.x;
             let dzW = z - waterMesh.position.z;
-            let waterRadius = waterMesh.userData && waterMesh.userData.radius ? waterMesh.userData.radius : 5;
-            return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
+            let waterRadius = waterMesh.userData ? (Math.max(waterMesh.userData.radiusX || 0, waterMesh.userData.radiusZ || 0) || waterMesh.userData.radius || 5) : 5; return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
         });
         if (insideWater) continue;
 
@@ -2605,8 +2609,7 @@ function resetEntireGame(advanceHole = false) {
                     }                                                             // Add this line
                     let dxW = sampleX - waterMesh.position.x;
                     let dzW = sampleZ - waterMesh.position.z;
-                    let waterRadius = waterMesh.userData.radius || 0;
-                    return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
+                    let waterRadius = waterMesh.userData ? (Math.max(waterMesh.userData.radiusX || 0, waterMesh.userData.radiusZ || 0) || waterMesh.userData.radius || 0) : 0; return Math.sqrt(dxW * dxW + dzW * dzW) < (waterRadius + 1.5);
                 });
                 if (insideWaterHazard) continue;
 
