@@ -228,6 +228,7 @@ export class InputHandler {
     }
 
     onTouchStart(e) {
+        if (window.isPostShotCooldown && window.isPostShotCooldown()) return
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
         if (e.target.closest('#scorecardOverlay')) return;
         if (this.isOverheadActive) return;
@@ -328,6 +329,7 @@ export class InputHandler {
     }
 
     onMouseDown(e) {
+        if (window.isPostShotCooldown && window.isPostShotCooldown()) return;
         if (e.button !== 0) return;
         if (e.target.closest('.club-option') || e.target.closest('#overheadBtn')) return;
         if (e.target.closest('#scorecardOverlay')) return;

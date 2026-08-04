@@ -398,7 +398,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 5; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -419,7 +419,11 @@ let previewProgress = 0;
 let shotStartTime = 0;
 let isLongShot = false;
 let shotStoppedTime = 0;       // <-- Capture the exact timestamp when the ball settles
-const POST_SHOT_DELAY = 600;
+const POST_SHOT_DELAY = 1800;
+
+window.isPostShotCooldown = function () {
+    return !physics.isMoving && (performance.now() - shotStoppedTime < POST_SHOT_DELAY);
+};
 
 let ballTargetScale = 1.0;
 
@@ -4153,7 +4157,7 @@ function animate() {
     // NEW: Post-shot camera fader to create a slow cinematic pan into your address stance position
     let timeSinceStop = performance.now() - shotStoppedTime;
     if (!physics.isMoving && timeSinceStop < POST_SHOT_DELAY && !isOverheadActive && !isSinking) {
-        activeCameraSpeed = 0.05; // Drastically lower interpolation speed for a luxurious tracking glide
+        activeCameraSpeed = 0.035; // Drastically lower interpolation speed for a luxurious tracking glide
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Existing line below your new addition
