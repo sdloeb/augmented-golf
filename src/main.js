@@ -3270,15 +3270,16 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-    // Update backspin button visibility state based on aim mode and active club choice
+   // Update backspin button visibility state based on aim mode and active club choice
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn && input) {
         const activeClub = input.getClubInfo();
         const allowedClub = activeClub && activeClub.name.includes('Iron');
         const inBunker = physics && physics.isBallInSand();
+        const inRough = physics && physics.currentSurface === 'Rough';
 
-        // Hide backspin button if in the sand trap
-        if (input.isAimMode && allowedClub && !inBunker && !physics.isMoving && !isSinking) {
+        // Hide backspin button if in the sand trap or rough
+        if (input.isAimMode && allowedClub && !inBunker && !inRough && !physics.isMoving && !isSinking) {
             backspinBtn.classList.remove('hidden');
         } else {
             backspinBtn.classList.add('hidden');
