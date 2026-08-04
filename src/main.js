@@ -307,7 +307,7 @@ const HOLES_CONFIG = {
         par: 3,
         fairwayWidth: 10,
         greenRadius: 17.0,
-        greenShape: 'circle',
+        greenShape: 'wavy',
         theme: 'standard',
         treeScale: 1.5,
         treeHeightScale: 1.2,
@@ -398,7 +398,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 5; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1677,8 +1677,15 @@ function resetEntireGame(advanceHole = false) {
 
         for (let i = 0; i <= wallSegments; i++) {
             const theta = (i / wallSegments) * Math.PI * 2;
-            const wx = greenCenterX + Math.cos(theta) * outerWallRadius;
-            const wz = greenCenterZ - Math.sin(theta) * outerWallRadius;
+
+            // Fetch the shape style assigned to this hole, or fallback to circle
+            const activeShape = (currentHoleConfig && currentHoleConfig.greenShape) ? currentHoleConfig.greenShape : 'circle';
+
+            // Warp the radius based on the angle to match the green's exact footprint
+            const dynamicWallRadius = window.getGreenRadiusAtAngle(theta, outerWallRadius, activeShape);
+
+            const wx = greenCenterX + Math.cos(theta) * dynamicWallRadius;
+            const wz = greenCenterZ - Math.sin(theta) * dynamicWallRadius;
             const topY = physics.getGroundHeight(wx, wz) + 0.02;
 
             pos.push(wx, topY, wz);
