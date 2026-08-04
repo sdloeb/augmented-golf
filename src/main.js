@@ -651,7 +651,7 @@ function updateDistanceDisplay() {
         container.style.gap = isMobileScreen ? '10px' : '10px'; // Modify this line: Tightens layout footprint on mobile screens
         container.style.flexWrap = 'wrap'; // Add this line: Safely wraps the buttons instead of breaking outer layout bounds
 
-       // Calculate what index is currently highlighted
+        // Calculate what index is currently highlighted
         let currentIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
         const maxClubIdx = isOnFringe ? clubList.length - 1 : clubList.length - 2;
 
@@ -661,7 +661,7 @@ function updateDistanceDisplay() {
         leftBtn.innerText = '◀';
 
         // Disable the arrow if we are already holding the longest club (Driver at index 0)
-       if (currentIdx === maxClubIdx) {
+        if (currentIdx === maxClubIdx) {
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
@@ -3274,9 +3274,11 @@ function animate() {
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn && input) {
         const activeClub = input.getClubInfo();
-        const allowedClub = activeClub && (activeClub.name === '9 Iron' || activeClub.name === 'PW Iron' || activeClub.name === 'SW Iron');
+        const allowedClub = activeClub && activeClub.name.includes('Iron');
+        const inBunker = physics && physics.isBallInSand();
 
-        if (input.isAimMode && allowedClub && !physics.isMoving && !isSinking) {
+        // Hide backspin button if in the sand trap
+        if (input.isAimMode && allowedClub && !inBunker && !physics.isMoving && !isSinking) {
             backspinBtn.classList.remove('hidden');
         } else {
             backspinBtn.classList.add('hidden');
