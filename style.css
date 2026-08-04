@@ -843,12 +843,7 @@ html {
         transform-origin: 6px 20px !important;
     }
 
-    #clubSwipe.idle-stance {
-        left: calc(50% - 40px) !important;
-        bottom: 32% !important;
-        transform: scale(0.90) !important;
-        /* Restored to clean default */
-    }
+ 
 
     /* Add this block right below it to override the putter on mobile screens */
 

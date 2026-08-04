@@ -792,7 +792,7 @@ export class PhysicsEngine {
 
             const ballRadius = 0.25 * this.ball.scale.x;
             const trueFloorH = this.getGroundHeight(bX, bZ);
-            groundY = trueFloorH + ballRadius - (ballRadius * 0.35);
+            groundY = trueFloorH + ballRadius - (ballRadius * 0.15);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);

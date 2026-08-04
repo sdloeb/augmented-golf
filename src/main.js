@@ -2301,7 +2301,6 @@ function resetEntireGame(advanceHole = false) {
         if (colorAttr) colorAttr.needsUpdate = true;
         if (targetMesh === fairway && uvAttr) uvAttr.needsUpdate = true;
         targetMesh.geometry.computeVertexNormals();
-        targetMesh.geometry.computeVertexNormals();
     };
 
     // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
@@ -4230,7 +4229,7 @@ function animate() {
         } else if (physics.isBallInSand()) {
             // Embed the ball slightly into the sand grain plane (35% ball radius drop) for a natural lie
             const trueFloorH = physics.getGroundHeight(bX, bZ);
-            surfaceHeight = trueFloorH + ballRadius - (ballRadius * 0.35);
+            surfaceHeight = trueFloorH + ballRadius - (ballRadius * 0.15);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const distanceToPath = physics.getDistanceToSpline(bX, bZ);
