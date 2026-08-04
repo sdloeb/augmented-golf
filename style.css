@@ -61,6 +61,8 @@ html {
     left: 50%;
     transform: translateX(-50%);
     /* Centers strictly on the X axis */
+    bottom: 40px;
+    /* Anchors at the bottom center, raised slightly above the screen edge */
     background: rgba(0, 0, 0, 0.75);
     border: 2px solid #ffffff;
     border-radius: 5px;
@@ -223,7 +225,8 @@ html {
    ========================================================================== */
 /* Move all Woods down/back from the ball in address stance */
 #clubSwipe.wood.idle-stance {
-    margin-bottom: -30px !important; /* Make more negative (e.g., -25px or -30px) to pull woods further down/away from the ball */
+    margin-bottom: -30px !important;
+    /* Make more negative (e.g., -25px or -30px) to pull woods further down/away from the ball */
 }
 
 
@@ -843,7 +846,7 @@ html {
         transform-origin: 6px 20px !important;
     }
 
- 
+
 
     /* Add this block right below it to override the putter on mobile screens */
 

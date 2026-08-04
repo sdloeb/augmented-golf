@@ -4333,14 +4333,7 @@ function animate() {
                 // Standardizing clubCushion to 4.0 across all lies prevents the double-sinking visual gap.
                 const dynamicBottom = ballBottomPercent - 2.0;
 
-                // NEW: Dynamically bind the backspin button position relative to the club's Y baseline coordinates
-                const backspinBtnEl = document.getElementById('backspinBtn');
-                if (backspinBtnEl) {
-                    const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-                    // Adding a calibrated percentage value lifts the button cleanly above the active clubhead frame footprint
-                    const verticalOffset = isMobileScreen ? 11.5 : 9.5;
-                    backspinBtnEl.style.setProperty('bottom', `${dynamicBottom + verticalOffset}%`, 'important');
-                }
+                // Position is now locked at the bottom center via style.css
 
                 // Establish base club layout shapes
                 const clubNameClass = activeClub.name.toLowerCase().replace(' ', '-');
