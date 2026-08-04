@@ -651,45 +651,43 @@ function updateDistanceDisplay() {
         container.style.gap = isMobileScreen ? '10px' : '10px'; // Modify this line: Tightens layout footprint on mobile screens
         container.style.flexWrap = 'wrap'; // Add this line: Safely wraps the buttons instead of breaking outer layout bounds
 
-        // Calculate what index is currently highlighted
+       // Calculate what index is currently highlighted
         let currentIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
+        const maxClubIdx = isOnFringe ? clubList.length - 1 : clubList.length - 2;
 
-        // 1. BUILD THE LEFT SCROLL ARROW (Goes to longer distance clubs)
+        // 1. BUILD THE LEFT SCROLL ARROW (Goes to shorter distance clubs)
         const leftBtn = document.createElement('button');
         leftBtn.className = 'club-option';
         leftBtn.innerText = '◀';
 
         // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === 0) {
+       if (currentIdx === maxClubIdx) {
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx > 0) {
-                input.chosenClubIndex = cIdx - 1;
+            if (cIdx < maxClubIdx) {
+                input.chosenClubIndex = cIdx + 1;
                 updateDistanceDisplay();
             }
         });
 
-        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to shorter distance clubs)
+        // 3. BUILD THE RIGHT SCROLL ARROW (Goes to longer distance clubs)
         const rightBtn = document.createElement('button');
         rightBtn.className = 'club-option';
         rightBtn.innerText = '▶';
 
-        // Allows scrolling to the putter (clubList.length - 1) on the fringe, otherwise stops at Sand Wedge (- 2)
-        const maxClubIdx = isOnFringe ? clubList.length - 1 : clubList.length - 2;
-
-        if (currentIdx === maxClubIdx) {
+        if (currentIdx === 0) {
             rightBtn.style.opacity = '0.3';
             rightBtn.style.pointerEvents = 'none';
         }
         rightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx < maxClubIdx) {
-                input.chosenClubIndex = cIdx + 1;
+            if (cIdx > 0) {
+                input.chosenClubIndex = cIdx - 1;
                 updateDistanceDisplay();
             }
         });
@@ -3527,7 +3525,7 @@ function animate() {
         // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
         const collisionClub = input ? input.getClubInfo() : null;
         const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? (0.08 + 0.25 * ball.scale.x) : 0.38;
+        const maxLipRadius = collisionIsPutting ? 0.22 : 0.38;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -3542,8 +3540,8 @@ function animate() {
                     physics.velocity.set(0, 0, 0);
                     physics.isMoving = false;
                     wasMoving = false;
-                } else if (!ball.userData.hasHitPin) {
-                    // PIN RICOCHET: Struck the flagstick too hot!
+                } else if (pin && pin.visible && !ball.userData.hasHitPin) {
+                    // PIN RICOCHET: Only ricochet if the pin is actually in the hole!
                     ball.userData.hasHitPin = true;
                     ball.userData.isLipRiding = false;
 
