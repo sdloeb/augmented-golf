@@ -2,13 +2,17 @@
  * Standalone Tutorial Onboarding Module for Augmented Golf
  * Handles sequenced element spotlights and notifications on Hole 1
  */
+/**
+ * Standalone Tutorial Onboarding Module for Augmented Golf
+ * Handles sequenced element spotlights and notifications on Hole 1
+ */
 export class TutorialManager {
     constructor() {
         this.steps = [
             { selector: '#windContainer', text: 'WIND SPEED', duration: 3000 },
             { selector: '#overheadBtn', text: "BIRD'S-EYE VIEW", duration: 3000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM', duration: 3000 },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
             { selector: '#clubSwipe', text: 'PULL BACK AND SWIPE FORWARD ON THE SAME DIAGONAL FOR A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
@@ -21,11 +25,6 @@ export class TutorialManager {
      * Checks prerequisites and kicks off the sequence if on Hole 1
      */
     start() {
-        // Only run if on Hole 1 and hasn't been completed yet in this browser session
-        // if (localStorage.getItem('golfTutorialCompleted') === 'true') {
-        return;
-        // }
-
         window.isTutorialActive = true;
         this.createElements();
         this.executeStep();
@@ -109,7 +108,7 @@ export class TutorialManager {
             clubContainer.style.zIndex = '1000002';
         }
 
-        // NEW: Allocate dynamic positioning and transition properties per step
+        // Allocate dynamic positioning and transition properties per step
         let targetTransform = 'translate(-50%, -50%) scale(1)';
         let fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
 
@@ -183,7 +182,70 @@ export class TutorialManager {
             document.body.appendChild(hand);
         }
 
+        // --- AUTOMATED AIM & BACKSPIN DEMONSTRATION ---
+        if (step.action === 'aimAndBackspin') {
+            // 1. Change club selection to 5 Iron
+            setTimeout(() => {
+                if (window.inputHandler) {
+                    window.inputHandler.chosenClubIndex = 4; // 5 Iron
+                    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+                }
+            }, 500);
 
+            // 2. Automatically enter Aim Mode
+            setTimeout(() => {
+                if (window.inputHandler) {
+                    window.inputHandler.isAimMode = true;
+                    window.inputHandler.isSwinging = false;
+                    window.inputHandler.state = 'IDLE';
+                }
+            }, 1400);
+
+            // 3. Automatically click the Backspin Button
+            setTimeout(() => {
+                const backspinBtn = document.getElementById('backspinBtn');
+                if (backspinBtn && !backspinBtn.classList.contains('hidden')) {
+                    backspinBtn.click();
+                }
+            }, 2200);
+
+            // 4. Move aim left, right, then back to center
+            setTimeout(() => {
+                const startTime = performance.now();
+                const animDuration = 3500;
+
+                const aimInterval = setInterval(() => {
+                    if (!window.inputHandler || !window.isTutorialActive) {
+                        clearInterval(aimInterval);
+                        return;
+                    }
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(1.0, elapsed / animDuration);
+
+                    if (progress < 0.33) {
+                        const p = progress / 0.33;
+                        window.inputHandler.aimAngleOffset = -0.22 * Math.sin(p * Math.PI / 2);
+                    } else if (progress < 0.75) {
+                        const p = (progress - 0.33) / 0.42;
+                        window.inputHandler.aimAngleOffset = -0.22 + 0.44 * (0.5 - 0.5 * Math.cos(p * Math.PI));
+                    } else {
+                        const p = (progress - 0.75) / 0.25;
+                        window.inputHandler.aimAngleOffset = 0.22 * (1 - Math.sin(p * Math.PI / 2));
+                    }
+
+                    if (progress >= 1.0) {
+                        window.inputHandler.aimAngleOffset = 0;
+                        clearInterval(aimInterval);
+                    }
+                }, 16);
+            }, 3000);
+        }
+
+        // Exit Aim Mode when moving past the demonstration step to prepare for swipe steps
+        if (!step.action && window.inputHandler) {
+            window.inputHandler.isAimMode = false;
+            window.inputHandler.aimAngleOffset = 0;
+        }
 
         // Render the text notification string matching the tailored geometry styles
         this.textEl.innerText = step.text;
@@ -217,6 +279,11 @@ export class TutorialManager {
 
         if (this.overlayEl) this.overlayEl.remove();
         if (this.textEl) this.textEl.remove();
+
+        if (window.inputHandler) {
+            window.inputHandler.isAimMode = false;
+            window.inputHandler.aimAngleOffset = 0;
+        }
 
         // Turn off the tutorial input locks so the player can click and play freely
         window.isTutorialActive = false;

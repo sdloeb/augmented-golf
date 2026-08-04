@@ -5208,10 +5208,13 @@ function init() {
         return Math.sqrt(dx * dx + dz * dz) * 2.76923;
     }); // Add the bracket closure adjustments on this line
 
-    input.ballRef = ball;
+   input.ballRef = ball;
     input.sandTrapsRef = sandTraps;
     input.holePositionRef = holePosition;
     input.teeBoxRef = teeBox;
+
+    window.inputHandler = input;
+    window.updateDistanceDisplay = updateDistanceDisplay;
 
     window.addEventListener('resize', onWindowResize, false);
     onWindowResize();
