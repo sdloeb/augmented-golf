@@ -3524,7 +3524,7 @@ function animate() {
         // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
         const collisionClub = input ? input.getClubInfo() : null;
         const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? (0.11 + 0.25 * ball.scale.x) : 0.38;
+        const maxLipRadius = collisionIsPutting ? (0.08 + 0.25 * ball.scale.x) : 0.38;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -4715,6 +4715,23 @@ function animate() {
         });
     }
 
+    // Dynamic Hole Cup Scale: Shrinks the cup within 10 feet to match the desktop ball/club proportions
+    if (holeCup && ball) {
+        const dxH = ball.position.x - holePosition.x;
+        const dzH = ball.position.z - holePosition.z;
+        const feetToHole = Math.sqrt(dxH * dxH + dzH * dzH) * 1.75;
+
+        if (feetToHole <= 10.0) {
+            // Smoothly lerps cup scale from 1.0 (at 10ft) down to 0.60 (at 0ft)
+            const cupScale = THREE.MathUtils.lerp(0.75, 1.0, feetToHole / 10.0);
+            holeCup.scale.set(cupScale, cupScale, cupScale);
+        } else {
+            holeCup.scale.set(1.0, 1.0, 1.0);
+        }
+    }
+
+
+
     renderer.render(scene, camera); // Preserved: Main renderer pipeline stays intact
 }
 
@@ -5095,7 +5112,7 @@ function init() {
 
         if (isOnGreen || club.name === 'Putter') {
             // Calibrated down from 2.10 to 1.30 so visual target distances align 1-to-1 with ball rollouts
-            finalPower *= 2.30;
+            finalPower *= 2.55;
 
             // Dampener specifically for putting from off the green (fringe/fairway)
             // MODIFIED: Exempt the fringe collar layout from this penalty cliff completely
