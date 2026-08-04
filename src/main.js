@@ -5196,8 +5196,9 @@ function init() {
             flagHideTimeout = null;
         }
 
-        strokeCount = 0;
+        strokeCount++;
         document.getElementById('strokeText').innerText = strokeCount;
+        updateDistanceDisplay();
     }, () => {
         // FIXED: Tracks the green boundaries accurately from the true center point during click-drags using shape-aware angles
         const gX = ball.position.x - (green ? green.position.x : 0);
