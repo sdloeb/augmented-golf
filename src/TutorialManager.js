@@ -14,7 +14,7 @@ export class TutorialManager {
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'PULL BACK AND SWIPE FORWARD ON THE SAME DIAGONAL FOR A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
+            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON THE SAME DIAGONAL FOR A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -283,6 +283,8 @@ export class TutorialManager {
         if (window.inputHandler) {
             window.inputHandler.isAimMode = false;
             window.inputHandler.aimAngleOffset = 0;
+            window.inputHandler.chosenClubIndex = 0; // Reset club selection back to Driver
+            if (window.updateDistanceDisplay) window.updateDistanceDisplay();
         }
 
         // Turn off the tutorial input locks so the player can click and play freely
