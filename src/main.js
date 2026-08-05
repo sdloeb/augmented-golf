@@ -3270,7 +3270,7 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-   // Update backspin button visibility state based on aim mode and active club choice
+    // Update backspin button visibility state based on aim mode and active club choice
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn && input) {
         const activeClub = input.getClubInfo();
@@ -5208,7 +5208,7 @@ function init() {
         return Math.sqrt(dx * dx + dz * dz) * 2.76923;
     }); // Add the bracket closure adjustments on this line
 
-   input.ballRef = ball;
+    input.ballRef = ball;
     input.sandTrapsRef = sandTraps;
     input.holePositionRef = holePosition;
     input.teeBoxRef = teeBox;
@@ -5410,6 +5410,11 @@ function updateGreenGrid() {
 
     for (let s = 0; s <= travelSteps; s++) {
         const t = s / travelSteps;
+
+        const distFromBallFeet = (t * pathLen) * 1.75;
+        if (isPutter && distFromBallFeet > 8.0) {
+            break;
+        }
 
         const wx = ball.position.x + dirX * (t * pathLen);
         const wz = ball.position.z + dirZ * (t * pathLen);
