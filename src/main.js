@@ -104,6 +104,8 @@ const HOLES_CONFIG = {
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
         par: 4,
+        theme: 'standard',
+        treeScale: 5.5,
         fairwayWidth: 9.5,
         greenRadius: 9.0,
 
@@ -1298,13 +1300,15 @@ function resetEntireGame(advanceHole = false) {
     if (green) green.scale.set(1, 1, 1);
     if (greenGrid) greenGrid.scale.set(1, 1, 1);
     if (greenFringe) greenFringe.scale.set(1, 1, 1);
-    const themeRoll = Math.random();
-    if (themeRoll < 0.25) {
-        currentHoleConfig.theme = 'open';    // Clean links-style course
-    } else if (themeRoll < 0.65) {
-        currentHoleConfig.theme = 'standard';// Balanced layout
-    } else {
-        currentHoleConfig.theme = 'forest';  // Heavily wooded tree-lined layout
+   if (!currentHoleConfig.theme) {
+        const themeRoll = Math.random();
+        if (themeRoll < 0.25) {
+            currentHoleConfig.theme = 'open';    // Clean links-style course
+        } else if (themeRoll < 0.65) {
+            currentHoleConfig.theme = 'standard';// Balanced layout
+        } else {
+            currentHoleConfig.theme = 'forest';  // Heavily wooded tree-lined layout
+        }
     }
 
     currentPar = holeConfig.par;    // Keep this single instance of the assignment
@@ -2404,8 +2408,8 @@ function resetEntireGame(advanceHole = false) {
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 });
 
     // Generate 35 pieces of random scenery scattered along the edges
-    for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        if (currentHoleNumber === 1 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Hole 1 & custom holes
+  for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
+        if (currentHoleNumber === 1 || currentHoleNumber === 2 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Holes 1 & 2
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
@@ -2690,13 +2694,13 @@ function resetEntireGame(advanceHole = false) {
                 }
                 // Deterministic micro-stagger based on row pattern
                 sampleX += (rowPattern % 2 === 0 ? -0.2 : 0.2);
-            } else {
+           } else {
                 // Standard fallback configuration for alternative holes
-                sampleX = (Math.random() - 0.5) * 220;
+                sampleX = (currentHoleNumber === 2 ? (localRandom() - 0.5) : (Math.random() - 0.5)) * 220;
                 if (currentHoleNumber === 2 && sampleX > 0) {
                     sampleX += 35.0;
                 }
-                sampleZ = greenCenterZ + Math.random() * (10 - greenCenterZ);
+                sampleZ = greenCenterZ + (currentHoleNumber === 2 ? localRandom() : Math.random()) * (10 - greenCenterZ);
             }
             if (currentHoleNumber === 1 && sampleZ < -125.4) continue; // Stops the forest exactly 100 yards before the green
 
@@ -2789,11 +2793,11 @@ function resetEntireGame(advanceHole = false) {
             const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
             sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-           let generateAsTree = currentHoleNumber === 1 ? true : (currentHoleNumber === 2 ? (localRandom() < 0.95) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
+          let generateAsTree = (currentHoleNumber === 1 || currentHoleNumber === 2) ? true : (Math.random() < 0.6); if (isShortcutZone) generateAsTree = true; // Force 100% large trees on Hole 2 (no bushes/small trees)
 
             if (generateAsTree) {
                 sceneryGroup.userData = { type: 'tree' };
-                let randomScale = currentHoleNumber === 1 ? (7.5 + ((i % 5) * 0.5)) : (3.5 + Math.random() * 1.3);
+                let randomScale = currentHoleNumber === 1 ? (7.5 + ((i % 5) * 0.5)) : (currentHoleNumber === 2 ? (5.5 + ((i % 4) * 0.4)) : (3.5 + Math.random() * 1.3));
                 if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
                 let calculatedTrunkRad = 0.25 * randomScale;
                 let calculatedTrunkH = 1.4 * randomScale;
