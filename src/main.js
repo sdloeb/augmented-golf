@@ -5489,8 +5489,8 @@ function updateGreenGrid() {
     for (let s = 0; s <= travelSteps; s++) {
         const t = s / travelSteps;
 
-        const distFromBallFeet = (t * pathLen) * 1.75;
-        if (isPutter && distFromBallFeet > 8.0) {
+        // Aim dots extend 1/2 (50%) of the total distance to the hole
+        if (t > 0.5) {
             break;
         }
 
