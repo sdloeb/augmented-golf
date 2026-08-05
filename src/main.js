@@ -3549,16 +3549,17 @@ function animate() {
         // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
         const collisionClub = input ? input.getClubInfo() : null;
         const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? 0.22 : 0.38;
+        const maxLipRadius = collisionIsPutting ? 0.17 : 0.22;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
-            // Dead center drop condition: sinks immediately if struck true, otherwise bounces off pin
-            if (distanceToHole < 0.06) {
-                if (trueWorldSpeed <= 0.12) {
+           
+     // Dead center / Flagstick hit condition: drops in at reasonable speeds, ricochets if hit hard
+            if (distanceToHole < 0.12) {
+                if (trueWorldSpeed <= 0.35) {
                     isSinking = true;
                     ball.userData.isLipRiding = false;
                     physics.velocity.set(0, 0, 0);
@@ -3617,6 +3618,11 @@ function animate() {
                 const tanX = -hDirZ * ball.userData.lipDirection;
                 const tanZ = hDirX * ball.userData.lipDirection;
 
+                // Pull ball position smoothly onto the physical lip of the cup (radius 0.11)
+                const targetLipDist = 0.11;
+                const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.20);
+                ball.position.x = holePosition.x + hDirX * newDist;
+                ball.position.z = holePosition.z + hDirZ * newDist;
                 // Blasted past the cup: too hot to grip the edge, breaks tracking instantly (Clean Lip-Out)
                 if (trueWorldSpeed > 0.45) {
                     ball.userData.isLipRiding = false;
@@ -3632,15 +3638,22 @@ function animate() {
                     const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                     ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.10, 0.15);
 
-                    // PATHWAY A: LIP-IN (Ball slowed down enough to fall completely through the cup floor)
-                    if (physics.velocity.length() * currentScale < 0.12) {
+
+                    // PATHWAY A: LIP-IN (Only drops in if ball center is actually over the inner cup opening)
+                    if (distanceToHole <= 0.12 && physics.velocity.length() * currentScale < 0.12) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.set(0, 0, 0);
                         physics.isMoving = false;
                         wasMoving = false;
                     }
-                    // PATHWAY B: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
+                    // PATHWAY B: LIP-OUT (On the outer side/rim and slowing down -> deflects away onto green)
+                    else if (distanceToHole > 0.12 && physics.velocity.length() * currentScale < 0.12) {
+                        physics.velocity.x = (tanX + hDirX * 0.35) * rawSpeed * 0.85;
+                        physics.velocity.z = (tanZ + hDirZ * 0.35) * rawSpeed * 0.85;
+                        ball.userData.isLipRiding = false;
+                    }
+                    // PATHWAY C: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
                     else if (ball.userData.lipAngleTraveled > 3.8) {
                         physics.velocity.x = (tanX + hDirX * 0.20) * rawSpeed * 0.95;
                         physics.velocity.z = (tanZ + hDirZ * 0.20) * rawSpeed * 0.95;
@@ -4775,19 +4788,9 @@ function animate() {
         });
     }
 
-    // Dynamic Hole Cup Scale: Shrinks the cup within 10 feet to match the desktop ball/club proportions
-    if (holeCup && ball) {
-        const dxH = ball.position.x - holePosition.x;
-        const dzH = ball.position.z - holePosition.z;
-        const feetToHole = Math.sqrt(dxH * dxH + dzH * dzH) * 1.75;
-
-        if (feetToHole <= 10.0) {
-            // Smoothly lerps cup scale from 1.0 (at 10ft) down to 0.60 (at 0ft)
-            const cupScale = THREE.MathUtils.lerp(0.75, 1.0, feetToHole / 10.0);
-            holeCup.scale.set(cupScale, cupScale, cupScale);
-        } else {
-            holeCup.scale.set(1.0, 1.0, 1.0);
-        }
+    // Keep 100% cup scale so the visual cup always matches physical collision dimensions
+    if (holeCup) {
+        holeCup.scale.set(1.0, 1.0, 1.0);
     }
 
 
