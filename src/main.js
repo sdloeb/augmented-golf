@@ -3556,10 +3556,9 @@ function animate() {
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
-           
-     // Dead center / Flagstick hit condition: drops in at reasonable speeds, ricochets if hit hard
-            if (distanceToHole < 0.12) {
-                if (trueWorldSpeed <= 0.35) {
+            // Dead center drop condition: sinks immediately if struck true, otherwise bounces off pin
+            if (distanceToHole < 0.06) {
+                if (trueWorldSpeed <= 0.12) {
                     isSinking = true;
                     ball.userData.isLipRiding = false;
                     physics.velocity.set(0, 0, 0);
@@ -3638,22 +3637,15 @@ function animate() {
                     const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                     ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.10, 0.15);
 
-
-                    // PATHWAY A: LIP-IN (Only drops in if ball center is actually over the inner cup opening)
-                    if (distanceToHole <= 0.12 && physics.velocity.length() * currentScale < 0.12) {
+                    // PATHWAY A: LIP-IN (Ball slowed down enough to fall completely through the cup floor)
+                    if (physics.velocity.length() * currentScale < 0.12) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.set(0, 0, 0);
                         physics.isMoving = false;
                         wasMoving = false;
                     }
-                    // PATHWAY B: LIP-OUT (On the outer side/rim and slowing down -> deflects away onto green)
-                    else if (distanceToHole > 0.12 && physics.velocity.length() * currentScale < 0.12) {
-                        physics.velocity.x = (tanX + hDirX * 0.35) * rawSpeed * 0.85;
-                        physics.velocity.z = (tanZ + hDirZ * 0.35) * rawSpeed * 0.85;
-                        ball.userData.isLipRiding = false;
-                    }
-                    // PATHWAY C: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
+                    // PATHWAY B: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
                     else if (ball.userData.lipAngleTraveled > 3.8) {
                         physics.velocity.x = (tanX + hDirX * 0.20) * rawSpeed * 0.95;
                         physics.velocity.z = (tanZ + hDirZ * 0.20) * rawSpeed * 0.95;

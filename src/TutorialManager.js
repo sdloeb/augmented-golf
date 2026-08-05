@@ -24,11 +24,11 @@ export class TutorialManager {
     /**
      * Checks prerequisites and kicks off the sequence if on Hole 1
      */
-    start() {
-        window.isTutorialActive = true;
-        this.createElements();
-        this.executeStep();
-    }
+   // start() {
+    //    window.isTutorialActive = true;
+     //   this.createElements();
+    //    this.executeStep();
+  //  }
 
     /**
      * Dynamically handles HTML injection to keep index.html untouched
