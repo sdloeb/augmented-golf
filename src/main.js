@@ -53,6 +53,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
+        theme: 'standard',
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
         greenRadius: 10.5,    // Tightly matches the proportions of the photo
@@ -2404,7 +2405,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        if (currentHoleConfig && currentHoleConfig.customTrees) continue; // Skips random background trees/houses on any hole with a customTree layout
+        if (currentHoleNumber === 1 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Hole 1 & custom holes
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
@@ -2663,7 +2664,7 @@ function resetEntireGame(advanceHole = false) {
             if (currentHoleConfig && currentHoleConfig.customTrees) {
                 sampleX = currentHoleConfig.customTrees[i].x;
                 sampleZ = currentHoleConfig.customTrees[i].z;
-            } else if (currentHoleNumber === 1) {
+           } else if (currentHoleNumber === 1) {
                 // Split attempts into 4 clean rows (0 & 1 on Left, 2 & 3 on Right)
                 const rowPattern = i % 4;
                 const stepIndex = Math.floor(i / 4);
@@ -2671,7 +2672,8 @@ function resetEntireGame(advanceHole = false) {
 
                 // Distribute down the Z axis from Tee Box (10) to 100yds before Green (-125.4)
                 sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
-                sampleZ += (localRandom() - 0.5) * 2.5; // Natural staggered padding down the line
+                // Deterministic staggered padding down the line (no random variation)
+                sampleZ += ((stepIndex % 2) - 0.5) * 1.5;
 
                 const fW = 16.0;         // Hole 1 fairway radius width
                 const cushion = 12.0;     // Distance from fairway edge to the 1st row
@@ -2686,7 +2688,8 @@ function resetEntireGame(advanceHole = false) {
                 } else {
                     sampleX = fW + cushion + rowSpacing;
                 }
-                sampleX += (localRandom() - 0.5) * 0.4; // Micro-stagger to keep it looking organic
+                // Deterministic micro-stagger based on row pattern
+                sampleX += (rowPattern % 2 === 0 ? -0.2 : 0.2);
             } else {
                 // Standard fallback configuration for alternative holes
                 sampleX = (Math.random() - 0.5) * 220;
@@ -2786,18 +2789,18 @@ function resetEntireGame(advanceHole = false) {
             const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
             sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-            let generateAsTree = currentHoleNumber === 2 ? (localRandom() < 0.95) : (currentHoleNumber === 1 ? (Math.random() < 0.85) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
+           let generateAsTree = currentHoleNumber === 1 ? true : (currentHoleNumber === 2 ? (localRandom() < 0.95) : (Math.random() < 0.6)); if (isShortcutZone) generateAsTree = true; // Add this line: Force a solid wall of trees over bushes in the bypass lane
 
             if (generateAsTree) {
                 sceneryGroup.userData = { type: 'tree' };
-                let randomScale = currentHoleNumber === 1 ? (7.5 + localRandom() * 2.5) : (3.5 + Math.random() * 1.3);
+                let randomScale = currentHoleNumber === 1 ? (7.5 + ((i % 5) * 0.5)) : (3.5 + Math.random() * 1.3);
                 if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
                 let calculatedTrunkRad = 0.25 * randomScale;
                 let calculatedTrunkH = 1.4 * randomScale;
                 let calculatedFoliageRad = 1.1 * randomScale;
 
                 /// Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
-                let treeVersion = currentHoleNumber === 2 ? 3 : Math.floor(localRandom() * 3); // Modify this line: Force towering pine trees for Hole 2
+                let treeVersion = currentHoleNumber === 1 ? (i % 3) : (currentHoleNumber === 2 ? 3 : Math.floor(localRandom() * 3));
 
                 // Core trunk base used by all tree archetypes
                 let trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
