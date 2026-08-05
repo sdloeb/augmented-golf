@@ -447,6 +447,22 @@ function onWindowResize() {
     document.documentElement.style.setProperty('--club-scale', window.innerHeight / 1080);
 }
 
+function checkIsBallOnGreenOrFringe() {
+    if (!ball) return false;
+    const greenCheckX = ball.position.x - (green ? green.position.x : 0);
+    const greenCheckZ = ball.position.z - greenCenterZ;
+    const ballDist = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
+    const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
+    const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+
+    const currentActiveClub = input ? input.getClubInfo() : null;
+    const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
+    const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
+
+    return (ballDist < activeR) || isOnFringe || isPuttingClub;
+}
+
+
 function updateDistanceDisplay() {
     const dx = ball.position.x - holePosition.x;
     const dz = ball.position.z - holePosition.z;
@@ -469,6 +485,11 @@ function updateDistanceDisplay() {
 
     const distanceText = document.getElementById('distanceText');
     const unitText = document.getElementById('unitText');
+
+    const overheadBtn = document.getElementById('overheadBtn');
+    if (overheadBtn) {
+        overheadBtn.innerText = checkIsBallOnGreenOrFringe() ? "Green View" : "Overhead View";
+    }
 
     if (distanceText && unitText) {
         // FIXED: Check if the ball is on the green surface container footprint using true shape-aware boundary angles
@@ -3938,6 +3959,47 @@ function animate() {
 
     // Hole preview path fly-through logic
     if (isOverheadActive) {
+        if (checkIsBallOnGreenOrFringe()) {
+            // GREEN VIEW: Slow low camera follow from ball to hole along green contour
+            const dxH = holePosition.x - ball.position.x;
+            const dzH = holePosition.z - ball.position.z;
+            const holeDist = Math.sqrt(dxH * dxH + dzH * dzH) || 1;
+            const dirX = dxH / holeDist;
+            const dirZ = dzH / holeDist;
+
+            previewProgress += 0.0025; // Slow, smooth green fly-through
+            if (previewProgress > 1) previewProgress = 1;
+
+            const t = previewProgress;
+            const pathX = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
+            const pathZ = THREE.MathUtils.lerp(ball.position.z, holePosition.z, t);
+
+            // Low camera following 1.5 units behind current path point
+            const camX = pathX - dirX * 1.5;
+            const camZ = pathZ - dirZ * 1.5;
+            const camY = physics.getGroundHeight(camX, camZ) + 0.6; // Low angle near turf
+
+            const lookAheadT = Math.min(1.0, t + 0.25);
+            const lookX = THREE.MathUtils.lerp(ball.position.x, holePosition.x, lookAheadT);
+            const lookZ = THREE.MathUtils.lerp(ball.position.z, holePosition.z, lookAheadT);
+            const lookY = physics.getGroundHeight(lookX, lookZ) + 0.25;
+
+            cameraTargetPos.set(camX, camY, camZ);
+            cameraLookAt.set(lookX, lookY, lookZ);
+            activeCameraSpeed = 0.12;
+
+            if (previewProgress >= 1) {
+                isOverheadActive = false;
+                let angle = Math.atan2(dxH, dzH);
+                if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
+                const aimX = Math.sin(angle);
+                const aimZ = Math.cos(angle);
+                cameraTargetPos.set(ball.position.x - aimX * 2.5, ball.position.y + 1.0, ball.position.z - aimZ * 2.5);
+                cameraLookAt.set(ball.position.x + aimX * 6.0, ball.position.y + 0.35, ball.position.z + aimZ * 6.0);
+                activeCameraSpeed = 0.02;
+            }
+            return; // Bypasses standard overhead drone code below when on green
+        }
         const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
         const flightSpeed = holeDist < 80 ? 0.005 : 0.003;
         previewProgress += flightSpeed;
@@ -5250,17 +5312,32 @@ function init() {
             const length = ringDist || 1;    // Modify this line: Anchors the aspect framing ratio to match the club distance
 
             if (!isOverheadActive) {
-                // TOGGLE ON: Go up to the 20-foot elevated view
                 isOverheadActive = true;
-                previewProgress = 0; // Add this line
+                previewProgress = 0;
 
-                const backX = -(dirX / length) * 6.5;
-                const backZ = -(dirZ / length) * 6.5;
-                const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
+                if (checkIsBallOnGreenOrFringe()) {
+                    // GREEN VIEW START: Position camera low behind the ball
+                    const dxH = holePosition.x - ball.position.x;
+                    const dzH = holePosition.z - ball.position.z;
+                    const holeDist = Math.sqrt(dxH * dxH + dzH * dzH) || 1;
+                    const dirX = dxH / holeDist;
+                    const dirZ = dzH / holeDist;
 
-                // Puts the camera back up high focused directly on the actual flag cup pin location
-                cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
-                cameraLookAt.copy(holePosition); // Modify this line: Focuses directly on the hole pin right away when clicking static view
+                    const startCamX = ball.position.x - dirX * 1.5;
+                    const startCamZ = ball.position.z - dirZ * 1.5;
+                    const startGroundY = physics.getGroundHeight(startCamX, startCamZ);
+                    cameraTargetPos.set(startCamX, startGroundY + 0.6, startCamZ);
+                    cameraLookAt.set(ball.position.x + dirX * 3.0, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25, ball.position.z + dirZ * 3.0);
+                } else {
+                    // OVERHEAD VIEW START: 20-foot elevated view
+                    const backX = -(dirX / length) * 6.5;
+                    const backZ = -(dirZ / length) * 6.5;
+                    const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
+
+                    // Puts the camera back up high focused directly on the actual flag cup pin location
+                    cameraTargetPos.set(ball.position.x + backX, groundHeight + 7.5, ball.position.z + backZ);
+                    cameraLookAt.copy(holePosition);
+                }
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
