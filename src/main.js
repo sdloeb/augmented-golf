@@ -2646,7 +2646,7 @@ function resetEntireGame(advanceHole = false) {
 
         if (currentHoleNumber === 2) obstacleAttempts = 320;
         if (currentHoleNumber === 3) obstacleAttempts = 0;
-        if (currentHoleNumber === 1) obstacleAttempts = 60;
+        if (currentHoleNumber === 1) obstacleAttempts = 90;
 
         // Strictly target random doglegs (Holes 4 and up) to protect your manual configurations
         if (currentHoleNumber >= 4 && currentHoleConfig && currentHoleConfig.waypoints && currentHoleConfig.waypoints.length > 2) { // Add this line
@@ -2672,31 +2672,37 @@ function resetEntireGame(advanceHole = false) {
                 sampleX = currentHoleConfig.customTrees[i].x;
                 sampleZ = currentHoleConfig.customTrees[i].z;
             } else if (currentHoleNumber === 1) {
-                // Split attempts into 4 clean rows (0 & 1 on Left, 2 & 3 on Right)
-                const rowPattern = i % 4;
-                const stepIndex = Math.floor(i / 4);
-                const totalSteps = Math.floor(obstacleAttempts / 4);
+                if (i < 60) {
+                    // Main tree corridor (Tee to Z = -125.4)
+                    const rowPattern = i % 4;
+                    const stepIndex = Math.floor(i / 4);
+                    const totalSteps = 15;
 
-                // Distribute down the Z axis from Tee Box (10) to 100yds before Green (-125.4)
-                sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
-                // Deterministic staggered padding down the line (no random variation)
-                sampleZ += ((stepIndex % 2) - 0.5) * 1.5;
+                    sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
+                    sampleZ += ((stepIndex % 2) - 0.5) * 1.5;
 
-                const fW = 16.0;         // Hole 1 fairway radius width
-                const cushion = 12.0;     // Distance from fairway edge to the 1st row
-                const rowSpacing = 4.2;  // Distance between row 1 and row 2
+                    const fW = 16.0;
+                    const cushion = 12.0;
+                    const rowSpacing = 4.2;
 
-                if (rowPattern === 0) {
-                    sampleX = -fW - cushion;
-                } else if (rowPattern === 1) {
-                    sampleX = -fW - cushion - rowSpacing;
-                } else if (rowPattern === 2) {
-                    sampleX = fW + cushion;
+                    if (rowPattern === 0) {
+                        sampleX = -fW - cushion;
+                    } else if (rowPattern === 1) {
+                        sampleX = -fW - cushion - rowSpacing;
+                    } else if (rowPattern === 2) {
+                        sampleX = fW + cushion;
+                    } else {
+                        sampleX = fW + cushion + rowSpacing;
+                    }
+                    sampleX += (rowPattern % 2 === 0 ? -0.2 : 0.2);
                 } else {
-                    sampleX = fW + cushion + rowSpacing;
+                    // Permanent background trees & houses past Z = -125.4 out wide at X = +/- 55
+                    const bgIndex = i - 60;
+                    const side = (bgIndex % 2 === 0) ? 1 : -1;
+                    const step = Math.floor(bgIndex / 2);
+                    sampleZ = -128 - (step * 4.8);
+                    sampleX = side * (55.0 + (step % 3) * 5.0);
                 }
-                // Deterministic micro-stagger based on row pattern
-                sampleX += (rowPattern % 2 === 0 ? -0.2 : 0.2);
             } else {
                 // Standard fallback configuration for alternative holes
                 sampleX = (currentHoleNumber === 2 ? (localRandom() - 0.5) : (Math.random() - 0.5)) * 220;
@@ -2705,8 +2711,6 @@ function resetEntireGame(advanceHole = false) {
                 }
                 sampleZ = greenCenterZ + (currentHoleNumber === 2 ? localRandom() : Math.random()) * (10 - greenCenterZ);
             }
-            if (currentHoleNumber === 1 && sampleZ < -125.4) continue; // Stops the forest exactly 100 yards before the green
-
             // 1. 25-Yard Safe Zone Check from both Tee box and Hole Pin
             // FIXED: Move isShortcutZone here so the whole function can access it
             let isShortcutZone = false;
@@ -2796,8 +2800,7 @@ function resetEntireGame(advanceHole = false) {
             const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
             sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-            let generateAsTree = (currentHoleNumber === 1 || currentHoleNumber === 2) ? true : (Math.random() < 0.6); if (isShortcutZone) generateAsTree = true; // Force 100% large trees on Hole 2 (no bushes/small trees)
-
+            let generateAsTree = (currentHoleNumber === 1 && i < 60) || (currentHoleNumber === 2) ? true : (localRandom() < 0.5); if (isShortcutZone) generateAsTree = true;
             if (generateAsTree) {
                 sceneryGroup.userData = { type: 'tree' };
                 let randomScale = currentHoleNumber === 1 ? (7.5 + ((i % 5) * 0.5)) : (currentHoleNumber === 2 ? (5.5 + ((i % 4) * 0.4)) : (3.5 + Math.random() * 1.3));
@@ -2860,7 +2863,7 @@ function resetEntireGame(advanceHole = false) {
                     ];
 
                     positions.forEach(p => {
-                        let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
+                        let leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 12, 12);
                         let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                         leafMesh.position.set(p[0], p[1], p[2]);
                         sceneryGroup.add(leafMesh);
@@ -2900,7 +2903,7 @@ function resetEntireGame(advanceHole = false) {
                     ];
 
                     positions.forEach(p => {
-                        let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
+                        let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 12, 12);
                         let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                         leafMesh.position.set(p[0], p[1], p[2]);
                         sceneryGroup.add(leafMesh);
@@ -2937,7 +2940,7 @@ function resetEntireGame(advanceHole = false) {
                     ];
 
                     positions.forEach(p => {
-                        let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 24, 24);
+                        let leafGeo = new THREE.SphereGeometry(calculatedFoliageRad * p[3], 12, 12);
                         let leafMesh = new THREE.Mesh(leafGeo, foliageMat);
                         leafMesh.position.set(p[0], p[1], p[2]);
                         sceneryGroup.add(leafMesh);
@@ -4707,8 +4710,7 @@ function animate() {
     updateWindArrowDisplay();
 
     // --- ADD THIS BLOCK: X-RAY GHOST OBSTRUCTION FADER ---
-    if (sceneryObjects && sceneryObjects.length > 0 && camera && ball && !isOverheadActive) { // Modify this line: Target the 3D meshes instead of physics data[cite: 2]
-        // Create a raycaster pointing from the camera directly to the center of the ball
+    if (sceneryObjects && sceneryObjects.length > 0 && camera && ball && !isOverheadActive && (Math.floor(currentTime) % 3 === 0)) {        // Create a raycaster pointing from the camera directly to the center of the ball
         const raycaster = new THREE.Raycaster();
         const camToBallDir = new THREE.Vector3().subVectors(ball.position, camera.position);
         const distanceToBall = camToBallDir.length();
