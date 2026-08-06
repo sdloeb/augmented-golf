@@ -5536,8 +5536,8 @@ function updateGreenGrid() {
     for (let s = 0; s <= travelSteps; s++) {
         const t = s / travelSteps;
 
-        // Aim dots extend 1/2 (50%) of the total distance to the hole
-        if (t > 0.75) {
+        // Aim dots extend (67%) of the total distance to the hole
+        if (t > 0.67) {
             break;
         }
 
