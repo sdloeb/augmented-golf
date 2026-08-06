@@ -416,6 +416,21 @@ export class PhysicsEngine {
 
         // NEW: Sculpt a raised step-up plateau specifically around Hole 1's green complex
         if (this.currentHoleNumber === 1) {
+            // Sculpt an elevated earth berm / backstop mound behind the green
+            const relX = x - this.greenCenterX;
+            const relZ = z - this.greenCenterZ;
+            if (relZ < -13.0 && relZ > -40.0 && Math.abs(relX) < 32.0) {
+                const zCenter = -24.0;
+                const zRadius = 11.0;
+                const xRadius = 30.0;
+                const dzBerm = Math.abs(relZ - zCenter);
+                const dxBerm = Math.abs(relX);
+                if (dzBerm < zRadius && dxBerm < xRadius) {
+                    const factorZ = (1.0 + Math.cos((dzBerm / zRadius) * Math.PI)) * 0.5;
+                    const factorX = (1.0 + Math.cos((dxBerm / xRadius) * Math.PI)) * 0.5;
+                    baseHeight += 3.2 * factorZ * factorX;
+                }
+            }
             const platformRadius = activeRadius + 4.5; // Starts rising 4.5 units before the green rim
             if (distFromGreen < platformRadius) {
                 const tPlateau = Math.min(1.0, (platformRadius - distFromGreen) / 4.5);
