@@ -3638,8 +3638,8 @@ function animate() {
                     if (sounds) sounds.play('iron');
                 }
             }
-            // Handle off-center lip captures when traveling at look-in speeds exclusively
-            else if (rawSpeed > 0.02 && trueWorldSpeed <= 0.45) {
+            // Handle off-center lip captures when traveling at look-in speeds
+            else if (rawSpeed > 0.02 && trueWorldSpeed <= 0.65) {
                 if (distanceToHole > 0.25) {
                     ball.userData.hasHitPin = false;
                 }
@@ -3675,14 +3675,15 @@ function animate() {
                 const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.20);
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
-                // Blasted past the cup: too hot to grip the edge, breaks tracking instantly (Clean Lip-Out)
-                if (trueWorldSpeed > 0.45) {
+
+                // Blasted past the cup: too hot to grip the edge
+                if (trueWorldSpeed > 0.65) {
                     ball.userData.isLipRiding = false;
                 }
                 // Lip-ride simulation engagement loop
                 else {
-                    // Bleed speed smoothly as the ball travels up and around the rim wall friction profile
-                    const frictionFactor = trueWorldSpeed > 0.22 ? 0.94 : 0.88;
+                    // Gentle friction (0.96) allows the ball to visibly circle the rim for ~20-30 frames
+                    const frictionFactor = 0.96;
                     physics.velocity.x = tanX * rawSpeed * frictionFactor;
                     physics.velocity.z = tanZ * rawSpeed * frictionFactor;
 
@@ -3690,18 +3691,18 @@ function animate() {
                     const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                     ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.10, 0.15);
 
-                    // PATHWAY A: LIP-IN (Ball slowed down enough to fall completely through the cup floor)
-                    if (physics.velocity.length() * currentScale < 0.12) {
+                    // PATHWAY A: LIP-IN (Slowed down enough to drop in after a curve)
+                    if (physics.velocity.length() * currentScale < 0.08) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.set(0, 0, 0);
                         physics.isMoving = false;
                         wasMoving = false;
                     }
-                    // PATHWAY B: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
-                    else if (ball.userData.lipAngleTraveled > 3.8) {
-                        physics.velocity.x = (tanX + hDirX * 0.20) * rawSpeed * 0.95;
-                        physics.velocity.z = (tanZ + hDirZ * 0.20) * rawSpeed * 0.95;
+                    // PATHWAY B: SPIN-OUT (Carries too much speed past ~100 degrees of arc and slings off the rim)
+                    else if (ball.userData.lipAngleTraveled > 1.8) {
+                        physics.velocity.x = (tanX + hDirX * 0.40) * rawSpeed * 0.85;
+                        physics.velocity.z = (tanZ + hDirZ * 0.40) * rawSpeed * 0.85;
                         ball.userData.isLipRiding = false;
                     }
                 }
