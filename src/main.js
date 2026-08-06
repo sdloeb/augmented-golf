@@ -3602,7 +3602,7 @@ function animate() {
         // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
         const collisionClub = input ? input.getClubInfo() : null;
         const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? 0.17 : 0.22;
+        const maxLipRadius = collisionIsPutting ? 0.15 : 0.19;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -3671,7 +3671,7 @@ function animate() {
                 const tanZ = hDirX * ball.userData.lipDirection;
 
                 // Pull ball position smoothly onto the physical lip of the cup (radius 0.11)
-                const targetLipDist = 0.11;
+                const targetLipDist = 0.092;
                 const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.20);
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
@@ -5070,7 +5070,7 @@ function init() {
 
     holeCup = new THREE.Group();
 
-    const whiteRimGeo = new THREE.RingGeometry(0.121, 0.143, 32);
+    const whiteRimGeo = new THREE.RingGeometry(0.095, 0.115, 32);
     const whiteRimMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -5083,7 +5083,7 @@ function init() {
     whiteRim.position.y = 0.002;
     holeCup.add(whiteRim);
 
-    const darkCupGeo = new THREE.CircleGeometry(0.121, 32);
+    const darkCupGeo = new THREE.CircleGeometry(0.095, 32);
     const darkCupMat = new THREE.MeshBasicMaterial({
         color: 0x151515,
         side: THREE.DoubleSide,
