@@ -4178,8 +4178,8 @@ function animate() {
 
     if ((checkDist < activeR || (currentClub && currentClub.name === 'Putter')) && !isOverheadActive) {
         // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
-        const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
-        const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
+        const refX = (physics.isMoving || isSinking) ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
+        const refZ = (physics.isMoving || isSinking) ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
 
         // Modify these two lines: Use the new stable references instead of the raw moving ball positions
         const dX = holePosition.x - refX;
@@ -4208,8 +4208,8 @@ function animate() {
             lookUpOffset = -0.40;
         }
 
-        if (physics.isMoving) { // Modify this line: Removed !physics.isPutting to allow putting camera tracking overrides
-            if (physics.isPutting) {
+        if (physics.isMoving || isSinking) {
+            if (physics.isPutting || isSinking) {
                 // Match the tight address view numbers so it stays close to the ball
                 targetFov = aspect < 1 ? 65 : 55;
                 rigidCamDist = 2.4;
@@ -4230,7 +4230,7 @@ function animate() {
 
         // UPDATED: Starting the tilt sooner (3.5 yards) and dropping lookAheadDist to 0.0 for a clean top-down view when close
         let lookAheadDist = 6.0;
-        if (physics.isMoving) {
+        if (physics.isMoving || isSinking) {
             lookAheadDist = 0.0;
         }
 
@@ -4250,8 +4250,7 @@ function animate() {
 
         // DYNAMIC TRACKING: If the ball is rolling, track it directly (0.0 offset) so the camera pivots to follow bad wide putts.
         // If stationary at address, keep lookAheadDist so the player can see down their target bead line.
-        const activeLookAhead = physics.isMoving ? 0.0 : lookAheadDist;
-
+        const activeLookAhead = (physics.isMoving || isSinking) ? 0.0 : lookAheadDist;
         cameraLookAt.set(
             (isSinking ? holePosition.x : ball.position.x) + dirX * activeLookAhead,
             stableBallY + lookUpOffset,
@@ -4260,7 +4259,7 @@ function animate() {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.08) : 0.08;
+        activeCameraSpeed = (physics.isMoving || isSinking) ? ((physics.isPutting || isSinking) ? 0.015 : 0.08) : 0.08;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
