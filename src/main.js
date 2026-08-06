@@ -93,13 +93,16 @@ const HOLES_CONFIG = {
             { type: 'sand', x: 8, z: -138, radius: 5.5, depth: 1.25 }
         ],
         customOOB: {
-            type: 'rectangle',
-            minX: -26,
-            maxX: 26,
+            type: 'stepped',
+            narrowMinX: -26,
+            narrowMaxX: 26,
+            splitZ: -118,
+            wideMinX: -50,
+            wideMaxX: 50,
             minZ: -210,
             maxZ: 35,
-            stakesPerSide: 6,
-            stakesPerRow: 3
+            stakesPerSide: 8,
+            stakesPerRow: 5
         }
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
@@ -1300,7 +1303,7 @@ function resetEntireGame(advanceHole = false) {
     if (green) green.scale.set(1, 1, 1);
     if (greenGrid) greenGrid.scale.set(1, 1, 1);
     if (greenFringe) greenFringe.scale.set(1, 1, 1);
-   if (!currentHoleConfig.theme) {
+    if (!currentHoleConfig.theme) {
         const themeRoll = Math.random();
         if (themeRoll < 0.25) {
             currentHoleConfig.theme = 'open';    // Clean links-style course
@@ -2408,7 +2411,7 @@ function resetEntireGame(advanceHole = false) {
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.5 });
 
     // Generate 35 pieces of random scenery scattered along the edges
-  for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
+    for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
         if (currentHoleNumber === 1 || currentHoleNumber === 2 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Holes 1 & 2
         const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
 
@@ -2668,7 +2671,7 @@ function resetEntireGame(advanceHole = false) {
             if (currentHoleConfig && currentHoleConfig.customTrees) {
                 sampleX = currentHoleConfig.customTrees[i].x;
                 sampleZ = currentHoleConfig.customTrees[i].z;
-           } else if (currentHoleNumber === 1) {
+            } else if (currentHoleNumber === 1) {
                 // Split attempts into 4 clean rows (0 & 1 on Left, 2 & 3 on Right)
                 const rowPattern = i % 4;
                 const stepIndex = Math.floor(i / 4);
@@ -2694,7 +2697,7 @@ function resetEntireGame(advanceHole = false) {
                 }
                 // Deterministic micro-stagger based on row pattern
                 sampleX += (rowPattern % 2 === 0 ? -0.2 : 0.2);
-           } else {
+            } else {
                 // Standard fallback configuration for alternative holes
                 sampleX = (currentHoleNumber === 2 ? (localRandom() - 0.5) : (Math.random() - 0.5)) * 220;
                 if (currentHoleNumber === 2 && sampleX > 0) {
@@ -2793,7 +2796,7 @@ function resetEntireGame(advanceHole = false) {
             const courseHeight = physics.getGroundHeight(sampleX, sampleZ);
             sceneryGroup.position.set(sampleX, courseHeight, sampleZ);
 
-          let generateAsTree = (currentHoleNumber === 1 || currentHoleNumber === 2) ? true : (Math.random() < 0.6); if (isShortcutZone) generateAsTree = true; // Force 100% large trees on Hole 2 (no bushes/small trees)
+            let generateAsTree = (currentHoleNumber === 1 || currentHoleNumber === 2) ? true : (Math.random() < 0.6); if (isShortcutZone) generateAsTree = true; // Force 100% large trees on Hole 2 (no bushes/small trees)
 
             if (generateAsTree) {
                 sceneryGroup.userData = { type: 'tree' };
@@ -3142,7 +3145,39 @@ function resetEntireGame(advanceHole = false) {
                 const t = i / (stakesPerRow - 1);
                 const x = THREE.MathUtils.lerp(oob.minX, oob.maxX, t);
                 spawnOOBStake(x, oob.minZ);
+
             }
+
+        }
+        else if (currentHoleConfig && currentHoleConfig.customOOB && currentHoleConfig.customOOB.type === 'stepped') {
+            const oob = currentHoleConfig.customOOB;
+            const edgeSegments = [
+                // 1. Back wall behind Tee
+                { start: { x: oob.narrowMinX, z: oob.maxZ }, end: { x: oob.narrowMaxX, z: oob.maxZ }, count: oob.stakesPerRow || 3 },
+                // 2. Narrow Right wall (Tee to end of trees)
+                { start: { x: oob.narrowMaxX, z: oob.maxZ }, end: { x: oob.narrowMaxX, z: oob.splitZ }, count: 5 },
+                // 3. Right step out at splitZ (where trees end)
+                { start: { x: oob.narrowMaxX, z: oob.splitZ }, end: { x: oob.wideMaxX, z: oob.splitZ }, count: 3 },
+                // 4. Wide Right wall (past trees down to green)
+                { start: { x: oob.wideMaxX, z: oob.splitZ }, end: { x: oob.wideMaxX, z: oob.minZ }, count: 4 },
+                // 5. Front wall past Green
+                { start: { x: oob.wideMaxX, z: oob.minZ }, end: { x: oob.wideMinX, z: oob.minZ }, count: oob.stakesPerRow || 5 },
+                // 6. Wide Left wall (green back to splitZ)
+                { start: { x: oob.wideMinX, z: oob.minZ }, end: { x: oob.wideMinX, z: oob.splitZ }, count: 4 },
+                // 7. Left step in at splitZ (where trees end)
+                { start: { x: oob.wideMinX, z: oob.splitZ }, end: { x: oob.narrowMinX, z: oob.splitZ }, count: 3 },
+                // 8. Narrow Left wall (splitZ back to Tee)
+                { start: { x: oob.narrowMinX, z: oob.splitZ }, end: { x: oob.narrowMinX, z: oob.maxZ }, count: 5 }
+            ];
+
+            edgeSegments.forEach(seg => {
+                for (let i = 0; i < seg.count; i++) {
+                    const t = i / (seg.count - 1);
+                    const x = THREE.MathUtils.lerp(seg.start.x, seg.end.x, t);
+                    const z = THREE.MathUtils.lerp(seg.start.z, seg.end.z, t);
+                    spawnOOBStake(x, z);
+                }
+            });
         }
         else if (currentHoleConfig && currentHoleConfig.customOOB && currentHoleConfig.customOOB.type === 'l_shape') {
             const oob = currentHoleConfig.customOOB;
@@ -3395,7 +3430,7 @@ function animate() {
     let isOutOfBounds = false;
     if (physics) {
         // If the current hole has a custom rectangle boundary configured, check against those exact box walls
-        // If the current hole has a custom boundary configured, check against those exact box walls
+
         if (currentHoleConfig && currentHoleConfig.customOOB) {
             const oob = currentHoleConfig.customOOB;
             if (oob.type === 'rectangle') {
@@ -3411,8 +3446,16 @@ function animate() {
                 if (!inLeg1 && !inLeg2) {
                     isOutOfBounds = true;
                 }
+            } else if (oob.type === 'stepped') {
+                const activeMinX = ball.position.z < oob.splitZ ? oob.wideMinX : oob.narrowMinX;
+                const activeMaxX = ball.position.z < oob.splitZ ? oob.wideMaxX : oob.narrowMaxX;
+                if (ball.position.x < activeMinX || ball.position.x > activeMaxX ||
+                    ball.position.z > oob.maxZ || ball.position.z < oob.minZ) {
+                    isOutOfBounds = true;
+                }
             }
         }
+
         // Otherwise, fallback safely to standard track spline distance bounds for other holes
         else if (physics.isMoving) { // FIXED: Only run expensive multi-point spline lookups while the ball is actually moving
             const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
