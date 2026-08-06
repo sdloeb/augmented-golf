@@ -525,7 +525,7 @@ function updateDistanceDisplay() {
         if (pin && flag && physics) {
             const feetToHole = Math.round(gameDistance * 1.75);
             const isOnGreen = ballDist < activeR || isPuttingClub;
-            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 20);
+            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 16);
             if (shouldHide) {
                 if (!flagHideTimeout && pin.visible) {
                     // Delay = 600ms camera pan + 1000ms (1 second after camera view is set)
@@ -5134,7 +5134,7 @@ function init() {
         const dxStart = ball.position.x - holePosition.x;
         const dzStart = ball.position.z - holePosition.z;
         const startFeetToHole = Math.round(Math.sqrt(dxStart * dxStart + dzStart * dzStart) * 1.75);
-        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
+        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 16;
         if (flagHideTimeout) {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
