@@ -53,6 +53,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
+        //horizonTheme: 'forest',
         horizonTheme: 'mountains',
         theme: 'standard',
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
@@ -441,7 +442,7 @@ function createHorizonTexture(theme = 'mountains') {
     ctx.clearRect(0, 0, 2048, 512);
     const twoPi = Math.PI * 2;
 
-   if (theme === 'mountains') {
+    if (theme === 'mountains') {
         // Multi-frequency noise helper for seamless organic jagged ridges
         const getRidgeHeight = (x, baseH, amp1, amp2, amp3, freq1 = 4, freq2 = 11, freq3 = 27) => {
             const p = x / 2048;
@@ -485,7 +486,7 @@ function createHorizonTexture(theme = 'mountains') {
             }
         }
 
-// --- LAYER 2: FRONT SLATE CRAGS (Darker Slate Ridges with White/Grey Highlights) ---
+        // --- LAYER 2: FRONT SLATE CRAGS (Darker Slate Ridges with White/Grey Highlights) ---
         const midGrad = ctx.createLinearGradient(0, 180, 0, 512);
         midGrad.addColorStop(0, '#424d59');
         midGrad.addColorStop(0.5, '#2e3740');
@@ -547,66 +548,72 @@ function createHorizonTexture(theme = 'mountains') {
                 ctx.fill();
             }
         }
+    } else if (theme === 'forest') {
+        // --- LAYER 1: DISTANT MISTY TREELINE ---
+        ctx.fillStyle = '#213a27';
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 3) {
+            const p = x / 2048;
+            const hillBase = Math.sin(p * twoPi * 3) * 25 + Math.cos(p * twoPi * 7) * 12;
+            const pineSpike = Math.abs(Math.sin(x * 0.75)) * 14 + Math.abs(Math.cos(x * 1.8)) * 8;
+            const y = 290 + hillBase - pineSpike;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        // --- LAYER 2: DENSE FOREGROUND PINE CANOPY ---
+        ctx.fillStyle = '#112215';
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 2) {
+            const p = x / 2048;
+            const hillBase = Math.sin(p * twoPi * 5 + 1.2) * 18 + Math.cos(p * twoPi * 11) * 8;
+            const pineSpike = Math.abs(Math.sin(x * 1.1)) * 16 + Math.abs(Math.cos(x * 2.3)) * 6;
+            const y = 330 + hillBase - pineSpike;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
     } else if (theme === 'desert') {
-        let backColor = '#8c5a3c';
-        let frontColor = '#5c341e';
-        ctx.fillStyle = backColor;
+        // --- DENSE EVERGREEN PINE FOREST RIDGE ---
+        // Layer 1: Distant High Pine Ridge
+        const farGrad = ctx.createLinearGradient(0, 120, 0, 512);
+        farGrad.addColorStop(0, '#214223');
+        farGrad.addColorStop(1, '#0f2110');
+
+        ctx.fillStyle = farGrad;
         ctx.beginPath();
         ctx.moveTo(0, 512);
-        for (let x = 0; x <= 2048; x += 8) {
-            let progress = x / 2048;
-            let wave1 = Math.sin(progress * twoPi * 3) * 32;
-            let wave2 = Math.cos(progress * twoPi * 6) * 16;
-            let y = 310 + wave1 + wave2;
+        for (let x = 0; x <= 2048; x += 2) {
+            const p = x / 2048;
+            const ridge = Math.sin(p * twoPi * 4) * -45 + Math.cos(p * twoPi * 9) * -20;
+            const spikes = Math.abs(Math.sin(x * 0.8)) * 12; // Tall tree tops
+            const y = 290 + ridge - spikes;
             ctx.lineTo(x, y);
         }
         ctx.lineTo(2048, 512);
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = frontColor;
+        // Layer 2: Foreground Dense Pine Canopy
+        ctx.fillStyle = '#0a170a';
         ctx.beginPath();
         ctx.moveTo(0, 512);
-        for (let x = 0; x <= 2048; x += 8) {
-            let progress = x / 2048;
-            let wave1 = Math.sin(progress * twoPi * 4 + 1.5) * 22;
-            let wave2 = Math.cos(progress * twoPi * 8) * 12;
-            let y = 360 + wave1 + wave2;
-            ctx.lineTo(x, y);
-        }
-        ctx.lineTo(2048, 512);
-        ctx.closePath();
-        ctx.fill();
-    } else if (theme === 'coastal') {
-        let backColor = '#52738a';
-        let frontColor = '#2b475e';
-        ctx.fillStyle = backColor;
-        ctx.beginPath();
-        ctx.moveTo(0, 512);
-        for (let x = 0; x <= 2048; x += 8) {
-            let progress = x / 2048;
-            let wave1 = Math.sin(progress * twoPi * 3) * 32;
-            let wave2 = Math.cos(progress * twoPi * 6) * 16;
-            let y = 310 + wave1 + wave2;
+        for (let x = 0; x <= 2048; x += 2) {
+            const p = x / 2048;
+            const ridge = Math.sin(p * twoPi * 6 + 1.2) * -30;
+            const spikes = Math.abs(Math.sin(x * 1.2)) * 10;
+            const y = 340 + ridge - spikes;
             ctx.lineTo(x, y);
         }
         ctx.lineTo(2048, 512);
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = frontColor;
-        ctx.beginPath();
-        ctx.moveTo(0, 512);
-        for (let x = 0; x <= 2048; x += 8) {
-            let progress = x / 2048;
-            let wave1 = Math.sin(progress * twoPi * 4 + 1.5) * 22;
-            let wave2 = Math.cos(progress * twoPi * 8) * 12;
-            let y = 360 + wave1 + wave2;
-            ctx.lineTo(x, y);
-        }
-        ctx.lineTo(2048, 512);
-        ctx.closePath();
-        ctx.fill();
     }
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -3512,16 +3519,16 @@ function resetEntireGame(advanceHole = false) {
         }
     }
 
-  // Center and scale distant horizon ring around the current hole
+    // Center and scale distant horizon ring around the current hole
     if (horizonRingMesh && holePosition) {
         // 1. SIMPLE SIZE CONTROL: Default scale (0.45 = smaller & further away)
-        const scale = (currentHoleConfig && currentHoleConfig.horizonScale !== undefined) 
-            ? currentHoleConfig.horizonScale 
+        const scale = (currentHoleConfig && currentHoleConfig.horizonScale !== undefined)
+            ? currentHoleConfig.horizonScale
             : 0.45; // CHANGE THIS NUMBER to adjust overall size across all holes (e.g., 0.35 = smaller, 0.6 = larger)
 
         // 2. HEIGHT CONTROL: Adjust vertical placement on the horizon
-        const yPos = (currentHoleConfig && currentHoleConfig.horizonY !== undefined) 
-            ? currentHoleConfig.horizonY 
+        const yPos = (currentHoleConfig && currentHoleConfig.horizonY !== undefined)
+            ? currentHoleConfig.horizonY
             : 10; // CHANGE THIS NUMBER to raise or lower the mountains
 
         // Apply scale and position
