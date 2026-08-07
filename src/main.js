@@ -717,7 +717,7 @@ function updateDistanceDisplay() {
         if (pin && flag && physics) {
             const feetToHole = Math.round(gameDistance * 1.75);
             const isOnGreen = ballDist < activeR || isPuttingClub;
-            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 20);
+            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 16);
             if (shouldHide) {
                 if (!flagHideTimeout && pin.visible) {
                     // Delay = 600ms camera pan + 1000ms (1 second after camera view is set)
@@ -3805,7 +3805,7 @@ function animate() {
         // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
         const collisionClub = input ? input.getClubInfo() : null;
         const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? 0.17 : 0.22;
+        const maxLipRadius = collisionIsPutting ? 0.15 : 0.19;
 
         if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
             const rawSpeed = physics.velocity.length();
@@ -3841,8 +3841,8 @@ function animate() {
                     if (sounds) sounds.play('iron');
                 }
             }
-            // Handle off-center lip captures when traveling at look-in speeds exclusively
-            else if (rawSpeed > 0.02 && trueWorldSpeed <= 0.45) {
+            // Handle off-center lip captures when traveling at look-in speeds
+            else if (rawSpeed > 0.02 && trueWorldSpeed <= 0.65) {
                 if (distanceToHole > 0.25) {
                     ball.userData.hasHitPin = false;
                 }
@@ -3874,18 +3874,19 @@ function animate() {
                 const tanZ = hDirX * ball.userData.lipDirection;
 
                 // Pull ball position smoothly onto the physical lip of the cup (radius 0.11)
-                const targetLipDist = 0.11;
+                const targetLipDist = 0.092;
                 const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.20);
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
-                // Blasted past the cup: too hot to grip the edge, breaks tracking instantly (Clean Lip-Out)
-                if (trueWorldSpeed > 0.45) {
+
+                // Blasted past the cup: too hot to grip the edge
+                if (trueWorldSpeed > 0.65) {
                     ball.userData.isLipRiding = false;
                 }
                 // Lip-ride simulation engagement loop
                 else {
-                    // Bleed speed smoothly as the ball travels up and around the rim wall friction profile
-                    const frictionFactor = trueWorldSpeed > 0.22 ? 0.94 : 0.88;
+                    // Gentle friction (0.96) allows the ball to visibly circle the rim for ~20-30 frames
+                    const frictionFactor = 0.96;
                     physics.velocity.x = tanX * rawSpeed * frictionFactor;
                     physics.velocity.z = tanZ * rawSpeed * frictionFactor;
 
@@ -3893,18 +3894,18 @@ function animate() {
                     const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                     ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.10, 0.15);
 
-                    // PATHWAY A: LIP-IN (Ball slowed down enough to fall completely through the cup floor)
-                    if (physics.velocity.length() * currentScale < 0.12) {
+                    // PATHWAY A: LIP-IN (Slowed down enough to drop in after a curve)
+                    if (physics.velocity.length() * currentScale < 0.08) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.set(0, 0, 0);
                         physics.isMoving = false;
                         wasMoving = false;
                     }
-                    // PATHWAY B: SPIN-OUT (Completed enough of the rim loop and slings away at tangent + escape vector)
-                    else if (ball.userData.lipAngleTraveled > 3.8) {
-                        physics.velocity.x = (tanX + hDirX * 0.20) * rawSpeed * 0.95;
-                        physics.velocity.z = (tanZ + hDirZ * 0.20) * rawSpeed * 0.95;
+                    // PATHWAY B: SPIN-OUT (Carries too much speed past ~100 degrees of arc and slings off the rim)
+                    else if (ball.userData.lipAngleTraveled > 1.8) {
+                        physics.velocity.x = (tanX + hDirX * 0.40) * rawSpeed * 0.85;
+                        physics.velocity.z = (tanZ + hDirZ * 0.40) * rawSpeed * 0.85;
                         ball.userData.isLipRiding = false;
                     }
                 }
@@ -4381,8 +4382,8 @@ function animate() {
 
     if ((checkDist < activeR || (currentClub && currentClub.name === 'Putter')) && !isOverheadActive) {
         // Add these two lines: Base tracking angles on the stable shot origin while the ball is in motion
-        const refX = physics.isMoving ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
-        const refZ = physics.isMoving ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
+        const refX = (physics.isMoving || isSinking) ? (window.shotStartX !== undefined ? window.shotStartX : ball.position.x) : ball.position.x;
+        const refZ = (physics.isMoving || isSinking) ? (window.shotStartZ !== undefined ? window.shotStartZ : ball.position.z) : ball.position.z;
 
         // Modify these two lines: Use the new stable references instead of the raw moving ball positions
         const dX = holePosition.x - refX;
@@ -4411,8 +4412,8 @@ function animate() {
             lookUpOffset = -0.40;
         }
 
-        if (physics.isMoving) { // Modify this line: Removed !physics.isPutting to allow putting camera tracking overrides
-            if (physics.isPutting) {
+        if (physics.isMoving || isSinking) {
+            if (physics.isPutting || isSinking) {
                 // Match the tight address view numbers so it stays close to the ball
                 targetFov = aspect < 1 ? 65 : 55;
                 rigidCamDist = 2.4;
@@ -4433,7 +4434,7 @@ function animate() {
 
         // UPDATED: Starting the tilt sooner (3.5 yards) and dropping lookAheadDist to 0.0 for a clean top-down view when close
         let lookAheadDist = 6.0;
-        if (physics.isMoving) {
+        if (physics.isMoving || isSinking) {
             lookAheadDist = 0.0;
         }
 
@@ -4453,8 +4454,7 @@ function animate() {
 
         // DYNAMIC TRACKING: If the ball is rolling, track it directly (0.0 offset) so the camera pivots to follow bad wide putts.
         // If stationary at address, keep lookAheadDist so the player can see down their target bead line.
-        const activeLookAhead = physics.isMoving ? 0.0 : lookAheadDist;
-
+        const activeLookAhead = (physics.isMoving || isSinking) ? 0.0 : lookAheadDist;
         cameraLookAt.set(
             (isSinking ? holePosition.x : ball.position.x) + dirX * activeLookAhead,
             stableBallY + lookUpOffset,
@@ -4463,7 +4463,7 @@ function animate() {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = physics.isMoving ? (physics.isPutting ? 0.015 : 0.08) : 0.08;
+        activeCameraSpeed = (physics.isMoving || isSinking) ? ((physics.isPutting || isSinking) ? 0.015 : 0.08) : 0.08;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
@@ -5288,7 +5288,7 @@ function init() {
 
     holeCup = new THREE.Group();
 
-    const whiteRimGeo = new THREE.RingGeometry(0.121, 0.143, 32);
+    const whiteRimGeo = new THREE.RingGeometry(0.095, 0.115, 32);
     const whiteRimMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -5301,7 +5301,7 @@ function init() {
     whiteRim.position.y = 0.002;
     holeCup.add(whiteRim);
 
-    const darkCupGeo = new THREE.CircleGeometry(0.121, 32);
+    const darkCupGeo = new THREE.CircleGeometry(0.095, 32);
     const darkCupMat = new THREE.MeshBasicMaterial({
         color: 0x151515,
         side: THREE.DoubleSide,
@@ -5352,7 +5352,7 @@ function init() {
         const dxStart = ball.position.x - holePosition.x;
         const dzStart = ball.position.z - holePosition.z;
         const startFeetToHole = Math.round(Math.sqrt(dxStart * dxStart + dzStart * dzStart) * 1.75);
-        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
+        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 16;
         if (flagHideTimeout) {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
@@ -5754,8 +5754,8 @@ function updateGreenGrid() {
     for (let s = 0; s <= travelSteps; s++) {
         const t = s / travelSteps;
 
-        // Aim dots extend 1/2 (50%) of the total distance to the hole
-        if (t > 0.75) {
+        // Aim dots extend (67%) of the total distance to the hole
+        if (t > 0.67) {
             break;
         }
 
