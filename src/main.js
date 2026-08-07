@@ -53,6 +53,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
 const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
+        horizonTheme: 'mountains',
         theme: 'standard',
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
@@ -426,6 +427,197 @@ let shotStartTime = 0;
 let isLongShot = false;
 let shotStoppedTime = 0;       // <-- Capture the exact timestamp when the ball settles
 const POST_SHOT_DELAY = 1800;
+
+// --- DISTANT 360 HORIZON RING SYSTEM ---
+let horizonRingMesh = null;
+
+function createHorizonTexture(theme = 'mountains') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2048;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Clear canvas (Top remains transparent so sky clouds show through)
+    ctx.clearRect(0, 0, 2048, 512);
+    const twoPi = Math.PI * 2;
+
+   if (theme === 'mountains') {
+        // Multi-frequency noise helper for seamless organic jagged ridges
+        const getRidgeHeight = (x, baseH, amp1, amp2, amp3, freq1 = 4, freq2 = 11, freq3 = 27) => {
+            const p = x / 2048;
+            const w1 = Math.abs(Math.sin(p * twoPi * freq1 + 0.3)) * -amp1;
+            const w2 = Math.cos(p * twoPi * freq2 + 1.1) * amp2;
+            const w3 = Math.sin(p * twoPi * freq3) * amp3;
+            const w4 = Math.abs(Math.cos(p * twoPi * (freq3 * 1.7))) * (amp3 * 0.5);
+            return baseH + w1 + w2 + w3 + w4;
+        };
+
+        // --- LAYER 1: DISTANT ATMOSPHERIC PEAKS (Cool Blue-Gray / Slate Haze) ---
+        const farGrad = ctx.createLinearGradient(0, 80, 0, 512);
+        farGrad.addColorStop(0, '#6c7c8e');
+        farGrad.addColorStop(0.4, '#546373');
+        farGrad.addColorStop(1, '#3b4553');
+
+        ctx.fillStyle = farGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 2) {
+            const y = getRidgeHeight(x, 260, 120, 45, 22, 3, 9, 23);
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sunlit Facets & Snow Couloirs on Far Peaks
+        ctx.fillStyle = 'rgba(215, 228, 240, 0.35)';
+        for (let x = 0; x <= 2048; x += 3) {
+            const p = x / 2048;
+            const y = getRidgeHeight(x, 260, 120, 45, 22, 3, 9, 23);
+            if (Math.sin(p * twoPi * 18) > -0.1 && y < 200) {
+                const snowDepth = (200 - y) * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - 6, y + snowDepth);
+                ctx.lineTo(x + 2, y + snowDepth * 0.6);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+// --- LAYER 2: FRONT SLATE CRAGS (Darker Slate Ridges with White/Grey Highlights) ---
+        const midGrad = ctx.createLinearGradient(0, 180, 0, 512);
+        midGrad.addColorStop(0, '#424d59');
+        midGrad.addColorStop(0.5, '#2e3740');
+        midGrad.addColorStop(1, '#1b2229');
+
+        ctx.fillStyle = midGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 2) {
+            const y = getRidgeHeight(x, 325, 90, 35, 16, 4, 12, 28);
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        // 1. Light Slate-Gray Sunlit Facets on Front Crags
+        ctx.fillStyle = 'rgba(195, 208, 222, 0.45)';
+        for (let x = 0; x <= 2048; x += 2) {
+            const p = x / 2048;
+            const y = getRidgeHeight(x, 325, 90, 35, 16, 4, 12, 28);
+            if (Math.sin(p * twoPi * 12) > -0.2) {
+                ctx.lineTo(x, y);
+            } else {
+                ctx.lineTo(x, y + 24);
+            }
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        // 2. Bright White Snow Caps & Couloirs on Front Peaks
+        ctx.fillStyle = 'rgba(240, 246, 255, 0.72)';
+        for (let x = 0; x <= 2048; x += 3) {
+            const p = x / 2048;
+            const y = getRidgeHeight(x, 325, 90, 35, 16, 4, 12, 28);
+            if (Math.sin(p * twoPi * 18) > -0.25 && y < 280) {
+                const snowDepth = (280 - y) * 0.75;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - 7, y + snowDepth);
+                ctx.lineTo(x + 3, y + snowDepth * 0.5);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        // 3. Shaded Rock Gullies / Chutes on Front Crags
+        ctx.fillStyle = 'rgba(15, 20, 26, 0.35)';
+        for (let x = 0; x <= 2048; x += 4) {
+            const p = x / 2048;
+            if (Math.cos(p * twoPi * 22) > 0.3) {
+                const y = getRidgeHeight(x, 325, 90, 35, 16, 4, 12, 28);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + 8, y + 45);
+                ctx.lineTo(x + 2, y + 48);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+    } else if (theme === 'desert') {
+        let backColor = '#8c5a3c';
+        let frontColor = '#5c341e';
+        ctx.fillStyle = backColor;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 8) {
+            let progress = x / 2048;
+            let wave1 = Math.sin(progress * twoPi * 3) * 32;
+            let wave2 = Math.cos(progress * twoPi * 6) * 16;
+            let y = 310 + wave1 + wave2;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = frontColor;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 8) {
+            let progress = x / 2048;
+            let wave1 = Math.sin(progress * twoPi * 4 + 1.5) * 22;
+            let wave2 = Math.cos(progress * twoPi * 8) * 12;
+            let y = 360 + wave1 + wave2;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+    } else if (theme === 'coastal') {
+        let backColor = '#52738a';
+        let frontColor = '#2b475e';
+        ctx.fillStyle = backColor;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 8) {
+            let progress = x / 2048;
+            let wave1 = Math.sin(progress * twoPi * 3) * 32;
+            let wave2 = Math.cos(progress * twoPi * 6) * 16;
+            let y = 310 + wave1 + wave2;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = frontColor;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 8) {
+            let progress = x / 2048;
+            let wave1 = Math.sin(progress * twoPi * 4 + 1.5) * 22;
+            let wave2 = Math.cos(progress * twoPi * 8) * 12;
+            let y = 360 + wave1 + wave2;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.repeat.set(2, 1);
+    return texture;
+}
+
+
+
+
 
 window.isPostShotCooldown = function () {
     return !physics.isMoving && (performance.now() - shotStoppedTime < POST_SHOT_DELAY);
@@ -3319,6 +3511,17 @@ function resetEntireGame(advanceHole = false) {
             }
         }
     }
+
+    // Center distant horizon ring around the middle of the current hole
+    if (horizonRingMesh && holePosition) {
+        horizonRingMesh.position.set(holePosition.x, 35, holePosition.z - 30);
+
+        // Update horizon theme based on hole configuration if specified
+        let theme = (currentHoleConfig && currentHoleConfig.horizonTheme) ? currentHoleConfig.horizonTheme : 'mountains';
+        horizonRingMesh.material.map = createHorizonTexture(theme);
+        horizonRingMesh.material.map.needsUpdate = true;
+    }
+
     generateNewWind();
     updateDistanceDisplay();
 
@@ -4862,6 +5065,21 @@ function init() {
     light.position.set(12, 8, 15).normalize();
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x666666));
+
+    // 4.1 360-Degree Distant Horizon Backdrop Ring
+    const horizonGeo = new THREE.CylinderGeometry(450, 450, 140, 64, 1, true);
+    const horizonTexture = createHorizonTexture('mountains');
+    const horizonMat = new THREE.MeshBasicMaterial({
+        map: horizonTexture,
+        transparent: true,
+        side: THREE.BackSide, // Renders on the inside of the ring
+        depthWrite: false
+    });
+    horizonRingMesh = new THREE.Mesh(horizonGeo, horizonMat);
+    horizonRingMesh.position.set(0, 35, -50);
+    scene.add(horizonRingMesh);
+
+    horizonRingMesh.rotation.y = Math.PI; // Rotates the cylinder join seam 180° behind the tee
 
 
 
