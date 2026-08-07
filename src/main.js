@@ -3512,11 +3512,22 @@ function resetEntireGame(advanceHole = false) {
         }
     }
 
-    // Center distant horizon ring around the middle of the current hole
+  // Center and scale distant horizon ring around the current hole
     if (horizonRingMesh && holePosition) {
-        horizonRingMesh.position.set(holePosition.x, 35, holePosition.z - 30);
+        // 1. SIMPLE SIZE CONTROL: Default scale (0.45 = smaller & further away)
+        const scale = (currentHoleConfig && currentHoleConfig.horizonScale !== undefined) 
+            ? currentHoleConfig.horizonScale 
+            : 0.45; // CHANGE THIS NUMBER to adjust overall size across all holes (e.g., 0.35 = smaller, 0.6 = larger)
 
-        // Update horizon theme based on hole configuration if specified
+        // 2. HEIGHT CONTROL: Adjust vertical placement on the horizon
+        const yPos = (currentHoleConfig && currentHoleConfig.horizonY !== undefined) 
+            ? currentHoleConfig.horizonY 
+            : 10; // CHANGE THIS NUMBER to raise or lower the mountains
+
+        // Apply scale and position
+        horizonRingMesh.scale.set(scale, scale, scale);
+        horizonRingMesh.position.set(holePosition.x, yPos, holePosition.z - 30);
+
         let theme = (currentHoleConfig && currentHoleConfig.horizonTheme) ? currentHoleConfig.horizonTheme : 'mountains';
         horizonRingMesh.material.map = createHorizonTexture(theme);
         horizonRingMesh.material.map.needsUpdate = true;
