@@ -675,27 +675,29 @@ export class PhysicsEngine {
         if (!(this.greenCenterZ < -165 && this.greenCenterZ > -185)) {
             const apronStart = -activeRadius - 12.0;
             const apronEnd = -activeRadius;
-            if (approachDot > apronStart && approachDot <= apronEnd) {
+ if (approachDot > apronStart && approachDot <= apronEnd) {
                 let tApron = (approachDot - apronStart) / 12.0;
-                // FIXED: Widen physics target width to match the new visual flaring throat
+                const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
                 const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + 1.0);
-                activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, tApron);
+                activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, smoothApron);
             } else if (approachDot > apronEnd) {
                 activeFW = Math.max(this.fairwayWidth, activeRadius + 1.0);
             }
         }
         if (this.greenCenterZ < -128 && this.greenCenterZ > -152 && this.ball.position.z < -125) {
             let t = Math.min(1.0, Math.max(0.0, (-125 - this.ball.position.z) / 14.0));
-            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, t);
+            const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
+            activeFW = THREE.MathUtils.lerp(this.fairwayWidth, 16.0, smoothT);
         }
 
-        // UPDATED: Keeps physics fairway wide up the hill climb, tapering smoothly before the bunkers
+        // Keeps physics fairway wide up the hill climb, tapering smoothly before the bunkers
         if (this.greenCenterZ < -165 && this.greenCenterZ > -185) {
             if (this.ball.position.z <= -20.0 && this.ball.position.z >= -140.0) {
                 activeFW = 18.0;
             } else if (this.ball.position.z < -140.0 && this.ball.position.z >= -152.0) {
                 let tTaper = (-140.0 - this.ball.position.z) / 12.0;
-                activeFW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
+                const smoothTaper = THREE.MathUtils.smoothstep(tTaper, 0, 1);
+                activeFW = THREE.MathUtils.lerp(18.0, 8.0, smoothTaper);
             }
         }
 

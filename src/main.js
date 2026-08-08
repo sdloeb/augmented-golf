@@ -2356,14 +2356,16 @@ function resetEntireGame(advanceHole = false) {
             // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            // Scan if this vertex falls inside any active water hazard perimeter shelf
             let insideWaterZone = false;
             let closeToWater = false; // Tracks vertices near the lake terrace
+            let shortestDistToWaterEdge = Infinity; // Track water proximity for smooth grass dampening
+
             waterHazards.forEach(water => {
                 // Bounding-box optimization filter for circular lakes
                 if (!water.userData.isRectangular) {
                     const maxR = Math.max(water.userData.radiusX || 0, water.userData.radiusZ || 0) || water.userData.radius || 5;
-                    const rLimit = maxR + 1.5; if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
+                    const rLimit = maxR + 1.5;
+                    if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
                 }
 
                 if (water.userData && water.userData.isRectangular) {
@@ -2378,24 +2380,35 @@ function resetEntireGame(advanceHole = false) {
                     }
                     let cliffPadding = worldZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))) : 15.5;
                     const cliffEdgeLimit = pathCenter + cliffPadding;
+                    const distCliff = Math.abs(worldX - cliffEdgeLimit);
+                    if (distCliff < shortestDistToWaterEdge) shortestDistToWaterEdge = distCliff;
+
                     if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
                         worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
                         insideWaterZone = true;
                     }
                 } else if (water.userData && water.userData.isPond) {
+                    const dxP = Math.abs(worldX - water.position.x) - (water.userData.w / 2);
+                    const dzP = Math.abs(worldZ - water.position.z) - (water.userData.l / 2);
+                    const distP = Math.hypot(Math.max(0, dxP), Math.max(0, dzP));
+                    if (distP < shortestDistToWaterEdge) shortestDistToWaterEdge = distP;
+
                     if (worldX >= water.position.x - water.userData.w / 2 && worldX <= water.position.x + water.userData.w / 2 &&
-                        worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
+                        worldZ >= water.position.z - world.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
                         insideWaterZone = true;
                     }
                 } else {
                     const dxW = worldX - water.position.x;
                     const dzW = worldZ - water.position.z;
+                    const distW = Math.hypot(dxW, dzW);
                     const rx = water.userData.radiusX || water.userData.radius || 5;
                     const rz = water.userData.radiusZ || water.userData.radius || 5;
                     const wAngle = Math.atan2(dzW, dxW);
                     const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
-                    const maxRadius = lakeRadius + 0.1;
-                    if (dxW * dxW + dzW * dzW < maxRadius * maxRadius) {
+                    const edgeDist = Math.abs(distW - lakeRadius);
+                    if (edgeDist < shortestDistToWaterEdge) shortestDistToWaterEdge = edgeDist;
+
+                    if (distW < lakeRadius + 0.1) {
                         insideWaterZone = true;
                     }
                 }
@@ -2498,11 +2511,12 @@ function resetEntireGame(advanceHole = false) {
                     if (worldZ <= -20.0 && worldZ >= -140.0) {
                         fW = 18.0; // Keeps the fairway wide across both the driving area and the hill climb
                     } else if (worldZ < -140.0 && worldZ >= -152.0) {
-                        // Smoothly taper the fairway width down from 18.0 to 8.0 just before the green approach
+                        // Smoothly taper the fairway width down from 18.0 to 8.0 using Hermite interpolation
                         let tTaper = (-140.0 - worldZ) / 12.0;
-                        fW = THREE.MathUtils.lerp(18.0, 8.0, tTaper);
+                        const smoothTaper = THREE.MathUtils.smoothstep(tTaper, 0, 1);
+                        fW = THREE.MathUtils.lerp(18.0, 8.0, smoothTaper);
                     } else if (worldZ < -152.0) {
-                        fW = 8.0; // Clean tight approach into the green entrance (Now longer!)
+                        fW = 8.0; // Clean tight approach into the green entrance
                     }
                 }
 
@@ -2524,9 +2538,9 @@ function resetEntireGame(advanceHole = false) {
                     const apronEnd = -activeRadius;
                     if (approachDot > apronStart && approachDot <= apronEnd) {
                         let tApron = (approachDot - apronStart) / 12.0;
-                        // FIXED: Flare out to embrace the full green/fringe radius at the throat entrance
+                        const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
                         const targetApronWidth = Math.max(physics.fairwayWidth, activeRadius + 1.0);
-                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, tApron);
+                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, smoothApron);
                     } else if (approachDot > apronEnd) {
                         fW = Math.max(physics.fairwayWidth, activeRadius + 1.0);
                     }
@@ -2549,12 +2563,21 @@ function resetEntireGame(advanceHole = false) {
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
 
-                // Add jagged 3D micro-spikes to the actual geometry vertices to break the flat plane lines in the rough
+                // Add smooth 3D micro-spikes to rough geometry vertices, dampening smoothly to zero near bunker and water edges
                 if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
                     let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
-                    if (shortestDistToBunkerEdge < 2.0) {
-                        grassJitter *= (shortestDistToBunkerEdge / 2.0);
+
+                    // Smoothstep Hermite dampener near bunker edges (3.0 unit safety transition buffer)
+                    if (shortestDistToBunkerEdge < 3.0) {
+                        const tBunker = THREE.MathUtils.clamp(shortestDistToBunkerEdge / 3.0, 0, 1);
+                        grassJitter *= THREE.MathUtils.smoothstep(tBunker, 0, 1);
                     }
+                    // Smoothstep Hermite dampener near water edges (3.0 unit safety transition buffer)
+                    if (shortestDistToWaterEdge < 3.0) {
+                        const tWater = THREE.MathUtils.clamp(shortestDistToWaterEdge / 3.0, 0, 1);
+                        grassJitter *= THREE.MathUtils.smoothstep(tWater, 0, 1);
+                    }
+
                     floorHeight += Math.max(0, grassJitter);
                 }
 
@@ -2648,8 +2671,8 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
                     } else {
                         // Smooth side edge taper matching the fairway cut width
-                        if (distanceToPath > fW) {
-                            const tEdge = (distanceToPath - fW) / 2.26;
+                    if (distanceToPath > fW) {
+                            const tEdge = THREE.MathUtils.clamp((distanceToPath - fW) / 3.5, 0, 1);
                             const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                             calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
                         } else {
