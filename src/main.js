@@ -2250,16 +2250,32 @@ function resetEntireGame(advanceHole = false) {
 
 
 
-            if (targetMesh === green) calculatedHeight += 0.02;
-            if (targetMesh === greenGrid) calculatedHeight += 0.03;
-            if (targetMesh === greenFringe) calculatedHeight += 0.018;
+            // --- HIGH-PRECISION HEIGHT ELEVATION & BEVEL TAPER ---
+            if (targetMesh === green) {
+                calculatedHeight += 0.020;
+            } else if (targetMesh === greenGrid) {
+                calculatedHeight += 0.025;
+            } else if (targetMesh === greenFringe) {
+                // Taper fringe collar smoothly from green inner edge (+0.019) down to fairway/rough outer edge (+0.012)
+                const innerEdgeR = window.getGreenRadiusAtAngle(Math.atan2(-localY, localX), window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+                const localDist = Math.hypot(localX, localY);
+                const tFringe = THREE.MathUtils.clamp((localDist - innerEdgeR) / 1.0, 0, 1);
+                const smoothFringe = THREE.MathUtils.smoothstep(tFringe, 0, 1);
+                calculatedHeight += THREE.MathUtils.lerp(0.019, 0.012, smoothFringe);
+            }
 
             posAttr.setZ(i, calculatedHeight);
 
             // --- REALISTIC TURF SHADE CONTRAST GENERATOR ---
             let baseR = 0.066, baseG = 0.666, baseB = 0.266; // Standard Green (0x11aa44)
             if (targetMesh === greenFringe) {
-                baseR = 0.105; baseG = 0.478; baseB = 0.227; // Crisp Collar Fringe (0x1b7a3a)
+                const innerEdgeR = window.getGreenRadiusAtAngle(Math.atan2(-localY, localX), window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+                const localDist = Math.hypot(localX, localY);
+                const tFringe = THREE.MathUtils.clamp((localDist - innerEdgeR) / 1.0, 0, 1);
+                // Blend two-tone collar from bright green inner seam to crisp dark green outer collar
+                baseR = THREE.MathUtils.lerp(0.080, 0.105, tFringe);
+                baseG = THREE.MathUtils.lerp(0.580, 0.478, tFringe);
+                baseB = THREE.MathUtils.lerp(0.245, 0.227, tFringe);
             }
 
             // Evaluate elevation delta relative to the stable pin cup height baseline
@@ -5425,8 +5441,13 @@ function init() {
         gridGeo.userData.origXY.push({ x: gridGeo.attributes.position.getX(i), y: gridGeo.attributes.position.getY(i) });
     }
 
-    const greenMat = new THREE.MeshStandardMaterial({ roughness: 0.85, vertexColors: true });
-    green = new THREE.Mesh(greenGeo, greenMat);
+    const greenMat = new THREE.MeshStandardMaterial({
+        roughness: 0.85,
+        vertexColors: true,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -4
+    }); green = new THREE.Mesh(greenGeo, greenMat);
     green.rotation.x = -Math.PI / 2;
     green.position.set(0, 0.02, -55);
     scene.add(green);
@@ -5456,9 +5477,9 @@ function init() {
     const fringeMat = new THREE.MeshStandardMaterial({
         roughness: 0.85,
         vertexColors: true,
-        polygonOffset: true,         // Add this line: Directs the GPU to render this layer on top of overlapping meshes
-        polygonOffsetFactor: -1,     // Add this line
-        polygonOffsetUnits: -4       // Add this line
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -3
     });
     greenFringe = new THREE.Mesh(fringeGeo, fringeMat); // Add this line
     greenFringe.rotation.x = -Math.PI / 2; // Add this line
