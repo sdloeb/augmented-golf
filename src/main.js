@@ -2356,7 +2356,7 @@ function resetEntireGame(advanceHole = false) {
             // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-            let insideWaterZone = false;
+       let insideWaterZone = false;
             let closeToWater = false; // Tracks vertices near the lake terrace
             let shortestDistToWaterEdge = Infinity; // Track water proximity for smooth grass dampening
 
@@ -2364,7 +2364,7 @@ function resetEntireGame(advanceHole = false) {
                 // Bounding-box optimization filter for circular lakes
                 if (!water.userData.isRectangular) {
                     const maxR = Math.max(water.userData.radiusX || 0, water.userData.radiusZ || 0) || water.userData.radius || 5;
-                    const rLimit = maxR + 1.5;
+                    const rLimit = maxR + 2.5; 
                     if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
                 }
 
@@ -2393,8 +2393,8 @@ function resetEntireGame(advanceHole = false) {
                     const distP = Math.hypot(Math.max(0, dxP), Math.max(0, dzP));
                     if (distP < shortestDistToWaterEdge) shortestDistToWaterEdge = distP;
 
-                    if (worldX >= water.position.x - water.userData.w / 2 && worldX <= water.position.x + water.userData.w / 2 &&
-                        worldZ >= water.position.z - world.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
+                    if (worldX >= water.position.x - water.userData.w / 2 - 0.3 && worldX <= water.position.x + water.userData.w / 2 + 0.3 &&
+                        worldZ >= water.position.z - water.userData.l / 2 - 0.3 && worldZ <= water.position.z + water.userData.l / 2 + 0.3) {
                         insideWaterZone = true;
                     }
                 } else {
@@ -2408,11 +2408,15 @@ function resetEntireGame(advanceHole = false) {
                     const edgeDist = Math.abs(distW - lakeRadius);
                     if (edgeDist < shortestDistToWaterEdge) shortestDistToWaterEdge = edgeDist;
 
-                    if (distW < lakeRadius + 0.1) {
+                    if (distW < lakeRadius + 0.3) {
                         insideWaterZone = true;
                     }
                 }
             });
+
+            if (shortestDistToWaterEdge < 1.0) {
+                closeToWater = true;
+            }
             // Scan active sand trap footprint borders using correct userData properties
             let insideSandZone = false;
             let activeSandDepth = 0;
