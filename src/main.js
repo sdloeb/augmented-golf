@@ -54,7 +54,7 @@ const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
         //horizonTheme: 'forest',
-        horizonTheme: 'mountains',
+        horizonTheme: 'estate',
         theme: 'standard',
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
@@ -614,7 +614,179 @@ function createHorizonTexture(theme = 'mountains') {
         ctx.closePath();
         ctx.fill();
 
+ } else if (theme === 'estate' || theme === 'country_club') {
+        // --- LAYER 1: DISTANT ROLLING PARKLAND HILLS ---
+        const farGrad = ctx.createLinearGradient(0, 180, 0, 512);
+        farGrad.addColorStop(0, '#385932');
+        farGrad.addColorStop(0.5, '#253f20');
+        farGrad.addColorStop(1, '#152912');
+
+        const getHillY = (x) => {
+            const p = ((x % 2048) + 2048) % 2048 / 2048;
+            return 300 + Math.sin(p * twoPi * 2) * 30 + Math.cos(p * twoPi * 5) * 15;
+        };
+
+        ctx.fillStyle = farGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 2) {
+            ctx.lineTo(x, getHillY(x));
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
+
+        // --- LAYER 2: LARGE DECENT-SIZED FAIRWAY CUTS & BUNKERS ---
+        // 1. Fairway Swath #1 (Left Flank: x = 450 to 880)
+        ctx.fillStyle = '#487a38';
+        ctx.beginPath();
+        ctx.moveTo(450, 345);
+        ctx.bezierCurveTo(550, 310, 720, 305, 880, 338);
+        ctx.bezierCurveTo(780, 365, 580, 368, 450, 345);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner Fairway Light Stripe #1
+        ctx.fillStyle = '#548a42';
+        ctx.beginPath();
+        ctx.moveTo(490, 342);
+        ctx.bezierCurveTo(580, 315, 700, 312, 840, 335);
+        ctx.bezierCurveTo(750, 358, 570, 360, 490, 342);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sand Bunkers along Fairway #1
+        ctx.fillStyle = '#d6c49d';
+        ctx.beginPath();
+        ctx.ellipse(560, 340, 22, 7, 0.1, 0, twoPi);
+        ctx.ellipse(760, 334, 18, 6, -0.15, 0, twoPi);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(20, 30, 15, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(562, 341, 19, 5, 0.1, 0, twoPi);
+        ctx.ellipse(762, 335, 15, 4, -0.15, 0, twoPi);
+        ctx.fill();
+
+        // 2. Fairway Swath #2 (Right Flank: x = 1200 to 1650)
+        ctx.fillStyle = '#487a38';
+        ctx.beginPath();
+        ctx.moveTo(1200, 335);
+        ctx.bezierCurveTo(1320, 298, 1500, 295, 1650, 330);
+        ctx.bezierCurveTo(1540, 360, 1330, 362, 1200, 335);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner Fairway Light Stripe #2
+        ctx.fillStyle = '#548a42';
+        ctx.beginPath();
+        ctx.moveTo(1240, 332);
+        ctx.bezierCurveTo(1340, 303, 1460, 300, 1600, 328);
+        ctx.bezierCurveTo(1500, 352, 1310, 354, 1240, 332);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sand Bunkers along Fairway #2
+        ctx.fillStyle = '#d6c49d';
+        ctx.beginPath();
+        ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
+        ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
+        ctx.fill();
+
+        // --- LAYER 3: BUILDINGS DIRECTLY BEHIND HOLE (Centered at x = 0 / 2048) ---
+        // Helper function to draw building elements wrapped seamlessly across the cylinder seam
+        const drawBuildingComponent = (drawFunc) => {
+            drawFunc(0);
+            drawFunc(2048);
+        };
+
+        // 1. Main Clubhouse (Centered directly on the seam x = 0 / 2048)
+        const chX = 0;
+        const chBaseY = getHillY(chX);
+
+        drawBuildingComponent((offsetX) => {
+            const cx = chX + offsetX;
+            ctx.fillStyle = '#172714';
+            ctx.fillRect(cx - 85, chBaseY - 2, 170, 6); // Ground foundation shadow
+
+            ctx.fillStyle = '#1e261f'; // Building body
+            ctx.fillRect(cx - 50, chBaseY - 36, 100, 36);
+            ctx.beginPath(); // Pediment Gable
+            ctx.moveTo(cx - 32, chBaseY - 36);
+            ctx.lineTo(cx, chBaseY - 56);
+            ctx.lineTo(cx + 32, chBaseY - 36);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(cx - 8, chBaseY - 72, 16, 18); // Tower
+            ctx.beginPath();
+            ctx.moveTo(cx - 10, chBaseY - 72);
+            ctx.lineTo(cx, chBaseY - 86);
+            ctx.lineTo(cx + 10, chBaseY - 72);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(cx - 80, chBaseY - 22, 34, 22); // Wings
+            ctx.fillRect(cx + 46, chBaseY - 22, 34, 22);
+
+            // Cool Sky-Blue Glass Windows
+            ctx.fillStyle = 'rgba(170, 210, 230, 0.55)';
+            ctx.fillRect(cx - 4, chBaseY - 67, 3, 6);
+            ctx.fillRect(cx + 1, chBaseY - 67, 3, 6);
+            ctx.fillRect(cx - 18, chBaseY - 24, 7, 11);
+            ctx.fillRect(cx + 11, chBaseY - 24, 7, 11);
+            ctx.fillRect(cx - 38, chBaseY - 24, 7, 11);
+            ctx.fillRect(cx + 31, chBaseY - 24, 7, 11);
+        });
+
+        // 2. Golf Cart Garage / Barn (Positioned beside clubhouse at x = 95)
+        const cgX = 95;
+        const cgBaseY = getHillY(cgX);
+
+        drawBuildingComponent((offsetX) => {
+            const cx = cgX + offsetX;
+            ctx.fillStyle = '#172714';
+            ctx.fillRect(cx - 45, cgBaseY - 2, 90, 5); // Foundation shadow
+
+            ctx.fillStyle = '#1a221b';
+            ctx.fillRect(cx - 40, cgBaseY - 20, 80, 20); // Garage body
+            ctx.beginPath(); // Roof
+            ctx.moveTo(cx - 43, cgBaseY - 20);
+            ctx.lineTo(cx, cgBaseY - 29);
+            ctx.lineTo(cx + 43, cgBaseY - 20);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#080d08'; // Open Cart Bay Doors
+            for (let doorX = cx - 32; doorX <= cx + 22; doorX += 16) {
+                ctx.fillRect(doorX, cgBaseY - 14, 11, 14);
+            }
+        });
+
+        // --- LAYER 4: FOREGROUND PARKLAND CANOPY ---
+        ctx.fillStyle = '#122912';
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
+        for (let x = 0; x <= 2048; x += 2) {
+            const p = x / 2048;
+            const hill = Math.sin(p * twoPi * 3 + 0.8) * 22 + Math.cos(p * twoPi * 7) * 10;
+            const puff = Math.sin(x * 0.15) * 12 + Math.cos(x * 0.35) * 8 + Math.sin(x * 0.05) * 14;
+            let y = 345 + hill - Math.max(0, puff);
+
+            // Around buildings straight ahead (x = 0..160 and 1960..2048), keep canopy lower so building bases stay planted
+            if (x < 160 || x > 1960) {
+                const bY = getHillY(x);
+                y = Math.max(y, bY + 4);
+            }
+            // Around fairways, dip canopy so fairways stay visible
+            if ((x > 470 && x < 830) || (x > 1220 && x < 1620)) {
+                y = Math.max(y, 335);
+            }
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(2048, 512);
+        ctx.closePath();
+        ctx.fill();
     }
+
+
+
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -1336,7 +1508,7 @@ function resetEntireGame(advanceHole = false) {
         rainParticles.forEach(p => scene.remove(p));
         rainParticles = [];
     }
-    isRaining = Math.random() < 0.35; // 35% chance of rain on any given hole
+    isRaining = Math.random() < 0.25; // 25% chance of rain on any given hole
     if (isRaining) {
         document.body.classList.add('storm-mode');
     } else {
