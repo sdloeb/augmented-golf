@@ -535,12 +535,18 @@ export class PhysicsEngine {
                         if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                     }
                     const edgeDist = Math.sqrt(minEdgeDistSq);
-                    if (inside) {
-                        drop = sandDepth;
-                    } else if (edgeDist < 2.0) {
-                        const t = edgeDist / 2.0;
-                        const smoothSlope = t * t * (3 - 2 * t);
-                        drop = THREE.MathUtils.lerp(sandDepth, 0.0, smoothSlope);
+                    if (sandTraps.includes(targetMesh)) {
+                        // Darken the sand mesh as it climbs up the banks toward the grass edge
+                        if (shortestDistToBunkerEdge < 2.5) {
+                            const tShadow = 1.0 - (shortestDistToBunkerEdge / 2.5);
+                            const smoothShadow = tShadow * tShadow * (3 - 2 * tShadow);
+                            shadowMultiplier *= THREE.MathUtils.lerp(1.0, 0.35, smoothShadow);
+                        }
+                    } else if (!insideSandZone && shortestDistToBunkerEdge < 0.8) {
+                        // Darken the actual turf edge right along the rim drop-off for a crisp sod-cut border line
+                        const tTurfShadow = 1.0 - (shortestDistToBunkerEdge / 0.8);
+                        const smoothTurfShadow = tTurfShadow * tTurfShadow * (3 - 2 * tTurfShadow);
+                        shadowMultiplier *= THREE.MathUtils.lerp(1.0, 0.55, smoothTurfShadow);
                     }
                 } else {
                     const dxS = x - sand.position.x;
@@ -675,7 +681,7 @@ export class PhysicsEngine {
         if (!(this.greenCenterZ < -165 && this.greenCenterZ > -185)) {
             const apronStart = -activeRadius - 12.0;
             const apronEnd = -activeRadius;
- if (approachDot > apronStart && approachDot <= apronEnd) {
+            if (approachDot > apronStart && approachDot <= apronEnd) {
                 let tApron = (approachDot - apronStart) / 12.0;
                 const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
                 const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + 1.0);
