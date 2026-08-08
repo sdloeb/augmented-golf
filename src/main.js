@@ -3688,9 +3688,11 @@ function resetEntireGame(advanceHole = false) {
             ? currentHoleConfig.horizonY
             : 10; // CHANGE THIS NUMBER to raise or lower the mountains
 
-        // Apply scale and position
+       // Apply scale and position (centered midway between the Tee Box at z=10 and the Hole Pin)
+        const midX = holePosition.x / 2;
+        const midZ = (10 + holePosition.z) / 2;
         horizonRingMesh.scale.set(scale, scale, scale);
-        horizonRingMesh.position.set(holePosition.x, yPos, holePosition.z - 30);
+        horizonRingMesh.position.set(midX, yPos, midZ);
 
         let theme = (currentHoleConfig && currentHoleConfig.horizonTheme) ? currentHoleConfig.horizonTheme : 'mountains';
         horizonRingMesh.material.map = createHorizonTexture(theme);
