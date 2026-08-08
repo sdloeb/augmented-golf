@@ -2356,7 +2356,7 @@ function resetEntireGame(advanceHole = false) {
             // Gather the pre-calculated, unified terrain height from the physics engine
             let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
 
-       let insideWaterZone = false;
+            let insideWaterZone = false;
             let closeToWater = false; // Tracks vertices near the lake terrace
             let shortestDistToWaterEdge = Infinity; // Track water proximity for smooth grass dampening
 
@@ -2364,7 +2364,7 @@ function resetEntireGame(advanceHole = false) {
                 // Bounding-box optimization filter for circular lakes
                 if (!water.userData.isRectangular) {
                     const maxR = Math.max(water.userData.radiusX || 0, water.userData.radiusZ || 0) || water.userData.radius || 5;
-                    const rLimit = maxR + 2.5; 
+                    const rLimit = maxR + 2.5;
                     if (Math.abs(worldX - water.position.x) > rLimit || Math.abs(worldZ - water.position.z) > rLimit) return;
                 }
 
@@ -2675,7 +2675,7 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
                     } else {
                         // Smooth side edge taper matching the fairway cut width
-                    if (distanceToPath > fW) {
+                        if (distanceToPath > fW) {
                             const tEdge = THREE.MathUtils.clamp((distanceToPath - fW) / 3.5, 0, 1);
                             const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                             calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
@@ -2762,7 +2762,19 @@ function resetEntireGame(advanceHole = false) {
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
     const teeBoxX = (Math.random() - 0.5) * 7.0;
     if (teeBox) {
-        teeBox.position.set(teeBoxX, physics.getGroundHeight(teeBoxX, 10) + 0.072, 10);
+        const teeGroundY = physics.getGroundHeight(teeBoxX, 10);
+
+        // Calculate local surface normal slopes to align Tee Box flush to hill contour
+        const dTee = 0.5;
+        const hL = physics.getGroundHeight(teeBoxX - dTee, 10);
+        const hR = physics.getGroundHeight(teeBoxX + dTee, 10);
+        const hB = physics.getGroundHeight(teeBoxX, 10 - dTee);
+        const hF = physics.getGroundHeight(teeBoxX, 10 + dTee);
+        const slopeX = (hL - hR) / (2 * dTee);
+        const slopeZ = (hB - hF) / (2 * dTee);
+
+        teeBox.position.set(teeBoxX, teeGroundY + 0.02, 10);
+        teeBox.rotation.set(Math.atan2(slopeZ, 1), 0, -Math.atan2(slopeX, 1));
         teeBox.visible = true;
 
         // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
@@ -2868,92 +2880,21 @@ function resetEntireGame(advanceHole = false) {
         if (!isHouse) {
             sceneryGroup.userData = { type: 'tree' };
             // BUILD A PROCEDURAL TREE
-            const treeHeight = 1.5;
-            const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, treeHeight, 8);
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = treeHeight / 2;
-            sceneryGroup.add(trunk);
+            const treeGroundY = physics.getGroundHeight(treeX, treeZ);
+            // Sink trunk cylinder 0.35 units deeper into terrain so downhill base never floats
+            trunkMesh.position.set(treeX, treeGroundY - 0.35 + (trunkHeight / 2), treeZ);
+            foliageGroup.position.set(treeX, treeGroundY - 0.35 + trunkHeight, treeZ);
 
-            const leavesHeight = 2.5;
-            const leavesGeo = new THREE.ConeGeometry(1.2, leavesHeight, 8);
-            const leaves = new THREE.Mesh(leavesGeo, foliageMat);
-            leaves.position.y = treeHeight + (leavesHeight / 2);
-            sceneryGroup.add(leaves);
-        } else {
-            // BUILD A PROCEDURAL HOUSE
-            const houseWidth = 2.0 + Math.random() * 1.5;
-            const houseHeight = 1.5 + Math.random() * 1.0;
+            // BUILD A PROCEDURAL BUSH
+            const bushGroundY = physics.getGroundHeight(bushX, bushZ);
+            // Sink bush center 0.25 units into grass to nest foliage spheres flush to slope
+            bushGroup.position.set(bushX, bushGroundY - 0.25, bushZ);
 
-            const baseGeo = new THREE.BoxGeometry(houseWidth, houseHeight, houseWidth);
-            const base = new THREE.Mesh(baseGeo, wallMat);
-            base.position.y = houseHeight / 2;
-            sceneryGroup.add(base);
-
-            // Give it a pointed triangular roof
-            const roofGeo = new THREE.ConeGeometry(houseWidth * 0.8, 1.2, 4);
-            const roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.y = houseHeight + 0.6;
-            roof.rotation.y = Math.PI / 4;
-            sceneryGroup.add(roof);
+            // BUILD A PROCEDURAL HOUSE / BUILDING
+            const houseGroundY = physics.getGroundHeight(houseX, houseZ);
+            // Embed foundation box 0.40 units deep so low-side foundation stays grounded
+            houseMesh.position.set(houseX, houseGroundY - 0.40 + (houseHeight / 2), houseZ);
         }
-
-        scene.add(sceneryGroup);
-        sceneryObjects.push(sceneryGroup);
-    }
-
-    // Bake real-time drop shadows for trees and bushes onto turf vertices
-    if (physics && physics.obstacles) {
-        [floor, fairway].forEach(mesh => {
-            if (!mesh) return;
-            const posAttr = mesh.geometry.attributes.position;
-            let colorAttr = mesh.geometry.attributes.color;
-
-            // Initialize vertex colors to pure white (unshaded) if they don't exist, or reset them
-            if (!colorAttr) {
-                const colors = new Float32Array(posAttr.count * 3);
-                colors.fill(1.0);
-                mesh.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                colorAttr = mesh.geometry.attributes.color;
-            } else {
-                for (let i = 0; i < colorAttr.count; i++) {
-                    colorAttr.setXYZ(i, 1.0, 1.0, 1.0);
-                }
-            }
-
-            // Read scale offsets to map local plane space to absolute world coordinates
-            const scaleX = (mesh === fairway) ? fairway.scale.x : 1;
-            const scaleY = (mesh === fairway) ? fairway.scale.y : 1;
-
-            for (let i = 0; i < posAttr.count; i++) {
-                const worldX = posAttr.getX(i) * scaleX + mesh.position.x;
-                const worldZ = -posAttr.getY(i) * scaleY + mesh.position.z;
-
-                let shadowIntensity = 1.0;
-
-                physics.obstacles.forEach(obs => {
-                    const dx = worldX - obs.x;
-                    const dz = worldZ - obs.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-
-                    // Trees get shadow coverage based on their foliage extent; bushes get it slightly wider than their radius
-                    const shadowRadius = obs.type === 'tree' ? obs.foliageRadius * 0.75 : obs.radius * 1.15;
-
-                    if (dist < shadowRadius) {
-                        const t = dist / shadowRadius;
-                        const factor = t * t * (3 - 2 * t); // Smoothstep curve attenuation
-                        const localShadow = THREE.MathUtils.lerp(0.48, 1.0, factor); // Under center is ~48% brightness
-                        if (localShadow < shadowIntensity) {
-                            shadowIntensity = localShadow;
-                        }
-                    }
-                });
-
-                if (shadowIntensity < 1.0) {
-                    colorAttr.setXYZ(i, shadowIntensity, shadowIntensity, shadowIntensity);
-                }
-            }
-            colorAttr.needsUpdate = true;
-        });
     }
 
     // --- NEW: GENERATE INTERACTIVE FAIRYWAY & ROUGH OBSTACLES ---
