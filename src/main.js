@@ -54,7 +54,8 @@ const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
         //horizonTheme: 'forest',
-        horizonTheme: 'estate',
+        //horizonTheme: 'estate',
+        horizonTheme: 'mountains',
         theme: 'standard',
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
