@@ -1751,12 +1751,11 @@ function resetEntireGame(advanceHole = false) {
         physics.updateGreenPosition(greenCenterX, greenCenterZ);
     }
 
-    // NEW: Kick off the sequential visual tutorial tour if the player is landing on Hole 1
+    // NEW: Prompt player for tutorial on Hole 1
     if (currentHoleNumber === 1) {
         setTimeout(() => {
-            const tutorial = new TutorialManager();
-            tutorial.start();
-        }, 800); // Small delay to let the green finish shifting into position first
+            showTutorialPrompt();
+        }, 800);
     }
 
     // Set up the horizontal profiles matrix (Flat, Left-to-Right, Right-to-Left)
@@ -3688,7 +3687,7 @@ function resetEntireGame(advanceHole = false) {
             ? currentHoleConfig.horizonY
             : 10; // CHANGE THIS NUMBER to raise or lower the mountains
 
-       // Apply scale and position (centered midway between the Tee Box at z=10 and the Hole Pin)
+        // Apply scale and position (centered midway between the Tee Box at z=10 and the Hole Pin)
         const midX = holePosition.x / 2;
         const midZ = (10 + holePosition.z) / 2;
         horizonRingMesh.scale.set(scale, scale, scale);
@@ -6142,3 +6141,90 @@ function showScorecard() {
     }, 10);
 }
 
+function showTutorialPrompt() {
+    const existing = document.getElementById('tutorialPromptOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'tutorialPromptOverlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.65)';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '1000005';
+
+    const card = document.createElement('div');
+    card.style.background = 'linear-gradient(135deg, #5c4033, #3d2b22)';
+    card.style.border = '3px solid #ffcc66';
+    card.style.borderRadius = '10px';
+    card.style.padding = '24px 40px';
+    card.style.textAlign = 'center';
+    card.style.boxShadow = '0 10px 30px rgba(0,0,0,0.8)';
+    card.style.fontFamily = "'Georgia', serif";
+
+    const title = document.createElement('div');
+    title.innerText = 'Tutorial?';
+    title.style.color = '#ffffff';
+    title.style.fontSize = '28px';
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '20px';
+    title.style.textShadow = '2px 2px 4px #000000';
+
+    const btnContainer = document.createElement('div');
+    btnContainer.style.display = 'flex';
+    btnContainer.style.gap = '20px';
+    btnContainer.style.justifyContent = 'center';
+
+    const yesBtn = document.createElement('button');
+    yesBtn.innerText = 'YES';
+    yesBtn.style.background = '#00ffcc';
+    yesBtn.style.color = '#000000';
+    yesBtn.style.border = 'none';
+    yesBtn.style.borderRadius = '5px';
+    yesBtn.style.padding = '10px 28px';
+    yesBtn.style.fontSize = '18px';
+    yesBtn.style.fontWeight = 'bold';
+    yesBtn.style.cursor = 'pointer';
+    yesBtn.style.boxShadow = '0 4px 10px rgba(0,0,0,0.4)';
+
+    const noBtn = document.createElement('button');
+    noBtn.innerText = 'NO';
+    noBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+    noBtn.style.color = '#ffffff';
+    noBtn.style.border = '2px solid #ffffff';
+    noBtn.style.borderRadius = '5px';
+    noBtn.style.padding = '10px 28px';
+    noBtn.style.fontSize = '18px';
+    noBtn.style.fontWeight = 'bold';
+    noBtn.style.cursor = 'pointer';
+
+    const handleYes = (e) => {
+        e.stopPropagation();
+        overlay.remove();
+        const tutorial = new TutorialManager();
+        tutorial.start();
+    };
+
+    const handleNo = (e) => {
+        e.stopPropagation();
+        overlay.remove();
+    };
+
+    yesBtn.addEventListener('click', handleYes);
+    yesBtn.addEventListener('touchstart', handleYes, { passive: false });
+
+    noBtn.addEventListener('click', handleNo);
+    noBtn.addEventListener('touchstart', handleNo, { passive: false });
+
+    btnContainer.appendChild(yesBtn);
+    btnContainer.appendChild(noBtn);
+    card.appendChild(title);
+    card.appendChild(btnContainer);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+}

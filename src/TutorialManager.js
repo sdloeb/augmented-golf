@@ -10,7 +10,7 @@ export class TutorialManager {
     constructor() {
         this.steps = [
             { selector: '#windContainer', text: 'WIND SPEED', duration: 3000 },
-            { selector: '#overheadBtn', text: "BIRD'S-EYE VIEW", duration: 3000 },
+            { selector: '#overheadBtn', text: "DRONE VIEW", duration: 3000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
@@ -22,13 +22,13 @@ export class TutorialManager {
     }
 
     /**
-     * Checks prerequisites and kicks off the sequence if on Hole 1
-     */
-   // start() {
-    //    window.isTutorialActive = true;
-     //   this.createElements();
-    //    this.executeStep();
-  //  }
+         * Checks prerequisites and kicks off the sequence if on Hole 1
+         */
+    start() {
+        window.isTutorialActive = true;
+        this.createElements();
+        this.executeStep();
+    }
 
     /**
      * Dynamically handles HTML injection to keep index.html untouched
