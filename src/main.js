@@ -614,7 +614,7 @@ function createHorizonTexture(theme = 'mountains') {
         ctx.closePath();
         ctx.fill();
 
- } else if (theme === 'estate' || theme === 'country_club') {
+    } else if (theme === 'estate') {
         // --- LAYER 1: DISTANT ROLLING PARKLAND HILLS ---
         const farGrad = ctx.createLinearGradient(0, 180, 0, 512);
         farGrad.addColorStop(0, '#385932');
