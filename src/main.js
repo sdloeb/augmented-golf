@@ -157,6 +157,7 @@ const HOLES_CONFIG = {
         par: 5,
         fairwayWidth: 8.0,
         greenRadius: 8.5,
+        horizonTheme: 'estate',
 
         // 6-Zone Slope Profile with Bi-Level Tier & False Front
         slopeProfile: {
@@ -181,6 +182,8 @@ const HOLES_CONFIG = {
             new THREE.Vector3(-14, 0, -125), // CHANGED: Shifted from 0 to -14 to curve the end of the 1st fairway out to the left
             new THREE.Vector3(-3, 0, -180)
         ],
+        // Define path points along the left side following the Google Earth terrain
+
         hazards: [
             // Bunkers on the left (Shifted back to flank the lower driver landing zone precisely)
             { type: 'sand', x: -27.5, z: -85.0, radius: 3.8, depth: 0.55 },
@@ -225,6 +228,16 @@ const HOLES_CONFIG = {
             { type: 'sand', x: 9.8, z: -181.5, radius: 2.0, depth: 0.60 },
 
             { type: 'ocean', x: 60.0, z: -153.5, width: 130.0, length: 150.0 }
+        ],
+        cartPath: [
+            { x: -22, z: 20 },
+            { x: -24, z: -10 },
+            { x: -28, z: -50 },
+            { x: -52, z: -95 },
+            { x: -44, z: -135 },
+            { x: -32, z: -165 },
+            { x: -22, z: -182 },
+            { x: -16, z: -192 }
         ]
     },
     4: { // Sharp 90-Degree Dogleg Right Hole
@@ -1254,6 +1267,84 @@ function addSandTrap(x, z, r, depth) {
     sandMesh.userData = { radius: r, depth: depth };
     scene.add(sandMesh);
     sandTraps.push(sandMesh);
+}
+
+function createCartPath(pathPoints, width = 2.2) {
+    if (!pathPoints || pathPoints.length < 2) return;
+
+    // Convert waypoints into a smooth CatmullRom 3D curve
+    const waypoints = pathPoints.map(p => new THREE.Vector3(p.x, 0, p.z));
+    const curve = new THREE.CatmullRomCurve3(waypoints);
+
+    const numSamples = pathPoints.length * 15;
+    const sampledPoints = curve.getPoints(numSamples);
+
+    const positions = [];
+    const uvs = [];
+    const indices = [];
+
+    const halfWidth = width / 2;
+
+    for (let i = 0; i <= numSamples; i++) {
+        const curr = sampledPoints[i];
+
+        // Calculate tangent vector along the path
+        let prev = sampledPoints[Math.max(0, i - 1)];
+        let next = sampledPoints[Math.min(numSamples, i + 1)];
+        let dirX = next.x - prev.x;
+        let dirZ = next.z - prev.z;
+        let len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+
+        // Perpendicular vector for path width
+        let perpX = -dirZ / len;
+        let perpZ = dirX / len;
+
+        // Left and right edges
+        const leftX = curr.x + perpX * halfWidth;
+        const leftZ = curr.z + perpZ * halfWidth;
+        const rightX = curr.x - perpX * halfWidth;
+        const rightZ = curr.z - perpZ * halfWidth;
+
+        // Sample exact 3D ground height and add +0.34 to float cleanly above rough grass lift (+0.30)
+        const leftBase = physics ? physics.getGroundHeight(leftX, leftZ) : 0;
+        const rightBase = physics ? physics.getGroundHeight(rightX, rightZ) : 0;
+        const leftY = leftBase + 0.34;
+        const rightY = rightBase + 0.34;
+
+        positions.push(leftX, leftY, leftZ);
+        positions.push(rightX, rightY, rightZ);
+
+        const progress = i / numSamples;
+        uvs.push(0, progress * 10);
+        uvs.push(1, progress * 10);
+
+        if (i < numSamples) {
+            const row1 = i * 2;
+            const row2 = (i + 1) * 2;
+            indices.push(row1, row1 + 1, row2);
+            indices.push(row1 + 1, row2 + 1, row2);
+        }
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        roughness: 0.9,
+        metalness: 0.1,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: -3,
+        polygonOffsetUnits: -6
+    });
+
+    const pathMesh = new THREE.Mesh(geometry, material);
+    scene.add(pathMesh);
+    sceneryObjects.push(pathMesh);
 }
 
 function generateHazards() {
@@ -2794,7 +2885,7 @@ function resetEntireGame(advanceHole = false) {
     physics.isMoving = false;
     wasMoving = false;
     if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
-   if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
+    if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
     if (ball) {
         ball.isSunk = false;
@@ -2828,23 +2919,23 @@ function resetEntireGame(advanceHole = false) {
     // FIXED: Force the camera to instantly teleport to the new Tee Box coordinates instead of slowly floating through space from the previous green location
     camera.position.copy(cameraTargetPos);
 
-// Properly release GPU memory for all scenery, trees, and buildings
-sceneryObjects.forEach(obj => {
-    scene.remove(obj);
-    obj.traverse(child => {
-        if (child.isMesh) {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-                if (Array.isArray(child.material)) {
-                    child.material.forEach(m => m.dispose());
-                } else {
-                    child.material.dispose();
+    // Properly release GPU memory for all scenery, trees, and buildings
+    sceneryObjects.forEach(obj => {
+        scene.remove(obj);
+        obj.traverse(child => {
+            if (child.isMesh) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(m => m.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
                 }
             }
-        }
+        });
     });
-});
-sceneryObjects = [];
+    sceneryObjects = [];
 
     // Materials for the scenery elements
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
@@ -2854,7 +2945,7 @@ sceneryObjects = [];
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-if (currentHoleNumber === 1 || currentHoleNumber === 2 || currentHoleNumber === 3 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Holes 1, 2 & 3
+        if (currentHoleNumber === 1 || currentHoleNumber === 2 || currentHoleNumber === 3 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Holes 1, 2 & 3
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));
@@ -3711,6 +3802,10 @@ if (currentHoleNumber === 1 || currentHoleNumber === 2 || currentHoleNumber === 
         let theme = (currentHoleConfig && currentHoleConfig.horizonTheme) ? currentHoleConfig.horizonTheme : 'mountains';
         horizonRingMesh.material.map = createHorizonTexture(theme);
         horizonRingMesh.material.map.needsUpdate = true;
+    }
+
+    if (currentHoleConfig && currentHoleConfig.cartPath) {
+        createCartPath(currentHoleConfig.cartPath, 2.2);
     }
 
     generateNewWind();
