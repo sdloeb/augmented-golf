@@ -58,22 +58,18 @@ html {
 
 #backspinBtn {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    /* Centers strictly on the X axis */
-    bottom: 40px;
-    /* Anchors at the bottom center, raised slightly above the screen edge */
+    top: 155px;
+    left: 20px;
     background: rgba(0, 0, 0, 0.75);
     border: 2px solid #ffffff;
     border-radius: 5px;
-    padding: 12px 24px;
+    padding: 11px 12px;
     color: white;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.7);
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-    /* Removed position lag to keep tracking snappy */
     pointer-events: auto;
     z-index: 10000;
 }

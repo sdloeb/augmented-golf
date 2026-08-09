@@ -12,9 +12,9 @@ export class TutorialManager {
             { selector: '#windContainer', text: 'WIND SPEED', duration: 3000 },
             { selector: '#overheadBtn', text: "DRONE VIEW", duration: 3000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK THE CLUB TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON THE SAME DIAGONAL FOR A DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
+            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;

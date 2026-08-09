@@ -5898,7 +5898,7 @@ function init() {
     if (overheadBtn) {
         overheadBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (isSinking) return; // Ignore if ball is dropping in the cup
+          if (isSinking || window.isTutorialActive) return;
 
             // Calculate active direction vectors following the current custom aim track heading
             let baseTargetX = holePosition.x;
