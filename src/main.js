@@ -89,7 +89,7 @@ const HOLES_CONFIG = {
                 x: 0,
                 z: -82.5,
                 radiusX: 24.0, // Keeps original width
-                radiusZ: 11.0   // Shortens length down the fairway
+                radiusZ: 10.0   // Shortens length down the fairway
             },
             // Restores your original twin traps
             { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.25 },
@@ -3158,7 +3158,6 @@ function resetEntireGame(advanceHole = false) {
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
-    if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
     if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
     if (ball) {
