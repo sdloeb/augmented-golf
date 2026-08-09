@@ -2828,8 +2828,23 @@ function resetEntireGame(advanceHole = false) {
     // FIXED: Force the camera to instantly teleport to the new Tee Box coordinates instead of slowly floating through space from the previous green location
     camera.position.copy(cameraTargetPos);
 
-    sceneryObjects.forEach(obj => scene.remove(obj));
-    sceneryObjects = [];
+// Properly release GPU memory for all scenery, trees, and buildings
+sceneryObjects.forEach(obj => {
+    scene.remove(obj);
+    obj.traverse(child => {
+        if (child.isMesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(m => m.dispose());
+                } else {
+                    child.material.dispose();
+                }
+            }
+        }
+    });
+});
+sceneryObjects = [];
 
     // Materials for the scenery elements
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
