@@ -4475,10 +4475,10 @@ function animate() {
         // LINE ABOVE:
         const isChippingClose = !onGreen && holeDistYards < 25.0;
 
-        // ADJUSTED: Lift camera height and pitch in sand traps so view clears the bunker lip cleanly
-        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 4.5 : 7.5));
-        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.4 : 2.2));
-        const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 8.0 : 15.0));
+       // ADJUSTED: Lift camera height and pitch in sand traps so view clears the bunker lip cleanly
+        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 3.8 : 4.8));
+        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.4 : 1.8));
+        const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 8.0 : 11.0));
         if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -5958,13 +5958,12 @@ function init() {
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
                 const isSand = physics && physics.isBallInSand();
                 // ADJUSTED: Synced with our backed-up 7.5 unit camera perspective
-                const camDist = checkOnGreen ? 2.5 : (isSand ? 2.0 : 7.5);
-                const camHeight = checkOnGreen ? 1.0 : (isSand ? 3.2 : 2.2);
-                const lookDist = checkOnGreen ? 6.0 : (isSand ? 4.5 : 15.0);
+               const camDist = checkOnGreen ? 2.5 : (isSand ? 2.0 : 4.8);
+                const camHeight = checkOnGreen ? 1.0 : (isSand ? 3.2 : 1.8);
+                const lookDist = checkOnGreen ? 6.0 : (isSand ? 4.5 : 11.0);
 
-                const backX = -(dirX / length) * 7.5;
-                const backZ = -(dirZ / length) * 7.5;
-
+                const backX = -(dirX / length) * 4.8;
+                const backZ = -(dirZ / length) * 4.8;
                 // CORRECTED: Smoothly transitions the camera back to your active zoom/horizon offsets
                 cameraTargetPos.set(ball.position.x + backX, ball.position.y + camHeight, ball.position.z + backZ);
                 cameraLookAt.set(ball.position.x + (dirX / length) * lookDist, ball.position.y + (checkOnGreen ? 0.35 : 0.0), ball.position.z + (dirZ / length) * lookDist);
