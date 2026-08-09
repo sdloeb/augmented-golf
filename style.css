@@ -751,7 +751,7 @@ html {
 /* Clean top-left vertical stack: Wind -> Overhead -> Backspin -> Hole Map */
     #overheadBtn {
         position: absolute !important;
-        top: calc(max(20px, env(safe-area-inset-top)) + 112px) !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 118px) !important;
         left: max(20px, env(safe-area-inset-left)) !important;
         background: rgba(0, 0, 0, 0.6);
         border: 2px solid #ffffff;
@@ -781,7 +781,7 @@ html {
 
     #holeMapContainer {
         position: absolute !important;
-        top: calc(max(20px, env(safe-area-inset-top)) + 32px) !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 42px) !important;
         left: max(15px, env(safe-area-inset-left)) !important;
         right: auto !important;
         width: 135px !important;
