@@ -135,8 +135,8 @@ html {
 
 #windContainer {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: max(20px, env(safe-area-inset-top));
+    left: max(20px, env(safe-area-inset-left));
     background: rgba(0, 0, 0, 0.6);
     border: 2px solid #ffffff;
     border-radius: 5px;
@@ -167,8 +167,8 @@ html {
 
 #scoreContainer {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: max(20px, env(safe-area-inset-top));
+    right: max(20px, env(safe-area-inset-right));
     background: rgba(0, 0, 0, 0.6);
     border: 2px solid #ffffff;
     border-radius: 5px;
@@ -808,8 +808,8 @@ html {
 
     #overheadBtn {
         position: absolute;
-        top: 155px;
-        left: 15px;
+        top: calc(max(20px, env(safe-area-inset-top)) + 80px);
+        left: max(20px, env(safe-area-inset-left));
         background: rgba(0, 0, 0, 0.6);
         border: 2px solid #ffffff;
         border-radius: 5px;
