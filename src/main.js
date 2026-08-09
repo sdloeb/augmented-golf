@@ -407,7 +407,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2793,7 +2793,8 @@ function resetEntireGame(advanceHole = false) {
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
     wasMoving = false;
-    if (input) { input.aimAngleOffset = 0; input.isAimMode = false; }
+    if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
+   if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
     if (ball) {
         ball.isSunk = false;
@@ -2838,8 +2839,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Generate 35 pieces of random scenery scattered along the edges
     for (let i = 0; i < 65; i++) { // Modify this line: increased count to account for skips
-        if (currentHoleNumber === 1 || currentHoleNumber === 2 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Holes 1 & 2
-        const isHouse = currentHoleNumber === 2 ? false : (Math.random() <= 0.4); // Modify this line: No houses on Green Lakes hole
+if (currentHoleNumber === 1 || currentHoleNumber === 2 || currentHoleNumber === 3 || (currentHoleConfig && currentHoleConfig.customTrees)) continue; // Skips random background trees/houses for Holes 1, 2 & 3
 
         const x = isHouse ? ((Math.random() > 0.5 ? 1 : -1) * (102 + Math.random() * 13)) : ((Math.random() - 0.5) * 220);
         const z = 15 - Math.random() * (25 + Math.abs(holePosition.z));

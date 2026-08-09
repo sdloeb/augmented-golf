@@ -535,18 +535,12 @@ export class PhysicsEngine {
                         if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
                     }
                     const edgeDist = Math.sqrt(minEdgeDistSq);
-                    if (sandTraps.includes(targetMesh)) {
-                        // Darken the sand mesh as it climbs up the banks toward the grass edge
-                        if (shortestDistToBunkerEdge < 2.5) {
-                            const tShadow = 1.0 - (shortestDistToBunkerEdge / 2.5);
-                            const smoothShadow = tShadow * tShadow * (3 - 2 * tShadow);
-                            shadowMultiplier *= THREE.MathUtils.lerp(1.0, 0.35, smoothShadow);
+                    if (inside) {
+                        if (edgeDist < 1.5) {
+                            drop = sandDepth * (edgeDist / 1.5);
+                        } else {
+                            drop = sandDepth;
                         }
-                    } else if (!insideSandZone && shortestDistToBunkerEdge < 0.8) {
-                        // Darken the actual turf edge right along the rim drop-off for a crisp sod-cut border line
-                        const tTurfShadow = 1.0 - (shortestDistToBunkerEdge / 0.8);
-                        const smoothTurfShadow = tTurfShadow * tTurfShadow * (3 - 2 * tTurfShadow);
-                        shadowMultiplier *= THREE.MathUtils.lerp(1.0, 0.55, smoothTurfShadow);
                     }
                 } else {
                     const dxS = x - sand.position.x;
