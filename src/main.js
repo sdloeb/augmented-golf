@@ -3321,9 +3321,9 @@ function resetEntireGame(advanceHole = false) {
                 sceneryGroup.userData = { type: 'tree' };
                 let randomScale = currentHoleNumber === 1 ? (7.5 + ((i % 5) * 0.5)) : (currentHoleNumber === 2 ? (5.5 + ((i % 4) * 0.4)) : (3.5 + Math.random() * 1.3));
                 if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
-                let calculatedTrunkRad = 0.25 * randomScale;
-                let calculatedTrunkH = 1.4 * randomScale;
-                let calculatedFoliageRad = 1.1 * randomScale;
+                let calculatedTrunkRad = 0.18 * randomScale;
+                let calculatedTrunkH = 1.6 * randomScale;
+                let calculatedFoliageRad = 0.9 * randomScale;
 
                 /// Pick a completely random look layout: 0 = Wide Oak, 1 = Tall Fork, 2 = Wind Leaning
                 let treeVersion = currentHoleNumber === 1 ? (i % 3) : (currentHoleNumber === 2 ? 3 : Math.floor(localRandom() * 3));
