@@ -748,13 +748,45 @@ html {
 @media (orientation: portrait),
 (max-width: 768px) {
 
-    /* Adjust map to sit safely on the left under the wind container, avoiding club options collisions */
-    #holeMapContainer {
-        top: 85px !important;
-        left: 15px !important;
+/* Clean top-left vertical stack: Wind -> Overhead -> Backspin -> Hole Map */
+    #overheadBtn {
+        position: absolute !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 58px) !important;
+        left: max(20px, env(safe-area-inset-left)) !important;
+        background: rgba(0, 0, 0, 0.6);
+        border: 2px solid #ffffff;
+        border-radius: 5px;
+        padding: 8px 12px !important;
+        color: white;
+        font-size: 14px !important;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        transition: all 0.15s ease;
+        pointer-events: auto;
+        z-index: 10000 !important;
+    }
+
+    #backspinBtn {
+        position: absolute !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 102px) !important;
+        left: max(20px, env(safe-area-inset-left)) !important;
         right: auto !important;
-        width: 140px !important;
-        padding: 8px !important;
+        bottom: auto !important;
+        transform: none !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+        z-index: 10000 !important;
+    }
+
+    #holeMapContainer {
+        position: absolute !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 146px) !important;
+        left: max(15px, env(safe-area-inset-left)) !important;
+        right: auto !important;
+        width: 135px !important;
+        padding: 6px 8px !important;
+        z-index: 9999 !important;
     }
 
     #holeMapTitle {
@@ -800,24 +832,6 @@ html {
     #lieCanvas {
         width: 36px !important;
         height: 36px !important;
-    }
-
-    #overheadBtn {
-        position: absolute;
-        top: calc(max(20px, env(safe-area-inset-top)) + 80px);
-        left: max(20px, env(safe-area-inset-left));
-        background: rgba(0, 0, 0, 0.6);
-        border: 2px solid #ffffff;
-        border-radius: 5px;
-        padding: 11px 12px;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-        transition: all 0.15s ease;
-        pointer-events: auto;
-        z-index: 10;
     }
 
     #overheadBtn:hover {
