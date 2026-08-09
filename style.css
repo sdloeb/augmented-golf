@@ -781,7 +781,7 @@ html {
 
     #holeMapContainer {
         position: absolute !important;
-        top: calc(max(20px, env(safe-area-inset-top)) + 42px) !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 52px) !important;
         left: max(15px, env(safe-area-inset-left)) !important;
         right: auto !important;
         width: 135px !important;
