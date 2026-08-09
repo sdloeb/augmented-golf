@@ -54,8 +54,8 @@ const HOLES_CONFIG = {
     1: { // 475 Yard Straight Par 4 with Water Crossing
         par: 4,
         //horizonTheme: 'forest',
-        //horizonTheme: 'estate',
-        horizonTheme: 'mountains',
+        horizonTheme: 'estate',
+        //horizonTheme: 'mountains',
         theme: 'standard',
         fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
         greenShape: 'kidney', // Changes the circle to the custom organic bean shape
@@ -420,7 +420,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -704,6 +704,61 @@ function createHorizonTexture(theme = 'mountains') {
         ctx.beginPath();
         ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
         ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
+        ctx.fill();
+
+        // --- DISTANT GREENS & RED FLAGSTICKS ---
+        // Green #1 (End of Fairway #1)
+        ctx.fillStyle = '#3a662d'; // Dark fringe collar
+        ctx.beginPath();
+        ctx.ellipse(860, 336, 20, 7, 0.05, 0, twoPi);
+        ctx.fill();
+
+        ctx.fillStyle = '#52be52'; // Vibrant putting surface
+        ctx.beginPath();
+        ctx.ellipse(860, 336, 16, 5, 0.05, 0, twoPi);
+        ctx.fill();
+
+        // Flagstick #1
+        ctx.strokeStyle = '#ffffff'; // White pole
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(860, 336);
+        ctx.lineTo(860, 324);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ff3333'; // Red flag
+        ctx.beginPath();
+        ctx.moveTo(860, 324);
+        ctx.lineTo(863, 326);
+        ctx.lineTo(860, 328);
+        ctx.closePath();
+        ctx.fill();
+
+        // Green #2 (End of Fairway #2)
+        ctx.fillStyle = '#3a662d'; // Dark fringe collar
+        ctx.beginPath();
+        ctx.ellipse(1620, 326, 18, 6, -0.05, 0, twoPi);
+        ctx.fill();
+
+        ctx.fillStyle = '#52be52'; // Vibrant putting surface
+        ctx.beginPath();
+        ctx.ellipse(1620, 326, 14, 4.5, -0.05, 0, twoPi);
+        ctx.fill();
+
+        // Flagstick #2
+        ctx.strokeStyle = '#ffffff'; // White pole
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(1620, 326);
+        ctx.lineTo(1620, 316);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ff3333'; // Red flag
+        ctx.beginPath();
+        ctx.moveTo(1620, 316);
+        ctx.lineTo(1623, 318);
+        ctx.lineTo(1620, 320);
+        ctx.closePath();
         ctx.fill();
 
         // --- LAYER 3: BUILDINGS DIRECTLY BEHIND HOLE (Centered at x = 0 / 2048) ---
