@@ -769,7 +769,7 @@ html {
 
     #backspinBtn {
         position: absolute !important;
-        top: calc(max(20px, env(safe-area-inset-top)) + 132px) !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 152px) !important;
         left: max(20px, env(safe-area-inset-left)) !important;
         right: auto !important;
         bottom: auto !important;
@@ -781,7 +781,7 @@ html {
 
     #holeMapContainer {
         position: absolute !important;
-        top: calc(max(20px, env(safe-area-inset-top)) + 146px) !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 132px) !important;
         left: max(15px, env(safe-area-inset-left)) !important;
         right: auto !important;
         width: 135px !important;
