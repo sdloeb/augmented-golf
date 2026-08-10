@@ -158,7 +158,7 @@ const HOLES_CONFIG = {
 
             // --- RIGHT SIDE (Far Right Hillside) ---
 
-            { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 },{ x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75}, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
+            { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
 
             // --- BACK OF GREEN ---
             { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
@@ -458,6 +458,145 @@ const POST_SHOT_DELAY = 1800;
 // --- DISTANT 360 HORIZON RING SYSTEM ---
 let horizonRingMesh = null;
 
+// --- HELPER FUNCTION: DRAW FAKE VIEW COURSE (FAIRWAYS, BUNKERS, GREENS & FLAGS) ---
+function drawFakeViewCourse(ctx, twoPi) {
+    // 1. MATCHING COURSE ROUGH BASE (Fills ground below trees with lighter rough green)
+    ctx.fillStyle = '#2b502b';
+    ctx.beginPath();
+    ctx.moveTo(0, 512);
+    ctx.lineTo(0, 315);
+    ctx.lineTo(2048, 315);
+    ctx.lineTo(2048, 512);
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. BACKGROUND TREELINE CANOPY (Confined strictly to tree tops above ground)
+    ctx.fillStyle = '#142915';
+    ctx.beginPath();
+    ctx.moveTo(0, 316);
+    for (let x = 0; x <= 2048; x += 3) {
+        const p = x / 2048;
+        const hill = Math.sin(p * twoPi * 4) * 8 + Math.cos(p * twoPi * 8) * 5;
+        const treeTop = Math.abs(Math.sin(x * 0.12)) * 14 + Math.abs(Math.cos(x * 0.25)) * 8;
+        const y = 315 + hill - treeTop;
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(2048, 316);
+    ctx.closePath();
+    ctx.fill();
+
+    // 1. Fairway Swath #1 (Left Flank)
+    ctx.fillStyle = '#487a38';
+    ctx.beginPath();
+    ctx.moveTo(450, 345);
+    ctx.bezierCurveTo(550, 310, 720, 305, 880, 338);
+    ctx.bezierCurveTo(780, 365, 580, 368, 450, 345);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner Fairway Light Stripe #1
+    ctx.fillStyle = '#548a42';
+    ctx.beginPath();
+    ctx.moveTo(490, 342);
+    ctx.bezierCurveTo(580, 315, 700, 312, 840, 335);
+    ctx.bezierCurveTo(750, 358, 570, 360, 490, 342);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sand Bunkers along Fairway #1
+    ctx.fillStyle = '#d6c49d';
+    ctx.beginPath();
+    ctx.ellipse(560, 340, 22, 7, 0.1, 0, twoPi);
+    ctx.ellipse(760, 334, 18, 6, -0.15, 0, twoPi);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(20, 30, 15, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(562, 341, 19, 5, 0.1, 0, twoPi);
+    ctx.ellipse(762, 335, 15, 4, -0.15, 0, twoPi);
+    ctx.fill();
+
+    // 2. Fairway Swath #2 (Right Flank)
+    ctx.fillStyle = '#487a38';
+    ctx.beginPath();
+    ctx.moveTo(1200, 335);
+    ctx.bezierCurveTo(1320, 298, 1500, 295, 1650, 330);
+    ctx.bezierCurveTo(1540, 360, 1330, 362, 1200, 335);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner Fairway Light Stripe #2
+    ctx.fillStyle = '#548a42';
+    ctx.beginPath();
+    ctx.moveTo(1240, 332);
+    ctx.bezierCurveTo(1340, 303, 1460, 300, 1600, 328);
+    ctx.bezierCurveTo(1500, 352, 1310, 354, 1240, 332);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sand Bunkers along Fairway #2
+    ctx.fillStyle = '#d6c49d';
+    ctx.beginPath();
+    ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
+    ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
+    ctx.fill();
+
+    // --- DISTANT GREENS & RED FLAGSTICKS ---
+    // Green #1
+    ctx.fillStyle = '#3a662d';
+    ctx.beginPath();
+    ctx.ellipse(860, 336, 20, 7, 0.05, 0, twoPi);
+    ctx.fill();
+
+    ctx.fillStyle = '#52be52';
+    ctx.beginPath();
+    ctx.ellipse(860, 336, 16, 5, 0.05, 0, twoPi);
+    ctx.fill();
+
+    // Flagstick #1
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(860, 336);
+    ctx.lineTo(860, 324);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ff3333';
+    ctx.beginPath();
+    ctx.moveTo(860, 324);
+    ctx.lineTo(863, 326);
+    ctx.lineTo(860, 328);
+    ctx.closePath();
+    ctx.fill();
+
+    // Green #2
+    ctx.fillStyle = '#3a662d';
+    ctx.beginPath();
+    ctx.ellipse(1620, 326, 18, 6, -0.05, 0, twoPi);
+    ctx.fill();
+
+    ctx.fillStyle = '#52be52';
+    ctx.beginPath();
+    ctx.ellipse(1620, 326, 14, 4.5, -0.05, 0, twoPi);
+    ctx.fill();
+
+    // Flagstick #2
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(1620, 326);
+    ctx.lineTo(1620, 316);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ff3333';
+    ctx.beginPath();
+    ctx.moveTo(1620, 316);
+    ctx.lineTo(1623, 318);
+    ctx.lineTo(1620, 320);
+    ctx.closePath();
+    ctx.fill();
+}
+
 function createHorizonTexture(theme = 'mountains') {
     const canvas = document.createElement('canvas');
     canvas.width = 2048;
@@ -469,7 +608,7 @@ function createHorizonTexture(theme = 'mountains') {
     const twoPi = Math.PI * 2;
 
     if (theme === 'mountains') {
-        // Multi-frequency noise helper for seamless organic jagged ridges
+        // --- HELPER: RIDGE HEIGHT NOISE ---
         const getRidgeHeight = (x, baseH, amp1, amp2, amp3, freq1 = 4, freq2 = 11, freq3 = 27) => {
             const p = x / 2048;
             const w1 = Math.abs(Math.sin(p * twoPi * freq1 + 0.3)) * -amp1;
@@ -512,7 +651,7 @@ function createHorizonTexture(theme = 'mountains') {
             }
         }
 
-        // --- LAYER 2: FRONT SLATE CRAGS (Darker Slate Ridges with White/Grey Highlights) ---
+        // --- LAYER 2: FRONT SLATE CRAGS (Darker Slate Ridges) ---
         const midGrad = ctx.createLinearGradient(0, 180, 0, 512);
         midGrad.addColorStop(0, '#424d59');
         midGrad.addColorStop(0.5, '#2e3740');
@@ -531,6 +670,8 @@ function createHorizonTexture(theme = 'mountains') {
 
         // 1. Light Slate-Gray Sunlit Facets on Front Crags
         ctx.fillStyle = 'rgba(195, 208, 222, 0.45)';
+        ctx.beginPath();
+        ctx.moveTo(0, 512);
         for (let x = 0; x <= 2048; x += 2) {
             const p = x / 2048;
             const y = getRidgeHeight(x, 325, 90, 35, 16, 4, 12, 28);
@@ -573,226 +714,12 @@ function createHorizonTexture(theme = 'mountains') {
                 ctx.closePath();
                 ctx.fill();
             }
+
         }
-        // --- LAYER 3: GREEN MOUNTAIN FOOTHILLS ---
-        const getHillY = (x) => {
-            const p = ((x % 2048) + 2048) % 2048 / 2048;
-            return 335 + Math.sin(p * twoPi * 2) * 20 + Math.cos(p * twoPi * 5) * 10;
-        };
 
-        const hillGrad = ctx.createLinearGradient(0, 280, 0, 512);
-        hillGrad.addColorStop(0, '#2e4a28');
-        hillGrad.addColorStop(0.5, '#1e381b');
-        hillGrad.addColorStop(1, '#122411');
+        // Call shared fake course renderer
+        drawFakeViewCourse(ctx, twoPi);
 
-        ctx.fillStyle = hillGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, 512);
-        for (let x = 0; x <= 2048; x += 2) {
-            ctx.lineTo(x, getHillY(x));
-        }
-        ctx.lineTo(2048, 512);
-        ctx.closePath();
-        ctx.fill();
-
-        // --- LAYER 4: FAIRWAY CUTS, BUNKERS, GREENS & FLAGS ---
-        // 1. Fairway Swath #1 (Left Flank)
-        ctx.fillStyle = '#487a38';
-        ctx.beginPath();
-        ctx.moveTo(450, 345);
-        ctx.bezierCurveTo(550, 310, 720, 305, 880, 338);
-        ctx.bezierCurveTo(780, 365, 580, 368, 450, 345);
-        ctx.closePath();
-        ctx.fill();
-
-        // Inner Fairway Light Stripe #1
-        ctx.fillStyle = '#548a42';
-        ctx.beginPath();
-        ctx.moveTo(490, 342);
-        ctx.bezierCurveTo(580, 315, 700, 312, 840, 335);
-        ctx.bezierCurveTo(750, 358, 570, 360, 490, 342);
-        ctx.closePath();
-        ctx.fill();
-
-        // Sand Bunkers along Fairway #1
-        ctx.fillStyle = '#d6c49d';
-        ctx.beginPath();
-        ctx.ellipse(560, 340, 22, 7, 0.1, 0, twoPi);
-        ctx.ellipse(760, 334, 18, 6, -0.15, 0, twoPi);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(20, 30, 15, 0.3)';
-        ctx.beginPath();
-        ctx.ellipse(562, 341, 19, 5, 0.1, 0, twoPi);
-        ctx.ellipse(762, 335, 15, 4, -0.15, 0, twoPi);
-        ctx.fill();
-
-        // 2. Fairway Swath #2 (Right Flank)
-        ctx.fillStyle = '#487a38';
-        ctx.beginPath();
-        ctx.moveTo(1200, 335);
-        ctx.bezierCurveTo(1320, 298, 1500, 295, 1650, 330);
-        ctx.bezierCurveTo(1540, 360, 1330, 362, 1200, 335);
-        ctx.closePath();
-        ctx.fill();
-
-        // Inner Fairway Light Stripe #2
-        ctx.fillStyle = '#548a42';
-        ctx.beginPath();
-        ctx.moveTo(1240, 332);
-        ctx.bezierCurveTo(1340, 303, 1460, 300, 1600, 328);
-        ctx.bezierCurveTo(1500, 352, 1310, 354, 1240, 332);
-        ctx.closePath();
-        ctx.fill();
-
-        // Sand Bunkers along Fairway #2
-        ctx.fillStyle = '#d6c49d';
-        ctx.beginPath();
-        ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
-        ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
-        ctx.fill();
-
-        // --- DISTANT GREENS & RED FLAGSTICKS ---
-        // Green #1
-        ctx.fillStyle = '#3a662d';
-        ctx.beginPath();
-        ctx.ellipse(860, 336, 20, 7, 0.05, 0, twoPi);
-        ctx.fill();
-
-        ctx.fillStyle = '#52be52';
-        ctx.beginPath();
-        ctx.ellipse(860, 336, 16, 5, 0.05, 0, twoPi);
-        ctx.fill();
-
-        // Flagstick #1
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(860, 336);
-        ctx.lineTo(860, 324);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ff3333';
-        ctx.beginPath();
-        ctx.moveTo(860, 324);
-        ctx.lineTo(863, 326);
-        ctx.lineTo(860, 328);
-        ctx.closePath();
-        ctx.fill();
-
-        // Green #2
-        ctx.fillStyle = '#3a662d';
-        ctx.beginPath();
-        ctx.ellipse(1620, 326, 18, 6, -0.05, 0, twoPi);
-        ctx.fill();
-
-        ctx.fillStyle = '#52be52';
-        ctx.beginPath();
-        ctx.ellipse(1620, 326, 14, 4.5, -0.05, 0, twoPi);
-        ctx.fill();
-
-        // Flagstick #2
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(1620, 326);
-        ctx.lineTo(1620, 316);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ff3333';
-        ctx.beginPath();
-        ctx.moveTo(1620, 316);
-        ctx.lineTo(1623, 318);
-        ctx.lineTo(1620, 320);
-        ctx.closePath();
-        ctx.fill();
-
-        // --- LAYER 5: BUILDINGS DIRECTLY BEHIND HOLE (Centered at x = 0 / 2048) ---
-        const drawBuildingComponent = (drawFunc) => {
-            drawFunc(0);
-            drawFunc(2048);
-        };
-
-        // Clubhouse
-        const chX = 0;
-        const chBaseY = getHillY(chX);
-
-        drawBuildingComponent((offsetX) => {
-            const cx = chX + offsetX;
-            ctx.fillStyle = '#172714';
-            ctx.fillRect(cx - 85, chBaseY - 2, 170, 6);
-
-            ctx.fillStyle = '#1e261f';
-            ctx.fillRect(cx - 50, chBaseY - 36, 100, 36);
-            ctx.beginPath();
-            ctx.moveTo(cx - 32, chBaseY - 36);
-            ctx.lineTo(cx, chBaseY - 56);
-            ctx.lineTo(cx + 32, chBaseY - 36);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillRect(cx - 8, chBaseY - 72, 16, 18);
-            ctx.beginPath();
-            ctx.moveTo(cx - 10, chBaseY - 72);
-            ctx.lineTo(cx, chBaseY - 86);
-            ctx.lineTo(cx + 10, chBaseY - 72);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillRect(cx - 80, chBaseY - 22, 34, 22);
-            ctx.fillRect(cx + 46, chBaseY - 22, 34, 22);
-
-            ctx.fillStyle = 'rgba(170, 210, 230, 0.55)';
-            ctx.fillRect(cx - 4, chBaseY - 67, 3, 6);
-            ctx.fillRect(cx + 1, chBaseY - 67, 3, 6);
-            ctx.fillRect(cx - 18, chBaseY - 24, 7, 11);
-            ctx.fillRect(cx + 11, chBaseY - 24, 7, 11);
-            ctx.fillRect(cx - 38, chBaseY - 24, 7, 11);
-            ctx.fillRect(cx + 31, chBaseY - 24, 7, 11);
-        });
-
-        // Cart Garage
-        const cgX = 95;
-        const cgBaseY = getHillY(cgX);
-
-        drawBuildingComponent((offsetX) => {
-            const cx = cgX + offsetX;
-            ctx.fillStyle = '#172714';
-            ctx.fillRect(cx - 45, cgBaseY - 2, 90, 5);
-
-            ctx.fillStyle = '#1a221b';
-            ctx.fillRect(cx - 40, cgBaseY - 20, 80, 20);
-            ctx.beginPath();
-            ctx.moveTo(cx - 43, cgBaseY - 20);
-            ctx.lineTo(cx, cgBaseY - 29);
-            ctx.lineTo(cx + 43, cgBaseY - 20);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillStyle = '#080d08';
-            for (let doorX = cx - 32; doorX <= cx + 22; doorX += 16) {
-                ctx.fillRect(doorX, cgBaseY - 14, 11, 14);
-            }
-        });
-
-        // --- LAYER 6: FOREGROUND MOUNTAIN PINE CANOPY ---
-        ctx.fillStyle = '#112215';
-        ctx.beginPath();
-        ctx.moveTo(0, 512);
-        for (let x = 0; x <= 2048; x += 2) {
-            const p = x / 2048;
-            const hill = Math.sin(p * twoPi * 3 + 0.8) * 22 + Math.cos(p * twoPi * 7) * 10;
-            const spike = Math.abs(Math.sin(x * 1.1)) * 14 + Math.abs(Math.cos(x * 2.3)) * 6;
-            let y = 345 + hill - spike;
-
-            if (x < 160 || x > 1960) {
-                const bY = getHillY(x);
-                y = Math.max(y, bY + 4);
-            }
-            if ((x > 470 && x < 830) || (x > 1220 && x < 1620)) {
-                y = Math.max(y, 335);
-            }
-            ctx.lineTo(x, y);
-        }
-        ctx.lineTo(2048, 512);
-        ctx.closePath();
-        ctx.fill();
     } else if (theme === 'forest') {
         // --- LAYER 1: DISTANT MISTY TREELINE ---
         ctx.fillStyle = '#213a27';
@@ -881,116 +808,8 @@ function createHorizonTexture(theme = 'mountains') {
         ctx.closePath();
         ctx.fill();
 
-        // --- LAYER 2: LARGE DECENT-SIZED FAIRWAY CUTS & BUNKERS ---
-        // 1. Fairway Swath #1 (Left Flank: x = 450 to 880)
-        ctx.fillStyle = '#487a38';
-        ctx.beginPath();
-        ctx.moveTo(450, 345);
-        ctx.bezierCurveTo(550, 310, 720, 305, 880, 338);
-        ctx.bezierCurveTo(780, 365, 580, 368, 450, 345);
-        ctx.closePath();
-        ctx.fill();
-
-        // Inner Fairway Light Stripe #1
-        ctx.fillStyle = '#548a42';
-        ctx.beginPath();
-        ctx.moveTo(490, 342);
-        ctx.bezierCurveTo(580, 315, 700, 312, 840, 335);
-        ctx.bezierCurveTo(750, 358, 570, 360, 490, 342);
-        ctx.closePath();
-        ctx.fill();
-
-        // Sand Bunkers along Fairway #1
-        ctx.fillStyle = '#d6c49d';
-        ctx.beginPath();
-        ctx.ellipse(560, 340, 22, 7, 0.1, 0, twoPi);
-        ctx.ellipse(760, 334, 18, 6, -0.15, 0, twoPi);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(20, 30, 15, 0.3)';
-        ctx.beginPath();
-        ctx.ellipse(562, 341, 19, 5, 0.1, 0, twoPi);
-        ctx.ellipse(762, 335, 15, 4, -0.15, 0, twoPi);
-        ctx.fill();
-
-        // 2. Fairway Swath #2 (Right Flank: x = 1200 to 1650)
-        ctx.fillStyle = '#487a38';
-        ctx.beginPath();
-        ctx.moveTo(1200, 335);
-        ctx.bezierCurveTo(1320, 298, 1500, 295, 1650, 330);
-        ctx.bezierCurveTo(1540, 360, 1330, 362, 1200, 335);
-        ctx.closePath();
-        ctx.fill();
-
-        // Inner Fairway Light Stripe #2
-        ctx.fillStyle = '#548a42';
-        ctx.beginPath();
-        ctx.moveTo(1240, 332);
-        ctx.bezierCurveTo(1340, 303, 1460, 300, 1600, 328);
-        ctx.bezierCurveTo(1500, 352, 1310, 354, 1240, 332);
-        ctx.closePath();
-        ctx.fill();
-
-        // Sand Bunkers along Fairway #2
-        ctx.fillStyle = '#d6c49d';
-        ctx.beginPath();
-        ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
-        ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
-        ctx.fill();
-
-        // --- DISTANT GREENS & RED FLAGSTICKS ---
-        // Green #1 (End of Fairway #1)
-        ctx.fillStyle = '#3a662d'; // Dark fringe collar
-        ctx.beginPath();
-        ctx.ellipse(860, 336, 20, 7, 0.05, 0, twoPi);
-        ctx.fill();
-
-        ctx.fillStyle = '#52be52'; // Vibrant putting surface
-        ctx.beginPath();
-        ctx.ellipse(860, 336, 16, 5, 0.05, 0, twoPi);
-        ctx.fill();
-
-        // Flagstick #1
-        ctx.strokeStyle = '#ffffff'; // White pole
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(860, 336);
-        ctx.lineTo(860, 324);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ff3333'; // Red flag
-        ctx.beginPath();
-        ctx.moveTo(860, 324);
-        ctx.lineTo(863, 326);
-        ctx.lineTo(860, 328);
-        ctx.closePath();
-        ctx.fill();
-
-        // Green #2 (End of Fairway #2)
-        ctx.fillStyle = '#3a662d'; // Dark fringe collar
-        ctx.beginPath();
-        ctx.ellipse(1620, 326, 18, 6, -0.05, 0, twoPi);
-        ctx.fill();
-
-        ctx.fillStyle = '#52be52'; // Vibrant putting surface
-        ctx.beginPath();
-        ctx.ellipse(1620, 326, 14, 4.5, -0.05, 0, twoPi);
-        ctx.fill();
-
-        // Flagstick #2
-        ctx.strokeStyle = '#ffffff'; // White pole
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(1620, 326);
-        ctx.lineTo(1620, 316);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ff3333'; // Red flag
-        ctx.beginPath();
-        ctx.moveTo(1620, 316);
-        ctx.lineTo(1623, 318);
-        ctx.lineTo(1620, 320);
-        ctx.closePath();
-        ctx.fill();
+        // --- LAYER 2: FAKE VIEW COURSE ---
+        drawFakeViewCourse(ctx, twoPi);
 
         // --- LAYER 3: BUILDINGS DIRECTLY BEHIND HOLE (Centered at x = 0 / 2048) ---
         // Helper function to draw building elements wrapped seamlessly across the cylinder seam
