@@ -1705,7 +1705,7 @@ function resetEntireGame(advanceHole = false) {
         rainParticles.forEach(p => scene.remove(p));
         rainParticles = [];
     }
-    isRaining = Math.random() < 0.25; // 25% chance of rain on any given hole
+    isRaining = Math.random() < 0.05; // 25% chance of rain on any given hole
     if (isRaining) {
         document.body.classList.add('storm-mode');
     } else {
@@ -2955,7 +2955,8 @@ function resetEntireGame(advanceHole = false) {
     });
 
     // Randomize the Tee Box horizontal offset left or right to vary the shot angles
-    const teeBoxX = (Math.random() - 0.5) * 7.0;
+    // Randomize the Tee Box horizontal offset left or right (locked at center 0 for Hole 2)
+    const teeBoxX = (currentHoleNumber === 2) ? 0 : (Math.random() - 0.5) * 7.0;
     if (teeBox) {
         const teeGroundY = physics.getGroundHeight(teeBoxX, 10);
 
