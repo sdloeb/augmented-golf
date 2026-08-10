@@ -150,7 +150,19 @@ const HOLES_CONFIG = {
             maxZ: 35,          // Back wall line behind the tee box
             stakesPerSide: 8,  // Spacing density down the long sides
             stakesPerRow: 3    // Spacing density across the narrow front/back walls
-        }
+        },
+        customTrees: [
+            // --- LEFT SIDE (Outside Left Bunkers) ---
+
+            { x: -32, z: 10 }, { x: -52, z: -5 }, { x: -47, z: -13 }, { x: -56, z: -20 }, { x: -72, z: -35 }, { x: -65, z: -43 }, { x: -60, z: -50 }, { x: -67, z: -57 }, { x: -68, z: -65 }, , { x: -60, z: -72 }, { x: -45, z: -80 }, { x: -51, z: -87 }, { x: -32, z: -95 }, { x: -40, z: -102 }, { x: -34, z: -110 }, { x: -40, z: -125 }, { x: -55, z: -140 },
+
+            // --- RIGHT SIDE (Far Right Hillside) ---
+
+            { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 },{ x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75}, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
+
+            // --- BACK OF GREEN ---
+            { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
+        ]
     },
 
     3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
@@ -6265,6 +6277,43 @@ function init() {
 }
 
 init();
+
+// ==========================================================================
+// CLICK-TO-COORDINATE DEBUGGER (Set to false to turn off)
+// ==========================================================================
+const DEBUG_CLICK_COORDS = true;
+
+window.addEventListener('click', (event) => {
+    if (!DEBUG_CLICK_COORDS) return;
+
+    // Ignore UI button clicks
+    if (event.target.closest('.club-option') ||
+        event.target.closest('#overheadBtn') ||
+        event.target.closest('#backspinBtn') ||
+        event.target.closest('#scorecardOverlay')) {
+        return;
+    }
+
+    const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1,
+        -(event.clientY / window.innerHeight) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    // Raycast against ground meshes
+    const groundTargets = [floor, fairway, green].filter(Boolean);
+    const intersects = raycaster.intersectObjects(groundTargets);
+
+    if (intersects.length > 0) {
+        const point = intersects[0].point;
+        const x = parseFloat(point.x.toFixed(1));
+        const z = parseFloat(point.z.toFixed(1));
+
+        console.log(`{ x: ${x}, z: ${z} },`);
+    }
+});
 
 
 
