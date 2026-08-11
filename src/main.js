@@ -432,7 +432,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 4; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3151,8 +3151,8 @@ function resetEntireGame(advanceHole = false) {
             if (heightScale > 1.0) {
                 const numTiers = 3; // 3 main branch levels along the trunk
                 for (let tier = 1; tier <= numTiers; tier++) {
-                    const tierY = calculatedTrunkH * (0.28 + (tier - 1) * 0.18); // Heights at 28%, 46%, and 64% up trunk
-                    const clusterCount = 3; // 3 branches per level
+                    const tierY = calculatedTrunkH * (0.40 + (tier - 1) * 0.18); // Heights at 28%, 46%, and 64% up trunk
+                    const clusterCount = 2; // 3 branches per level
 
                     for (let c = 0; c < clusterCount; c++) {
                         // Spiral branches around the trunk
