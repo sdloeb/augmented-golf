@@ -207,7 +207,7 @@ const HOLES_CONFIG = {
             {
                 type: 'sand',
                 shape: 'polygon',
-                depth: 0.55,
+                depth: 0.6,
                 points: [
                     // Top straight boundary line
                     { x: -34.5, z: -89.5 },  // Top-Left straight edge
