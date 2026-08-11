@@ -182,7 +182,7 @@ const HOLES_CONFIG = {
 
             features: [
                 // Step-up tier separating the upper back shelf from the lower front
-                { type: 'tier', axis: 'z', position: -1.5, width: 3.5, height: 0.16 },
+                { type: 'tier', axis: 'z', position: -1.0, width: 2.0, height: 0.55 },
                 // Catchment bowl on the back-left corner near the cliff edge
                 { type: 'bowl', x: -3.5, z: -3.5, radius: 3.5, depth: 0.10 }
             ]
@@ -410,6 +410,70 @@ const HOLES_CONFIG = {
             stakesPerSide: 6,
             stakesPerRow: 3
         }
+    },
+    6: { // Bethpage Black #15 - 478-Yard Uphill Championship Par 4
+        par: 4,
+        fairwayWidth: 13.5,
+        greenRadius: 10.5,
+        greenShape: 'oval',
+        theme: 'forest',
+        treeScale: 5.0,
+        treeHeightScale: 1.8,
+
+        // 2-Tiered Sloped Green (sloping back-to-front with an elevated rear tier)
+        slopeProfile: {
+            backLeft: { rx: -0.025, rz: -0.035 },
+            backRight: { rx: 0.020, rz: -0.035 },
+            midLeft: { rx: -0.020, rz: -0.040 },
+            midRight: { rx: 0.015, rz: -0.040 },
+            frontLeft: { rx: -0.015, rz: -0.045 },
+            frontRight: { rx: 0.010, rz: -0.045 },
+
+            features: [
+                // Step tier separating upper back shelf from lower front slope
+                { type: 'tier', axis: 'z', position: -1.0, width: 3.5, height: 0.18 }
+            ]
+        },
+
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),       // Tee Box
+            new THREE.Vector3(-6, 0, -91),     // 280-Yard Landing Fairway (Slight Dogleg Left)
+            new THREE.Vector3(-12, 0, -162.6)  // 478-Yard Elevated Green
+        ],
+
+        hazards: [
+            // Landing Zone Fairway Bunkers
+            { type: 'sand', x: 8.0, z: -88.0, radius: 6.0, depth: 1.1 },
+            { type: 'sand', x: -18.0, z: -98.0, radius: 5.5, depth: 1.1 },
+
+            // Massive Deep Bunkers Guarding the Elevated Green Entrance
+            { type: 'sand', x: -28.0, z: -162.6, radius: 4.0, depth: 1.2 },
+            { type: 'sand', x: -12.0, z: -145.0, radius: 4.5, depth: 1.3 },
+            { type: 'sand', x: 4.0, z: -162.6, radius: 4.0, depth: 1.2 }
+        ],
+
+        // Oak & Pine tree lines framing the championship fairway
+        customTrees: [
+            // Left Tree Line
+            { x: -28, z: 20 }, { x: -28, z: 0 }, { x: -28, z: -20 }, { x: -28, z: -40 },
+            { x: -30, z: -60 }, { x: -32, z: -80 }, { x: -35, z: -100 }, { x: -35, z: -120 },
+            { x: -32, z: -140 }, { x: -30, z: -160 }, { x: -28, z: -180 },
+
+            // Right Tree Line
+            { x: 28, z: 20 }, { x: 28, z: 0 }, { x: 28, z: -20 }, { x: 28, z: -40 },
+            { x: 28, z: -60 }, { x: 26, z: -80 }, { x: 22, z: -100 }, { x: 18, z: -120 },
+            { x: 15, z: -140 }, { x: 12, z: -160 }, { x: 10, z: -180 }
+        ],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -55,
+            maxX: 45,
+            minZ: -190,
+            maxZ: 30,
+            stakesPerSide: 10,
+            stakesPerRow: 4
+        }
     }
 };
 
@@ -432,7 +496,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 4; //1st hole start
+let currentHoleNumber = 6; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3111,18 +3175,18 @@ function resetEntireGame(advanceHole = false) {
     if (physics) physics.obstacles = [];
 
     if (currentHoleConfig && currentHoleConfig.customTrees) {
-     currentHoleConfig.customTrees.forEach((pt, index) => {
-    const sceneryGroup = new THREE.Group();
-    const courseHeight = physics.getGroundHeight(pt.x, pt.z);
-    sceneryGroup.position.set(pt.x, courseHeight, pt.z);
-    sceneryGroup.userData = { type: 'tree' };
+        currentHoleConfig.customTrees.forEach((pt, index) => {
+            const sceneryGroup = new THREE.Group();
+            const courseHeight = physics.getGroundHeight(pt.x, pt.z);
+            sceneryGroup.position.set(pt.x, courseHeight, pt.z);
+            sceneryGroup.userData = { type: 'tree' };
 
-    // Cycles through 3 height tiers: 33% Small (0.75x), 33% Medium (1.0x), 33% Tall (1.25x)
-    const heightTiers = [0.85, 1.10, 1.25];
-    const tierMultiplier = heightTiers[index % 3];
+            // Cycles through 3 height tiers: 33% Small (0.75x), 33% Medium (1.0x), 33% Tall (1.25x)
+            const heightTiers = [0.85, 1.10, 1.25];
+            const tierMultiplier = heightTiers[index % 3];
 
-    const randomScale = (pt.scale || currentHoleConfig.treeScale || 3.8) * tierMultiplier;
-    const heightScale = currentHoleConfig.treeHeightScale || 1.0;
+            const randomScale = (pt.scale || currentHoleConfig.treeScale || 3.8) * tierMultiplier;
+            const heightScale = currentHoleConfig.treeHeightScale || 1.0;
             const calculatedTrunkRad = 0.25 * randomScale;
             const calculatedTrunkH = 1.4 * randomScale * heightScale;
             const calculatedFoliageRad = 1.1 * randomScale;
