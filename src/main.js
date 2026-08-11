@@ -3111,14 +3111,18 @@ function resetEntireGame(advanceHole = false) {
     if (physics) physics.obstacles = [];
 
     if (currentHoleConfig && currentHoleConfig.customTrees) {
-        currentHoleConfig.customTrees.forEach(pt => {
-            const sceneryGroup = new THREE.Group();
-            const courseHeight = physics.getGroundHeight(pt.x, pt.z);
-            sceneryGroup.position.set(pt.x, courseHeight, pt.z);
-            sceneryGroup.userData = { type: 'tree' };
+     currentHoleConfig.customTrees.forEach((pt, index) => {
+    const sceneryGroup = new THREE.Group();
+    const courseHeight = physics.getGroundHeight(pt.x, pt.z);
+    sceneryGroup.position.set(pt.x, courseHeight, pt.z);
+    sceneryGroup.userData = { type: 'tree' };
 
-            const randomScale = pt.scale || currentHoleConfig.treeScale || 3.8;
-            const heightScale = currentHoleConfig.treeHeightScale || 1.0;
+    // Cycles through 3 height tiers: 33% Small (0.75x), 33% Medium (1.0x), 33% Tall (1.25x)
+    const heightTiers = [0.85, 1.10, 1.25];
+    const tierMultiplier = heightTiers[index % 3];
+
+    const randomScale = (pt.scale || currentHoleConfig.treeScale || 3.8) * tierMultiplier;
+    const heightScale = currentHoleConfig.treeHeightScale || 1.0;
             const calculatedTrunkRad = 0.25 * randomScale;
             const calculatedTrunkH = 1.4 * randomScale * heightScale;
             const calculatedFoliageRad = 1.1 * randomScale;
@@ -3171,15 +3175,17 @@ function resetEntireGame(advanceHole = false) {
                         const branchMesh = new THREE.Mesh(branchGeo, trunkMat);
                         branchGroup.add(branchMesh);
 
-                        // --- CHANGE THIS NUMBER ANYTIME TO ADD MORE OR FEWER LEAVES ---
-                        const leavesPerBranch = 5;
+                        // --- CHANGE THIS NUMBER ANYTIME TO ADD MORE OR FEWER LEAF CLOUDS ---
+                        const leavesPerBranch = 4;
 
-                        const leafPadGeo = new THREE.SphereGeometry(finalizedFoliageRadius * 0.08, 12, 8);
+                        // Expanded 3D foliage puffs that envelop the outer branch ends
+                        const leafPadGeo = new THREE.SphereGeometry(finalizedFoliageRadius * 0.10, 12, 12);
                         for (let l = 1; l <= leavesPerBranch; l++) {
                             const leafMesh = new THREE.Mesh(leafPadGeo, foliageMat);
-                            const posAlongBranch = (l / leavesPerBranch); // Spreads leaves evenly along branch
-                            const sideOffset = (l % 2 === 0 ? 0.08 : -0.08); // Alternates left & right sides
-                            leafMesh.scale.set(0.7, 0.22, 0.6);
+                            // Concentrates the leaf puffs along the outer 60% of the branch
+                            const posAlongBranch = 0.4 + (l / leavesPerBranch) * 0.6;
+                            const sideOffset = (l % 2 === 0 ? 0.18 : -0.18);
+                            leafMesh.scale.set(1.0, 0.15, 1.0); // Full, rounded 3D foliage shape
                             leafMesh.position.set(sideOffset, branchLength * posAlongBranch, 0);
                             branchGroup.add(leafMesh);
                         }
