@@ -496,7 +496,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 6; //1st hole start
+let currentHoleNumber = 4; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3187,76 +3187,103 @@ function resetEntireGame(advanceHole = false) {
 
             const randomScale = (pt.scale || currentHoleConfig.treeScale || 3.8) * tierMultiplier;
             const heightScale = currentHoleConfig.treeHeightScale || 1.0;
-            const calculatedTrunkRad = 0.25 * randomScale;
-            const calculatedTrunkH = 1.4 * randomScale * heightScale;
-            const calculatedFoliageRad = 1.1 * randomScale;
+           const calculatedTrunkRad = 0.32 * randomScale;
+            const calculatedTrunkH = 1.0 * randomScale * heightScale;
+            const calculatedFoliageRad = 1.35 * randomScale;
 
-            const trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
+            // Flared oak trunk: wider base tapering up to the main crotch of the tree
+            const trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad * 1.35, calculatedTrunkH, 10);
             const trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
             trunkMesh.position.y = calculatedTrunkH / 2;
             sceneryGroup.add(trunkMesh);
 
             const finalizedFoliageRadius = calculatedFoliageRad * 1.1;
-            const finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
+            const finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.0;
 
-            // Main top canopy (Original sizes preserved)
-            const positions = [
-                [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],
-                [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
-                [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
-                [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45],
-                [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]
-            ];
-
-            positions.forEach(p => {
-                const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
-                const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
-                leafMesh.position.set(p[0], p[1], p[2]);
-                sceneryGroup.add(leafMesh);
-            });
-
-            // Full wooden limbs with leafy branch canopies
+            // REALISTIC OAK STRUCTURE: Forking boughs and dense 3D foliage dome
             if (heightScale > 1.0) {
-                const numTiers = 3; // 3 main branch levels along the trunk
-                for (let tier = 1; tier <= numTiers; tier++) {
-                    const tierY = calculatedTrunkH * (0.40 + (tier - 1) * 0.18); // Heights at 28%, 46%, and 64% up trunk
-                    const clusterCount = 2; // 3 branches per level
+                // 1. Primary Boughs - thick limbs forking out from the top of the main trunk
+                const boughCount = 5;
+                const boughLength = calculatedFoliageRad * 0.95;
 
-                    for (let c = 0; c < clusterCount; c++) {
-                        // Spiral branches around the trunk
-                        const angle = (c * (Math.PI * 2 / clusterCount)) + (tier * 1.5);
-                        const branchLength = finalizedFoliageRadius * 0.85; // Reaches significantly further out
+                for (let b = 0; b < boughCount; b++) {
+                    const angle = (b / boughCount) * Math.PI * 2 + (index * 0.7);
+                    const tilt = 0.55 + (b % 2) * 0.15; // ~32 to 40 degree outward angle
 
-                        const branchGroup = new THREE.Group();
-                        branchGroup.position.set(0, tierY, 0);
-                        branchGroup.rotation.y = angle;
-                        branchGroup.rotation.z = -0.50; // Angled ~30 degrees upward
-                        branchGroup.rotation.order = 'YXZ';
+                    const boughGroup = new THREE.Group();
+                    boughGroup.position.set(0, calculatedTrunkH * 0.75, 0);
+                    boughGroup.rotation.y = angle;
+                    boughGroup.rotation.z = -tilt;
+                    boughGroup.rotation.order = 'YXZ';
 
-                        // 1. Thick wooden branch tapering from base to tip
-                        const branchGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.38, branchLength, 6);
-                        branchGeo.translate(0, branchLength / 2, 0);
-                        const branchMesh = new THREE.Mesh(branchGeo, trunkMat);
-                        branchGroup.add(branchMesh);
+                    // Tapered main bough limb
+                    const boughGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.22, calculatedTrunkRad * 0.55, boughLength, 8);
+                    boughGeo.translate(0, boughLength / 2, 0);
+                    const boughMesh = new THREE.Mesh(boughGeo, trunkMat);
+                    boughGroup.add(boughMesh);
 
-                        // --- CHANGE THIS NUMBER ANYTIME TO ADD MORE OR FEWER LEAF CLOUDS ---
-                        const leavesPerBranch = 4;
+                    // Secondary twig splitting off each bough
+                    const subLength = boughLength * 0.55;
+                    const subGroup = new THREE.Group();
+                    subGroup.position.set(0, boughLength * 0.65, 0);
+                    subGroup.rotation.z = 0.45;
+                    const subGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.12, calculatedTrunkRad * 0.22, subLength, 6);
+                    subGeo.translate(0, subLength / 2, 0);
+                    subGroup.add(new THREE.Mesh(subGeo, trunkMat));
+                    boughGroup.add(subGroup);
 
-                        // Expanded 3D foliage puffs that envelop the outer branch ends
-                        const leafPadGeo = new THREE.SphereGeometry(finalizedFoliageRadius * 0.10, 12, 12);
-                        for (let l = 1; l <= leavesPerBranch; l++) {
-                            const leafMesh = new THREE.Mesh(leafPadGeo, foliageMat);
-                            // Concentrates the leaf puffs along the outer 60% of the branch
-                            const posAlongBranch = 0.4 + (l / leavesPerBranch) * 0.6;
-                            const sideOffset = (l % 2 === 0 ? 0.18 : -0.18);
-                            leafMesh.scale.set(1.0, 0.15, 1.0); // Full, rounded 3D foliage shape
-                            leafMesh.position.set(sideOffset, branchLength * posAlongBranch, 0);
-                            branchGroup.add(leafMesh);
-                        }
-
-                        sceneryGroup.add(branchGroup);
-                    }
+                    sceneryGroup.add(boughGroup);
                 }
+
+                // 2. Full 3D Dome Canopy (Overlapping volumetric foliage spheres filling out the crown)
+                const domePuffs = [
+                    // Center high crown
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.85, 0, 0.75],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.65, 0, 0.85],
+
+                    // Middle spreading ring of foliage
+                    [finalizedFoliageRadius * 0.55, calculatedTrunkH + finalizedFoliageRadius * 0.5, 0, 0.60],
+                    [-finalizedFoliageRadius * 0.55, calculatedTrunkH + finalizedFoliageRadius * 0.5, 0, 0.60],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.55, 0.60],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.55, 0.60],
+
+                    // Diagonal corner fillers for a round, organic dome
+                    [finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, finalizedFoliageRadius * 0.4, 0.52],
+                    [-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, finalizedFoliageRadius * 0.4, 0.52],
+                    [finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, -finalizedFoliageRadius * 0.4, 0.52],
+                    [-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, -finalizedFoliageRadius * 0.4, 0.52],
+
+                    // Lower skirt canopy
+                    [finalizedFoliageRadius * 0.65, calculatedTrunkH + finalizedFoliageRadius * 0.25, 0, 0.48],
+                    [-finalizedFoliageRadius * 0.65, calculatedTrunkH + finalizedFoliageRadius * 0.25, 0, 0.48],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.25, finalizedFoliageRadius * 0.65, 0.48],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.25, -finalizedFoliageRadius * 0.65, 0.48]
+                ];
+
+                domePuffs.forEach(p => {
+                    const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 16, 16);
+                    const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    // Slightly squash vertically for a natural oak canopy shape
+                    leafMesh.scale.set(1.05, 0.85, 1.05);
+                    sceneryGroup.add(leafMesh);
+                });
+            } else {
+                // Standard default tree canopy for heightScale <= 1.0
+                const positions = [
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],
+                    [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
+                    [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]
+                ];
+
+                positions.forEach(p => {
+                    const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
+                    const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    sceneryGroup.add(leafMesh);
+                });
             }
 
             physics.obstacles.push({
