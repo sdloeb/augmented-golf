@@ -411,65 +411,100 @@ const HOLES_CONFIG = {
             stakesPerRow: 3
         }
     },
-    6: { // Bethpage Black #15 - 478-Yard Uphill Championship Par 4
+    6: { // Oakmont Country Club #18 - 496-Yard Championship Par 4
         par: 4,
-        fairwayWidth: 13.5,
-        greenRadius: 10.5,
+        fairwayWidth: 11.5,     // Tightened width so rough grass wraps around all bunker lips
+        greenRadius: 11.0,
         greenShape: 'oval',
-        theme: 'forest',
-        treeScale: 5.0,
-        treeHeightScale: 1.8,
+        horizonTheme: 'estate', // Renders Oakmont's historic clubhouse behind the green
+        theme: 'standard',
+        treeScale: 4.8,
+        treeHeightScale: 1.8,   // Spawns realistic spreading oak trees
 
-        // 2-Tiered Sloped Green (sloping back-to-front with an elevated rear tier)
+        // Oakmont's Fast Back-to-Front Sloped Green
         slopeProfile: {
-            backLeft: { rx: -0.025, rz: -0.035 },
-            backRight: { rx: 0.020, rz: -0.035 },
-            midLeft: { rx: -0.020, rz: -0.040 },
-            midRight: { rx: 0.015, rz: -0.040 },
-            frontLeft: { rx: -0.015, rz: -0.045 },
-            frontRight: { rx: 0.010, rz: -0.045 },
+            backLeft: { rx: -0.025, rz: -0.045 },
+            backRight: { rx: 0.020, rz: -0.045 },
+            midLeft: { rx: -0.020, rz: -0.048 },
+            midRight: { rx: 0.015, rz: -0.048 },
+            frontLeft: { rx: -0.015, rz: -0.052 },
+            frontRight: { rx: 0.010, rz: -0.052 },
 
             features: [
-                // Step tier separating upper back shelf from lower front slope
-                { type: 'tier', axis: 'z', position: -1.0, width: 3.5, height: 0.18 }
+                // False front slope at the entrance to the green
+                { type: 'tier', axis: 'z', position: 4.0, width: 3.0, height: -0.15 }
             ]
         },
 
+        // S-CURVE FAIRWAY WAYPOINTS
         waypoints: [
-            new THREE.Vector3(0, 0, 10),       // Tee Box
-            new THREE.Vector3(-6, 0, -91),     // 280-Yard Landing Fairway (Slight Dogleg Left)
-            new THREE.Vector3(-12, 0, -162.6)  // 478-Yard Elevated Green
+            new THREE.Vector3(0, 0, 10),       // 1. Tee Box (0 yards)
+            new THREE.Vector3(0, 0, -35),      // 2. Chute exit off tee
+            new THREE.Vector3(-7.0, 0, -75),   // 3. Sweeps LEFT around 260yd right bunker
+            new THREE.Vector3(6.0, 0, -102),   // 4. Sweeps RIGHT around 304yd left bunkers
+            new THREE.Vector3(8.0, 0, -135),   // 5. Sweeps RIGHT around 90yd left bunker
+            new THREE.Vector3(0, 0, -168)      // 6. Sweeps back into Green Center (493 yards total)
         ],
 
+        // HORIZONTAL X-AXIS ELONGATED BUNKERS EMBEDDED IN ROUGH
         hazards: [
-            // Landing Zone Fairway Bunkers
-            { type: 'sand', x: 8.0, z: -88.0, radius: 6.0, depth: 1.1 },
-            { type: 'sand', x: -18.0, z: -98.0, radius: 5.5, depth: 1.1 },
+            // 1. Right Rough Horizontal Elongated Bunker (260 yd from tee / Z = -83.9)
+            {
+                type: 'sand',
+                shape: 'snake',
+                radius: 3.2,
+                depth: 1.2,
+                path: [
+                    { x: 14.5, z: -83.9 },
+                    { x: 7.5, z: -83.9 }
+                ]
+            },
 
-            // Massive Deep Bunkers Guarding the Elevated Green Entrance
-            { type: 'sand', x: -28.0, z: -162.6, radius: 4.0, depth: 1.2 },
-            { type: 'sand', x: -12.0, z: -145.0, radius: 4.5, depth: 1.3 },
-            { type: 'sand', x: 4.0, z: -162.6, radius: 4.0, depth: 1.2 }
+            // 2. Left Rough 2 Bunkers (304 yd from tee / Z = -94 & -104)
+            { type: 'sand', x: -9.0, z: -94.0, radius: 4.5, depth: 1.2 },
+            { type: 'sand', x: -5.0, z: -104.0, radius: 4.8, depth: 1.2 },
+
+            // 3. Right Rough 2 Bunkers (243 yd from hole / Z = -99.5 & -109.5)
+            { type: 'sand', x: 16.5, z: -99.5, radius: 4.2, depth: 1.2 },
+            { type: 'sand', x: 18.0, z: -109.5, radius: 4.0, depth: 1.2 },
+
+            // 4. Left Rough Approach Horizontal Elongated Bunker (90 yd from green / Z = -135.5)
+            {
+                type: 'sand',
+                shape: 'snake',
+                radius: 3.0,
+                depth: 1.2,
+                path: [
+                    { x: -5.5, z: -135.5 },
+                    { x: 3.5, z: -135.5 }
+                ]
+            },
+
+            // 5. Greenside Bunkers (Buffered clear of the oval green)
+            { type: 'sand', x: -18.5, z: -158.0, radius: 3.6, depth: 1.3 },
+            { type: 'sand', x: -20.5, z: -168.0, radius: 3.8, depth: 1.3 },
+            { type: 'sand', x: 18.5, z: -159.0, radius: 3.8, depth: 1.3 },
+            { type: 'sand', x: 20.5, z: -168.0, radius: 4.0, depth: 1.3 }
         ],
 
-        // Oak & Pine tree lines framing the championship fairway
+        // Oak trees framing outer rough following curved fairway contours
         customTrees: [
             // Left Tree Line
-            { x: -28, z: 20 }, { x: -28, z: 0 }, { x: -28, z: -20 }, { x: -28, z: -40 },
-            { x: -30, z: -60 }, { x: -32, z: -80 }, { x: -35, z: -100 }, { x: -35, z: -120 },
-            { x: -32, z: -140 }, { x: -30, z: -160 }, { x: -28, z: -180 },
+            { x: -32, z: 20 }, { x: -32, z: 0 }, { x: -32, z: -20 }, { x: -30, z: -40 },
+            { x: -28, z: -60 }, { x: -30, z: -80 }, { x: -32, z: -100 }, { x: -36, z: -120 },
+            { x: -36, z: -140 }, { x: -32, z: -160 }, { x: -30, z: -180 },
 
             // Right Tree Line
-            { x: 28, z: 20 }, { x: 28, z: 0 }, { x: 28, z: -20 }, { x: 28, z: -40 },
-            { x: 28, z: -60 }, { x: 26, z: -80 }, { x: 22, z: -100 }, { x: 18, z: -120 },
-            { x: 15, z: -140 }, { x: 12, z: -160 }, { x: 10, z: -180 }
+            { x: 32, z: 20 }, { x: 32, z: 0 }, { x: 32, z: -20 }, { x: 36, z: -40 },
+            { x: 38, z: -60 }, { x: 36, z: -80 }, { x: 34, z: -100 }, { x: 30, z: -120 },
+            { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
         ],
 
         customOOB: {
             type: 'rectangle',
             minX: -55,
-            maxX: 45,
-            minZ: -190,
+            maxX: 55,
+            minZ: -198,
             maxZ: 30,
             stakesPerSide: 10,
             stakesPerRow: 4
@@ -496,7 +531,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 4; //1st hole start
+let currentHoleNumber = 6; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3187,7 +3222,7 @@ function resetEntireGame(advanceHole = false) {
 
             const randomScale = (pt.scale || currentHoleConfig.treeScale || 3.8) * tierMultiplier;
             const heightScale = currentHoleConfig.treeHeightScale || 1.0;
-           const calculatedTrunkRad = 0.32 * randomScale;
+            const calculatedTrunkRad = 0.32 * randomScale;
             const calculatedTrunkH = 1.0 * randomScale * heightScale;
             const calculatedFoliageRad = 1.35 * randomScale;
 
