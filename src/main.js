@@ -171,20 +171,33 @@ const HOLES_CONFIG = {
         greenRadius: 8.5,
         horizonTheme: 'estate',
 
-        // 6-Zone Slope Profile with Bi-Level Tier & False Front
+       // Wavy & Bumpy Slope Profile with Ridges, Mounds, and Collection Swales
         slopeProfile: {
-            backLeft: { rx: -0.040, rz: 0.020 },
-            backRight: { rx: -0.030, rz: 0.025 },
-            midLeft: { rx: -0.045, rz: 0.000 },
-            midRight: { rx: -0.035, rz: 0.000 },
-            frontLeft: { rx: -0.030, rz: -0.030 },
-            frontRight: { rx: -0.020, rz: -0.035 },
+            // Opposing sector tilts create natural twisting & side breaks
+            backLeft:   { rx: -0.025, rz:  0.020 },
+            backRight:  { rx: -0.018, rz: -0.015 },
+            midLeft:    { rx:  0.015, rz: -0.022 },
+            midRight:   { rx: -0.020, rz:  0.018 },
+            frontLeft:  { rx: -0.030, rz:  0.015 },
+            frontRight: { rx:  0.012, rz: -0.025 },
 
             features: [
-                // Step-up tier separating the upper back shelf from the lower front
-                { type: 'tier', axis: 'z', position: -1.0, width: 2.0, height: 0.55 },
-                // Catchment bowl on the back-left corner near the cliff edge
-                { type: 'bowl', x: -3.5, z: -3.5, radius: 3.5, depth: 0.10 }
+                // 1. Diagonal crowning spine running across the center of the green
+                { type: 'ridge', p1: { x: -5.0, z: -2.0 }, p2: { x: 4.0, z: 2.0 }, width: 3.2, height: 0.14 },
+
+                // 2. Humps & Mounds scattered across different quadrants
+                { type: 'mound', x: 3.5, z: -3.5, radius: 3.0, height: 0.15 },  // Back-right high hump
+                { type: 'mound', x: -2.8, z: 3.2, radius: 2.8, height: 0.12 },  // Front-left entry bump
+                { type: 'mound', x: 2.5, z: 4.8, radius: 2.2, height: 0.10 },   // Front-right runoff mound
+
+                // 3. Collection Bowls & Swales
+                { type: 'bowl', x: -3.5, z: -3.5, radius: 3.5, depth: 0.12 },   // Deep back-left catchment bowl
+                { type: 'bowl', x: 1.5, z: -0.5, radius: 2.8, depth: 0.09 },    // Center-right swale
+
+                // 4. Stepped Elevation Tiers
+                { type: 'tier', axis: 'z', position: 3.8, width: 2.2, height: 0.11 },
+                { type: 'tier', axis: 'z', position: -0.5, width: 2.5, height: 0.10 },
+                { type: 'tier', axis: 'z', position: -4.2, width: 2.2, height: 0.12 }
             ]
         },
 
@@ -531,7 +544,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
