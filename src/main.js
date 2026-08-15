@@ -572,141 +572,181 @@ let horizonRingMesh = null;
 
 // --- HELPER FUNCTION: DRAW FAKE VIEW COURSE (FAIRWAYS, BUNKERS, GREENS & FLAGS) ---
 function drawFakeViewCourse(ctx, twoPi) {
-    // 1. MATCHING COURSE ROUGH BASE (Fills ground below trees with lighter rough green)
-    ctx.fillStyle = '#2b502b';
+    // 1. BASE ROUGH GROUND LAYER (Fills ground area beneath the tree line)
+    ctx.fillStyle = '#264a26';
     ctx.beginPath();
     ctx.moveTo(0, 512);
-    ctx.lineTo(0, 315);
-    ctx.lineTo(2048, 315);
+    ctx.lineTo(0, 290);
+    ctx.lineTo(2048, 290);
     ctx.lineTo(2048, 512);
     ctx.closePath();
     ctx.fill();
 
-    // 2. BACKGROUND TREELINE CANOPY (Confined strictly to tree tops above ground)
-    ctx.fillStyle = '#142915';
+    // 2. DISTANT BACKGROUND TREELINE RIDGE
+    ctx.fillStyle = '#112213';
     ctx.beginPath();
-    ctx.moveTo(0, 316);
+    ctx.moveTo(0, 292);
     for (let x = 0; x <= 2048; x += 3) {
         const p = x / 2048;
-        const hill = Math.sin(p * twoPi * 4) * 8 + Math.cos(p * twoPi * 8) * 5;
-        const treeTop = Math.abs(Math.sin(x * 0.12)) * 14 + Math.abs(Math.cos(x * 0.25)) * 8;
-        const y = 315 + hill - treeTop;
-        ctx.lineTo(x, y);
+        const hill = Math.sin(p * twoPi * 3) * 12 + Math.cos(p * twoPi * 7) * 6;
+        const treeTop = Math.abs(Math.sin(x * 0.14)) * 15 + Math.abs(Math.cos(x * 0.28)) * 8;
+        ctx.lineTo(x, 290 + hill - treeTop);
     }
-    ctx.lineTo(2048, 316);
+    ctx.lineTo(2048, 292);
     ctx.closePath();
     ctx.fill();
 
-    // 1. Fairway Swath #1 (Left Flank)
-    ctx.fillStyle = '#487a38';
-    ctx.beginPath();
-    ctx.moveTo(450, 345);
-    ctx.bezierCurveTo(550, 310, 720, 305, 880, 338);
-    ctx.bezierCurveTo(780, 365, 580, 368, 450, 345);
-    ctx.closePath();
-    ctx.fill();
+    // --- DRAWING PRIMITIVES FOR PERSPECTIVE HOLES ---
+    // Draws perspective fairway ribbons (narrow in distance, wider closer to foreground)
+    const drawPerspectiveFairway = (topX, topY, topW, botX, botY, botW, curveFactor = 0) => {
+        const midY = (topY + botY) / 2;
+        const midX = (topX + botX) / 2 + curveFactor;
 
-    // Inner Fairway Light Stripe #1
-    ctx.fillStyle = '#548a42';
-    ctx.beginPath();
-    ctx.moveTo(490, 342);
-    ctx.bezierCurveTo(580, 315, 700, 312, 840, 335);
-    ctx.bezierCurveTo(750, 358, 570, 360, 490, 342);
-    ctx.closePath();
-    ctx.fill();
+        // Dark outer cut
+        ctx.fillStyle = '#346d2a';
+        ctx.beginPath();
+        ctx.moveTo(topX - topW / 2, topY);
+        ctx.quadraticCurveTo(midX - (topW + botW) / 4, midY, botX - botW / 2, botY);
+        ctx.lineTo(botX + botW / 2, botY);
+        ctx.quadraticCurveTo(midX + (topW + botW) / 4, midY, topX + topW / 2, topY);
+        ctx.closePath();
+        ctx.fill();
 
-    // Sand Bunkers along Fairway #1
-    ctx.fillStyle = '#d6c49d';
-    ctx.beginPath();
-    ctx.ellipse(560, 340, 22, 7, 0.1, 0, twoPi);
-    ctx.ellipse(760, 334, 18, 6, -0.15, 0, twoPi);
-    ctx.fill();
+        // Bright inner stripe
+        ctx.fillStyle = '#468939';
+        ctx.beginPath();
+        ctx.moveTo(topX - topW * 0.28, topY + 2);
+        ctx.quadraticCurveTo(midX - (topW + botW) * 0.16, midY, botX - botW * 0.28, botY - 3);
+        ctx.lineTo(botX + botW * 0.28, botY - 3);
+        ctx.quadraticCurveTo(midX + (topW + botW) * 0.16, midY, topX + topW * 0.28, topY + 2);
+        ctx.closePath();
+        ctx.fill();
+    };
 
-    ctx.fillStyle = 'rgba(20, 30, 15, 0.3)';
-    ctx.beginPath();
-    ctx.ellipse(562, 341, 19, 5, 0.1, 0, twoPi);
-    ctx.ellipse(762, 335, 15, 4, -0.15, 0, twoPi);
-    ctx.fill();
+    // Draws putting green with fringe and a scaled red flag
+    const drawGreen = (x, y, rx, ry, flagH = 12) => {
+        // Dark fringe collar
+        ctx.fillStyle = '#225522';
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx + 4, ry + 2.5, 0, 0, twoPi);
+        ctx.fill();
 
-    // 2. Fairway Swath #2 (Right Flank)
-    ctx.fillStyle = '#487a38';
-    ctx.beginPath();
-    ctx.moveTo(1200, 335);
-    ctx.bezierCurveTo(1320, 298, 1500, 295, 1650, 330);
-    ctx.bezierCurveTo(1540, 360, 1330, 362, 1200, 335);
-    ctx.closePath();
-    ctx.fill();
+        // Putting green surface
+        ctx.fillStyle = '#44bb55';
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, 0, 0, twoPi);
+        ctx.fill();
 
-    // Inner Fairway Light Stripe #2
-    ctx.fillStyle = '#548a42';
-    ctx.beginPath();
-    ctx.moveTo(1240, 332);
-    ctx.bezierCurveTo(1340, 303, 1460, 300, 1600, 328);
-    ctx.bezierCurveTo(1500, 352, 1310, 354, 1240, 332);
-    ctx.closePath();
-    ctx.fill();
+        // Flagstick
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y - flagH);
+        ctx.stroke();
 
-    // Sand Bunkers along Fairway #2
-    ctx.fillStyle = '#d6c49d';
-    ctx.beginPath();
-    ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
-    ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
-    ctx.fill();
+        // Uniform Red Flag
+        ctx.fillStyle = '#ff2222';
+        ctx.beginPath();
+        ctx.moveTo(x, y - flagH);
+        ctx.lineTo(x + flagH * 0.42, y - flagH + flagH * 0.2);
+        ctx.lineTo(x, y - flagH + flagH * 0.4);
+        ctx.closePath();
+        ctx.fill();
+    };
 
-    // --- DISTANT GREENS & RED FLAGSTICKS ---
-    // Green #1
-    ctx.fillStyle = '#3a662d';
-    ctx.beginPath();
-    ctx.ellipse(860, 336, 20, 7, 0.05, 0, twoPi);
-    ctx.fill();
+// Draws sand bunkers with inner depth shadows
+    const drawBunker = (x, y, rx, ry, rot = 0) => {
+        const bunkerScale = 0.50; // Change this number to resize all fake traps (e.g. 0.40 for smaller, 0.60 for larger)
+        const sRx = rx * bunkerScale;
+        const sRy = ry * bunkerScale;
 
-    ctx.fillStyle = '#52be52';
-    ctx.beginPath();
-    ctx.ellipse(860, 336, 16, 5, 0.05, 0, twoPi);
-    ctx.fill();
+        ctx.fillStyle = '#d9c59e';
+        ctx.beginPath();
+        ctx.ellipse(x, y, sRx, sRy, rot, 0, twoPi);
+        ctx.fill();
 
-    // Flagstick #1
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(860, 336);
-    ctx.lineTo(860, 324);
-    ctx.stroke();
+        ctx.fillStyle = 'rgba(20, 35, 18, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(x + 1, y + 1, sRx * 0.8, sRy * 0.75, rot, 0, twoPi);
+        ctx.fill();
+    };
 
-    ctx.fillStyle = '#ff3333';
-    ctx.beginPath();
-    ctx.moveTo(860, 324);
-    ctx.lineTo(863, 326);
-    ctx.lineTo(860, 328);
-    ctx.closePath();
-    ctx.fill();
+    // Draws dense tree groves dividing adjacent holes
+    const drawTreeLine = (x1, y1, x2, y2, count = 7, baseR = 12) => {
+        ctx.fillStyle = '#142d17';
+        for (let i = 0; i <= count; i++) {
+            const t = i / count;
+            const tx = x1 + (x2 - x1) * t;
+            const ty = y1 + (y2 - y1) * t;
+            const r = baseR + Math.sin(i * 2.3) * 3;
+            ctx.beginPath();
+            ctx.arc(tx, ty - r * 0.5, r, 0, twoPi);
+            ctx.fill();
+        }
+    };
 
-    // Green #2
-    ctx.fillStyle = '#3a662d';
-    ctx.beginPath();
-    ctx.ellipse(1620, 326, 18, 6, -0.05, 0, twoPi);
-    ctx.fill();
+    // =========================================================================
+    // LAYER 1: DEEP DISTANT HOLES (y: 305 - 340)
+    // =========================================================================
+    // Distant Par 3 (Far Left, angling away)
+    drawPerspectiveFairway(120, 305, 14, 230, 335, 26, -15);
+    drawBunker(215, 320, 12, 5, 0.1);
+    drawGreen(115, 305, 14, 5, 9);
 
-    ctx.fillStyle = '#52be52';
-    ctx.beginPath();
-    ctx.ellipse(1620, 326, 14, 4.5, -0.05, 0, twoPi);
-    ctx.fill();
+    // Distant Crossing Hole (Mid-Left, sweeping sideways)
+    drawPerspectiveFairway(620, 310, 20, 840, 328, 28, 20);
+    drawBunker(720, 312, 14, 5, -0.15);
+    drawBunker(810, 318, 12, 4.5, 0.2);
+    drawGreen(850, 328, 16, 5.5, 10);
 
-    // Flagstick #2
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(1620, 326);
-    ctx.lineTo(1620, 316);
-    ctx.stroke();
+    // Distant Straightaway (Mid-Right, pointing straight back)
+    drawPerspectiveFairway(1240, 305, 16, 1290, 338, 26, 0);
+    drawBunker(1260, 318, 13, 4.5, 0.1);
+    drawGreen(1235, 305, 15, 5, 9);
 
-    ctx.fillStyle = '#ff3333';
-    ctx.beginPath();
-    ctx.moveTo(1620, 316);
-    ctx.lineTo(1623, 318);
-    ctx.lineTo(1620, 320);
-    ctx.closePath();
-    ctx.fill();
+    // Distant Sweeper (Far Right)
+    drawPerspectiveFairway(1780, 308, 18, 1920, 332, 28, -25);
+    drawBunker(1840, 314, 15, 5, -0.2);
+    drawGreen(1770, 308, 15, 5, 9);
+
+    // Background Tree Dividers
+    drawTreeLine(300, 325, 550, 330, 8, 10);
+    drawTreeLine(930, 330, 1150, 335, 7, 11);
+    drawTreeLine(1400, 332, 1680, 330, 9, 10);
+
+    // =========================================================================
+    // LAYER 2: CLOSER MID-GROUND HOLES (y: 350 - 470) - Angled & Interlocking
+    // =========================================================================
+    // Hole A: Closer Left Dogleg (Starts deep left, curves down towards player)
+    drawPerspectiveFairway(280, 350, 30, 80, 460, 68, 40);
+    drawBunker(180, 420, 26, 9, 0.2);
+    drawBunker(120, 448, 20, 7.5, -0.15);
+    drawGreen(295, 350, 26, 9, 14);
+
+    // Hole B: Closer Center-Left Hole (Angles across the field from left to right)
+    drawPerspectiveFairway(420, 370, 34, 680, 455, 62, -30);
+    drawBunker(490, 395, 24, 8, -0.1);
+    drawBunker(610, 425, 22, 7.5, 0.15);
+    drawGreen(695, 458, 28, 9.5, 15);
+
+    // Hole C: Closer Center-Right Incoming Hole (Points towards player with green in mid-ground)
+    drawPerspectiveFairway(1020, 355, 32, 1260, 465, 70, 35);
+    drawBunker(1090, 385, 28, 9.5, 0.18);
+    drawBunker(1190, 425, 24, 8.5, -0.12);
+    drawGreen(1010, 355, 28, 9.5, 14);
+
+    // Hole D: Closer Right Flank Hole (Runs along the right ridge line away into distance)
+    drawPerspectiveFairway(1750, 360, 32, 1520, 465, 65, -45);
+    drawBunker(1620, 430, 26, 9, -0.15);
+    drawBunker(1700, 390, 22, 8, 0.2);
+    drawGreen(1765, 360, 26, 9, 14);
+
+    // Foreground Tree Copses separating the closer fairways
+    drawTreeLine(340, 410, 390, 460, 6, 16);
+    drawTreeLine(780, 420, 940, 470, 8, 18);
+    drawTreeLine(1360, 430, 1450, 480, 7, 17);
+    drawTreeLine(1980, 430, 2048, 470, 5, 18);
 }
 
 function createHorizonTexture(theme = 'mountains') {
