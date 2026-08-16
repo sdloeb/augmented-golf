@@ -561,6 +561,7 @@ let wasMoving = false;
 let overheadTimeout = null;
 let isOverheadActive = false;
 let previewProgress = 0;
+let overheadPauseStartTime = 0;
 
 // NEW CAMERA FLIGHT TRACKERS
 let shotStartTime = 0;
@@ -4938,17 +4939,22 @@ function animate() {
             cameraLookAt.set(blendLookX, blendLookY, blendLookZ);
             activeCameraSpeed = 0.14;// Increased tracking speed to keep tracking snappy without rubber-banding
 
-            // Automatically snap back behind the ball once the full camera flight completes
+       // Automatically snap back behind the ball once the full camera flight completes
             if (previewProgress >= 1) {
-                isOverheadActive = false;
-                const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-                const camDist = onGreen ? 2.5 : 5.5;
-                const camHeight = onGreen ? 1.0 : 1.8;
-                const lookDist = onGreen ? 6.0 : 12.0;
+                if (!overheadPauseStartTime) {
+                    overheadPauseStartTime = performance.now();
+                } else if (performance.now() - overheadPauseStartTime >= 1000) {
+                    overheadPauseStartTime = 0;
+                    isOverheadActive = false;
+                    const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+                    const camDist = onGreen ? 2.5 : 5.5;
+                    const camHeight = onGreen ? 1.0 : 1.8;
+                    const lookDist = onGreen ? 6.0 : 12.0;
 
-                cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
-                cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
-                activeCameraSpeed = 0.02;
+                    cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+                    cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+                    activeCameraSpeed = 0.02;
+                }
             }
         }
     }
@@ -6165,6 +6171,7 @@ function init() {
             if (!isOverheadActive) {
                 isOverheadActive = true;
                 previewProgress = 0;
+                overheadPauseStartTime = 0;
 
                 if (checkIsBallOnGreenOrFringe()) {
                     // GREEN VIEW START: Position camera low behind the ball
@@ -6192,6 +6199,7 @@ function init() {
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
+                overheadPauseStartTime = 0;
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
