@@ -20,6 +20,7 @@ import { InputHandler } from './InputHandler.js';
 import { PhysicsEngine } from './PhysicsEngine.js';
 import { SoundManager } from './SoundManager.js';
 import { TutorialManager } from './TutorialManager.js';
+import { generateAdjacentHoles } from './AdjacentHoles.js';
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
@@ -4094,9 +4095,12 @@ function resetEntireGame(advanceHole = false) {
         horizonRingMesh.material.map.needsUpdate = true;
     }
 
-    if (currentHoleConfig && currentHoleConfig.cartPath) {
+if (currentHoleConfig && currentHoleConfig.cartPath) {
         createCartPath(currentHoleConfig.cartPath, 2.2);
     }
+
+    // Spawn 3D neighboring fairways, greens, pins, and bunkers
+    generateAdjacentHoles(scene, sceneryObjects, physics, currentHoleConfig, holePosition, greenCenterZ);
 
     generateNewWind();
     updateDistanceDisplay();
