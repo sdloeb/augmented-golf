@@ -70,6 +70,9 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     const bushMat = new THREE.MeshStandardMaterial({ color: 0x1a521a, roughness: 0.8 });
 
     const ELEVATION_OFFSET = 0.38;
+    // Track all generated adjacent fairways and greens for tree clearance
+    const allAdjacentPaths = [];
+    const allAdjacentGreens = [];
 
     // --- WATER HAZARD COLLISION DETECTOR ---
     function isPointInWater(x, z, padding = 4.5) {
@@ -120,8 +123,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         return false;
     }
 
-    // --- 1. HELPER: CONTOURED FAIRWAY RIBBON ---
-    function createAdjacentFairway(waypoints, width = 14.0) {
+ function createAdjacentFairway(waypoints, width = 14.0) {
         const curve = new THREE.CatmullRomCurve3(waypoints);
         const steps = 100;
         const sampled = curve.getPoints(steps);
@@ -129,9 +131,17 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         const uvs = [];
         const indices = [];
         const halfW = width / 2;
+        const endPoint = waypoints[waypoints.length - 1];
 
+        let count = 0;
         for (let i = 0; i <= steps; i++) {
             const curr = sampled[i];
+
+            // Stops drawing the fairway ribbon 10.2 units before the green center
+            if (i > 15 && Math.hypot(curr.x - endPoint.x, curr.z - endPoint.z) < 10.2) {
+                break;
+            }
+
             const prev = sampled[Math.max(0, i - 1)];
             const next = sampled[Math.min(steps, i + 1)];
 
@@ -155,15 +165,16 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
             positions.push(rightX, rightY, rightZ);
 
             const stripeRepetitions = width / 5.5;
-            uvs.push(0, i * 0.2);
-            uvs.push(stripeRepetitions, i * 0.2);
+            uvs.push(0, count * 0.2);
+            uvs.push(stripeRepetitions, count * 0.2);
 
-            if (i < steps) {
-                const r1 = i * 2;
-                const r2 = (i + 1) * 2;
+            if (count > 0) {
+                const r1 = (count - 1) * 2;
+                const r2 = count * 2;
                 indices.push(r1, r1 + 1, r2);
                 indices.push(r1 + 1, r2 + 1, r2);
             }
+            count++;
         }
 
         if (positions.length < 6) return;
@@ -209,6 +220,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         flag.position.set(gx + 0.35, baseGroundY + pinH - 0.22, gz);
         scene.add(flag);
         sceneryObjects.push(flag);
+        allAdjacentGreens.push({ x: gx, z: gz, r: radius });
     }
 
     // --- 3. HELPER: SAND BUNKERS ---
@@ -371,87 +383,160 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     }
 
     // =========================================================================
-    // 1. NEIGHBOR HOLES A, B, AND C
+    // 1. NEIGHBOR HOLE GENERATION (DIFFERENT SIZES & TYPES)
     // =========================================================================
 
-    // --- HOLE A: LEFT FLANK RETURNING PAR 4 ---
+    const isOceanHole = currentHoleConfig && currentHoleConfig.hazards &&
+        currentHoleConfig.hazards.some(h => h.type === 'ocean');
+
+    // --- HOLE A: LEFT FLANK RETURNING PAR 4 (Medium ~380 yd) ---
     const teeA_z = Math.min(greenCenterZ - 15, ob.frontOB + 20);
     const teeA_x = ob.getLeftOB(teeA_z) - 20.0;
-
     const midA1_z = midZ - 20;
     const midA1_x = ob.getLeftOB(midA1_z) - 22.0;
-
     const midA2_z = midZ + 20;
     const midA2_x = ob.getLeftOB(midA2_z) - 20.0;
-
     const greenA_z = Math.min(10, ob.backOB - 20);
     const greenA_x = ob.getLeftOB(greenA_z) - 22.0;
 
-    createAdjacentTee(teeA_x, teeA_z, Math.PI);
-    createAdjacentFairway([
+    const pathA = [
         new THREE.Vector3(teeA_x, 0, teeA_z),
         new THREE.Vector3(midA1_x, 0, midA1_z),
         new THREE.Vector3(midA2_x, 0, midA2_z),
         new THREE.Vector3(greenA_x, 0, greenA_z)
-    ], 14.0);
+    ];
 
+    createAdjacentTee(teeA_x, teeA_z, Math.PI);
+    createAdjacentFairway(pathA, 14.0);
     createAdjacentBunker(ob.getLeftOB(midA1_z) - 30.0, midA1_z, 5.5, 4.0);
     createAdjacentBunker(ob.getLeftOB(greenA_z) - 12.0, greenA_z - 4, 4.5, 3.5);
     createAdjacentGreen(greenA_x, greenA_z, 9.0);
 
-    // --- HOLE B: RIGHT FLANK PAR 5 (Skipped on ocean/cliff holes like Hole 3) ---
-    const isOceanHole = currentHoleConfig && currentHoleConfig.hazards &&
-        currentHoleConfig.hazards.some(h => h.type === 'ocean');
-
+    // --- HOLE B: RIGHT FLANK PAR 5 (Long ~520 yd - Skipped on ocean holes) ---
+    let pathB = null;
+    let greenB_x = 0, greenB_z = 0;
     if (!isOceanHole) {
         const teeB_z = Math.min(18, ob.backOB - 15);
         const teeB_x = ob.getRightOB(teeB_z) + 20.0;
-
         const midB1_z = midZ + 20;
         const midB1_x = ob.getRightOB(midB1_z) + 22.0;
-
         const midB2_z = midZ - 25;
         const midB2_x = ob.getRightOB(midB2_z) + 20.0;
+        greenB_z = Math.max(greenCenterZ - 5, ob.frontOB + 15);
+        greenB_x = ob.getRightOB(greenB_z) + 22.0;
 
-        const greenB_z = Math.max(greenCenterZ - 5, ob.frontOB + 15);
-        const greenB_x = ob.getRightOB(greenB_z) + 22.0;
-
-        createAdjacentTee(teeB_x, teeB_z, 0);
-        createAdjacentFairway([
+        pathB = [
             new THREE.Vector3(teeB_x, 0, teeB_z),
             new THREE.Vector3(midB1_x, 0, midB1_z),
             new THREE.Vector3(midB2_x, 0, midB2_z),
             new THREE.Vector3(greenB_x, 0, greenB_z)
-        ], 14.0);
+        ];
 
+        createAdjacentTee(teeB_x, teeB_z, 0);
+        createAdjacentFairway(pathB, 14.0);
         createAdjacentBunker(ob.getRightOB(midB1_z) + 30.0, midB1_z, 5.0, 3.5);
         createAdjacentBunker(ob.getRightOB(greenB_z + 12) + 12.0, greenB_z + 12, 4.5, 3.2);
         createAdjacentBunker(ob.getRightOB(greenB_z) + 31.0, greenB_z - 4, 4.2, 4.0);
         createAdjacentGreen(greenB_x, greenB_z, 9.5);
     }
 
-    // --- HOLE C: DEEP TRANSVERSE CROSSING PAR 3 (Deep beyond Front OB line) ---
+    // --- HOLE C: BEHIND GREEN DEEP CROSSING ---
+    // On ocean/cliff holes (Hole 3): Only renders a crossing fairway ribbon across the plateau (no green/tee)
+    // On standard holes: Renders a complete Par 3 with tee, fairway, bunker and green
     const zCross = Math.min(ob.frontOB - 22.0, greenCenterZ - 45.0);
     const leftCX = ob.getLeftOB(zCross) - 15.0;
     const rightCX = isOceanHole ? 15.0 : (ob.getRightOB(zCross) + 15.0);
 
-    createAdjacentTee(leftCX, zCross + 4, Math.PI * 0.45);
-    createAdjacentFairway([
+    const pathC = [
         new THREE.Vector3(leftCX, 0, zCross + 4),
         new THREE.Vector3((leftCX + rightCX) / 2, 0, zCross),
-        new THREE.Vector3(rightCX, 0, zCross + 6)
-    ], 12.0);
-    createAdjacentBunker((leftCX + rightCX) / 2 + 10, zCross - 3, 4.5, 3.0);
-    createAdjacentGreen(rightCX, zCross + 6, 8.5);
+        new THREE.Vector3(rightCX, 0, zCross + (isOceanHole ? 2 : 6))
+    ];
+
+    if (isOceanHole) {
+        createAdjacentFairway(pathC, 13.0);
+    } else {
+        createAdjacentTee(leftCX, zCross + 4, Math.PI * 0.45);
+        createAdjacentFairway(pathC, 12.0);
+        createAdjacentBunker((leftCX + rightCX) / 2 + 10, zCross - 3, 4.5, 3.0);
+        createAdjacentGreen(rightCX, zCross + 6, 8.5);
+    }
+
+    // --- HOLE D: UPPER RIGHT HORIZONTAL PAR 3 (Fills dry space right of Tee on Hole 3) ---
+    const teeD_z = Math.min(18, ob.backOB - 12);
+    const teeD_x = Math.max(38.0, ob.getRightOB(teeD_z) + 18.0);
+    const greenD_z = teeD_z - 42.0; // ~150 yards out
+    const greenD_x = teeD_x + 36.0;
+
+    let pathD = null;
+    if (!isInsideActiveHoleOB(teeD_x, teeD_z, 5.0) &&
+        !isInsideActiveHoleOB(greenD_x, greenD_z, 5.0) &&
+        !isPointInWater(teeD_x, teeD_z, 4.0) &&
+        !isPointInWater(greenD_x, greenD_z, 9.5)) {
+
+        pathD = [
+            new THREE.Vector3(teeD_x, 0, teeD_z),
+            new THREE.Vector3((teeD_x + greenD_x) / 2 + 6, 0, (teeD_z + greenD_z) / 2),
+            new THREE.Vector3(greenD_x, 0, greenD_z)
+        ];
+
+        createAdjacentTee(teeD_x, teeD_z, -Math.PI * 0.25);
+        createAdjacentFairway(pathD, 12.0);
+        createAdjacentBunker(greenD_x + 7.0, greenD_z + 4.0, 4.0, 3.0);
+        createAdjacentGreen(greenD_x, greenD_z, 8.0);
+    }
+
+    // --- HOLE E: UPPER OUTER-LEFT PAR 3 (Fills wide open left space when available) ---
+    const teeE_z = Math.min(22, ob.backOB - 10);
+    const teeE_x = ob.getLeftOB(teeE_z) - 48.0;
+    const greenE_z = teeE_z - 46.0;
+    const greenE_x = ob.getLeftOB(greenE_z) - 42.0;
+
+    let pathE = null;
+    if (teeE_x > -130 && greenE_x > -130 &&
+        !isInsideActiveHoleOB(teeE_x, teeE_z, 5.0) &&
+        !isInsideActiveHoleOB(greenE_x, greenE_z, 5.0) &&
+        !isPointInWater(teeE_x, teeE_z, 4.0) &&
+        !isPointInWater(greenE_x, greenE_z, 9.5)) {
+
+        pathE = [
+            new THREE.Vector3(teeE_x, 0, teeE_z),
+            new THREE.Vector3((teeE_x + greenE_x) / 2 - 3, 0, (teeE_z + greenE_z) / 2),
+            new THREE.Vector3(greenE_x, 0, greenE_z)
+        ];
+
+        createAdjacentTee(teeE_x, teeE_z, Math.PI * 0.1);
+        createAdjacentFairway(pathE, 11.5);
+        createAdjacentBunker(greenE_x - 6.0, greenE_z + 3.0, 3.8, 3.0);
+        createAdjacentGreen(greenE_x, greenE_z, 8.0);
+    }
 
     // =========================================================================
-    // 2. FILL ALL OUTER AREAS OUTSIDE OB (AVOIDING WATER & FAIRWAYS)
+    // 2. FILL ALL REMAINING OUTER AREAS OUTSIDE OB (AVOIDING WATER & FAIRWAYS)
     // =========================================================================
+
+    function distToLineSegment(px, pz, x1, z1, x2, z2) {
+        const dx = x2 - x1, dz = z2 - z1;
+        const l2 = dx * dx + dz * dz;
+        if (l2 === 0) return Math.hypot(px - x1, pz - z1);
+        let t = ((px - x1) * dx + (pz - z1) * dz) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px - (x1 + t * dx), pz - (z1 + t * dz));
+    }
+
+    function isNearPath(px, pz, path, clearance = 11.0) {
+        if (!path) return false;
+        for (let i = 0; i < path.length - 1; i++) {
+            if (distToLineSegment(px, pz, path[i].x, path[i].z, path[i + 1].x, path[i + 1].z) < clearance) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // Grid sampling across entire course property (-140 to 140 X, -250 to 45 Z)
     for (let gx = -135; gx <= 135; gx += 13) {
         for (let gz = -245; gz <= 45; gz += 13) {
-            // Pseudo-random organic scatter jitter
             const pseudoSeed1 = Math.sin(gx * 12.9898 + gz * 78.233) * 43758.5453;
             const pseudoSeed2 = Math.cos(gx * 93.9898 + gz * 67.345) * 24634.6345;
             const jitterX = (pseudoSeed1 - Math.floor(pseudoSeed1) - 0.5) * 8.0;
@@ -460,50 +545,34 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
             const px = gx + jitterX;
             const pz = gz + jitterZ;
 
-            // 1. Strict Out of Bounds check (Must be at least 5 units outside active hole stakes)
+            // 1. Strict Out of Bounds check (Must be outside active hole stakes)
             if (isInsideActiveHoleOB(px, pz, 5.0)) continue;
 
-            // 2. Strict Water check (Must clear ocean, lakes, ponds by at least 5 units)
+            // 2. Strict Water check (Must clear ocean, lakes, ponds)
             if (isPointInWater(px, pz, 5.0)) continue;
 
-          // 3. Complete fairway & green clearance check (tests full length of all adjacent holes)
-            function distToLineSegment(px, pz, x1, z1, x2, z2) {
-                const dx = x2 - x1, dz = z2 - z1;
-                const l2 = dx * dx + dz * dz;
-                if (l2 === 0) return Math.hypot(px - x1, pz - z1);
-                let t = ((px - x1) * dx + (pz - z1) * dz) / l2;
-                t = Math.max(0, Math.min(1, t));
-                return Math.hypot(px - (x1 + t * dx), pz - (z1 + t * dz));
-            }
+            // 3. Clear fairways of all neighbor holes
+            if (isNearPath(px, pz, pathA, 11.0)) continue;
+            if (isNearPath(px, pz, pathB, 11.0)) continue;
+            if (isNearPath(px, pz, pathC, 10.0)) continue;
+            if (isNearPath(px, pz, pathD, 10.0)) continue;
+            if (isNearPath(px, pz, pathE, 10.0)) continue;
 
-            const pathA = [[teeA_x, teeA_z], [midA1_x, midA1_z], [midA2_x, midA2_z], [greenA_x, greenA_z]];
-            let dA = Math.min(...pathA.slice(0, -1).map((pt, idx) => distToLineSegment(px, pz, pt[0], pt[1], pathA[idx + 1][0], pathA[idx + 1][1])));
-            let distToGreenA = Math.hypot(px - greenA_x, pz - greenA_z);
-            if (dA < 11.0 || distToGreenA < 12.5) continue;
-
-            if (!isOceanHole) {
-                const pathB = [[teeB_x, teeB_z], [midB1_x, midB1_z], [midB2_x, midB2_z], [greenB_x, greenB_z]];
-                let dB = Math.min(...pathB.slice(0, -1).map((pt, idx) => distToLineSegment(px, pz, pt[0], pt[1], pathB[idx + 1][0], pathB[idx + 1][1])));
-                let distToGreenB = Math.hypot(px - greenB_x, pz - greenB_z);
-                if (dB < 11.0 || distToGreenB < 13.0) continue;
-            }
-
-            const pathC = [[leftCX, zCross + 4], [(leftCX + rightCX) / 2, zCross], [rightCX, zCross + 6]];
-            let dC = Math.min(...pathC.slice(0, -1).map((pt, idx) => distToLineSegment(px, pz, pt[0], pt[1], pathC[idx + 1][0], pathC[idx + 1][1])));
-            let distToGreenC = Math.hypot(px - rightCX, pz - (zCross + 6));
-            if (dC < 10.0 || distToGreenC < 12.0) continue;
+            // 4. Clear greens of all neighbor holes
+            if (Math.hypot(px - greenA_x, pz - greenA_z) < 12.5) continue;
+            if (pathB && Math.hypot(px - greenB_x, pz - greenB_z) < 13.0) continue;
+            if (!isOceanHole && Math.hypot(px - rightCX, pz - (zCross + 6)) < 12.0) continue;
+            if (pathD && Math.hypot(px - greenD_x, pz - greenD_z) < 11.5) continue;
+            if (pathE && Math.hypot(px - greenE_x, pz - greenE_z) < 11.5) continue;
 
             // Determine landscape element type based on position & seed
             const roll = Math.abs(pseudoSeed1 - Math.floor(pseudoSeed1));
-            const isNearBoundary = Math.abs(px - ob.getLeftOB(pz)) < 16.0 || Math.abs(px - ob.getRightOB(pz)) < 16.0;
 
-        if (roll < 0.70) {
-                // Trees: Varied scale, mix of oak and pine
+            if (roll < 0.70) {
                 const treeScale = 3.5 + (roll * 2.2);
                 const isPine = (roll > 0.40);
                 createAdjacentTree(px, pz, treeScale, isPine);
             } else {
-                // Bushes & shrub clusters in rough
                 createAdjacentBush(px, pz, 1.2 + roll * 0.8);
             }
         }
