@@ -5175,8 +5175,9 @@ function animate() {
                 if (bZ <= -20.0 && bZ >= -140.0) activeFW = 18.0;
                 else if (bZ < -140.0 && bZ >= -152.0) activeFW = THREE.MathUtils.lerp(18.0, 8.0, (-140.0 - bZ) / 12.0);
             }
-            const isMobilePortrait = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1;
-            activeFW += isMobilePortrait ? 1.09 : 0.80;
+            
+          // Sync with PhysicsEngine exact visual boundary
+            activeFW += 0.50;
 
             let visualFloorHeight = terrainH;
             if (distanceToPath <= activeFW) {
