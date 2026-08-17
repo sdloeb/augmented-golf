@@ -70,9 +70,11 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     const bushMat = new THREE.MeshStandardMaterial({ color: 0x1a521a, roughness: 0.8 });
 
     const ELEVATION_OFFSET = 0.38;
-    // Track all generated adjacent fairways and greens for tree clearance
-    const allAdjacentPaths = [];
+   // Track all generated adjacent features for tree and bush clearance
+    const allAdjacentFairways = [];
     const allAdjacentGreens = [];
+    const allAdjacentBunkers = [];
+    const allAdjacentTees = [];
 
     // --- WATER HAZARD COLLISION DETECTOR ---
     function isPointInWater(x, z, padding = 4.5) {
@@ -123,7 +125,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         return false;
     }
 
- function createAdjacentFairway(waypoints, width = 14.0) {
+    function createAdjacentFairway(waypoints, width = 14.0) {
         const curve = new THREE.CatmullRomCurve3(waypoints);
         const steps = 100;
         const sampled = curve.getPoints(steps);
@@ -132,6 +134,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         const indices = [];
         const halfW = width / 2;
         const endPoint = waypoints[waypoints.length - 1];
+        allAdjacentFairways.push({ points: sampled, width: width });
 
         let count = 0;
         for (let i = 0; i <= steps; i++) {
@@ -226,6 +229,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     // --- 3. HELPER: SAND BUNKERS ---
     function createAdjacentBunker(bx, bz, rx = 5.0, rz = 4.0) {
         if (isPointInWater(bx, bz, Math.max(rx, rz) + 1.5)) return;
+        allAdjacentBunkers.push({ x: bx, z: bz, r: Math.max(rx, rz) });
 
         const bGroundY = physics.getGroundHeight(bx, bz) + ELEVATION_OFFSET;
         const bGeo = new THREE.CircleGeometry(rx, 24);
@@ -240,6 +244,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     // --- 4. HELPER: TEE BOX ---
     function createAdjacentTee(tx, tz, angle = 0) {
         if (isPointInWater(tx, tz, 3.5)) return;
+        allAdjacentTees.push({ x: tx, z: tz, r: 3.5 });
 
         const tGroundY = physics.getGroundHeight(tx, tz) + ELEVATION_OFFSET;
         const tBox = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.04, 3.5), teeMat);
@@ -409,7 +414,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     createAdjacentTee(teeA_x, teeA_z, Math.PI);
     createAdjacentFairway(pathA, 14.0);
     createAdjacentBunker(ob.getLeftOB(midA1_z) - 30.0, midA1_z, 5.5, 4.0);
-    createAdjacentBunker(ob.getLeftOB(greenA_z) - 12.0, greenA_z - 4, 4.5, 3.5);
+    createAdjacentBunker(greenA_x - 14.5, greenA_z - 4.0, 3.8, 3.2);
     createAdjacentGreen(greenA_x, greenA_z, 9.0);
 
     // --- HOLE B: RIGHT FLANK PAR 5 (Long ~520 yd - Skipped on ocean holes) ---
@@ -435,8 +440,8 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         createAdjacentTee(teeB_x, teeB_z, 0);
         createAdjacentFairway(pathB, 14.0);
         createAdjacentBunker(ob.getRightOB(midB1_z) + 30.0, midB1_z, 5.0, 3.5);
-        createAdjacentBunker(ob.getRightOB(greenB_z + 12) + 12.0, greenB_z + 12, 4.5, 3.2);
-        createAdjacentBunker(ob.getRightOB(greenB_z) + 31.0, greenB_z - 4, 4.2, 4.0);
+        createAdjacentBunker(greenB_x - 14.0, greenB_z + 15.0, 4.2, 3.0);
+        createAdjacentBunker(greenB_x + 15.5, greenB_z - 4.0, 4.0, 3.2);
         createAdjacentGreen(greenB_x, greenB_z, 9.5);
     }
 
@@ -482,7 +487,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
         createAdjacentTee(teeD_x, teeD_z, -Math.PI * 0.25);
         createAdjacentFairway(pathD, 12.0);
-        createAdjacentBunker(greenD_x + 7.0, greenD_z + 4.0, 4.0, 3.0);
+        createAdjacentBunker(greenD_x + 14.0, greenD_z + 4.0, 3.8, 3.0);
         createAdjacentGreen(greenD_x, greenD_z, 8.0);
     }
 
@@ -507,7 +512,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
         createAdjacentTee(teeE_x, teeE_z, Math.PI * 0.1);
         createAdjacentFairway(pathE, 11.5);
-        createAdjacentBunker(greenE_x - 6.0, greenE_z + 3.0, 3.8, 3.0);
+        createAdjacentBunker(greenE_x - 14.0, greenE_z + 3.0, 3.8, 3.0);
         createAdjacentGreen(greenE_x, greenE_z, 8.0);
     }
 
@@ -524,10 +529,40 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
         return Math.hypot(px - (x1 + t * dx), pz - (z1 + t * dz));
     }
 
-    function isNearPath(px, pz, path, clearance = 11.0) {
-        if (!path) return false;
-        for (let i = 0; i < path.length - 1; i++) {
-            if (distToLineSegment(px, pz, path[i].x, path[i].z, path[i + 1].x, path[i + 1].z) < clearance) {
+    function isNearAnyAdjacentFairway(px, pz) {
+        for (let fw of allAdjacentFairways) {
+            const pts = fw.points;
+            const requiredClearance = (fw.width / 2) + 4.5;
+            for (let i = 0; i < pts.length - 1; i++) {
+                if (distToLineSegment(px, pz, pts[i].x, pts[i].z, pts[i + 1].x, pts[i + 1].z) < requiredClearance) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function isNearAnyAdjacentGreen(px, pz) {
+        for (let g of allAdjacentGreens) {
+            if (Math.hypot(px - g.x, pz - g.z) < (g.r + 5.5)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isNearAnyAdjacentBunker(px, pz) {
+        for (let b of allAdjacentBunkers) {
+            if (Math.hypot(px - b.x, pz - b.z) < (b.r + 4.5)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isNearAnyAdjacentTee(px, pz) {
+        for (let t of allAdjacentTees) {
+            if (Math.hypot(px - t.x, pz - t.z) < (t.r + 4.0)) {
                 return true;
             }
         }
@@ -552,18 +587,16 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
             if (isPointInWater(px, pz, 5.0)) continue;
 
             // 3. Clear fairways of all neighbor holes
-            if (isNearPath(px, pz, pathA, 11.0)) continue;
-            if (isNearPath(px, pz, pathB, 11.0)) continue;
-            if (isNearPath(px, pz, pathC, 10.0)) continue;
-            if (isNearPath(px, pz, pathD, 10.0)) continue;
-            if (isNearPath(px, pz, pathE, 10.0)) continue;
+            if (isNearAnyAdjacentFairway(px, pz)) continue;
 
             // 4. Clear greens of all neighbor holes
-            if (Math.hypot(px - greenA_x, pz - greenA_z) < 12.5) continue;
-            if (pathB && Math.hypot(px - greenB_x, pz - greenB_z) < 13.0) continue;
-            if (!isOceanHole && Math.hypot(px - rightCX, pz - (zCross + 6)) < 12.0) continue;
-            if (pathD && Math.hypot(px - greenD_x, pz - greenD_z) < 11.5) continue;
-            if (pathE && Math.hypot(px - greenE_x, pz - greenE_z) < 11.5) continue;
+            if (isNearAnyAdjacentGreen(px, pz)) continue;
+
+            // 5. Clear bunkers of all neighbor holes
+            if (isNearAnyAdjacentBunker(px, pz)) continue;
+
+            // 6. Clear tee boxes of all neighbor holes
+            if (isNearAnyAdjacentTee(px, pz)) continue;
 
             // Determine landscape element type based on position & seed
             const roll = Math.abs(pseudoSeed1 - Math.floor(pseudoSeed1));
