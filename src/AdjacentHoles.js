@@ -70,7 +70,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     const bushMat = new THREE.MeshStandardMaterial({ color: 0x1a521a, roughness: 0.8 });
 
     const ELEVATION_OFFSET = 0.38;
-   // Track all generated adjacent features for tree and bush clearance
+    // Track all generated adjacent features for tree and bush clearance
     const allAdjacentFairways = [];
     const allAdjacentGreens = [];
     const allAdjacentBunkers = [];
@@ -396,9 +396,9 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
     // --- HOLE A: LEFT FLANK RETURNING PAR 4 (Medium ~380 yd) ---
     const teeA_z = Math.min(greenCenterZ - 15, ob.frontOB + 20);
-    const teeA_x = ob.getLeftOB(teeA_z) - 20.0;
+    const teeA_x = ob.getLeftOB(teeA_z) - 35.0;
     const midA1_z = midZ - 20;
-    const midA1_x = ob.getLeftOB(midA1_z) - 22.0;
+    const midA1_x = ob.getLeftOB(midA1_z) - 40.0;
     const midA2_z = midZ + 20;
     const midA2_x = ob.getLeftOB(midA2_z) - 20.0;
     const greenA_z = Math.min(10, ob.backOB - 20);
@@ -413,7 +413,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
     createAdjacentTee(teeA_x, teeA_z, Math.PI);
     createAdjacentFairway(pathA, 14.0);
-    createAdjacentBunker(ob.getLeftOB(midA1_z) - 30.0, midA1_z, 5.5, 4.0);
+    createAdjacentBunker(ob.getLeftOB(midA1_z) - 45.0, midA1_z, 5.5, 4.0);
     createAdjacentBunker(greenA_x - 14.5, greenA_z - 4.0, 3.8, 3.2);
     createAdjacentGreen(greenA_x, greenA_z, 9.0);
 
@@ -422,13 +422,13 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     let greenB_x = 0, greenB_z = 0;
     if (!isOceanHole) {
         const teeB_z = Math.min(18, ob.backOB - 15);
-        const teeB_x = ob.getRightOB(teeB_z) + 20.0;
+        const teeB_x = ob.getRightOB(teeB_z) + 35.0;
         const midB1_z = midZ + 20;
-        const midB1_x = ob.getRightOB(midB1_z) + 22.0;
+        const midB1_x = ob.getRightOB(midB1_z) + 37.0;
         const midB2_z = midZ - 25;
-        const midB2_x = ob.getRightOB(midB2_z) + 20.0;
+        const midB2_x = ob.getRightOB(midB2_z) + 35.0;
         greenB_z = Math.max(greenCenterZ - 5, ob.frontOB + 15);
-        greenB_x = ob.getRightOB(greenB_z) + 22.0;
+        greenB_x = ob.getRightOB(greenB_z) + 37.0;
 
         pathB = [
             new THREE.Vector3(teeB_x, 0, teeB_z),
@@ -469,7 +469,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
     // --- HOLE D: UPPER RIGHT HORIZONTAL PAR 3 (Fills dry space right of Tee on Hole 3) ---
     const teeD_z = Math.min(18, ob.backOB - 12);
-    const teeD_x = Math.max(38.0, ob.getRightOB(teeD_z) + 18.0);
+    const teeD_x = Math.max(70.0, ob.getRightOB(teeD_z) + 50.0);
     const greenD_z = teeD_z - 42.0; // ~150 yards out
     const greenD_x = teeD_x + 36.0;
 
@@ -532,7 +532,8 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     function isNearAnyAdjacentFairway(px, pz) {
         for (let fw of allAdjacentFairways) {
             const pts = fw.points;
-            const requiredClearance = (fw.width / 2) + 4.5;
+            // Accounts for half-width + 7.5 unit maximum tree foliage canopy
+            const requiredClearance = (fw.width / 2) + 8.0;
             for (let i = 0; i < pts.length - 1; i++) {
                 if (distToLineSegment(px, pz, pts[i].x, pts[i].z, pts[i + 1].x, pts[i + 1].z) < requiredClearance) {
                     return true;
@@ -544,7 +545,8 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
     function isNearAnyAdjacentGreen(px, pz) {
         for (let g of allAdjacentGreens) {
-            if (Math.hypot(px - g.x, pz - g.z) < (g.r + 5.5)) {
+            // Accounts for green radius + 1.4 fringe + 7.5 tree canopy buffer
+            if (Math.hypot(px - g.x, pz - g.z) < (g.r + 9.5)) {
                 return true;
             }
         }
@@ -553,7 +555,7 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
     function isNearAnyAdjacentBunker(px, pz) {
         for (let b of allAdjacentBunkers) {
-            if (Math.hypot(px - b.x, pz - b.z) < (b.r + 4.5)) {
+            if (Math.hypot(px - b.x, pz - b.z) < (b.r + 7.5)) {
                 return true;
             }
         }
@@ -562,10 +564,51 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
 
     function isNearAnyAdjacentTee(px, pz) {
         for (let t of allAdjacentTees) {
-            if (Math.hypot(px - t.x, pz - t.z) < (t.r + 4.0)) {
+            if (Math.hypot(px - t.x, pz - t.z) < (t.r + 7.5)) {
                 return true;
             }
         }
+        return false;
+    }
+
+    function isNearActiveHoleFeatures(px, pz) {
+        // 1. Clear active hole green & fringe regardless of shape or position
+        const activeGreenX = (holePosition && holePosition.x !== undefined) ? holePosition.x : 0;
+        const activeGreenRadius = window.activeGreenRadius || 12.0;
+        if (Math.hypot(px - activeGreenX, pz - greenCenterZ) < (activeGreenRadius + 10.0)) {
+            return true;
+        }
+
+        // 2. Clear active hole fairway spline path
+        if (physics && physics.getDistanceToSpline) {
+            const activeFW = physics.fairwayWidth || 9.0;
+            if (physics.getDistanceToSpline(px, pz) < (activeFW + 8.5)) {
+                return true;
+            }
+        }
+
+        // 3. Clear active hole tee box zone
+        if (Math.hypot(px, pz - 10) < 12.0) {
+            return true;
+        }
+
+        // 4. Clear active hole sand traps
+        if (physics && physics.sandTraps) {
+            for (let sand of physics.sandTraps) {
+                if (sand.userData && sand.userData.isPolygon) {
+                    const points = sand.userData.points;
+                    for (let pt of points) {
+                        if (Math.hypot(px - pt.x, pz - pt.z) < 8.0) return true;
+                    }
+                } else {
+                    const sRadius = (sand.userData && sand.userData.radius) ? sand.userData.radius : 5.0;
+                    if (Math.hypot(px - sand.position.x, pz - sand.position.z) < (sRadius + 7.5)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         return false;
     }
 
@@ -580,22 +623,25 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
             const px = gx + jitterX;
             const pz = gz + jitterZ;
 
-            // 1. Strict Out of Bounds check (Must be outside active hole stakes)
-            if (isInsideActiveHoleOB(px, pz, 5.0)) continue;
+            // 1. Strict Out of Bounds check (7.5 unit margin keeps canopies outside active stakes)
+            if (isInsideActiveHoleOB(px, pz, 7.5)) continue;
 
-            // 2. Strict Water check (Must clear ocean, lakes, ponds)
-            if (isPointInWater(px, pz, 5.0)) continue;
+            // 2. Universal Active Hole Protection (Clears fairway spline, green, tee, and bunkers)
+            if (isNearActiveHoleFeatures(px, pz)) continue;
 
-            // 3. Clear fairways of all neighbor holes
+            // 3. Strict Water check (Must clear ocean, lakes, ponds)
+            if (isPointInWater(px, pz, 6.0)) continue;
+
+            // 4. Clear fairways of all neighbor holes
             if (isNearAnyAdjacentFairway(px, pz)) continue;
 
-            // 4. Clear greens of all neighbor holes
+            // 5. Clear greens of all neighbor holes
             if (isNearAnyAdjacentGreen(px, pz)) continue;
 
-            // 5. Clear bunkers of all neighbor holes
+            // 6. Clear bunkers of all neighbor holes
             if (isNearAnyAdjacentBunker(px, pz)) continue;
 
-            // 6. Clear tee boxes of all neighbor holes
+            // 7. Clear tee boxes of all neighbor holes
             if (isNearAnyAdjacentTee(px, pz)) continue;
 
             // Determine landscape element type based on position & seed
