@@ -545,7 +545,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 6; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2463,6 +2463,7 @@ function resetEntireGame(advanceHole = false) {
 
         const bulkheadMesh = new THREE.Mesh(wallGeo, bulkheadMat);
         scene.add(bulkheadMesh);
+        waterShores.push(bulkheadMesh);
 
         // --- HOLE 5 WOODEN FOOTBRIDGE ---
         const bridgeGroup = new THREE.Group();
