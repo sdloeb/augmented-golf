@@ -6551,67 +6551,87 @@ function updateGreenGrid() {
 }
 
 
-// Add this entire function block at the very bottom of src/main.js
 function showScorecard() {
     const overlay = document.getElementById('scorecardOverlay');
     const table = document.getElementById('scorecardTable');
     if (!overlay || !table) return;
 
+    // Detect mobile portrait
+    const isMobilePortrait = (window.innerWidth <= 768) || (window.innerWidth / window.innerHeight < 1);
+
     // Separate completed holes into Front 9 and Back 9 segments
     const maxHolePlayed = completedHoles.reduce((max, h) => Math.max(max, h.hole), 0);
     const showBack9 = maxHolePlayed >= 10 || currentHoleNumber >= 10;
+
+    // On mobile portrait, show Front 9 when playing holes 1-9, and Back 9 when playing hole 10+
+    const renderFront9 = !isMobilePortrait || currentHoleNumber <= 9;
+    const renderBack9 = showBack9 && (!isMobilePortrait || currentHoleNumber >= 10);
 
     let holeHtml = '<th style="z-index: 15;">HOLE</th>';
     let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
     let parHtml = '<tr><td><strong>PAR</strong></td>';
     let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
 
-    // Accumulator metrics for Front 9
+    // Pre-calculate Front 9 totals
     let fYards = 0, fPar = 0, fScore = 0, fPlayed = 0;
-
-    // --- 1. RENDER FRONT 9 (HOLES 1-9) ---
     for (let i = 1; i <= 9; i++) {
         const hData = completedHoles.find(h => h.hole === i);
-        let yards = '---', par = '---', score = '---', scoreClass = '';
-
         if (hData) {
-            yards = hData.yards; par = hData.par; score = hData.score;
             fYards += hData.yards; fPar += hData.par; fScore += hData.score; fPlayed++;
-            if (score <= par) scoreClass = ' class="scorecard-highlight"';
-        } else if (HOLES_CONFIG[i]) {
-            par = HOLES_CONFIG[i].par || '---';
-            if (HOLES_CONFIG[i].waypoints) {
-                const wp = HOLES_CONFIG[i].waypoints;
-                const dx = wp[wp.length - 1].x - wp[0].x;
-                const dz = wp[wp.length - 1].z - wp[0].z;
-                yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
-            }
         }
-
-        holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
-        yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
-        parHtml += `<td class="scorecard-hole-col">${par}</td>`;
-        scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
     }
 
-    // Append Front 9 'OUT' Totals Column
-    holeHtml += `<th class="scorecard-total-col">OUT</th>`;
-    yardsHtml += `<td class="scorecard-total-col">${fYards || '0'}</td>`;
-    parHtml += `<td class="scorecard-total-col">${fPar || '0'}</td>`;
-    scoreHtml += `<td class="scorecard-total-col"><strong>${fPlayed > 0 ? fScore : '---'}</strong></td>`;
+    // --- 1. RENDER FRONT 9 (HOLES 1-9) ---
+    if (renderFront9) {
+        for (let i = 1; i <= 9; i++) {
+            const hData = completedHoles.find(h => h.hole === i);
+            let yards = '---', par = '---', score = '---', scoreClass = '';
 
-    // Accumulator metrics for Back 9
+            if (hData) {
+                yards = hData.yards; par = hData.par; score = hData.score;
+                if (score <= par) scoreClass = ' class="scorecard-highlight"';
+            } else if (HOLES_CONFIG[i]) {
+                par = HOLES_CONFIG[i].par || '---';
+                if (HOLES_CONFIG[i].waypoints) {
+                    const wp = HOLES_CONFIG[i].waypoints;
+                    const dx = wp[wp.length - 1].x - wp[0].x;
+                    const dz = wp[wp.length - 1].z - wp[0].z;
+                    yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
+                }
+            }
+
+            holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
+            yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
+            parHtml += `<td class="scorecard-hole-col">${par}</td>`;
+            scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
+        }
+
+        // Append Front 9 'OUT' Totals Column
+        holeHtml += `<th class="scorecard-total-col">OUT</th>`;
+        yardsHtml += `<td class="scorecard-total-col">${fYards || '0'}</td>`;
+        parHtml += `<td class="scorecard-total-col">${fPar || '0'}</td>`;
+        scoreHtml += `<td class="scorecard-total-col"><strong>${fPlayed > 0 ? fScore : '---'}</strong></td>`;
+    }
+
+    // Pre-calculate Back 9 totals
     let bYards = 0, bPar = 0, bScore = 0, bPlayed = 0;
+    if (showBack9 || renderBack9) {
+        for (let i = 10; i <= 18; i++) {
+            const hData = completedHoles.find(h => h.hole === i);
+            if (hData) {
+                bYards += hData.yards; bPar += hData.par; bScore += hData.score; bPlayed++;
+            }
+        }
+    }
 
-    // --- 2. RENDER BACK 9 (HOLES 10-18) IF REACHED ---
-    if (showBack9) {
+    // --- 2. RENDER BACK 9 (HOLES 10-18) IF REACHED & ACTIVE ---
+    if (renderBack9) {
         for (let i = 10; i <= 18; i++) {
             const hData = completedHoles.find(h => h.hole === i);
             let yards = '---', par = '---', score = '---', scoreClass = '';
 
             if (hData) {
                 yards = hData.yards; par = hData.par; score = hData.score;
-                bYards += hData.yards; bPar += hData.par; bScore += hData.score; bPlayed++;
                 if (score <= par) scoreClass = ' class="scorecard-highlight"';
             } else if (HOLES_CONFIG[i]) {
                 par = HOLES_CONFIG[i].par || '---';

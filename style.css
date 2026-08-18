@@ -1086,16 +1086,15 @@ html {
 
 #scorecardTable th,
 #scorecardTable td {
-    /* Portrait specific scorecard variable overrides: Locks exactly 3 holes visible at once */
-    --header-col-width: 85px;
-    --total-col-width: 65px;
-    --hole-col-width: calc((100% - var(--header-col-width)) / 3.4);
+    /* Mobile portrait scorecard layout: Fits 9 holes + Total column across screen */
+    --header-col-width: 65px;
+    --total-col-width: 45px;
+    --hole-col-width: calc((100% - var(--header-col-width) - (var(--total-col-width) * 1.5)) / 9);
     border: 1px solid rgba(247, 231, 196, 0.25);
     text-align: center;
-    padding: 10px 4px;
-    /* MODIFIED: Cut horizontal space in half from 8px to 4px to pack cells tightly */
-    min-width: 32px;
-    /* MODIFIED: Compressed down from 45px so 9 holes stack into minimal screen space */
+    padding: 8px 2px;
+    font-size: 13px;
+    min-width: 20px;
 }
 
 #scorecardTable th {
