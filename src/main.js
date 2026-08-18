@@ -172,15 +172,15 @@ const HOLES_CONFIG = {
         greenRadius: 8.5,
         horizonTheme: 'estate',
 
-       // Wavy & Bumpy Slope Profile with Ridges, Mounds, and Collection Swales
+        // Wavy & Bumpy Slope Profile with Ridges, Mounds, and Collection Swales
         slopeProfile: {
             // Opposing sector tilts create natural twisting & side breaks
-            backLeft:   { rx: -0.025, rz:  0.020 },
-            backRight:  { rx: -0.018, rz: -0.015 },
-            midLeft:    { rx:  0.015, rz: -0.022 },
-            midRight:   { rx: -0.020, rz:  0.018 },
-            frontLeft:  { rx: -0.030, rz:  0.015 },
-            frontRight: { rx:  0.012, rz: -0.025 },
+            backLeft: { rx: -0.025, rz: 0.020 },
+            backRight: { rx: -0.018, rz: -0.015 },
+            midLeft: { rx: 0.015, rz: -0.022 },
+            midRight: { rx: -0.020, rz: 0.018 },
+            frontLeft: { rx: -0.030, rz: 0.015 },
+            frontRight: { rx: 0.012, rz: -0.025 },
 
             features: [
                 // 1. Diagonal crowning spine running across the center of the green
@@ -514,7 +514,7 @@ const HOLES_CONFIG = {
             { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
         ],
 
-customOOB: {
+        customOOB: {
             type: 'rectangle',
             minX: -55,
             maxX: 55,
@@ -529,7 +529,7 @@ customOOB: {
         fairwayWidth: 15.0,
         greenRadius: 10.5,
         greenShape: 'kidney',
-        horizonTheme: 'desert', // Open rolling dunes/prairie horizon
+        horizonTheme: 'mountains', // Open rolling dunes/prairie horizon
         theme: 'open',
         treeScale: 1.0,
 
@@ -569,23 +569,37 @@ customOOB: {
             {
                 type: 'sand',
                 shape: 'snake',
-                radius: 5.2,
+                radius: 5.0,
                 depth: 1.8,
                 path: [
                     { x: 8.0, z: -102.0 },
                     { x: 18.0, z: -115.0 }
                 ]
             },
-            { type: 'sand', x: 10.0, z: -118.0, radius: 4.8, depth: 1.5 },
+            {
+                type: 'sand',
+                shape: 'snake',
+                radius: 4.8,
+                depth: 1.8,
+                path: [
+                    { x: 15.0, z: -111.0 },
+                    { x: 9.0, z: -117.0 }
+                ]
+            },
+            { type: 'sand', x: 10.0, z: -118.0, radius: 4.8, depth: 1.7 },
 
             // 3. Left Layup Pot / Blowout at 430 yds (z = -145)
-            { type: 'sand', x: -16.0, z: -145.0, radius: 4.2, depth: 1.4 },
+            { type: 'sand', x: -25.0, z: -145.0, radius: 7.2, depth: 1.8 },
 
             // 4. Greenside Left Blowout Bunker at 502 yds (z = -172)
             { type: 'sand', x: -27.0, z: -172.0, radius: 5.5, depth: 1.8 },
 
             // 5. Greenside Right Guard Pot Bunker at 520 yds (z = -178)
-            { type: 'sand', x: 15.0, z: -178.0, radius: 6.5, depth: 1.5 }
+            { type: 'sand', x: 15.0, z: -178.0, radius: 6.5, depth: 1.8 },
+            // 6. Water Hazard directly before the Green (Approach Carry at z = -161)
+            { type: 'lake', x: 5.0, z: -153.0, radiusX: 14.0, radiusZ: 13.5 },
+            // 6. Water Hazard directly before the Green (Approach Carry at z = -161)
+            { type: 'lake', x: 3.0, z: -67.0, radiusX: 14.5, radiusZ: 23.5 }
         ],
 
         // Treeless open links dunes (No trees on fairway)
@@ -734,7 +748,7 @@ function drawFakeViewCourse(ctx, twoPi) {
         ctx.fill();
     };
 
-// Draws sand bunkers with inner depth shadows
+    // Draws sand bunkers with inner depth shadows
     const drawBunker = (x, y, rx, ry, rot = 0) => {
         const bunkerScale = 0.50; // Change this number to resize all fake traps (e.g. 0.40 for smaller, 0.60 for larger)
         const sRx = rx * bunkerScale;
@@ -4174,7 +4188,7 @@ function resetEntireGame(advanceHole = false) {
         horizonRingMesh.material.map.needsUpdate = true;
     }
 
-if (currentHoleConfig && currentHoleConfig.cartPath) {
+    if (currentHoleConfig && currentHoleConfig.cartPath) {
         createCartPath(currentHoleConfig.cartPath, 2.2);
     }
 
@@ -5017,7 +5031,7 @@ function animate() {
             cameraLookAt.set(blendLookX, blendLookY, blendLookZ);
             activeCameraSpeed = 0.14;// Increased tracking speed to keep tracking snappy without rubber-banding
 
-       // Automatically snap back behind the ball once the full camera flight completes
+            // Automatically snap back behind the ball once the full camera flight completes
             if (previewProgress >= 1) {
                 if (!overheadPauseStartTime) {
                     overheadPauseStartTime = performance.now();
@@ -5253,8 +5267,8 @@ function animate() {
                 if (bZ <= -20.0 && bZ >= -140.0) activeFW = 18.0;
                 else if (bZ < -140.0 && bZ >= -152.0) activeFW = THREE.MathUtils.lerp(18.0, 8.0, (-140.0 - bZ) / 12.0);
             }
-            
-          // Sync with PhysicsEngine exact visual boundary
+
+            // Sync with PhysicsEngine exact visual boundary
             activeFW += 0.50;
 
             let visualFloorHeight = terrainH;
