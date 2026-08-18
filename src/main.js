@@ -1789,7 +1789,7 @@ function generateHazards() {
                 color: 0x0000ff,                         // Update this line: Vibrant deep lake blue
                 specular: 0xffffff,                     // Add this line: Gives it crisp white sun-glint highlights
                 shininess: 150,                         // Add this line: Increases gloss factor for high contrast
-                flatShading: true,                      // Keep this line
+                flatShading: false,                      // Keep this line
                 polygonOffset: true,                    // Keep this line
                 polygonOffsetFactor: -1,                // Keep this line
                 polygonOffsetUnits: -4                  // Keep this line
@@ -2323,7 +2323,7 @@ function resetEntireGame(advanceHole = false) {
                         color: 0x0000ff,
                         specular: 0xffffff,
                         shininess: 150,
-                        flatShading: true,
+                        flatShading: false,
                         polygonOffset: true,
                         polygonOffsetFactor: -1,
                         polygonOffsetUnits: -4
@@ -5420,23 +5420,25 @@ function animate() {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
 
-                // Calculate distance from lake center to flatten waves near the shore boundary
-                const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
-                const lakeRadius = mesh.userData.radius || 5; // Add this line
-                // Smoothly fade waves down over the outer 1.5 units of the lake profile
-                // Smoothly fade waves down over the outer 1.5 units of the lake profile
+
+                // Calculate true angle-aware lake radius for round or oval hazards
+                const rx = mesh.userData.radiusX || mesh.userData.radius || 5;
+                const rz = mesh.userData.radiusZ || mesh.userData.radius || 5;
+                const wAngle = Math.atan2(v, u);
+                const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+
+                const distFromCenter = Math.sqrt(u * u + v * v);
                 let waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5));
                 if (mesh.userData && mesh.userData.isRectangular) {
                     waveFade = 1.0; // Keep waves active across the entire ocean surface
                 }
 
-                // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
-                const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
-                const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
-                const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
+                // Organic radial circular ripples + diagonal cross-currents (no straight columns)
+                const wave1 = Math.sin(distFromCenter * 0.6 - time * 1.6) * 0.030;
+                const wave2 = Math.sin(u * 0.5 + v * 0.5 + time * 1.2) * 0.025;
+                const wave3 = Math.cos(u * 0.4 - v * 0.6 + time * 1.4) * 0.020;
 
-                // Dampen the waves and smoothly transition base level flush with the 0.07 shore height rim
-                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade); // Modify this line
+                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade);
 
                 posAttr.setZ(i, waveHeight);
             }
