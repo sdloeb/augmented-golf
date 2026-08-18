@@ -362,6 +362,46 @@ export class PhysicsEngine {
             if (x > 0) xFade = Math.min(1, Math.max(0, (60 - x) / 10)); // Keep this line
             // Removed teeFade so your custom 4.5 baseline peak elevation stays locked at the tee box
             return Math.max(0.001, baseHeight * xFade);
+            
+        }
+
+        // --- BALLYNEAL HOLE 7 ROLLING SAND DUNING & HILLS ---
+        if (this.currentHoleNumber === 7) {
+            let baseHeight = 0.0;
+
+            // 1. Perched Tee Box (+4.5 units = +15 ft)
+            if (z > 5) {
+                baseHeight = 4.5;
+            } else if (z >= -25) {
+                let t = (5 - z) / 30;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = THREE.MathUtils.lerp(4.5, 0.0, smoothT);
+            }
+
+            // 2. High Sand Dunes framing Left (-X) and Right (+X) boundaries
+            let distFromCenter = Math.abs(x);
+            if (distFromCenter > (this.fairwayWidth || 15.0) * 0.7) {
+                let duneDist = distFromCenter - (this.fairwayWidth || 15.0) * 0.7;
+                let duneRidge = Math.sin(z * 0.08) * 1.8 + Math.cos(x * 0.12) * 2.2;
+                baseHeight += (duneDist * 0.28) + Math.max(0, duneRidge);
+            }
+
+            // 3. Center-Right Dune Ridge at the Split Hazard (z = -95 to -128)
+            if (z <= -95 && z >= -128) {
+                let centerDist = Math.abs(x - 12.0);
+                if (centerDist < 18.0) {
+                    let ridgeFactor = (1.0 - centerDist / 18.0);
+                    ridgeFactor = ridgeFactor * ridgeFactor * (3 - 2 * ridgeFactor);
+                    baseHeight += 2.8 * ridgeFactor; // Raised dune ridge under main split hazard
+                }
+            }
+
+            // 4. Undulating Fairway Swales & Moguls (1-3 ft rolling ripples)
+            let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.6 + Math.cos(x * 0.25 + z * 0.18) * 0.35;
+            baseHeight += fairwayMoguls;
+
+            let xFade = Math.min(1, Math.max(0, (70 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
         }
 
         // Base undulating small mounds and dips (mostly flat, natural ripples)
@@ -369,7 +409,7 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5) {
+       if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7) {
             const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 

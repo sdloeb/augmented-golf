@@ -514,13 +514,90 @@ const HOLES_CONFIG = {
             { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
         ],
 
-        customOOB: {
+customOOB: {
             type: 'rectangle',
             minX: -55,
             maxX: 55,
             minZ: -198,
             maxZ: 30,
             stakesPerSide: 10,
+            stakesPerRow: 4
+        }
+    },
+    7: { // Ballyneal Hole #8 Replica - 515-Yard Championship Par 5 Dunes
+        par: 5,
+        fairwayWidth: 15.0,
+        greenRadius: 10.5,
+        greenShape: 'kidney',
+        horizonTheme: 'desert', // Open rolling dunes/prairie horizon
+        theme: 'open',
+        treeScale: 1.0,
+
+        // Ballyneal's Undulating Amphitheater Green Profile
+        slopeProfile: {
+            backLeft: { rx: -0.025, rz: 0.020 },
+            backRight: { rx: 0.030, rz: 0.015 },
+            midLeft: { rx: -0.020, rz: -0.025 },
+            midRight: { rx: 0.015, rz: -0.020 },
+            frontLeft: { rx: -0.035, rz: -0.045 }, // Severe false front
+            frontRight: { rx: 0.020, rz: -0.040 },
+
+            features: [
+                // False front rejecting short wedge approaches
+                { type: 'tier', axis: 'z', position: 3.5, width: 3.2, height: -0.18 },
+                // Ridge separating back tier from middle green
+                { type: 'ridge', p1: { x: -6.0, z: -2.0 }, p2: { x: 5.0, z: 1.0 }, width: 3.0, height: 0.12 },
+                // Back-right elevation shelf stop
+                { type: 'mound', x: 4.0, z: -4.0, radius: 4.0, height: 0.16 }
+            ]
+        },
+
+        // 515-YARD PAR 5 WAYPOINTS (Tee at z=10, Green at z=-176)
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),        // 1. Perched Tee Box (0 yds)
+            new THREE.Vector3(-4.0, 0, -88),    // 2. Landing Zone 1 (270 yds)
+            new THREE.Vector3(2.0, 0, -127),    // 3. Transition Layup (380 yds)
+            new THREE.Vector3(-6.0, 0, -176)    // 4. Green Center (515 yds total)
+        ],
+
+        // BALLYNEAL DUNE BLOWOUT BUNKERS
+        hazards: [
+            // 1. Left Dune Waste / Blowout at 245 yds (z = -78)
+            { type: 'sand', x: -22.0, z: -78.0, radius: 6.5, depth: 1.1 },
+
+            // 2. Main Center-Right Split Hazard at 325 yds (z = -102 to -118)
+            {
+                type: 'sand',
+                shape: 'snake',
+                radius: 5.2,
+                depth: 1.8,
+                path: [
+                    { x: 8.0, z: -102.0 },
+                    { x: 18.0, z: -115.0 }
+                ]
+            },
+            { type: 'sand', x: 10.0, z: -118.0, radius: 4.8, depth: 1.5 },
+
+            // 3. Left Layup Pot / Blowout at 430 yds (z = -145)
+            { type: 'sand', x: -16.0, z: -145.0, radius: 4.2, depth: 1.4 },
+
+            // 4. Greenside Left Blowout Bunker at 502 yds (z = -172)
+            { type: 'sand', x: -15.0, z: -172.0, radius: 5.0, depth: 1.6 },
+
+            // 5. Greenside Right Guard Pot Bunker at 520 yds (z = -178)
+            { type: 'sand', x: 8.0, z: -178.0, radius: 3.5, depth: 1.2 }
+        ],
+
+        // Treeless open links dunes (No trees on fairway)
+        customTrees: [],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -65,
+            maxX: 65,
+            minZ: -205,
+            maxZ: 30,
+            stakesPerSide: 11,
             stakesPerRow: 4
         }
     }
@@ -545,7 +622,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 6; //1st hole start
+let currentHoleNumber = 7; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
