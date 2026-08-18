@@ -378,26 +378,31 @@ export class PhysicsEngine {
                 baseHeight = THREE.MathUtils.lerp(4.5, 0.0, smoothT);
             }
 
-            // 2. High Sand Dunes framing Left (-X) and Right (+X) boundaries
+            // 2. Smooth rolling sand dunes framing Left and Right rough boundaries
             let distFromCenter = Math.abs(x);
-            if (distFromCenter > (this.fairwayWidth || 15.0) * 0.7) {
-                let duneDist = distFromCenter - (this.fairwayWidth || 15.0) * 0.7;
-                let duneRidge = Math.sin(z * 0.08) * 1.8 + Math.cos(x * 0.12) * 2.2;
-                baseHeight += (duneDist * 0.28) + Math.max(0, duneRidge);
+            let fairwayEdge = (this.fairwayWidth || 15.0) * 0.85; // Starts rising gently outside fairway
+            if (distFromCenter > fairwayEdge) {
+                let tDune = Math.min(1.0, (distFromCenter - fairwayEdge) / 20.0);
+                let smoothDune = tDune * tDune * (3 - 2 * tDune);
+                let duneWave = Math.sin(z * 0.06 + x * 0.05) * 1.2 + Math.cos(z * 0.09) * 0.8;
+                baseHeight += (smoothDune * 5.2) + (Math.max(0, duneWave) * smoothDune);
             }
 
-            // 3. Center-Right Dune Ridge at the Split Hazard (z = -95 to -128)
-            if (z <= -95 && z >= -128) {
-                let centerDist = Math.abs(x - 12.0);
-                if (centerDist < 18.0) {
-                    let ridgeFactor = (1.0 - centerDist / 18.0);
-                    ridgeFactor = ridgeFactor * ridgeFactor * (3 - 2 * ridgeFactor);
-                    baseHeight += 2.8 * ridgeFactor; // Raised dune ridge under main split hazard
-                }
+            // 3. Smooth, gentle natural rise at the 325-yd right split hazard (z = -85 to -135)
+            if (z <= -85 && z >= -135 && x > 0) {
+                let zDist = Math.abs(z - (-110.0));
+                let zFactor = Math.max(0.0, 1.0 - (zDist / 25.0));
+                let smoothZ = zFactor * zFactor * (3 - 2 * zFactor);
+
+                let xDist = Math.abs(x - 9.0);
+                let xFactor = Math.max(0.0, 1.0 - (xDist / 12.0));
+                let smoothX = xFactor * xFactor * (3 - 2 * xFactor);
+
+                baseHeight += 1.0 * smoothZ * smoothX; // Gentle 3 ft roll instead of steep mound
             }
 
-            // 4. Undulating Fairway Swales & Moguls (1-3 ft rolling ripples)
-            let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.6 + Math.cos(x * 0.25 + z * 0.18) * 0.35;
+            // 4. Natural undulating fairway moguls (subtle links ripples)
+            let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.25 + Math.cos(x * 0.22 + z * 0.16) * 0.15;
             baseHeight += fairwayMoguls;
 
             let xFade = Math.min(1, Math.max(0, (70 - Math.abs(x)) / 10));

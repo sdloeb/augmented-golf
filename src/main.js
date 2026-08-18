@@ -582,10 +582,10 @@ customOOB: {
             { type: 'sand', x: -16.0, z: -145.0, radius: 4.2, depth: 1.4 },
 
             // 4. Greenside Left Blowout Bunker at 502 yds (z = -172)
-            { type: 'sand', x: -15.0, z: -172.0, radius: 5.0, depth: 1.6 },
+            { type: 'sand', x: -27.0, z: -172.0, radius: 5.5, depth: 1.8 },
 
             // 5. Greenside Right Guard Pot Bunker at 520 yds (z = -178)
-            { type: 'sand', x: 8.0, z: -178.0, radius: 3.5, depth: 1.2 }
+            { type: 'sand', x: 15.0, z: -178.0, radius: 6.5, depth: 1.5 }
         ],
 
         // Treeless open links dunes (No trees on fairway)
