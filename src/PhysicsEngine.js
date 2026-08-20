@@ -378,14 +378,14 @@ export class PhysicsEngine {
                 baseHeight = THREE.MathUtils.lerp(4.5, 0.0, smoothT);
             }
 
-            // 2. Smooth rolling sand dunes framing Left and Right rough boundaries
+          // 2. Smooth rolling sand dunes framing Left and Right rough boundaries
             let distFromCenter = Math.abs(x);
             let fairwayEdge = (this.fairwayWidth || 15.0) * 0.85; // Starts rising gently outside fairway
             if (distFromCenter > fairwayEdge) {
-                let tDune = Math.min(1.0, (distFromCenter - fairwayEdge) / 20.0);
+                let tDune = Math.min(1.0, (distFromCenter - fairwayEdge) / 55.0);
                 let smoothDune = tDune * tDune * (3 - 2 * tDune);
                 let duneWave = Math.sin(z * 0.06 + x * 0.05) * 1.2 + Math.cos(z * 0.09) * 0.8;
-                baseHeight += (smoothDune * 5.2) + (Math.max(0, duneWave) * smoothDune);
+                baseHeight += (smoothDune * 13.0) + (Math.max(0, duneWave) * smoothDune);
             }
 
             // 3. Smooth, gentle natural rise at the 325-yd right split hazard (z = -85 to -135)
@@ -405,7 +405,7 @@ export class PhysicsEngine {
             let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.25 + Math.cos(x * 0.22 + z * 0.16) * 0.15;
             baseHeight += fairwayMoguls;
 
-            let xFade = Math.min(1, Math.max(0, (70 - Math.abs(x)) / 10));
+            let xFade = Math.min(1, Math.max(0, (90 - Math.abs(x)) / 10));
             return Math.max(0.001, baseHeight * xFade);
         }
 
@@ -964,10 +964,15 @@ export class PhysicsEngine {
             // Dampen slope gravity pull inside sand so balls hold their position on bunker walls instead of sliding down
             const gravityRollPower = currentlyInSand ? 0.02 : 1.0;
 
-            // Add this block: Cuts down gravity acceleration on slopes by 65% when stuck in thick rough grass
+           // Cuts down slope gravity in the rough and fades it out at low speeds so grass catches the ball on hills
             let slopeGravityModifier = 1.0;
             if (!onGreen && !currentlyInSand && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) > activeFW) {
-                slopeGravityModifier = 0.35;
+                const speed = this.velocity.length();
+                if (speed < 0.08) {
+                    slopeGravityModifier = Math.max(0.0, speed / 0.08) * 0.35;
+                } else {
+                    slopeGravityModifier = 0.35;
+                }
             }
 
             // NEW: Anti-infinite rolling capture mechanism on green slopes
