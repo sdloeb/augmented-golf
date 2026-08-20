@@ -608,7 +608,7 @@ const HOLES_CONFIG = {
         // Treeless open links dunes (No trees on fairway)
         customTrees: [],
 
-        customOOB: {
+customOOB: {
             type: 'rectangle',
             minX: -65,
             maxX: 65,
@@ -617,8 +617,116 @@ const HOLES_CONFIG = {
             stakesPerSide: 11,
             stakesPerRow: 4
         }
+    },
+   8: { // Pine Valley Hole #2 - 368-Yard Championship Par 4
+        par: 4,
+        fairwayWidth: 13.0,
+        greenRadius: 8.5,
+        greenShape: 'oval',        // Wide horizontally across the bluff face
+        horizonTheme: 'forest',    // Heavy Pine Valley forest canopy
+        theme: 'forest',
+        treeScale: 4.8,
+        treeHeightScale: 1.6,
+
+        // Back-to-Front Slope with Right Collection Swale & False Front
+        slopeProfile: {
+            backLeft: { rx: -0.020, rz: -0.035 },
+            backRight: { rx: 0.015, rz: -0.035 },
+            midLeft: { rx: -0.015, rz: -0.040 },
+            midRight: { rx: 0.020, rz: -0.040 },
+            frontLeft: { rx: -0.010, rz: -0.045 },
+            frontRight: { rx: 0.015, rz: -0.045 },
+
+            features: [
+                // False front rejecting weak approaches back down the hill
+                { type: 'tier', axis: 'z', position: 2.5, width: 2.8, height: -0.14 },
+                // Ridge separating back tier from center collection area
+                { type: 'ridge', p1: { x: -5.0, z: -2.5 }, p2: { x: 4.0, z: 1.0 }, width: 3.0, height: 0.10 },
+                // Right collection swale above the deep pot bunker
+                { type: 'bowl', x: 3.5, z: -0.5, radius: 3.2, depth: 0.08 }
+            ]
+        },
+
+        // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -95, Green: z=-123)
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),       // 1. Perched Tee Box (0 yds)
+            new THREE.Vector3(0, 0, -51.4),    // 2. Fairway Start (170 yds)
+            new THREE.Vector3(0, 0, -73.0),    // 3. Fairway Landing Target (230 yds)
+            new THREE.Vector3(0, 0, -95.0),    // 4. Fairway End (291 yds)
+            new THREE.Vector3(0, 0, -123.0)    // 5. Elevated Green Center (368 yds total)
+        ],
+
+        // CALIBRATED HAZARDS: Forced Carry (72-148 yds) & Uphill Amphitheater (291-350 yds)
+        hazards: [
+            // --- 1. FIRST SET OF BUNKERS / FORCED CARRY (72 to 148 yds / z = -16.0 to -43.4) ---
+            { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -17.0 }, { x: 6.0, z: -19.0 }], radius: 4.2, depth: 0.45 },
+            { type: 'sand', shape: 'snake', path: [{ x: -9.0, z: -27.0 }, { x: 7.0, z: -26.0 }], radius: 4.8, depth: 0.45 },
+            { type: 'sand', shape: 'snake', path: [{ x: -7.0, z: -35.0 }, { x: 8.0, z: -34.0 }], radius: 4.5, depth: 0.45 },
+            { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -42.5 }, { x: 5.0, z: -42.5 }], radius: 3.8, depth: 0.40 },
+
+            // --- 2. ISLAND FAIRWAY SIDE BUNKERS (170 to 291 yds / z = -51.4 to -95.0) ---
+            // Left Scalloped Fingers
+            { type: 'sand', x: -16.3, z: -58.0, radius: 2.5, depth: 0.55 },
+            { type: 'sand', x: -18.5, z: -68.0, radius: 3.8, depth: 0.55 },
+            { type: 'sand', x: -20.0, z: -78.0, radius: 5.8, depth: 0.55 },
+            { type: 'sand', x: -19.2, z: -88.0, radius: 4.6, depth: 0.55 },
+            // Right Side Waste Bunkers
+            { type: 'sand', x: 19.6, z: -60.0, radius: 5.0, depth: 0.50 },
+            { type: 'sand', x: 19.5, z: -70.0, radius: 4.2, depth: 0.50 },
+            { type: 'sand', x: 20.5, z: -80.0, radius: 6.0, depth: 0.50 },
+            { type: 'sand', x: 19.2, z: -90.0, radius: 3.8, depth: 0.50 },
+
+            // --- 3. UPHILL APPROACH BUNKERS (291 to 350 yds / z = -95.0 to -116.4) ---
+            // Lower Slope Tier (z: -96 to -100)
+            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -96.5 }, { x: -3.0, z: -96.5 }], radius: 2.6, depth: 0.45 },
+            { type: 'sand', shape: 'snake', path: [{ x: -1.0, z: -98.0 }, { x: 11.0, z: -97.5 }], radius: 2.8, depth: 0.50 },
+            { type: 'sand', shape: 'snake', path: [{ x: 14.0, z: -96.0 }, { x: 18.0, z: -105.0 }], radius: 2.5, depth: 0.45 },
+
+            // Mid Slope Tier (z: -103 to -109)
+            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -104.5 }, { x: -4.0, z: -104.0 }], radius: 2.4, depth: 0.50 },
+            { type: 'sand', shape: 'snake', path: [{ x: -2.0, z: -107.0 }, { x: 7.0, z: -106.0 }], radius: 2.5, depth: 0.50 },
+            { type: 'sand', shape: 'snake', path: [{ x: 9.0, z: -107.5 }, { x: 16.0, z: -108.5 }], radius: 2.4, depth: 0.50 },
+
+            // Upper Bluff Tier below Green (z: -113 to -116)
+            { type: 'sand', shape: 'snake', path: [{ x: -10.0, z: -112.0 }, { x: 4.0, z: -113.5 }], radius: 2.5, depth: 0.55 },
+            { type: 'sand', shape: 'snake', path: [{ x: 4.0, z: -112.5 }, { x: 10.0, z: -115.5 }], radius: 2.3, depth: 0.50 },
+
+            // --- 4. GREENSIDE HAZARDS (z = -120 to -128) ---
+            { type: 'sand', x: 13.8, z: -122.5, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
+            { type: 'sand', x: -14.5, z: -122.0, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
+            { type: 'sand', x: 14.5, z: -128.0, radius: 2.8, depth: 0.50 }  // Back-Right Crater
+        ],
+
+        // DENSE SURROUNDING PINE FOREST
+        customTrees: [
+            // Left Tree Line
+            { x: -26, z: 20 }, { x: -26, z: 0 }, { x: -28, z: -20 }, { x: -30, z: -40 },
+            { x: -28, z: -60 }, { x: -26, z: -80 }, { x: -28, z: -100 }, { x: -30, z: -120 },
+            { x: -32, z: -135 }, { x: -26, z: -150 }, { x: -18, z: -155 },
+
+            // Right Tree Line
+            { x: 26, z: 20 }, { x: 26, z: 0 }, { x: 28, z: -20 }, { x: 30, z: -40 },
+            { x: 30, z: -60 }, { x: 28, z: -80 }, { x: 30, z: -100 }, { x: 30, z: -120 },
+            { x: 28, z: -135 }, { x: 24, z: -150 }, { x: 16, z: -155 },
+
+            // Back of Green Canopy Frame
+            { x: -10, z: -150 }, { x: -2, z: -153 }, { x: 6, z: -153 }, { x: 12, z: -150 }
+        ],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -46,
+            maxX: 46,
+            minZ: -165,
+            maxZ: 30,
+            stakesPerSide: 10,
+            stakesPerRow: 4
+        }
     }
 };
+
+
+
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor, greenFringe;
@@ -639,7 +747,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 7; //1st hole start
+let currentHoleNumber = 8; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3104,11 +3212,12 @@ function resetEntireGame(advanceHole = false) {
                     const hiddenFairwayH = floorHeight - 0.50;
 
                     // Boundary checks for fairway corridor
-                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
+                   const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
-                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0);
+                      (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
+(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -95.0));
 
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;

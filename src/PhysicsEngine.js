@@ -405,7 +405,59 @@ export class PhysicsEngine {
             let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.25 + Math.cos(x * 0.22 + z * 0.16) * 0.15;
             baseHeight += fairwayMoguls;
 
-            let xFade = Math.min(1, Math.max(0, (90 - Math.abs(x)) / 10));
+          let xFade = Math.min(1, Math.max(0, (90 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
+        }
+
+
+
+      // --- PINE VALLEY HOLE 8 ELEVATION & CLIFF GREEN COMPLEX ---
+        if (this.currentHoleNumber === 8) {
+            let baseHeight = 0.0;
+
+            // 1. Perched Tee Box (0 to 72 yds / z = 10 to -16)
+            if (z > 5) {
+                baseHeight = 3.5;
+            } else if (z >= -16) {
+                let t = (5 - z) / 21.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 3.5 * (1.0 - smoothT);
+            }
+            // 2. Valley & Fairway Landing Zone (72 to 291 yds / z = -16 to -95) stays at 0.0
+            else if (z > -95.0) {
+                baseHeight = 0.0;
+            }
+            // 3. Uphill Approach Slope (291 to 350 yds / z = -95.0 to -116.4)
+            else if (z >= -116.4) {
+                let t = (-95.0 - z) / 21.4;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 8.5 * smoothT;
+            }
+            // 4. Elevated Green Plateau (350+ yds / z = -116.4 to -135)
+            else if (z >= -135) {
+                baseHeight = 8.5;
+            }
+            // 5. Gentle falloff behind green
+            else {
+                let t = Math.min(1.0, (-135 - z) / 25.0);
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 8.5 * (1.0 - smoothT * 0.4);
+            }
+
+            // 6. Side hills framing the rough corridor
+            let distFromCenter = Math.abs(x);
+            let fairwayEdge = 13.0;
+            if (distFromCenter > fairwayEdge) {
+                let tSide = Math.min(1.0, (distFromCenter - fairwayEdge) / 35.0);
+                let smoothSide = tSide * tSide * (3 - 2 * tSide);
+                baseHeight += smoothSide * 4.5;
+            }
+
+            // 7. Subtle terrain ripples
+            let ripples = Math.sin(x * 0.12) * Math.cos(z * 0.08) * 0.18 + Math.cos(x * 0.18 + z * 0.12) * 0.10;
+            baseHeight += ripples;
+
+            let xFade = Math.min(1, Math.max(0, (75 - Math.abs(x)) / 10));
             return Math.max(0.001, baseHeight * xFade);
         }
 
@@ -414,8 +466,7 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-       if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7) {
-            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
+if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8) {            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
             // Reduced multipliers for an ultra-flat fairway with clear line-of-sight
@@ -620,7 +671,7 @@ export class PhysicsEngine {
         const totalPower = power * speedScale;
 
         // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
-        // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
+       
         this.spin = isPutting ? 0 : spin;
         this.hasLanded = false;
         this.hasHitObstacleOnShot = false; // NEW: Reset tracking flag for a clean new shot path
@@ -675,6 +726,9 @@ export class PhysicsEngine {
         if (holeNum === 3) {
             // Hole 3: Pebble Beach chasm gap exclusions
             return (z <= -20.0 && z > -115.0) || (z <= -132.0 && z >= -180.0);
+        }
+      if (holeNum === 8) {
+            return z <= -51.4 && z >= -95.0;
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)
