@@ -4594,71 +4594,72 @@ function animate() {
         const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
         const isNearGround = ball.position.y <= (groundHeight + ballRadius + 0.12);
 
-        if (distanceToHole < maxInfluenceRadius && isNearGround) {
+      if (distanceToHole < maxInfluenceRadius && isNearGround) {
             const rawSpeed = physics.velocity.length();
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
+            // Lateral offset from cup center line
+            const lateralOffset = Math.abs(dx);
+
+            // If this ball already lipped out or blew past the cup on this stroke, prevent re-sinking while passing through
+            if (ball.userData.hasLipDeflected) {
+                // Ball is already in deflection exit path; let it roll out
+            }
             // -------------------------------------------------------------
-            // CASE 1: DEAD CENTER ENTRANCE (distanceToHole < 0.045)
+            // ZONE 1: CENTER CHANNEL ENTRY (lateralOffset <= 0.050)
             // -------------------------------------------------------------
-            if (distanceToHole < 0.045) {
-                // A. Perfect Pace (Drop In)
-                if (trueWorldSpeed <= 0.105) {
-                    isSinking = true;
-                    ball.userData.isLipRiding = false;
-                    physics.velocity.set(0, 0, 0);
-                    physics.isMoving = false;
-                    wasMoving = false;
-                }
-                // B. Hit Pin / Flagstick in cup (Ricochet)
-                else if (pin && pin.visible && !ball.userData.hasHitPin) {
-                    ball.userData.hasHitPin = true;
-                    ball.userData.isLipRiding = false;
-
-                    const currentSpeed = physics.velocity.length();
-                    let bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI + (Math.random() - 0.5) * 0.4;
-
-                    physics.velocity.x = Math.sin(bounceAngle) * currentSpeed * 0.35;
-                    physics.velocity.z = Math.cos(bounceAngle) * currentSpeed * 0.35;
-                    if (!physics.isPutting) physics.velocity.y = 0.08;
-
-                    if (sounds) sounds.play('iron');
-                }
-                // C. Blasted Past / Blow-By (No flagstick or hit too hard to drop)
-                else if (trueWorldSpeed > 0.105) {
-                    // Ball hits back lip: skips slightly and deflects out past the hole
-                    if (!ball.userData.hasLipDeflected) {
+            else if (lateralOffset <= 0.050) {
+                if (distanceToHole <= 0.080) {
+                    // A. Good Pace: Drops straight into cup
+                    if (trueWorldSpeed <= 0.120) {
+                        isSinking = true;
+                        ball.userData.isLipRiding = false;
+                        physics.velocity.set(0, 0, 0);
+                        physics.isMoving = false;
+                        wasMoving = false;
+                    }
+                    // B. Hit Pin / Flagstick: Ricochet
+                    else if (pin && pin.visible && !ball.userData.hasHitPin) {
+                        ball.userData.hasHitPin = true;
+                        ball.userData.isLipRiding = false;
+                        const currentSpeed = physics.velocity.length();
+                        let bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI + (Math.random() - 0.5) * 0.4;
+                        physics.velocity.x = Math.sin(bounceAngle) * currentSpeed * 0.35;
+                        physics.velocity.z = Math.cos(bounceAngle) * currentSpeed * 0.35;
+                        if (!physics.isPutting) physics.velocity.y = 0.08;
+                        if (sounds) sounds.play('iron');
+                    }
+                    // C. Blasted Through / Blow-By: Skips back rim and continues past
+                    else {
                         ball.userData.hasLipDeflected = true;
-                        physics.velocity.x *= 0.82;
-                        physics.velocity.z *= 0.82;
+                        ball.userData.isLipRiding = false;
+                        physics.velocity.x *= 0.88;
+                        physics.velocity.z *= 0.88;
                         if (!physics.isPutting) physics.velocity.y = 0.04;
                         if (sounds) sounds.play('putt');
                     }
                 }
             }
             // -------------------------------------------------------------
-            // CASE 2: OFF-CENTER / LIP INTERACTION (0.045 <= distanceToHole)
+            // ZONE 2: CUP RIM / LIP (lateralOffset > 0.050)
             // -------------------------------------------------------------
-            else if (rawSpeed > 0.015) {
-                // A. Hit Way Too Hard (Fast Lip-Out / Glancing Deflection)
-                if (trueWorldSpeed > 0.175) {
-                    if (!ball.userData.hasLipDeflected) {
-                        ball.userData.hasLipDeflected = true;
-                        ball.userData.isLipRiding = false;
+            else if (rawSpeed > 0.010) {
+                // A. Fast Lip-Out: Skims rim at pace and deflects sharply away
+                if (trueWorldSpeed > 0.155) {
+                    ball.userData.hasLipDeflected = true;
+                    ball.userData.isLipRiding = false;
 
-                        // Deflect ball outward away from the center of the cup
-                        const awayX = dx / distanceToHole;
-                        const awayZ = dz / distanceToHole;
-                        const currentSpd = physics.velocity.length();
+                    const awayX = dx / distanceToHole;
+                    const awayZ = dz / distanceToHole;
+                    const currentSpd = rawSpeed;
 
-                        physics.velocity.x = (physics.velocity.x * 0.70 + awayX * currentSpd * 0.35);
-                        physics.velocity.z = (physics.velocity.z * 0.70 + awayZ * currentSpd * 0.35);
+                    physics.velocity.x = (physics.velocity.x * 0.50 + awayX * currentSpd * 0.60);
+                    physics.velocity.z = (physics.velocity.z * 0.50 + awayZ * currentSpd * 0.60);
 
-                        if (sounds) sounds.play('putt');
-                    }
+                    if (sounds) sounds.play('putt');
                 }
-                // B. Playable Speed: Dynamic Lip-Ride (Lip-In or Horseshoe Spin-Out)
+                // B. Playable Pace: Dynamic Lip-Ride (Horseshoe or Lip-In)
                 else {
                     if (!ball.userData.isLipRiding) {
                         ball.userData.isLipRiding = true;
@@ -4686,42 +4687,42 @@ function animate() {
                     const tanX = -hDirZ * ball.userData.lipDirection;
                     const tanZ = hDirX * ball.userData.lipDirection;
 
-                    // Pull position smoothly onto the rim track
-                    const targetLipDist = cupRimRadius - 0.015;
-                    const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.25);
+                    // Pull smoothly onto rim track
+                    const targetLipDist = cupRimRadius - 0.010;
+                    const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.35);
                     ball.position.x = holePosition.x + hDirX * newDist;
                     ball.position.z = holePosition.z + hDirZ * newDist;
 
-                    // Apply rim drag
-                    physics.velocity.x = (tanX * 0.85 + (-hDirX * 0.15)) * rawSpeed * 0.95;
-                    physics.velocity.z = (tanZ * 0.85 + (-hDirZ * 0.15)) * rawSpeed * 0.95;
+                    // Rim curve momentum
+                    physics.velocity.x = (tanX * 0.92 + (-hDirX * 0.12)) * rawSpeed * 0.98;
+                    physics.velocity.z = (tanZ * 0.92 + (-hDirZ * 0.12)) * rawSpeed * 0.98;
 
-                    // Slightly dip ball into the cup edge
+                    // Dip slightly on rim
                     const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
-                    ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.05, 0.18);
+                    ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.04, 0.20);
 
-                    // 1. LIP-IN: Slowed down enough around the rim to drop
-                    if (physics.velocity.length() * currentScale < 0.055) {
+                    // 1. HORSESHOE / LIP-OUT: Spun around rim (> 1.2 rad / ~70 deg) and whips away
+                    if (ball.userData.lipAngleTraveled > 1.2) {
+                        physics.velocity.x = (tanX + hDirX * 0.85) * rawSpeed * 0.95;
+                        physics.velocity.z = (tanZ + hDirZ * 0.85) * rawSpeed * 0.95;
+                        ball.userData.isLipRiding = false;
+                        ball.userData.hasLipDeflected = true;
+                        if (sounds) sounds.play('putt');
+                    }
+                    // 2. LIP-IN: Slowed down sufficiently on rim to drop
+                    else if (trueWorldSpeed < 0.038) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.set(0, 0, 0);
                         physics.isMoving = false;
                         wasMoving = false;
                     }
-                    // 2. LIP-OUT / HORSESHOE: Traveled around the rim (> 1.6 rad / ~90 deg) and slingshots away
-                    else if (ball.userData.lipAngleTraveled > 1.6) {
-                        physics.velocity.x = (tanX + hDirX * 0.65) * rawSpeed * 0.90;
-                        physics.velocity.z = (tanZ + hDirZ * 0.65) * rawSpeed * 0.90;
-                        ball.userData.isLipRiding = false;
-                        ball.userData.hasLipDeflected = true;
-                        if (sounds) sounds.play('putt');
-                    }
                 }
             }
         } else {
             ball.userData.isLipRiding = false;
             ball.userData.hasHitPin = false;
-            if (distanceToHole > maxInfluenceRadius + 0.2) {
+            if (distanceToHole > maxInfluenceRadius + 0.15) {
                 ball.userData.hasLipDeflected = false;
             }
         }
@@ -6561,6 +6562,56 @@ window.addEventListener('click', (event) => {
     }
 });
 
+
+window.addEventListener('keydown', (e) => {
+    if (!ball || !physics || isSinking) return;
+
+    const testScenarios = {
+        '1': { name: 'Dead Center Drop-In', offset: 0.000, speed: -0.110 },
+        '2': { name: 'Blow-By (Fast Through Cup)', offset: 0.000, speed: -0.280 },
+        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.078, speed: -0.090 },
+        '4': { name: 'Horseshoe Lip-Out (360 Spin)', offset: 0.082, speed: -0.170 },
+        '5': { name: 'Fast Lip-Out (Glance & Deflect)', offset: 0.096, speed: -0.260 }
+    };
+
+    const test = testScenarios[e.key];
+    if (!test) return;
+
+    if (teeBox) teeBox.visible = false;
+    if (golfTee) golfTee.visible = false;
+
+    // 1. Position ball 0.65 units (~1.8 ft) in front of the cup
+    const startX = holePosition.x + test.offset;
+    const startZ = holePosition.z + 0.65;
+    const groundY = physics.getGroundHeight(startX, startZ) + 0.25 * (ball.scale.x || 0.51);
+
+    ball.position.set(startX, groundY, startZ);
+    ball.visible = true;
+    ball.userData.isLipRiding = false;
+    ball.userData.hasLipDeflected = false;
+    ball.userData.hasHitPin = false;
+
+    // 2. Snap camera directly behind the ball looking across toward the hole
+    const camDist = 2.4;
+    const camHeight = 1.1;
+    cameraTargetPos.set(startX, groundY + camHeight, startZ + camDist);
+    cameraLookAt.set(holePosition.x, groundY + 0.05, holePosition.z);
+    camera.position.copy(cameraTargetPos);
+    currentLookAt.copy(cameraLookAt);
+    camera.lookAt(cameraLookAt);
+    camera.fov = 55;
+    camera.updateProjectionMatrix();
+
+    // 3. Launch putt
+    physics.velocity.set(0, 0, test.speed);
+    physics.isMoving = true;
+    physics.isPutting = true;
+    wasMoving = false;
+    isSinking = false;
+
+    updateDistanceDisplay();
+    console.log(`Testing: ${test.name}`);
+});
 
 
 function updateGreenGrid() {
