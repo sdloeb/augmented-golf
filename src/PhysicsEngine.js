@@ -411,7 +411,7 @@ export class PhysicsEngine {
 
 
 
-        if (this.currentHoleNumber === 8) {
+       if (this.currentHoleNumber === 8) {
             let baseHeight = 0.0;
 
             // 1. Perched Tee Box (0 to 72 yds / z = 10 to -16)
@@ -422,55 +422,55 @@ export class PhysicsEngine {
                 let smoothT = t * t * (3 - 2 * t);
                 baseHeight = 3.5 * (1.0 - smoothT);
             }
-            // 2. Valley & Fairway 1 Landing Zone (72 to 275 yds / z = -16 to -89.3) stays at 0.0
-            else if (z > -89.3) {
+            // 2. Valley & Fairway 1 Landing Zone (72 to 275 yds / z = -16 to -89.5) -> flat at 0.0
+            else if (z > -89.5) {
                 baseHeight = 0.0;
             }
-           // Step 1: Rise over Bunker 1 -> 0.0 to 3.0
-            else if (z >= -94.3) {
-                let t = (-89.3 - z) / 5.0;
+            // Step 1: Rise over Bunker 1 (z = -89.5 to -94.5) -> 0.0 to 2.125
+            else if (z >= -94.5) {
+                let t = (-89.5 - z) / 5.0;
                 let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 3.0 * smoothT;
+                baseHeight = 2.125 * smoothT;
             }
-            // Step 1 Flat Fairway 1 -> flat at 3.0
-            else if (z > -103.3) {
-                baseHeight = 3.0;
+            // Step 1 Flat Fairway 1 (z = -94.5 to -103.5, 25 yds) -> 100% FLAT at 2.125
+            else if (z > -103.5) {
+                baseHeight = 2.125;
             }
-            // Step 2: Rise over Bunker 2 -> 3.0 to 6.0
-            else if (z >= -108.3) {
-                let t = (-103.3 - z) / 5.0;
+            // Step 2: Rise over Bunker 2 (z = -103.5 to -108.5) -> 2.125 to 4.25
+            else if (z >= -108.5) {
+                let t = (-103.5 - z) / 5.0;
                 let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 3.0 + 3.0 * smoothT;
+                baseHeight = 2.125 + 2.125 * smoothT;
             }
-            // Step 2 Flat Fairway 2 -> flat at 6.0
-            else if (z > -117.3) {
-                baseHeight = 6.0;
+            // Step 2 Flat Fairway 2 (z = -108.5 to -117.5, 25 yds) -> 100% FLAT at 4.25
+            else if (z > -117.5) {
+                baseHeight = 4.25;
             }
-            // Step 3: Rise over Bunker 3 -> 6.0 to 9.0
-            else if (z >= -122.3) {
-                let t = (-117.3 - z) / 5.0;
+            // Step 3: Rise over Bunker 3 (z = -117.5 to -122.5) -> 4.25 to 6.375
+            else if (z >= -122.5) {
+                let t = (-117.5 - z) / 5.0;
                 let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 6.0 + 3.0 * smoothT;
+                baseHeight = 4.25 + 2.125 * smoothT;
             }
-            // Step 3 Flat Fairway 3 -> flat at 9.0
-            else if (z > -131.3) {
-                baseHeight = 9.0;
+            // Step 3 Flat Fairway 3 (z = -122.5 to -131.5, 25 yds) -> 100% FLAT at 6.375
+            else if (z > -131.5) {
+                baseHeight = 6.375;
             }
-            // Step 4: Rise over Bunker 4 -> 9.0 to 12.0
-            else if (z >= -136.3) {
-                let t = (-131.3 - z) / 5.0;
+            // Step 4: Rise over Bunker 4 (z = -131.5 to -136.5) -> 6.375 to 8.5
+            else if (z >= -136.5) {
+                let t = (-131.5 - z) / 5.0;
                 let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 9.0 + 3.0 * smoothT;
+                baseHeight = 6.375 + 2.125 * smoothT;
             }
-            // Green Plateau -> flat at 12.0
+            // Green Plateau (z = -136.5 to -156.0, Green center at z = -145.0) -> flat at 8.5
             else if (z >= -156.0) {
-                baseHeight = 12.0;
+                baseHeight = 8.5;
             }
             // Gentle falloff behind green
             else {
                 let t = Math.min(1.0, (-156.0 - z) / 25.0);
                 let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 12.0 * (1.0 - smoothT * 0.4);
+                baseHeight = 8.5 * (1.0 - smoothT * 0.4);
             }
 
             // Side hills framing the rough corridor
@@ -481,10 +481,6 @@ export class PhysicsEngine {
                 let smoothSide = tSide * tSide * (3 - 2 * tSide);
                 baseHeight += smoothSide * 4.5;
             }
-
-            // Subtle terrain ripples
-            let ripples = Math.sin(x * 0.12) * Math.cos(z * 0.08) * 0.18 + Math.cos(x * 0.18 + z * 0.12) * 0.10;
-            baseHeight += ripples;
 
             let xFade = Math.min(1, Math.max(0, (75 - Math.abs(x)) / 10));
             return Math.max(0.001, baseHeight * xFade);
@@ -673,8 +669,8 @@ export class PhysicsEngine {
                     const dzS = z - sand.position.z;
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
-                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    const transitionMargin = 2.2;
+                  const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const transitionMargin = (this.currentHoleNumber === 8 ? 0.3 : 2.2);
                     const sandRadius = baseRadius + transitionMargin;
 
                     if (distToSand < sandRadius) {
@@ -757,8 +753,8 @@ export class PhysicsEngine {
             // Hole 3: Pebble Beach chasm gap exclusions
             return (z <= -20.0 && z > -115.0) || (z <= -132.0 && z >= -180.0);
         }
-        if (holeNum === 8) {
-            return z <= -51.4 && z >= -131.3;
+      if (holeNum === 8) {
+            return z <= -51.4 && z >= -131.5;
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)

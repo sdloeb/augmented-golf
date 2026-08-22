@@ -648,12 +648,13 @@ customOOB: {
         },
 
         // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -89.3, Steps to -131.3, Green: z=-144.5)
+    // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -89.5, Steps to -131.5, Green: z=-145.0)
         waypoints: [
             new THREE.Vector3(0, 0, 10),       // 1. Perched Tee Box (0 yds)
             new THREE.Vector3(0, 0, -51.4),    // 2. Fairway Start (170 yds)
             new THREE.Vector3(0, 0, -70.0),    // 3. Fairway Landing Target (222 yds)
-            new THREE.Vector3(0, 0, -89.3),    // 4. Base of Hill / 275-yd Fairway 1 End
-            new THREE.Vector3(0, 0, -144.5)    // 5. Elevated Green Center (428 yds total)
+            new THREE.Vector3(0, 0, -89.5),    // 4. Base of Hill / 275-yd Fairway 1 End
+            new THREE.Vector3(0, 0, -145.0)    // 5. Elevated Green Center (429 yds total)
         ],
 
         // CALIBRATED HAZARDS: Forced Carry, Flanks, 4-Tier Staircase & Greenside
@@ -677,26 +678,26 @@ customOOB: {
             { type: 'sand', x: 19.2, z: -84.0, radius: 3.8, depth: 0.50 },
 
             // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 25-yd flat fairways) ---
-            // Tier 1: Bunker 1 starts at 275 yds (z = -91.8) -> Flat Fairway 1 (z = -94.3 to -103.3, 25 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -91.8 }, { x: -4.0, z: -91.3 }, { x: 5.0, z: -92.3 }, { x: 13.0, z: -91.8 }], radius: 2.4, depth: 2.00 },
-         
+            // Tier 1: Bunker 1 starts at 275 yds (z = -92.0) -> Flat Fairway 1 (z = -94.5 to -103.5, 25 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -92.0 }, { x: -4.0, z: -91.5 }, { x: 5.0, z: -92.5 }, { x: 13.0, z: -92.0 }], radius: 2.6, depth: 1.60 },
+            
 
-            // Tier 2: Bunker 2 (z = -105.8) -> Flat Fairway 2 (z = -108.3 to -117.3, 25 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -105.8 }, { x: -3.0, z: -106.3 }, { x: 4.5, z: -105.3 }, { x: 12.5, z: -106.3 }], radius: 2.3, depth: 2.00 },
-           
-
-            // Tier 3: Bunker 3 (z = -119.8) -> Flat Fairway 3 (z = -122.3 to -131.3, 25 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -11.0, z: -119.8 }, { x: -2.0, z: -120.3 }, { x: 5.0, z: -119.3 }, { x: 11.5, z: -120.3 }], radius: 2.2, depth: 2.00 },
+            // Tier 2: Bunker 2 (z = -106.0) -> Flat Fairway 2 (z = -108.5 to -117.5, 25 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -106.0 }, { x: -3.0, z: -106.5 }, { x: 4.5, z: -105.5 }, { x: 12.5, z: -106.5 }], radius: 2.5, depth: 1.65 },
           
 
-            // Tier 4: Bunker 4 (z = -133.8) -> Green Plateau (z = -136.3 to -156.0, Green at z = -144.5)
-            { type: 'sand', shape: 'snake', path: [{ x: -9.5, z: -133.8 }, { x: 0.0, z: -134.3 }, { x: 9.5, z: -133.8 }], radius: 2.0, depth: 2.00 },
-       
+            // Tier 3: Bunker 3 (z = -120.0) -> Flat Fairway 3 (z = -122.5 to -131.5, 25 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -11.0, z: -120.0 }, { x: -2.0, z: -120.5 }, { x: 5.0, z: -119.5 }, { x: 11.5, z: -120.5 }], radius: 2.4, depth: 1.70 },
+         
+
+            // Tier 4: Bunker 4 (z = -134.0) -> Green Plateau (z = -136.5 to -156.0, Green at z = -145.0)
+            { type: 'sand', shape: 'snake', path: [{ x: -9.5, z: -134.0 }, { x: 0.0, z: -134.5 }, { x: 9.5, z: -134.0 }], radius: 2.2, depth: 1.75 },
+           
 
             // --- 4. GREENSIDE HAZARDS (z = -144 to -150) ---
-            { type: 'sand', x: 13.8, z: -144.0, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
-            { type: 'sand', x: -14.5, z: -143.5, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
-            { type: 'sand', x: 14.5, z: -150.0, radius: 2.8, depth: 0.50 }  // Back-Right Crater
+            { type: 'sand', x: 13.8, z: -144.5, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
+            { type: 'sand', x: -14.5, z: -144.0, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
+            { type: 'sand', x: 14.5, z: -150.5, radius: 2.8, depth: 0.50 }  // Back-Right Crater
         ],
 
         // DENSE SURROUNDING PINE FOREST
@@ -3219,7 +3220,7 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                       (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -131.3));
+(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -131.3));(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -131.5));
 
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
