@@ -618,7 +618,7 @@ customOOB: {
             stakesPerRow: 4
         }
     },
-   8: { // Pine Valley Hole #2 - 368-Yard Championship Par 4
+  8: { // Pine Valley Hole #2 - 428-Yard Championship Par 4
         par: 4,
         fairwayWidth: 13.0,
         greenRadius: 8.5,
@@ -647,16 +647,16 @@ customOOB: {
             ]
         },
 
-        // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -95, Green: z=-123)
+        // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -89.3, Steps to -131.3, Green: z=-144.5)
         waypoints: [
             new THREE.Vector3(0, 0, 10),       // 1. Perched Tee Box (0 yds)
             new THREE.Vector3(0, 0, -51.4),    // 2. Fairway Start (170 yds)
-            new THREE.Vector3(0, 0, -73.0),    // 3. Fairway Landing Target (230 yds)
-            new THREE.Vector3(0, 0, -95.0),    // 4. Fairway End (291 yds)
-            new THREE.Vector3(0, 0, -123.0)    // 5. Elevated Green Center (368 yds total)
+            new THREE.Vector3(0, 0, -70.0),    // 3. Fairway Landing Target (222 yds)
+            new THREE.Vector3(0, 0, -89.3),    // 4. Base of Hill / 275-yd Fairway 1 End
+            new THREE.Vector3(0, 0, -144.5)    // 5. Elevated Green Center (428 yds total)
         ],
 
-        // CALIBRATED HAZARDS: Forced Carry (72-148 yds) & Uphill Amphitheater (291-350 yds)
+        // CALIBRATED HAZARDS: Forced Carry, Flanks, 4-Tier Staircase & Greenside
         hazards: [
             // --- 1. FIRST SET OF BUNKERS / FORCED CARRY (72 to 148 yds / z = -16.0 to -43.4) ---
             { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -17.0 }, { x: 6.0, z: -19.0 }], radius: 4.2, depth: 0.45 },
@@ -664,37 +664,39 @@ customOOB: {
             { type: 'sand', shape: 'snake', path: [{ x: -7.0, z: -35.0 }, { x: 8.0, z: -34.0 }], radius: 4.5, depth: 0.45 },
             { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -42.5 }, { x: 5.0, z: -42.5 }], radius: 3.8, depth: 0.40 },
 
-            // --- 2. ISLAND FAIRWAY SIDE BUNKERS (170 to 291 yds / z = -51.4 to -95.0) ---
+            // --- 2. ISLAND FAIRWAY SIDE BUNKERS (170 to 260 yds / z = -51.4 to -84.0) ---
             // Left Scalloped Fingers
             { type: 'sand', x: -16.3, z: -58.0, radius: 2.5, depth: 0.55 },
             { type: 'sand', x: -18.5, z: -68.0, radius: 3.8, depth: 0.55 },
             { type: 'sand', x: -20.0, z: -78.0, radius: 5.8, depth: 0.55 },
-            { type: 'sand', x: -19.2, z: -88.0, radius: 4.6, depth: 0.55 },
+            { type: 'sand', x: -19.2, z: -84.0, radius: 4.2, depth: 0.55 },
             // Right Side Waste Bunkers
             { type: 'sand', x: 19.6, z: -60.0, radius: 5.0, depth: 0.50 },
             { type: 'sand', x: 19.5, z: -70.0, radius: 4.2, depth: 0.50 },
-            { type: 'sand', x: 20.5, z: -80.0, radius: 6.0, depth: 0.50 },
-            { type: 'sand', x: 19.2, z: -90.0, radius: 3.8, depth: 0.50 },
+            { type: 'sand', x: 20.5, z: -78.0, radius: 5.8, depth: 0.50 },
+            { type: 'sand', x: 19.2, z: -84.0, radius: 3.8, depth: 0.50 },
 
-            // --- 3. UPHILL APPROACH BUNKERS (291 to 350 yds / z = -95.0 to -116.4) ---
-            // Lower Slope Tier (z: -96 to -100)
-            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -96.5 }, { x: -3.0, z: -96.5 }], radius: 2.6, depth: 0.45 },
-            { type: 'sand', shape: 'snake', path: [{ x: -1.0, z: -98.0 }, { x: 11.0, z: -97.5 }], radius: 2.8, depth: 0.50 },
-            { type: 'sand', shape: 'snake', path: [{ x: 14.0, z: -96.0 }, { x: 18.0, z: -105.0 }], radius: 2.5, depth: 0.45 },
+            // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 25-yd flat fairways) ---
+            // Tier 1: Bunker 1 starts at 275 yds (z = -91.8) -> Flat Fairway 1 (z = -94.3 to -103.3, 25 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -91.8 }, { x: -4.0, z: -91.3 }, { x: 5.0, z: -92.3 }, { x: 13.0, z: -91.8 }], radius: 2.4, depth: 2.00 },
+         
 
-            // Mid Slope Tier (z: -103 to -109)
-            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -104.5 }, { x: -4.0, z: -104.0 }], radius: 2.4, depth: 0.50 },
-            { type: 'sand', shape: 'snake', path: [{ x: -2.0, z: -107.0 }, { x: 7.0, z: -106.0 }], radius: 2.5, depth: 0.50 },
-            { type: 'sand', shape: 'snake', path: [{ x: 9.0, z: -107.5 }, { x: 16.0, z: -108.5 }], radius: 2.4, depth: 0.50 },
+            // Tier 2: Bunker 2 (z = -105.8) -> Flat Fairway 2 (z = -108.3 to -117.3, 25 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -105.8 }, { x: -3.0, z: -106.3 }, { x: 4.5, z: -105.3 }, { x: 12.5, z: -106.3 }], radius: 2.3, depth: 2.00 },
+           
 
-            // Upper Bluff Tier below Green (z: -113 to -116)
-            { type: 'sand', shape: 'snake', path: [{ x: -10.0, z: -112.0 }, { x: 4.0, z: -113.5 }], radius: 2.5, depth: 0.55 },
-            { type: 'sand', shape: 'snake', path: [{ x: 4.0, z: -112.5 }, { x: 10.0, z: -115.5 }], radius: 2.3, depth: 0.50 },
+            // Tier 3: Bunker 3 (z = -119.8) -> Flat Fairway 3 (z = -122.3 to -131.3, 25 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -11.0, z: -119.8 }, { x: -2.0, z: -120.3 }, { x: 5.0, z: -119.3 }, { x: 11.5, z: -120.3 }], radius: 2.2, depth: 2.00 },
+          
 
-            // --- 4. GREENSIDE HAZARDS (z = -120 to -128) ---
-            { type: 'sand', x: 13.8, z: -122.5, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
-            { type: 'sand', x: -14.5, z: -122.0, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
-            { type: 'sand', x: 14.5, z: -128.0, radius: 2.8, depth: 0.50 }  // Back-Right Crater
+            // Tier 4: Bunker 4 (z = -133.8) -> Green Plateau (z = -136.3 to -156.0, Green at z = -144.5)
+            { type: 'sand', shape: 'snake', path: [{ x: -9.5, z: -133.8 }, { x: 0.0, z: -134.3 }, { x: 9.5, z: -133.8 }], radius: 2.0, depth: 2.00 },
+       
+
+            // --- 4. GREENSIDE HAZARDS (z = -144 to -150) ---
+            { type: 'sand', x: 13.8, z: -144.0, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
+            { type: 'sand', x: -14.5, z: -143.5, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
+            { type: 'sand', x: 14.5, z: -150.0, radius: 2.8, depth: 0.50 }  // Back-Right Crater
         ],
 
         // DENSE SURROUNDING PINE FOREST
@@ -702,24 +704,24 @@ customOOB: {
             // Left Tree Line
             { x: -26, z: 20 }, { x: -26, z: 0 }, { x: -28, z: -20 }, { x: -30, z: -40 },
             { x: -28, z: -60 }, { x: -26, z: -80 }, { x: -28, z: -100 }, { x: -30, z: -120 },
-            { x: -32, z: -135 }, { x: -26, z: -150 }, { x: -18, z: -155 },
+            { x: -30, z: -140 }, { x: -32, z: -155 }, { x: -26, z: -170 }, { x: -18, z: -175 },
 
             // Right Tree Line
             { x: 26, z: 20 }, { x: 26, z: 0 }, { x: 28, z: -20 }, { x: 30, z: -40 },
             { x: 30, z: -60 }, { x: 28, z: -80 }, { x: 30, z: -100 }, { x: 30, z: -120 },
-            { x: 28, z: -135 }, { x: 24, z: -150 }, { x: 16, z: -155 },
+            { x: 30, z: -140 }, { x: 28, z: -155 }, { x: 24, z: -170 }, { x: 16, z: -175 },
 
             // Back of Green Canopy Frame
-            { x: -10, z: -150 }, { x: -2, z: -153 }, { x: 6, z: -153 }, { x: 12, z: -150 }
+            { x: -10, z: -170 }, { x: -2, z: -173 }, { x: 6, z: -173 }, { x: 12, z: -170 }
         ],
 
         customOOB: {
             type: 'rectangle',
             minX: -46,
             maxX: 46,
-            minZ: -165,
+            minZ: -185,
             maxZ: 30,
-            stakesPerSide: 10,
+            stakesPerSide: 12,
             stakesPerRow: 4
         }
     }
@@ -3217,7 +3219,7 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                       (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -95.0));
+(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -131.3));
 
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
@@ -4944,45 +4946,34 @@ function animate() {
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
 
-            // === REPLACE WITH THIS EXACT BLOCK ===
-            const lookTargetX = ball.position.x + aimDirX * lookDist;
+           const lookTargetX = ball.position.x + aimDirX * lookDist;
             const lookTargetZ = ball.position.z + aimDirZ * lookDist;
-            let lookTargetY = physics.getGroundHeight(lookTargetX, lookTargetZ); // Modify this line: Changed 'const' to 'let'
 
-            if (teeBox && teeBox.visible) {
-                lookTargetY = ball.position.y - 0.37;
-            }
-            // NEW: If in a deep bunker, override lookTargetY to stay flat with the bunker floor under the ball
-            // instead of looking way up at the high ground outside the trap!
-            else if (isSand) {
-                lookTargetY = ball.position.y - 0.25;
-            }
-            else {
-                // Prevents camera from tilting down into deep bunkers/hazards ahead when ball is on grass
-                lookTargetY = Math.max(lookTargetY, ball.position.y - 0.2);
-            }
-
-
-            const camX = ball.position.x - aimDirX * camDist; // Add this line
-            const camZ = ball.position.z - aimDirZ * camDist; // Add this line
-            const camGroundY = physics.getGroundHeight(camX, camZ); // Add this line: Samples the hill height behind the ball
-
-            // FIXED: Camera tracking now always anchors to the true terrain surface level, preventing the lens from clipping under bunker walls
-            // FIXED: Restore natural ball height tracking so the camera stays low and perfectly level behind the club
+            // Anchor camera height and lookAt target directly to ball elevation
             const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
 
-            // FIXED: Remove the conditional check so sand traps use the exact same hill-clipping guard as the fairway and rough
+            let lookTargetY = stableBallHeight;
+            if (teeBox && teeBox.visible) {
+                lookTargetY = stableBallHeight - 0.37;
+            } else if (isSand) {
+                lookTargetY = stableBallHeight - 0.25;
+            }
+
+            const camX = ball.position.x - aimDirX * camDist;
+            const camZ = ball.position.z - aimDirZ * camDist;
+            const camGroundY = physics.getGroundHeight(camX, camZ);
+
             let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
             let activeLookUp = 3.0;
             if (isSand) {
-                camY = stableBallHeight + camHeight; // Force camera to stay low inside the sand trap with the ball
-                activeLookUp = 0.4;                  // Lower the lens pitch so the ball stays centered on screen
+                camY = stableBallHeight + camHeight;
+                activeLookUp = 0.4;
             }
 
-            cameraTargetPos.set(camX, camY, camZ); // Modify this line
-            cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
-        }
+            cameraTargetPos.set(camX, camY, camZ);
+            cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ);
     }
+}
 
 
     // <-- This brace closes the entire "ball is not moving" section
