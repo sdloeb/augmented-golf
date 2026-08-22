@@ -753,8 +753,11 @@ export class PhysicsEngine {
             // Hole 3: Pebble Beach chasm gap exclusions
             return (z <= -20.0 && z > -115.0) || (z <= -132.0 && z >= -180.0);
         }
-      if (holeNum === 8) {
-            return z <= -51.4 && z >= -131.5;
+     if (holeNum === 8) {
+            return (z <= -51.4 && z >= -89.5) ||
+                   (z <= -94.5 && z >= -103.5) ||
+                   (z <= -108.5 && z >= -117.5) ||
+                   (z <= -122.5 && z >= -131.5);
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)

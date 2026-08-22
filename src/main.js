@@ -659,11 +659,27 @@ customOOB: {
 
         // CALIBRATED HAZARDS: Forced Carry, Flanks, 4-Tier Staircase & Greenside
         hazards: [
-            // --- 1. FIRST SET OF BUNKERS / FORCED CARRY (72 to 148 yds / z = -16.0 to -43.4) ---
-            { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -17.0 }, { x: 6.0, z: -19.0 }], radius: 4.2, depth: 0.45 },
-            { type: 'sand', shape: 'snake', path: [{ x: -9.0, z: -27.0 }, { x: 7.0, z: -26.0 }], radius: 4.8, depth: 0.45 },
-            { type: 'sand', shape: 'snake', path: [{ x: -7.0, z: -35.0 }, { x: 8.0, z: -34.0 }], radius: 4.5, depth: 0.45 },
-            { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -42.5 }, { x: 5.0, z: -42.5 }], radius: 3.8, depth: 0.40 },
+          // --- 1. PINE VALLEY NATIVE WASTE AREA & CHANNELS (70 to 160 yds / z = -18.0 to -48.0) ---
+            // Left Major Waste Wash
+            { type: 'sand', shape: 'snake', path: [{ x: -18.0, z: -19.0 }, { x: -14.0, z: -28.0 }, { x: -18.0, z: -38.0 }, { x: -12.0, z: -47.0 }], radius: 4.5, depth: 0.50 },
+
+            // Right Major Waste Wash
+            { type: 'sand', shape: 'snake', path: [{ x: 16.0, z: -20.0 }, { x: 12.0, z: -30.0 }, { x: 18.0, z: -40.0 }, { x: 13.0, z: -48.0 }], radius: 4.5, depth: 0.50 },
+
+            // Lower Central Crossing Wash (in front of the tee)
+            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -21.0 }, { x: -2.0, z: -19.5 }, { x: 10.0, z: -21.5 }], radius: 4.0, depth: 0.45 },
+
+            // Mid Central Channel (creates grass islands)
+            { type: 'sand', shape: 'snake', path: [{ x: -8.0, z: -33.0 }, { x: 2.0, z: -30.0 }, { x: 11.0, z: -32.0 }], radius: 3.8, depth: 0.45 },
+
+            // Upper Approach Crossing Wash (before the island fairway at z = -51.4)
+            { type: 'sand', shape: 'snake', path: [{ x: -14.0, z: -45.0 }, { x: -1.0, z: -46.5 }, { x: 12.0, z: -44.5 }], radius: 4.2, depth: 0.45 },
+
+            // Organic Sand Blowout Pockets
+            { type: 'sand', x: -7.0, z: -26.0, radius: 3.5, depth: 0.40 },
+            { type: 'sand', x: 8.0, z: -25.0, radius: 3.5, depth: 0.40 },
+            { type: 'sand', x: -5.0, z: -40.0, radius: 3.5, depth: 0.40 },
+            { type: 'sand', x: 6.0, z: -40.0, radius: 3.5, depth: 0.40 },
 
             // --- 2. ISLAND FAIRWAY SIDE BUNKERS (170 to 260 yds / z = -51.4 to -84.0) ---
             // Left Scalloped Fingers
@@ -712,8 +728,32 @@ customOOB: {
             { x: 30, z: -60 }, { x: 28, z: -80 }, { x: 30, z: -100 }, { x: 30, z: -120 },
             { x: 30, z: -140 }, { x: 28, z: -155 }, { x: 24, z: -170 }, { x: 16, z: -175 },
 
-            // Back of Green Canopy Frame
-            { x: -10, z: -170 }, { x: -2, z: -173 }, { x: 6, z: -173 }, { x: 12, z: -170 }
+           // Back of Green Canopy Frame
+            { x: -10, z: -170 }, { x: -2, z: -173 }, { x: 6, z: -173 }, { x: 12, z: -170 },
+
+            // --- NATIVE SCRUB BUSHES & GRASS ISLAND VEGETATION ---
+            // Grass Island 1 (Center-Left near z = -26):
+            { x: -1.5, z: -25.5, type: 'bush', radius: 1.4 },
+            { x: 1.0, z: -26.5, type: 'bush', radius: 1.2 },
+
+            // Grass Island 2 (Center-Right near z = -36):
+            { x: -2.5, z: -36.0, type: 'bush', radius: 1.5 },
+            { x: 1.5, z: -36.5, type: 'bush', radius: 1.3 },
+            { x: 4.5, z: -35.5, type: 'bush', radius: 1.1 },
+
+            // Left Sand Rim Scrub:
+            { x: -22.0, z: -22.0, type: 'bush', radius: 1.6 },
+            { x: -21.0, z: -32.0, type: 'bush', radius: 1.4 },
+            { x: -20.0, z: -42.0, type: 'bush', radius: 1.5 },
+
+            // Right Sand Rim Scrub:
+            { x: 21.0, z: -24.0, type: 'bush', radius: 1.5 },
+            { x: 20.0, z: -34.0, type: 'bush', radius: 1.4 },
+            { x: 21.5, z: -44.0, type: 'bush', radius: 1.6 },
+
+            // Front of Tee Scrub:
+            { x: -6.0, z: -14.0, type: 'bush', radius: 1.2 },
+            { x: 5.0, z: -14.0, type: 'bush', radius: 1.3 }
         ],
 
         customOOB: {
@@ -3111,8 +3151,9 @@ function resetEntireGame(advanceHole = false) {
                 const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
                 const isOnGreenSidesOrBack = false;
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-                let floorHeight = calculatedHeight;
-                if (closeToWater) {
+            let floorHeight = calculatedHeight;
+                const isHole8BeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4);
+                if (closeToWater || isHole8BeforeFairway) {
                     // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
                 } else if (distanceToPath <= fW) {
                     floorHeight -= 0.12;
@@ -3212,7 +3253,7 @@ function resetEntireGame(advanceHole = false) {
                     const fringeR = activeR + 1.0;
 
                     // Deep hidden height for out-of-bounds or buried fairway grid points
-                    const hiddenFairwayH = floorHeight - 0.50;
+                    const hiddenFairwayH = floorHeight - 5.0;
 
                     // Boundary checks for fairway corridor
                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
@@ -3220,7 +3261,7 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                       (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -131.3));(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || worldZ < -131.5));
+(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -103.5 && worldZ > -108.5) || (worldZ < -117.5 && worldZ > -122.5) || worldZ < -131.5));
 
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
@@ -3475,8 +3516,78 @@ function resetEntireGame(advanceHole = false) {
         currentHoleConfig.customTrees.forEach((pt, index) => {
             const sceneryGroup = new THREE.Group();
             const courseHeight = physics.getGroundHeight(pt.x, pt.z);
-            sceneryGroup.position.set(pt.x, courseHeight, pt.z);
+            sceneryGroup.position.set(pt.x, courseHeight - 0.75, pt.z)
             sceneryGroup.userData = { type: 'tree' };
+            if (pt.type === 'bush') {
+                sceneryGroup.userData = { type: 'bush' };
+                const randomBushRad = pt.radius || 1.2;
+                const bushGroup = new THREE.Group();
+
+                // 1. Base Stem Structure
+                const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.95 });
+                const stemCount = 5;
+                for (let s = 0; s < stemCount; s++) {
+                    const stemH = randomBushRad * 0.45;
+                    const stemGeo = new THREE.CylinderGeometry(0.012, 0.03, stemH, 5);
+                    const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+                    const stemAngle = (s / stemCount) * Math.PI * 2;
+                    const outwardTilt = 0.35;
+                    stemMesh.position.set(
+                        Math.cos(stemAngle) * (randomBushRad * 0.12),
+                        stemH / 2 - 0.03,
+                        Math.sin(stemAngle) * (randomBushRad * 0.12)
+                    );
+                    stemMesh.rotation.z = Math.cos(stemAngle) * outwardTilt;
+                    stemMesh.rotation.x = Math.sin(stemAngle) * outwardTilt;
+                    bushGroup.add(stemMesh);
+                }
+
+                // 2. Dark Shadow Core
+                const shadowMat = new THREE.MeshStandardMaterial({ color: 0x0c260c, roughness: 0.95 });
+                const shadowGeo = new THREE.SphereGeometry(randomBushRad * 0.65, 8, 8);
+                const shadowCore = new THREE.Mesh(shadowGeo, shadowMat);
+                shadowCore.position.y = randomBushRad * 0.4;
+                shadowCore.scale.set(1, 0.8, 1);
+                bushGroup.add(shadowCore);
+
+                // 3. Illustrated Leaf Blades
+                const foliageColors = [0x144414, 0x1e5c1e, 0x2c821a, 0x5cb814];
+                const leafCount = Math.floor(40 + (randomBushRad * 35));
+                const leafGeo = new THREE.CircleGeometry(randomBushRad * 0.22, 6);
+
+                for (let l = 0; l < leafCount; l++) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.random() * 0.88);
+                    const surfaceDist = randomBushRad * (0.82 + Math.random() * 0.24);
+                    const pX = Math.sin(phi) * Math.cos(theta) * surfaceDist;
+                    const pZ = Math.sin(phi) * Math.sin(theta) * surfaceDist;
+                    const pY = Math.cos(phi) * surfaceDist * 0.85 + (randomBushRad * 0.12);
+                    const normalizedHeight = pY / (randomBushRad * 1.1);
+                    let colorIdx = normalizedHeight > 0.74 ? 3 : (normalizedHeight < 0.38 ? 0 : 2);
+
+                    const leafMat = new THREE.MeshStandardMaterial({
+                        color: foliageColors[colorIdx],
+                        roughness: 0.65,
+                        side: THREE.DoubleSide
+                    });
+                    const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+                    leafMesh.position.set(pX, pY, pZ);
+                    leafMesh.lookAt(new THREE.Vector3(pX * 2, pY + 0.15, pZ * 2));
+                    leafMesh.scale.set(0.65 + Math.random() * 0.25, 1.35 + Math.random() * 0.35, 1.0);
+                    bushGroup.add(leafMesh);
+                }
+
+                sceneryGroup.add(bushGroup);
+                physics.obstacles.push({
+                    type: 'bush',
+                    x: pt.x,
+                    z: pt.z,
+                    radius: randomBushRad
+                });
+                scene.add(sceneryGroup);
+                sceneryObjects.push(sceneryGroup);
+                return;
+            }
 
             // Cycles through 3 height tiers: 33% Small (0.75x), 33% Medium (1.0x), 33% Tall (1.25x)
             const heightTiers = [0.85, 1.10, 1.25];
