@@ -462,15 +462,15 @@ export class PhysicsEngine {
                 let smoothT = t * t * (3 - 2 * t);
                 baseHeight = 6.375 + 2.125 * smoothT;
             }
-            // Green Plateau (z = -136.5 to -156.0, Green center at z = -145.0) -> flat at 8.5
-            else if (z >= -156.0) {
+       // Green Plateau (z = -136.5 to -154.5, Green center at z = -145.0) -> flat at 8.5
+            else if (z >= -145.5) {
                 baseHeight = 8.5;
             }
-            // Gentle falloff behind green
+            // Smooth Downslope behind green (z = -154.5 to -182.5) -> rolls gradually down to 0.0
             else {
-                let t = Math.min(1.0, (-156.0 - z) / 25.0);
+                let t = Math.min(1.0, (-145.5 - z) / 35.0);
                 let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 8.5 * (1.0 - smoothT * 0.4);
+                baseHeight = 8.5 * (1.0 - smoothT);
             }
 
             // Side hills framing the rough corridor
