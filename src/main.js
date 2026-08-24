@@ -2435,7 +2435,7 @@ function resetEntireGame(advanceHole = false) {
                 const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
                 const isOnGreenSidesOrBack = false;
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-            let floorHeight = calculatedHeight;
+                let floorHeight = calculatedHeight;
                 const isHole8BeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4);
                 if (closeToWater || isHole8BeforeFairway) {
                     // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
@@ -2540,13 +2540,12 @@ function resetEntireGame(advanceHole = false) {
                     const hiddenFairwayH = floorHeight - 5.0;
 
                     // Boundary checks for fairway corridor
-                   const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
+                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
-                      (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-(isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -103.5 && worldZ > -108.5) || (worldZ < -117.5 && worldZ > -122.5) || worldZ < -131.5));
-
+                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
+                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7));
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {
@@ -3977,7 +3976,7 @@ function animate() {
         return;
     }
 
-   if (!isSinking) {
+    if (!isSinking) {
         const dx = ball.position.x - holePosition.x;
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
@@ -4342,7 +4341,7 @@ function animate() {
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
 
-           const lookTargetX = ball.position.x + aimDirX * lookDist;
+            const lookTargetX = ball.position.x + aimDirX * lookDist;
             const lookTargetZ = ball.position.z + aimDirZ * lookDist;
 
             // Anchor camera height and lookAt target directly to ball elevation
@@ -4368,8 +4367,8 @@ function animate() {
 
             cameraTargetPos.set(camX, camY, camZ);
             cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ);
+        }
     }
-}
 
 
     // <-- This brace closes the entire "ball is not moving" section
@@ -4440,7 +4439,7 @@ function animate() {
         } else {
             const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
 
-   const flightSpeed = 0.005;
+            const flightSpeed = 0.005;
             previewProgress += flightSpeed;
             if (previewProgress > 1) previewProgress = 1;
 

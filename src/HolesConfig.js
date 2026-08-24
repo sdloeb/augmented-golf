@@ -593,13 +593,12 @@ customOOB: {
         },
 
         // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -89.3, Steps to -131.3, Green: z=-144.5)
-    // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -89.5, Steps to -131.5, Green: z=-145.0)
-        waypoints: [
+   waypoints: [
             new THREE.Vector3(0, 0, 10),       // 1. Perched Tee Box (0 yds)
             new THREE.Vector3(0, 0, -51.4),    // 2. Fairway Start (170 yds)
             new THREE.Vector3(0, 0, -70.0),    // 3. Fairway Landing Target (222 yds)
             new THREE.Vector3(0, 0, -89.5),    // 4. Base of Hill / 275-yd Fairway 1 End
-            new THREE.Vector3(0, 0, -145.0)    // 5. Elevated Green Center (429 yds total)
+            new THREE.Vector3(0, 0, -161.2)    // 5. Elevated Green Center (474 yds total)
         ],
 
         // CALIBRATED HAZARDS: Forced Carry, Flanks, 4-Tier Staircase & Greenside
@@ -638,43 +637,42 @@ customOOB: {
             { type: 'sand', x: 20.5, z: -78.0, radius: 5.8, depth: 0.50 },
             { type: 'sand', x: 19.2, z: -84.0, radius: 3.8, depth: 0.50 },
 
-            // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 25-yd flat fairways) ---
-            // Tier 1: Bunker 1 starts at 275 yds (z = -92.0) -> Flat Fairway 1 (z = -94.5 to -103.5, 25 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -92.0 }, { x: -4.0, z: -91.5 }, { x: 5.0, z: -92.5 }, { x: 13.0, z: -92.0 }], radius: 2.6, depth: 1.60 },
-            
+           // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 40-yd flat fairways) ---
+            // Tier 1: Bunker 1 (z = -92.0) -> Flat Fairway 1 (z = -94.5 to -108.9, 40 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -92.0 }, { x: 0.0, z: -92.0 }, { x: 13.0, z: -92.0 }], radius: 2.0, depth: 0.45 },
 
-            // Tier 2: Bunker 2 (z = -106.0) -> Flat Fairway 2 (z = -108.5 to -117.5, 25 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -106.0 }, { x: -3.0, z: -106.5 }, { x: 4.5, z: -105.5 }, { x: 12.5, z: -106.5 }], radius: 2.5, depth: 1.65 },
-          
 
-            // Tier 3: Bunker 3 (z = -120.0) -> Flat Fairway 3 (z = -122.5 to -131.5, 25 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -11.0, z: -120.0 }, { x: -2.0, z: -120.5 }, { x: 5.0, z: -119.5 }, { x: 11.5, z: -120.5 }], radius: 2.4, depth: 1.70 },
-         
+            // Tier 2: Bunker 2 (z = -111.4) -> Flat Fairway 2 (z = -113.9 to -128.3, 40 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -111.4 }, { x: 0.0, z: -111.4 }, { x: 12.0, z: -111.4 }], radius: 2.0, depth: 0.45 },
 
-            // Tier 4: Bunker 4 (z = -134.0) -> Green Plateau (z = -136.5 to -156.0, Green at z = -145.0)
-            { type: 'sand', shape: 'snake', path: [{ x: -9.5, z: -134.0 }, { x: 0.0, z: -134.5 }, { x: 9.5, z: -134.0 }], radius: 2.2, depth: 1.75 },
-           
 
-            // --- 4. GREENSIDE HAZARDS (z = -144 to -150) ---
-            { type: 'sand', x: 13.8, z: -144.5, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
-            { type: 'sand', x: -14.5, z: -144.0, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
-            { type: 'sand', x: 14.5, z: -150.5, radius: 2.8, depth: 0.50 }  // Back-Right Crater
+            // Tier 3: Bunker 3 (z = -130.8) -> Flat Fairway 3 (z = -133.3 to -147.7, 40 yds)
+            { type: 'sand', shape: 'snake', path: [{ x: -11.0, z: -130.8 }, { x: 0.0, z: -130.8 }, { x: 11.0, z: -130.8 }], radius: 2.0, depth: 0.45 },
+
+
+            // Tier 4: Bunker 4 (z = -150.2) -> Green Plateau (z = -152.7 to -172.0, Green at z = -161.2)
+            { type: 'sand', shape: 'snake', path: [{ x: -9.5, z: -150.2 }, { x: 0.0, z: -150.2 }, { x: 9.5, z: -150.2 }], radius: 2.0, depth: 0.45 },
+
+            // --- 4. GREENSIDE HAZARDS (z = -160 to -167) ---
+            { type: 'sand', x: 13.8, z: -160.7, radius: 2.6, depth: 0.85 }, // Deep Right Pot Bunker
+            { type: 'sand', x: -14.5, z: -160.2, radius: 2.8, depth: 0.65 }, // Left Greenside Bunker
+            { type: 'sand', x: 14.5, z: -166.7, radius: 2.8, depth: 0.50 }  // Back-Right Crater
         ],
 
         // DENSE SURROUNDING PINE FOREST
         customTrees: [
-            // Left Tree Line
+           // Left Tree Line
             { x: -26, z: 20 }, { x: -26, z: 0 }, { x: -28, z: -20 }, { x: -30, z: -40 },
             { x: -28, z: -60 }, { x: -26, z: -80 }, { x: -28, z: -100 }, { x: -30, z: -120 },
-            { x: -30, z: -140 }, { x: -32, z: -155 }, { x: -26, z: -170 }, { x: -18, z: -175 },
+            { x: -30, z: -145 }, { x: -32, z: -170 }, { x: -26, z: -186 }, { x: -18, z: -191 },
 
             // Right Tree Line
             { x: 26, z: 20 }, { x: 26, z: 0 }, { x: 28, z: -20 }, { x: 30, z: -40 },
             { x: 30, z: -60 }, { x: 28, z: -80 }, { x: 30, z: -100 }, { x: 30, z: -120 },
-            { x: 30, z: -140 }, { x: 28, z: -155 }, { x: 24, z: -170 }, { x: 16, z: -175 },
+            { x: 30, z: -145 }, { x: 28, z: -170 }, { x: 24, z: -186 }, { x: 16, z: -191 },
 
            // Back of Green Canopy Frame
-            { x: -10, z: -170 }, { x: -2, z: -173 }, { x: 6, z: -173 }, { x: 12, z: -170 },
+            { x: -10, z: -186 }, { x: -2, z: -189 }, { x: 6, z: -189 }, { x: 12, z: -186 },
 
             // --- NATIVE SCRUB BUSHES & GRASS ISLAND VEGETATION ---
             // Grass Island 1 (Center-Left near z = -26):
@@ -705,7 +703,7 @@ customOOB: {
             type: 'rectangle',
             minX: -46,
             maxX: 46,
-            minZ: -185,
+           minZ: -201,
             maxZ: 30,
             stakesPerSide: 12,
             stakesPerRow: 4
