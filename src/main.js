@@ -931,8 +931,9 @@ function updateDistanceDisplay() {
         container.appendChild(clubLabelWrapper);
         container.appendChild(rightBtn);
     }
-
-
+if (input && typeof input.updateGaugeClub === 'function') {
+        input.updateGaugeClub();
+    }
 }
 
 function generateNewWind() {

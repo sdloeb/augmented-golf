@@ -95,6 +95,20 @@ export class InputHandler {
         return 150;
     }
 
+    updateGaugeClub() {
+        if (!this.gaugeLabel) return;
+        const club = this.getClubInfo();
+        const currentPull = this.pullRatio || 0;
+        if (club.isGreen) {
+            const maxFeet = this.getPutterMaxFeet();
+            const feet = Math.round(currentPull * maxFeet);
+            this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+        } else {
+            const yards = Math.round(currentPull * club.maxYards);
+            this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
+        }
+    }
+
     getTreeBackswingCap() {
         if (!this.ballRef || !window.physicsEngine || !window.physicsEngine.obstacles) {
             return 1.0;
@@ -274,11 +288,12 @@ export class InputHandler {
                 this.pullbackStartTime = performance.now(); // Captures container swipe upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = touch.clientX;
-                this.backswingTrail = [{ x: this.startX, y: this.startY }];
+               this.backswingTrail = [{ x: this.startX, y: this.startY }];
                 this.forwardTrail = [];
 
                 this.gauge.classList.remove('hidden');
                 this.gaugeFill.style.height = '0%';
+                this.updateGaugeClub();
             }
         }
 
@@ -382,11 +397,12 @@ export class InputHandler {
                 this.pullbackStartTime = performance.now(); // Captures handle-drag upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = e.clientX;
-                this.backswingTrail = [{ x: this.startX, y: this.startY }];
+               this.backswingTrail = [{ x: this.startX, y: this.startY }];
                 this.forwardTrail = [];
 
                 this.gauge.classList.remove('hidden');
                 this.gaugeFill.style.height = '0%';
+                this.updateGaugeClub();
             }
         }
 
@@ -671,9 +687,14 @@ resetSwing() {
         this.state = 'IDLE';
         this.pullRatio = 0;
         this.clearSwingTrail();
+        if (this.gauge) {
+            this.gauge.classList.add('hidden');
+            if (this.gaugeFill) this.gaugeFill.style.height = '0%';
+        }
+        this.updateGaugeClub();
 
         setTimeout(() => {
-            if (!this.isSwinging) {
+            if (!this.isSwinging && this.gauge) {
                 this.gauge.classList.add('hidden');
             }
         }, 800);
