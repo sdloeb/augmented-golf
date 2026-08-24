@@ -1135,13 +1135,17 @@ function updateDistanceDisplay() {
     }
     // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
+    const distanceGauge = document.getElementById('distanceGauge');
+
+    // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
+    if ((physics && physics.isMoving) || isSinking) {
+        if (container) container.innerHTML = '';
+        if (distanceGauge) distanceGauge.classList.add('hidden');
+        return;
+    }
+
     if (container && input) {
         container.innerHTML = ''; // Wipe out old button listings
-
-        // Hide panel if the ball is currently moving through physical trajectory or sinking out of view
-        if ((physics && physics.isMoving) || isSinking) {
-            return;
-        }
 
         // FIXED: Check distance to the green's center instead of the hole cup
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
@@ -5033,7 +5037,7 @@ function animate() {
             let timeSinceStop = performance.now() - shotStoppedTime;
             let isPostShotResting = !physics.isMoving && (timeSinceStop < POST_SHOT_DELAY);
 
-            // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
+       // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
             if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
                 const activeClub = input.getClubInfo();
 

@@ -614,15 +614,18 @@ export class InputHandler {
         this.resetSwing();              // Preserved: Hides power bar and readies next shot
     }
 
-    resetSwing() {
+  resetSwing() {
         this.isSwinging = false;
         this.state = 'IDLE';
         this.pullRatio = 0;
-
-        setTimeout(() => {
-            if (!this.isSwinging) {
-                this.gauge.classList.add('hidden');
-            }
-        }, 800);
+        this.maxPullY = this.startY;
+        this.clearSwingTrail();
+        if (this.gauge) {
+            this.gauge.classList.add('hidden');
+        }
+        if (this.gaugeFill) {
+            this.gaugeFill.style.height = '0%';
+        }
+        this.updateGaugeClub();
     }
 }
