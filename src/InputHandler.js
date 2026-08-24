@@ -33,12 +33,13 @@ export class InputHandler {
         this.maxPullY = 0;
         this.chosenClubIndex = null;
 
-        this.isAimMode = false;         // Add this line
-        this.aimAngleOffset = 0;        // Add this line
-        this.lastClubTapTime = 0;       // Add this line
-        this.isAimDragging = false;     // Add this line
+      this.isAimMode = false;         
+        this.aimAngleOffset = 0;        
+        this.lastClubTapTime = 0;       
+        this.isAimDragging = false;     
         this.startAimX = 0;
 
+        this.initSwingTrailCanvas();
         this.initEvents();
     }
 
@@ -264,7 +265,7 @@ export class InputHandler {
         const currentX = touch.clientX;
         const currentY = touch.clientY;
 
-        // Upgrade to an active mobile swing if finger drags down past 8px
+     // Upgrade to an active mobile swing if finger drags down past 8px
         if (this.isSwingingFromClub && !this.isSwinging) {
             if (currentY > this.startY + 8) {
                 this.isSwinging = true;
@@ -273,6 +274,8 @@ export class InputHandler {
                 this.pullbackStartTime = performance.now(); // Captures container swipe upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = touch.clientX;
+                this.backswingTrail = [{ x: this.startX, y: this.startY }];
+                this.forwardTrail = [];
 
                 this.gauge.classList.remove('hidden');
                 this.gaugeFill.style.height = '0%';
@@ -287,6 +290,9 @@ export class InputHandler {
                 this.maxPullY = currentY;
                 this.pullbackAtMaxX = currentX;
             }
+
+            this.backswingTrail.push({ x: currentX, y: currentY });
+            this.drawSwingTrail();
 
             const club = this.getClubInfo();
             const targetPullDistance = this.maxPullY - this.startY;
@@ -311,9 +317,13 @@ export class InputHandler {
                 this.state = 'FORWARD';
                 this.forwardStartTime = performance.now();
                 this.backswingDuration = this.forwardStartTime - (this.pullbackStartTime || this.forwardStartTime); // Evaluates pure take-back duration
+                this.forwardTrail = [{ x: currentX, y: currentY }];
             }
         }
         else if (this.state === 'FORWARD') {
+            this.forwardTrail.push({ x: currentX, y: currentY });
+            this.drawSwingTrail();
+
             if (currentY <= this.startY) {
                 this.executeLaunch(currentX, currentY);
             }
@@ -363,7 +373,7 @@ export class InputHandler {
         const currentX = e.clientX;
         const currentY = e.clientY;
 
-        // Upgrade to an active swing only if dragging downward past the 8px threshold
+       // Upgrade to an active swing only if dragging downward past the 8px threshold
         if (this.isSwingingFromClub && !this.isSwinging) {
             if (currentY > this.startY + 8) {
                 this.isSwinging = true;
@@ -372,6 +382,8 @@ export class InputHandler {
                 this.pullbackStartTime = performance.now(); // Captures handle-drag upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = e.clientX;
+                this.backswingTrail = [{ x: this.startX, y: this.startY }];
+                this.forwardTrail = [];
 
                 this.gauge.classList.remove('hidden');
                 this.gaugeFill.style.height = '0%';
@@ -381,12 +393,15 @@ export class InputHandler {
         if (!this.isSwinging) return;
 
         if (this.state === 'PULLBACK') {
-            const club = this.getClubInfo();
             if (currentY > this.maxPullY) {
                 this.maxPullY = currentY;
                 this.pullbackAtMaxX = currentX;
             }
 
+            this.backswingTrail.push({ x: currentX, y: currentY });
+            this.drawSwingTrail();
+
+            const club = this.getClubInfo();
             const currentDrift = currentX - this.startX;
             if (Math.abs(currentDrift) > Math.abs(this.pullbackDriftX || 0)) {
                 this.pullbackDriftX = currentDrift;
@@ -412,10 +427,14 @@ export class InputHandler {
                 this.state = 'FORWARD';
                 this.forwardStartTime = performance.now();
                 this.backswingDuration = this.forwardStartTime - (this.pullbackStartTime || this.forwardStartTime); // Evaluates pure take-back duration
+                this.forwardTrail = [{ x: currentX, y: currentY }];
             }
         }
 
         else if (this.state === 'FORWARD') {
+            this.forwardTrail.push({ x: currentX, y: currentY });
+            this.drawSwingTrail();
+
             if (currentY <= this.startY) {
                 this.executeLaunch(currentX, currentY);
             }
@@ -430,7 +449,10 @@ export class InputHandler {
         }
     }
 
-    executeLaunch(endX, endY) {
+   executeLaunch(endX, endY) {
+        this.forwardTrail.push({ x: endX, y: endY });
+        this.flashAndFadeTrail();
+
         const club = this.getClubInfo();
 
         const backswingCap = this.getTreeBackswingCap();
@@ -614,15 +636,113 @@ export class InputHandler {
         this.resetSwing();              // Preserved: Hides power bar and readies next shot
     }
 
-    resetSwing() {
+resetSwing() {
         this.isSwinging = false;
         this.state = 'IDLE';
         this.pullRatio = 0;
+        this.clearSwingTrail();
 
         setTimeout(() => {
             if (!this.isSwinging) {
                 this.gauge.classList.add('hidden');
             }
         }, 800);
+    }
+
+    initSwingTrailCanvas() {
+        this.trailCanvas = document.getElementById('swingTrailCanvas');
+        if (!this.trailCanvas) {
+            this.trailCanvas = document.createElement('canvas');
+            this.trailCanvas.id = 'swingTrailCanvas';
+            this.trailCanvas.style.position = 'fixed';
+            this.trailCanvas.style.top = '0';
+            this.trailCanvas.style.left = '0';
+            this.trailCanvas.style.width = '100vw';
+            this.trailCanvas.style.height = '100vh';
+            this.trailCanvas.style.pointerEvents = 'none';
+            this.trailCanvas.style.zIndex = '10005';
+            document.body.appendChild(this.trailCanvas);
+        }
+        this.trailCtx = this.trailCanvas.getContext('2d');
+        const resize = () => {
+            if (this.trailCanvas) {
+                this.trailCanvas.width = window.innerWidth;
+                this.trailCanvas.height = window.innerHeight;
+            }
+        };
+        resize();
+        window.addEventListener('resize', resize);
+        this.backswingTrail = [];
+        this.forwardTrail = [];
+        this.trailFadeTimer = null;
+    }
+
+    drawSwingTrail(alpha = 1.0, isFlash = false) {
+        if (!this.trailCtx || !this.trailCanvas) return;
+        const ctx = this.trailCtx;
+        ctx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // 1. Draw Backswing (Glowing Amber / Gold)
+        if (this.backswingTrail && this.backswingTrail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(this.backswingTrail[0].x, this.backswingTrail[0].y);
+            for (let i = 1; i < this.backswingTrail.length; i++) {
+                ctx.lineTo(this.backswingTrail[i].x, this.backswingTrail[i].y);
+            }
+            ctx.strokeStyle = isFlash ? '#ffffff' : '#ffaa00';
+            ctx.shadowColor = '#ff8800';
+            ctx.shadowBlur = isFlash ? 16 : 10;
+            ctx.lineWidth = isFlash ? 5.5 : 4.0;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+       // 2. Draw Downswing & Follow-through (Glowing Green - matches pullback line style)
+        if (this.forwardTrail && this.forwardTrail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(this.forwardTrail[0].x, this.forwardTrail[0].y);
+            for (let i = 1; i < this.forwardTrail.length; i++) {
+                ctx.lineTo(this.forwardTrail[i].x, this.forwardTrail[i].y);
+            }
+            ctx.strokeStyle = isFlash ? '#ffffff' : '#00ff66';
+            ctx.shadowColor = '#00cc44';
+            ctx.shadowBlur = isFlash ? 16 : 10;
+            ctx.lineWidth = isFlash ? 5.5 : 4.0;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    flashAndFadeTrail() {
+        if (this.trailFadeTimer) cancelAnimationFrame(this.trailFadeTimer);
+        const startTime = performance.now();
+        const solidDuration = 1800; // Time in milliseconds lines stay 100% solid (1.8s)
+        const fadeDuration = 800;   // Time in milliseconds to smoothly fade out (0.8s)
+        const totalDuration = solidDuration + fadeDuration;
+
+        const fadeLoop = (now) => {
+            const elapsed = now - startTime;
+            if (elapsed < 150) {
+                this.drawSwingTrail(1.0, true); // White impact flash
+                this.trailFadeTimer = requestAnimationFrame(fadeLoop);
+            } else if (elapsed < solidDuration) {
+                this.drawSwingTrail(1.0, false); // Stays fully solid and visible
+                this.trailFadeTimer = requestAnimationFrame(fadeLoop);
+            } else if (elapsed < totalDuration) {
+                const alpha = 1.0 - (elapsed - solidDuration) / fadeDuration;
+                this.drawSwingTrail(alpha, false); // Fades away smoothly
+                this.trailFadeTimer = requestAnimationFrame(fadeLoop);
+            } else {
+                this.clearSwingTrail();
+            }
+        };
+        this.trailFadeTimer = requestAnimationFrame(fadeLoop);
     }
 }
