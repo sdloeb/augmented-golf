@@ -362,6 +362,128 @@ export class PhysicsEngine {
             if (x > 0) xFade = Math.min(1, Math.max(0, (60 - x) / 10)); // Keep this line
             // Removed teeFade so your custom 4.5 baseline peak elevation stays locked at the tee box
             return Math.max(0.001, baseHeight * xFade);
+
+        }
+
+        // --- BALLYNEAL HOLE 7 ROLLING SAND DUNING & HILLS ---
+        if (this.currentHoleNumber === 7) {
+            let baseHeight = 0.0;
+
+            // 1. Perched Tee Box (+4.5 units = +15 ft)
+            if (z > 5) {
+                baseHeight = 4.5;
+            } else if (z >= -25) {
+                let t = (5 - z) / 30;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = THREE.MathUtils.lerp(4.5, 0.0, smoothT);
+            }
+
+            // 2. Smooth rolling sand dunes framing Left and Right rough boundaries
+            let distFromCenter = Math.abs(x);
+            let fairwayEdge = (this.fairwayWidth || 15.0) * 0.85; // Starts rising gently outside fairway
+            if (distFromCenter > fairwayEdge) {
+                let tDune = Math.min(1.0, (distFromCenter - fairwayEdge) / 55.0);
+                let smoothDune = tDune * tDune * (3 - 2 * tDune);
+                let duneWave = Math.sin(z * 0.06 + x * 0.05) * 1.2 + Math.cos(z * 0.09) * 0.8;
+                baseHeight += (smoothDune * 13.0) + (Math.max(0, duneWave) * smoothDune);
+            }
+
+            // 3. Smooth, gentle natural rise at the 325-yd right split hazard (z = -85 to -135)
+            if (z <= -85 && z >= -135 && x > 0) {
+                let zDist = Math.abs(z - (-110.0));
+                let zFactor = Math.max(0.0, 1.0 - (zDist / 25.0));
+                let smoothZ = zFactor * zFactor * (3 - 2 * zFactor);
+
+                let xDist = Math.abs(x - 9.0);
+                let xFactor = Math.max(0.0, 1.0 - (xDist / 12.0));
+                let smoothX = xFactor * xFactor * (3 - 2 * xFactor);
+
+                baseHeight += 1.0 * smoothZ * smoothX; // Gentle 3 ft roll instead of steep mound
+            }
+
+            // 4. Natural undulating fairway moguls (subtle links ripples)
+            let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.25 + Math.cos(x * 0.22 + z * 0.16) * 0.15;
+            baseHeight += fairwayMoguls;
+
+            let xFade = Math.min(1, Math.max(0, (90 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
+        }
+
+
+
+       if (this.currentHoleNumber === 8) {
+            let baseHeight = 0.0;
+
+            // 1. Perched Tee Box (0 to 72 yds / z = 10 to -16)
+            if (z > 5) {
+                baseHeight = 3.5;
+            } else if (z >= -16) {
+                let t = (5 - z) / 21.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 3.5 * (1.0 - smoothT);
+            }
+            // 2. Valley & Fairway 1 Landing Zone (72 to 275 yds / z = -16 to -89.5) -> flat at 0.0
+            else if (z > -89.5) {
+                baseHeight = 0.0;
+            }
+            // Step 1: Rise over Bunker 1 (z = -89.5 to -94.5) -> 0.0 to 2.125
+            else if (z >= -94.5) {
+                let t = (-89.5 - z) / 5.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 2.125 * smoothT;
+            }
+           // Step 1 Flat Fairway 1 (z = -94.5 to -108.9, 40 yds) -> 100% FLAT at 2.125
+            else if (z > -108.9) {
+                baseHeight = 2.125;
+            }
+            // Step 2: Rise over Bunker 2 (z = -108.9 to -113.9) -> 2.125 to 4.25
+            else if (z >= -113.9) {
+                let t = (-108.9 - z) / 5.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 2.125 + 2.125 * smoothT;
+            }
+            // Step 2 Flat Fairway 2 (z = -113.9 to -128.3, 40 yds) -> 100% FLAT at 4.25
+            else if (z > -128.3) {
+                baseHeight = 4.25;
+            }
+            // Step 3: Rise over Bunker 3 (z = -128.3 to -133.3) -> 4.25 to 6.375
+            else if (z >= -133.3) {
+                let t = (-128.3 - z) / 5.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 4.25 + 2.125 * smoothT;
+            }
+            // Step 3 Flat Fairway 3 (z = -133.3 to -147.7, 40 yds) -> 100% FLAT at 6.375
+            else if (z > -147.7) {
+                baseHeight = 6.375;
+            }
+            // Step 4: Rise over Bunker 4 (z = -147.7 to -152.7) -> 6.375 to 8.5
+            else if (z >= -152.7) {
+                let t = (-147.7 - z) / 5.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 6.375 + 2.125 * smoothT;
+            }
+       // Green Plateau (z = -152.7 to -170.7, Green center at z = -161.2) -> flat at 8.5
+            else if (z >= -161.7) {
+                baseHeight = 8.5;
+            }
+            // Smooth Downslope behind green (z = -170.7 to -198.7) -> rolls gradually down to 0.0
+            else {
+                let t = Math.min(1.0, (-161.7 - z) / 35.0);
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 8.5 * (1.0 - smoothT);
+            }
+
+            // Side hills framing the rough corridor
+            let distFromCenter = Math.abs(x);
+            let fairwayEdge = 13.0;
+            if (distFromCenter > fairwayEdge) {
+                let tSide = Math.min(1.0, (distFromCenter - fairwayEdge) / 35.0);
+                let smoothSide = tSide * tSide * (3 - 2 * tSide);
+                baseHeight += smoothSide * 4.5;
+            }
+
+            let xFade = Math.min(1, Math.max(0, (75 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
         }
 
         // Base undulating small mounds and dips (mostly flat, natural ripples)
@@ -369,7 +491,7 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5) {
+        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8) {
             const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
@@ -547,8 +669,8 @@ export class PhysicsEngine {
                     const dzS = z - sand.position.z;
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
-                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    const transitionMargin = 2.2;
+                 const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const transitionMargin = (this.currentHoleNumber === 8 ? 0.0 : 2.2);
                     const sandRadius = baseRadius + transitionMargin;
 
                     if (distToSand < sandRadius) {
@@ -575,7 +697,7 @@ export class PhysicsEngine {
         const totalPower = power * speedScale;
 
         // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
-        // 1. SAVE THE RAW SPIN VALUE FOR REAL-TIME AERODYNAMICS
+
         this.spin = isPutting ? 0 : spin;
         this.hasLanded = false;
         this.hasHitObstacleOnShot = false; // NEW: Reset tracking flag for a clean new shot path
@@ -630,6 +752,12 @@ export class PhysicsEngine {
         if (holeNum === 3) {
             // Hole 3: Pebble Beach chasm gap exclusions
             return (z <= -20.0 && z > -115.0) || (z <= -132.0 && z >= -180.0);
+        }
+ if (holeNum === 8) {
+            return (z <= -51.4 && z >= -89.5) ||
+                   (z <= -94.5 && z >= -108.9) ||
+                   (z <= -113.9 && z >= -128.3) ||
+                   (z <= -133.3 && z >= -147.7);
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)
@@ -701,9 +829,8 @@ export class PhysicsEngine {
             }
         }
 
-        // Calibrate physical edge to match the exact visual texture intersection point
-        const isMobilePortrait = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1;
-        activeFW += isMobilePortrait ? 1.09 : 0.80;
+        // Calibrate physical edge to match the exact visual texture intersection point (unified across all screens)
+        activeFW += 0.50;
 
         if (inSand) {
             this.currentSurface = 'Sand Trap';
@@ -920,10 +1047,15 @@ export class PhysicsEngine {
             // Dampen slope gravity pull inside sand so balls hold their position on bunker walls instead of sliding down
             const gravityRollPower = currentlyInSand ? 0.02 : 1.0;
 
-            // Add this block: Cuts down gravity acceleration on slopes by 65% when stuck in thick rough grass
+            // Cuts down slope gravity in the rough and fades it out at low speeds so grass catches the ball on hills
             let slopeGravityModifier = 1.0;
             if (!onGreen && !currentlyInSand && this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) > activeFW) {
-                slopeGravityModifier = 0.35;
+                const speed = this.velocity.length();
+                if (speed < 0.08) {
+                    slopeGravityModifier = Math.max(0.0, speed / 0.08) * 0.35;
+                } else {
+                    slopeGravityModifier = 0.35;
+                }
             }
 
             // NEW: Anti-infinite rolling capture mechanism on green slopes

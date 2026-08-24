@@ -1,4 +1,12 @@
-// === PASTE THIS REPLACEMENT CODE BLOCK ===
+import { InputHandler } from './InputHandler.js';
+import { PhysicsEngine } from './PhysicsEngine.js';
+import { SoundManager } from './SoundManager.js';
+import { TutorialManager } from './TutorialManager.js';
+import { generateAdjacentHoles } from './AdjacentHoles.js';
+import { HOLES_CONFIG } from './HolesConfig.js';
+
+
+
 window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
     if (!shapeType || shapeType === 'circle') return baseRadius;
     if (shapeType === 'oval') {
@@ -16,10 +24,7 @@ window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
 };
 
 
-import { InputHandler } from './InputHandler.js';
-import { PhysicsEngine } from './PhysicsEngine.js';
-import { SoundManager } from './SoundManager.js';
-import { TutorialManager } from './TutorialManager.js';
+
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
@@ -49,369 +54,6 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
     }
 };
 
-// Add this block: Centralized Modular Hole & Waypoint Blueprint Definition
-const HOLES_CONFIG = {
-    1: { // 475 Yard Straight Par 4 with Water Crossing
-        par: 4,
-        //horizonTheme: 'forest',
-        //horizonTheme: 'estate',
-        horizonTheme: 'mountains',
-        theme: 'standard',
-        fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
-        greenShape: 'kidney', // Changes the circle to the custom organic bean shape
-        greenRadius: 10.5,    // Tightly matches the proportions of the photo
-
-        // 6-Zone Slope Profile with Center Collection Bowl & Back Ridge
-        slopeProfile: {
-            backLeft: { rx: -0.020, rz: 0.025 },
-            backRight: { rx: 0.025, rz: 0.020 },
-            midLeft: { rx: -0.010, rz: -0.005 },
-            midRight: { rx: 0.015, rz: -0.010 },
-            frontLeft: { rx: 0.015, rz: -0.025 },
-            frontRight: { rx: -0.020, rz: -0.030 },
-
-            features: [
-                // Soft collection bowl in the middle-left landing area
-                { type: 'bowl', x: -3.0, z: 0.0, radius: 4.5, depth: 0.08 },
-                // Transverse ridge separating the back shelf from the mid-green
-                { type: 'ridge', p1: { x: -6.0, z: -3.0 }, p2: { x: 6.0, z: -3.0 }, width: 3.0, height: 0.10 }
-            ]
-        },
-        waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -70.25),
-            new THREE.Vector3(0, 0, -150.5) // Total length of 475 yards from the tee
-        ],
-        hazards: [
-
-            {
-                type: 'lake',
-                x: 0,
-                z: -82.5,
-                radiusX: 24.0, // Keeps original width
-                radiusZ: 10.0   // Shortens length down the fairway
-            },
-            // Restores your original twin traps
-            { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.25 },
-            { type: 'sand', x: 8, z: -138, radius: 5.5, depth: 1.25 }
-        ],
-        customOOB: {
-            type: 'stepped',
-            narrowMinX: -26,
-            narrowMaxX: 26,
-            splitZ: -118,
-            wideMinX: -50,
-            wideMaxX: 50,
-            minZ: -210,
-            maxZ: 35,
-            stakesPerSide: 8,
-            stakesPerRow: 5
-        }
-    },
-    2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
-        par: 4,
-        theme: 'standard',
-        treeScale: 5.5,
-        fairwayWidth: 9.5,
-        greenRadius: 9.0,
-
-        // 6-Zone Slope Profile with Left-to-Right Downhill Funnel
-        slopeProfile: {
-            backLeft: { rx: -0.035, rz: 0.015 },
-            backRight: { rx: -0.015, rz: 0.025 },
-            midLeft: { rx: -0.030, rz: -0.010 },
-            midRight: { rx: -0.010, rz: -0.015 },
-            frontLeft: { rx: -0.020, rz: -0.035 },
-            frontRight: { rx: -0.010, rz: -0.040 },
-
-            features: [
-                // Protective mound guarding the back-right pin location
-                { type: 'mound', x: 3.5, z: -4.0, radius: 3.5, height: 0.12 }
-            ]
-        },
-
-        waypoints: [
-            new THREE.Vector3(0, 0, 10),       // Flat Tee Box zone
-            new THREE.Vector3(0, 0, -108),     // 327 Yard Elbow (Hill descent ends here)
-            new THREE.Vector3(20, 0, -139)     // 87 Yard Approach Green
-        ],
-        hazards: [
-            { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 1.5 },
-            { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 1.6 },
-            { type: 'sand', shape: 'snake', depth: 0.3, radius: 2.2, path: [{ x: 18, z: -152 }, { x: 25, z: -152 }] },
-            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
-        ],
-
-        customOOB: {
-            type: 'rectangle',
-            minX: -60,         // Left wall line bounding the rough
-            maxX: 65,          // Right wall line extended to clear the right hazards
-            minZ: -185,        // Front wall line positioned safely past the green complex
-            maxZ: 35,          // Back wall line behind the tee box
-            stakesPerSide: 8,  // Spacing density down the long sides
-            stakesPerRow: 3    // Spacing density across the narrow front/back walls
-        },
-        customTrees: [
-            // --- LEFT SIDE (Outside Left Bunkers) ---
-
-            { x: -32, z: 10 }, { x: -52, z: -5 }, { x: -47, z: -13 }, { x: -56, z: -20 }, { x: -72, z: -35 }, { x: -65, z: -43 }, { x: -60, z: -50 }, { x: -67, z: -57 }, { x: -68, z: -65 }, , { x: -60, z: -72 }, { x: -45, z: -80 }, { x: -51, z: -87 }, { x: -32, z: -95 }, { x: -40, z: -102 }, { x: -34, z: -110 }, { x: -40, z: -125 }, { x: -55, z: -140 },
-
-            // --- RIGHT SIDE (Far Right Hillside) ---
-
-            { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
-
-            // --- BACK OF GREEN ---
-            { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
-        ]
-    },
-
-    3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
-        par: 5,
-        fairwayWidth: 8.0,
-        greenRadius: 8.5,
-        horizonTheme: 'estate',
-
-        // 6-Zone Slope Profile with Bi-Level Tier & False Front
-        slopeProfile: {
-            backLeft: { rx: -0.040, rz: 0.020 },
-            backRight: { rx: -0.030, rz: 0.025 },
-            midLeft: { rx: -0.045, rz: 0.000 },
-            midRight: { rx: -0.035, rz: 0.000 },
-            frontLeft: { rx: -0.030, rz: -0.030 },
-            frontRight: { rx: -0.020, rz: -0.035 },
-
-            features: [
-                // Step-up tier separating the upper back shelf from the lower front
-                { type: 'tier', axis: 'z', position: -1.5, width: 3.5, height: 0.16 },
-                // Catchment bowl on the back-left corner near the cliff edge
-                { type: 'bowl', x: -3.5, z: -3.5, radius: 3.5, depth: 0.10 }
-            ]
-        },
-
-        waypoints: [
-            new THREE.Vector3(0, 0, 10),
-            new THREE.Vector3(0, 0, -65),
-            new THREE.Vector3(-14, 0, -125), // CHANGED: Shifted from 0 to -14 to curve the end of the 1st fairway out to the left
-            new THREE.Vector3(-3, 0, -180)
-        ],
-        // Define path points along the left side following the Google Earth terrain
-
-        hazards: [
-            // Bunkers on the left (Shifted back to flank the lower driver landing zone precisely)
-            { type: 'sand', x: -27.5, z: -85.0, radius: 3.8, depth: 0.55 },
-            { type: 'sand', x: -38.5, z: -100.0, radius: 2.9, depth: 0.50 },  //left bunker
-            { type: 'sand', x: -45.5, z: -101.5, radius: 1.4, depth: 0.45 },
-            { type: 'sand', x: -32.5, z: -104.0, radius: 3.8, depth: 0.60 },
-            { type: 'sand', x: -31.5, z: -112.0, radius: 3.0, depth: 0.60 },
-            // Lower driving zone bunker cluster converted into a single long, wide polygon with rounded caps
-            {
-                type: 'sand',
-                shape: 'polygon',
-                depth: 0.6,
-                points: [
-                    // Top straight boundary line
-                    { x: -34.5, z: -89.5 },  // Top-Left straight edge
-                    { x: -29.5, z: -89.5 },  // Top-Right straight edge
-
-                    // Right rounded cap (Shifted far left to clear the wide 18-unit fairway edge)
-                    { x: -27.5, z: -91.0 },  // Right upper turn point
-                    { x: -27.0, z: -92.5 },  // Right Apex Center (Safely in the rough)
-                    { x: -29.0, z: -94.5 },  // Right lower turn point
-
-                    // Bottom straight boundary line
-                    { x: -39.5, z: -96.5 },  // Bottom-Right straight edge
-                    { x: -44.5, z: -96.5 },  // Bottom-Left straight edge
-
-                    // Left rounded cap (facing deep out into the left rough)
-                    { x: -46.5, z: -95.0 },  // Left lower turn point
-                    { x: -47.0, z: -93.5 },  // Left Apex Center
-                    { x: -45.0, z: -91.5 }   // Left upper turn point
-                ]
-            },
-            // 2. The single intermediate bunker in the left rough before the green
-            { type: 'sand', shape: 'snake', depth: 0.60, radius: 3.0, path: [{ x: -30.5, z: -130.0 }, { x: -30.5, z: -150.0 }] },
-            { type: 'sand', x: -25.5, z: -159.0, radius: 2.2, depth: 0.60 },
-
-            // 3. The green-side bunker positioned tightly to the left of your x: -3 green
-            { type: 'sand', x: -15.5, z: -183.0, radius: 2.5, depth: 0.60 },
-
-            // Exactly 2 right-side bunkers adjusted to perfectly hug your new x: -3 green edge
-            { type: 'sand', x: 8.3, z: -174.0, radius: 2.1, depth: 0.60 },
-            { type: 'sand', x: 9.8, z: -181.5, radius: 2.0, depth: 0.60 },
-
-            { type: 'ocean', x: 60.0, z: -153.5, width: 130.0, length: 150.0 }
-        ],
-        cartPath: [
-            { x: -22, z: 20 },
-            { x: -24, z: -10 },
-            { x: -28, z: -50 },
-            { x: -52, z: -95 },
-            { x: -44, z: -135 },
-            { x: -32, z: -165 },
-            { x: -22, z: -182 },
-            { x: -16, z: -192 }
-        ]
-    },
-    4: { // Sharp 90-Degree Dogleg Right Hole
-        par: 4,
-        treeScale: 5.5, // Adjust this number to change tree height for Hole 4
-        treeHeightScale: 2.0,
-        fairwayWidth: 18.5,
-        greenRadius: 11.0,
-        greenShape: 'circle',
-        theme: 'standard',
-
-        // 6-Zone Slope Profile with Diagonal Ridge Break
-        slopeProfile: {
-            backLeft: { rx: -0.030, rz: 0.035 },
-            backRight: { rx: 0.020, rz: 0.030 },
-            midLeft: { rx: 0.040, rz: -0.035 },
-            midRight: { rx: 0.035, rz: -0.045 },
-            frontLeft: { rx: -0.015, rz: 0.025 },
-            frontRight: { rx: 0.010, rz: 0.030 },
-
-            features: [
-                // Diagonal spine running across the middle of the green
-                { type: 'ridge', p1: { x: -5.0, z: -3.0 }, p2: { x: 5.0, z: 3.0 }, width: 4.0, height: 0.14 }
-            ]
-        },
-        waypoints: [
-            new THREE.Vector3(0, 0, 10),    // Tee Box
-            new THREE.Vector3(0, 0, -85),   // Elbow Turn
-            new THREE.Vector3(45, 0, -85),  // Approach Fairway
-            new THREE.Vector3(85, 0, -85)   // Green Location (~355 yards total)
-        ],
-        hazards: [
-            // 1. Water at the elbow of the dogleg (inside corner)
-            { type: 'lake', x: 12, z: -73, radiusX: 9.5, radiusZ: 8.5 },
-
-            // 2. Bunker straight out off the tee in the left rough at the turn
-            { type: 'sand', x: -25, z: -110, radius: 10.5, depth: 0.75 },
-
-            // 3. Bunker to the right of the green
-            { type: 'sand', x: 83, z: -65, radius: 6.5, depth: 0.7 },
-
-            // 4. Bunker to the left of the green
-            { type: 'sand', x: 83, z: -105, radius: 6.5, depth: 0.7 }
-        ],
-        customTrees: [
-            // --- LEFT SIDE OF TEE (Single clean row) ---
-            { x: -25, z: 25 },
-            { x: -25, z: 10 },
-            { x: -25, z: -5 },
-            { x: -25, z: -20 },
-            { x: -25, z: -35 },
-            { x: -25, z: -50 },
-            { x: -25, z: -65 },
-
-            // --- RIGHT SIDE OF TEE (7-Layer Dense Forest filling the open field) ---
-            // Row 1 (X = 20)
-            { x: 23, z: 25 }, { x: 23, z: 10 }, { x: 23, z: -5 }, { x: 23, z: -20 }, { x: 23, z: -35 }, { x: 23, z: -50 }, { x: 23, z: -62 },
-            // Row 2 (X = 26)
-            { x: 26, z: 20 }, { x: 26, z: 5 }, { x: 26, z: -10 }, { x: 26, z: -25 }, { x: 26, z: -40 }, { x: 26, z: -55 },
-            // Row 3 (X = 32)
-            { x: 32, z: 25 }, { x: 32, z: 10 }, { x: 32, z: -5 }, { x: 32, z: -20 }, { x: 32, z: -35 }, { x: 32, z: -50 }, { x: 32, z: -62 },
-            // Row 4 (X = 38)
-            { x: 38, z: 20 }, { x: 38, z: 5 }, { x: 38, z: -10 }, { x: 38, z: -25 }, { x: 38, z: -40 }, { x: 38, z: -55 },
-            // Row 5 (X = 44)
-            { x: 44, z: 25 }, { x: 44, z: 10 }, { x: 44, z: -5 }, { x: 44, z: -20 }, { x: 44, z: -35 }, { x: 44, z: -50 }, { x: 44, z: -62 },
-            // Row 6 (X = 50)
-            { x: 50, z: 20 }, { x: 50, z: 5 }, { x: 50, z: -10 }, { x: 50, z: -25 }, { x: 50, z: -40 }, { x: 50, z: -55 },
-            // Row 7 (X = 56)
-            { x: 56, z: 25 }, { x: 56, z: 10 }, { x: 56, z: -5 }, { x: 56, z: -20 }, { x: 56, z: -35 }, { x: 56, z: -50 }, { x: 56, z: -62 },
-
-            // --- RIGHT SIDE OF DOGLEG / APPROACH (Z: -98 to -108, ending before Green) ---
-            { x: -40, z: -140 }, { x: -35, z: -134 },
-            { x: -25, z: -140 }, { x: -20, z: -134 },
-            { x: -10, z: -140 }, { x: -5, z: -134 },
-            { x: 5, z: -140 }, { x: 10, z: -134 },
-            { x: 20, z: -140 }, { x: 25, z: -134 },
-            { x: 35, z: -140 }, { x: 40, z: -134 },
-            { x: 50, z: -140 }, { x: 55, z: -134 },
-
-
-        ],
-        customOOB: {
-            type: 'l_shape',
-            leg1: { minX: -44, maxX: 60, minZ: -145, maxZ: 30 },
-            leg2: { minX: -44, maxX: 115, minZ: -145, maxZ: -30 }
-        }
-    },
-    5: { // 185-Yard Par 3 Island Green
-        par: 3,
-        fairwayWidth: 10,
-        greenRadius: 17.0,
-        greenShape: 'wavy',
-        theme: 'standard',
-        treeScale: 1.5,
-        treeHeightScale: 1.2,
-
-        // 6-Zone Slope Profile with Central Crown Mound
-        slopeProfile: {
-            backLeft: { rx: -0.020, rz: 0.025 },
-            backRight: { rx: 0.025, rz: 0.020 },
-            midLeft: { rx: 0.020, rz: -0.015 },
-            midRight: { rx: -0.020, rz: -0.015 },
-            frontLeft: { rx: 0.015, rz: -0.020 },
-            frontRight: { rx: -0.015, rz: -0.025 },
-
-            features: [
-                // Crown mound in the center that repels offline shots toward the water
-                { type: 'mound', x: 0.0, z: 0.0, radius: 6.0, height: 0.15 }
-            ]
-        },
-        waypoints: [
-            new THREE.Vector3(0, 0, 10),     // Tee Box
-            new THREE.Vector3(0, 0, -56.8)   // 185 Yards to Green Center
-        ],
-        hazards: [
-            // Expanded Island Lake (Wider water hazard extending closer to tee)
-            { type: 'lake', x: 0, z: -56.8, radiusX: 55.0, radiusZ: 49.0 },
-
-
-        ],
-        customTrees: [
-            // Left Outer Shoreline (Outside Water)
-            { x: -60, z: -10, scale: 1.8 },
-            { x: -62, z: -30, scale: 4.0 },
-            { x: -59, z: -45, scale: 1.6 },
-            { x: -60, z: -70, scale: 4.2 },
-            { x: -63, z: -85, scale: 1.8 },
-            { x: -58, z: -100, scale: 3.8 },
-
-            // Right Outer Shoreline (Outside Water)
-            { x: 60, z: -10, scale: 4.0 },
-            { x: 62, z: -28, scale: 1.7 },
-            { x: 59, z: -45, scale: 4.2 },
-            { x: 63, z: -60, scale: 1.8 },
-            { x: 60, z: -75, scale: 4.0 },
-            { x: 62, z: -90, scale: 1.6 },
-            { x: 58, z: -100, scale: 3.8 },
-
-            // Back Shoreline (Behind Green)
-            { x: -40, z: -110, scale: 1.7 },
-            { x: -20, z: -112, scale: 4.2 },
-            { x: 0, z: -114, scale: 1.8 },
-            { x: 20, z: -112, scale: 4.0 },
-            { x: 40, z: -110, scale: 1.6 },
-
-            // Front / Tee Shore Framing
-            { x: -32, z: 5, scale: 3.8 },
-            { x: -20, z: 12, scale: 1.7 },
-            { x: 20, z: 12, scale: 1.8 },
-            { x: 32, z: 5, scale: 4.0 }
-        ],
-        customOOB: {
-            type: 'rectangle',
-            minX: -50,
-            maxX: 50,
-            minZ: -105,
-            maxZ: 30,
-            stakesPerSide: 6,
-            stakesPerRow: 3
-        }
-    }
-};
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor, greenFringe;
@@ -448,6 +90,7 @@ let wasMoving = false;
 let overheadTimeout = null;
 let isOverheadActive = false;
 let previewProgress = 0;
+let overheadPauseStartTime = 0;
 
 // NEW CAMERA FLIGHT TRACKERS
 let shotStartTime = 0;
@@ -460,141 +103,181 @@ let horizonRingMesh = null;
 
 // --- HELPER FUNCTION: DRAW FAKE VIEW COURSE (FAIRWAYS, BUNKERS, GREENS & FLAGS) ---
 function drawFakeViewCourse(ctx, twoPi) {
-    // 1. MATCHING COURSE ROUGH BASE (Fills ground below trees with lighter rough green)
-    ctx.fillStyle = '#2b502b';
+    // 1. BASE ROUGH GROUND LAYER (Fills ground area beneath the tree line)
+    ctx.fillStyle = '#264a26';
     ctx.beginPath();
     ctx.moveTo(0, 512);
-    ctx.lineTo(0, 315);
-    ctx.lineTo(2048, 315);
+    ctx.lineTo(0, 290);
+    ctx.lineTo(2048, 290);
     ctx.lineTo(2048, 512);
     ctx.closePath();
     ctx.fill();
 
-    // 2. BACKGROUND TREELINE CANOPY (Confined strictly to tree tops above ground)
-    ctx.fillStyle = '#142915';
+    // 2. DISTANT BACKGROUND TREELINE RIDGE
+    ctx.fillStyle = '#112213';
     ctx.beginPath();
-    ctx.moveTo(0, 316);
+    ctx.moveTo(0, 292);
     for (let x = 0; x <= 2048; x += 3) {
         const p = x / 2048;
-        const hill = Math.sin(p * twoPi * 4) * 8 + Math.cos(p * twoPi * 8) * 5;
-        const treeTop = Math.abs(Math.sin(x * 0.12)) * 14 + Math.abs(Math.cos(x * 0.25)) * 8;
-        const y = 315 + hill - treeTop;
-        ctx.lineTo(x, y);
+        const hill = Math.sin(p * twoPi * 3) * 12 + Math.cos(p * twoPi * 7) * 6;
+        const treeTop = Math.abs(Math.sin(x * 0.14)) * 15 + Math.abs(Math.cos(x * 0.28)) * 8;
+        ctx.lineTo(x, 290 + hill - treeTop);
     }
-    ctx.lineTo(2048, 316);
+    ctx.lineTo(2048, 292);
     ctx.closePath();
     ctx.fill();
 
-    // 1. Fairway Swath #1 (Left Flank)
-    ctx.fillStyle = '#487a38';
-    ctx.beginPath();
-    ctx.moveTo(450, 345);
-    ctx.bezierCurveTo(550, 310, 720, 305, 880, 338);
-    ctx.bezierCurveTo(780, 365, 580, 368, 450, 345);
-    ctx.closePath();
-    ctx.fill();
+    // --- DRAWING PRIMITIVES FOR PERSPECTIVE HOLES ---
+    // Draws perspective fairway ribbons (narrow in distance, wider closer to foreground)
+    const drawPerspectiveFairway = (topX, topY, topW, botX, botY, botW, curveFactor = 0) => {
+        const midY = (topY + botY) / 2;
+        const midX = (topX + botX) / 2 + curveFactor;
 
-    // Inner Fairway Light Stripe #1
-    ctx.fillStyle = '#548a42';
-    ctx.beginPath();
-    ctx.moveTo(490, 342);
-    ctx.bezierCurveTo(580, 315, 700, 312, 840, 335);
-    ctx.bezierCurveTo(750, 358, 570, 360, 490, 342);
-    ctx.closePath();
-    ctx.fill();
+        // Dark outer cut
+        ctx.fillStyle = '#346d2a';
+        ctx.beginPath();
+        ctx.moveTo(topX - topW / 2, topY);
+        ctx.quadraticCurveTo(midX - (topW + botW) / 4, midY, botX - botW / 2, botY);
+        ctx.lineTo(botX + botW / 2, botY);
+        ctx.quadraticCurveTo(midX + (topW + botW) / 4, midY, topX + topW / 2, topY);
+        ctx.closePath();
+        ctx.fill();
 
-    // Sand Bunkers along Fairway #1
-    ctx.fillStyle = '#d6c49d';
-    ctx.beginPath();
-    ctx.ellipse(560, 340, 22, 7, 0.1, 0, twoPi);
-    ctx.ellipse(760, 334, 18, 6, -0.15, 0, twoPi);
-    ctx.fill();
+        // Bright inner stripe
+        ctx.fillStyle = '#468939';
+        ctx.beginPath();
+        ctx.moveTo(topX - topW * 0.28, topY + 2);
+        ctx.quadraticCurveTo(midX - (topW + botW) * 0.16, midY, botX - botW * 0.28, botY - 3);
+        ctx.lineTo(botX + botW * 0.28, botY - 3);
+        ctx.quadraticCurveTo(midX + (topW + botW) * 0.16, midY, topX + topW * 0.28, topY + 2);
+        ctx.closePath();
+        ctx.fill();
+    };
 
-    ctx.fillStyle = 'rgba(20, 30, 15, 0.3)';
-    ctx.beginPath();
-    ctx.ellipse(562, 341, 19, 5, 0.1, 0, twoPi);
-    ctx.ellipse(762, 335, 15, 4, -0.15, 0, twoPi);
-    ctx.fill();
+    // Draws putting green with fringe and a scaled red flag
+    const drawGreen = (x, y, rx, ry, flagH = 12) => {
+        // Dark fringe collar
+        ctx.fillStyle = '#225522';
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx + 4, ry + 2.5, 0, 0, twoPi);
+        ctx.fill();
 
-    // 2. Fairway Swath #2 (Right Flank)
-    ctx.fillStyle = '#487a38';
-    ctx.beginPath();
-    ctx.moveTo(1200, 335);
-    ctx.bezierCurveTo(1320, 298, 1500, 295, 1650, 330);
-    ctx.bezierCurveTo(1540, 360, 1330, 362, 1200, 335);
-    ctx.closePath();
-    ctx.fill();
+        // Putting green surface
+        ctx.fillStyle = '#44bb55';
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, 0, 0, twoPi);
+        ctx.fill();
 
-    // Inner Fairway Light Stripe #2
-    ctx.fillStyle = '#548a42';
-    ctx.beginPath();
-    ctx.moveTo(1240, 332);
-    ctx.bezierCurveTo(1340, 303, 1460, 300, 1600, 328);
-    ctx.bezierCurveTo(1500, 352, 1310, 354, 1240, 332);
-    ctx.closePath();
-    ctx.fill();
+        // Flagstick
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y - flagH);
+        ctx.stroke();
 
-    // Sand Bunkers along Fairway #2
-    ctx.fillStyle = '#d6c49d';
-    ctx.beginPath();
-    ctx.ellipse(1310, 328, 22, 8, -0.1, 0, twoPi);
-    ctx.ellipse(1520, 323, 17, 6, 0.2, 0, twoPi);
-    ctx.fill();
+        // Uniform Red Flag
+        ctx.fillStyle = '#ff2222';
+        ctx.beginPath();
+        ctx.moveTo(x, y - flagH);
+        ctx.lineTo(x + flagH * 0.42, y - flagH + flagH * 0.2);
+        ctx.lineTo(x, y - flagH + flagH * 0.4);
+        ctx.closePath();
+        ctx.fill();
+    };
 
-    // --- DISTANT GREENS & RED FLAGSTICKS ---
-    // Green #1
-    ctx.fillStyle = '#3a662d';
-    ctx.beginPath();
-    ctx.ellipse(860, 336, 20, 7, 0.05, 0, twoPi);
-    ctx.fill();
+    // Draws sand bunkers with inner depth shadows
+    const drawBunker = (x, y, rx, ry, rot = 0) => {
+        const bunkerScale = 0.50; // Change this number to resize all fake traps (e.g. 0.40 for smaller, 0.60 for larger)
+        const sRx = rx * bunkerScale;
+        const sRy = ry * bunkerScale;
 
-    ctx.fillStyle = '#52be52';
-    ctx.beginPath();
-    ctx.ellipse(860, 336, 16, 5, 0.05, 0, twoPi);
-    ctx.fill();
+        ctx.fillStyle = '#d9c59e';
+        ctx.beginPath();
+        ctx.ellipse(x, y, sRx, sRy, rot, 0, twoPi);
+        ctx.fill();
 
-    // Flagstick #1
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(860, 336);
-    ctx.lineTo(860, 324);
-    ctx.stroke();
+        ctx.fillStyle = 'rgba(20, 35, 18, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(x + 1, y + 1, sRx * 0.8, sRy * 0.75, rot, 0, twoPi);
+        ctx.fill();
+    };
 
-    ctx.fillStyle = '#ff3333';
-    ctx.beginPath();
-    ctx.moveTo(860, 324);
-    ctx.lineTo(863, 326);
-    ctx.lineTo(860, 328);
-    ctx.closePath();
-    ctx.fill();
+    // Draws dense tree groves dividing adjacent holes
+    const drawTreeLine = (x1, y1, x2, y2, count = 7, baseR = 12) => {
+        ctx.fillStyle = '#142d17';
+        for (let i = 0; i <= count; i++) {
+            const t = i / count;
+            const tx = x1 + (x2 - x1) * t;
+            const ty = y1 + (y2 - y1) * t;
+            const r = baseR + Math.sin(i * 2.3) * 3;
+            ctx.beginPath();
+            ctx.arc(tx, ty - r * 0.5, r, 0, twoPi);
+            ctx.fill();
+        }
+    };
 
-    // Green #2
-    ctx.fillStyle = '#3a662d';
-    ctx.beginPath();
-    ctx.ellipse(1620, 326, 18, 6, -0.05, 0, twoPi);
-    ctx.fill();
+    // =========================================================================
+    // LAYER 1: DEEP DISTANT HOLES (y: 305 - 340)
+    // =========================================================================
+    // Distant Par 3 (Far Left, angling away)
+    drawPerspectiveFairway(120, 305, 14, 230, 335, 26, -15);
+    drawBunker(215, 320, 12, 5, 0.1);
+    drawGreen(115, 305, 14, 5, 9);
 
-    ctx.fillStyle = '#52be52';
-    ctx.beginPath();
-    ctx.ellipse(1620, 326, 14, 4.5, -0.05, 0, twoPi);
-    ctx.fill();
+    // Distant Crossing Hole (Mid-Left, sweeping sideways)
+    drawPerspectiveFairway(620, 310, 20, 840, 328, 28, 20);
+    drawBunker(720, 312, 14, 5, -0.15);
+    drawBunker(810, 318, 12, 4.5, 0.2);
+    drawGreen(850, 328, 16, 5.5, 10);
 
-    // Flagstick #2
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(1620, 326);
-    ctx.lineTo(1620, 316);
-    ctx.stroke();
+    // Distant Straightaway (Mid-Right, pointing straight back)
+    drawPerspectiveFairway(1240, 305, 16, 1290, 338, 26, 0);
+    drawBunker(1260, 318, 13, 4.5, 0.1);
+    drawGreen(1235, 305, 15, 5, 9);
 
-    ctx.fillStyle = '#ff3333';
-    ctx.beginPath();
-    ctx.moveTo(1620, 316);
-    ctx.lineTo(1623, 318);
-    ctx.lineTo(1620, 320);
-    ctx.closePath();
-    ctx.fill();
+    // Distant Sweeper (Far Right)
+    drawPerspectiveFairway(1780, 308, 18, 1920, 332, 28, -25);
+    drawBunker(1840, 314, 15, 5, -0.2);
+    drawGreen(1770, 308, 15, 5, 9);
+
+    // Background Tree Dividers
+    drawTreeLine(300, 325, 550, 330, 8, 10);
+    drawTreeLine(930, 330, 1150, 335, 7, 11);
+    drawTreeLine(1400, 332, 1680, 330, 9, 10);
+
+    // =========================================================================
+    // LAYER 2: CLOSER MID-GROUND HOLES (y: 350 - 470) - Angled & Interlocking
+    // =========================================================================
+    // Hole A: Closer Left Dogleg (Starts deep left, curves down towards player)
+    drawPerspectiveFairway(280, 350, 30, 80, 460, 68, 40);
+    drawBunker(180, 420, 26, 9, 0.2);
+    drawBunker(120, 448, 20, 7.5, -0.15);
+    drawGreen(295, 350, 26, 9, 14);
+
+    // Hole B: Closer Center-Left Hole (Angles across the field from left to right)
+    drawPerspectiveFairway(420, 370, 34, 680, 455, 62, -30);
+    drawBunker(490, 395, 24, 8, -0.1);
+    drawBunker(610, 425, 22, 7.5, 0.15);
+    drawGreen(695, 458, 28, 9.5, 15);
+
+    // Hole C: Closer Center-Right Incoming Hole (Points towards player with green in mid-ground)
+    drawPerspectiveFairway(1020, 355, 32, 1260, 465, 70, 35);
+    drawBunker(1090, 385, 28, 9.5, 0.18);
+    drawBunker(1190, 425, 24, 8.5, -0.12);
+    drawGreen(1010, 355, 28, 9.5, 14);
+
+    // Hole D: Closer Right Flank Hole (Runs along the right ridge line away into distance)
+    drawPerspectiveFairway(1750, 360, 32, 1520, 465, 65, -45);
+    drawBunker(1620, 430, 26, 9, -0.15);
+    drawBunker(1700, 390, 22, 8, 0.2);
+    drawGreen(1765, 360, 26, 9, 14);
+
+    // Foreground Tree Copses separating the closer fairways
+    drawTreeLine(340, 410, 390, 460, 6, 16);
+    drawTreeLine(780, 420, 940, 470, 8, 18);
+    drawTreeLine(1360, 430, 1450, 480, 7, 17);
+    drawTreeLine(1980, 430, 2048, 470, 5, 18);
 }
 
 function createHorizonTexture(theme = 'mountains') {
@@ -1133,8 +816,9 @@ function updateDistanceDisplay() {
             ctx.restore();
         }
     }
-    // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
+  // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
+    const distanceGauge = document.getElementById('distanceGauge');
     const distanceGauge = document.getElementById('distanceGauge');
 
     // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
@@ -1142,6 +826,17 @@ function updateDistanceDisplay() {
         if (container) container.innerHTML = '';
         if (distanceGauge) distanceGauge.classList.add('hidden');
         return;
+    }
+
+    if (container && input) {
+        container.innerHTML = ''; // Wipe out old button listings
+    // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
+    if ((physics && physics.isMoving) || isSinking) {
+        if (container) container.innerHTML = '';
+        if (distanceGauge) distanceGauge.classList.add('hidden');
+        return;
+    } else if (distanceGauge && (!input || !input.isAimMode)) {
+        distanceGauge.classList.remove('hidden');
     }
 
     if (container && input) {
@@ -1191,6 +886,7 @@ function updateDistanceDisplay() {
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
             if (cIdx < maxClubIdx) {
                 input.chosenClubIndex = cIdx + 1;
+                input.pullRatio = 0;
                 updateDistanceDisplay();
             }
         });
@@ -1209,6 +905,7 @@ function updateDistanceDisplay() {
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
             if (cIdx > 0) {
                 input.chosenClubIndex = cIdx - 1;
+                input.pullRatio = 0;
                 updateDistanceDisplay();
             }
         });
@@ -1252,8 +949,9 @@ function updateDistanceDisplay() {
         container.appendChild(clubLabelWrapper);
         container.appendChild(rightBtn);
     }
-
-
+if (input && typeof input.updateGaugeClub === 'function') {
+        input.updateGaugeClub();
+    }
 }
 
 function generateNewWind() {
@@ -1548,7 +1246,7 @@ function generateHazards() {
                 color: 0x0000ff,                         // Update this line: Vibrant deep lake blue
                 specular: 0xffffff,                     // Add this line: Gives it crisp white sun-glint highlights
                 shininess: 150,                         // Add this line: Increases gloss factor for high contrast
-                flatShading: true,                      // Keep this line
+                flatShading: false,                      // Keep this line
                 polygonOffset: true,                    // Keep this line
                 polygonOffsetFactor: -1,                // Keep this line
                 polygonOffsetUnits: -4                  // Keep this line
@@ -2082,7 +1780,7 @@ function resetEntireGame(advanceHole = false) {
                         color: 0x0000ff,
                         specular: 0xffffff,
                         shininess: 150,
-                        flatShading: true,
+                        flatShading: false,
                         polygonOffset: true,
                         polygonOffsetFactor: -1,
                         polygonOffsetUnits: -4
@@ -2313,6 +2011,7 @@ function resetEntireGame(advanceHole = false) {
 
         const bulkheadMesh = new THREE.Mesh(wallGeo, bulkheadMat);
         scene.add(bulkheadMesh);
+        waterShores.push(bulkheadMesh);
 
         // --- HOLE 5 WOODEN FOOTBRIDGE ---
         const bridgeGroup = new THREE.Group();
@@ -2756,7 +2455,8 @@ function resetEntireGame(advanceHole = false) {
                 const isOnGreenSidesOrBack = false;
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
                 let floorHeight = calculatedHeight;
-                if (closeToWater) {
+                const isHole8BeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4);
+                if (closeToWater || isHole8BeforeFairway) {
                     // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
                 } else if (distanceToPath <= fW) {
                     floorHeight -= 0.12;
@@ -2856,15 +2556,15 @@ function resetEntireGame(advanceHole = false) {
                     const fringeR = activeR + 1.0;
 
                     // Deep hidden height for out-of-bounds or buried fairway grid points
-                    const hiddenFairwayH = floorHeight - 0.50;
+                    const hiddenFairwayH = floorHeight - 5.0;
 
                     // Boundary checks for fairway corridor
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
-                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0);
-
+                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
+                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7));
                     if (insideSandZone || isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {
@@ -3115,82 +2815,185 @@ function resetEntireGame(advanceHole = false) {
     if (physics) physics.obstacles = [];
 
     if (currentHoleConfig && currentHoleConfig.customTrees) {
-        currentHoleConfig.customTrees.forEach(pt => {
+        currentHoleConfig.customTrees.forEach((pt, index) => {
             const sceneryGroup = new THREE.Group();
             const courseHeight = physics.getGroundHeight(pt.x, pt.z);
-            sceneryGroup.position.set(pt.x, courseHeight, pt.z);
+            sceneryGroup.position.set(pt.x, courseHeight - 0.75, pt.z)
             sceneryGroup.userData = { type: 'tree' };
+            if (pt.type === 'bush') {
+                sceneryGroup.userData = { type: 'bush' };
+                const randomBushRad = pt.radius || 1.2;
+                const bushGroup = new THREE.Group();
 
-            const randomScale = pt.scale || currentHoleConfig.treeScale || 3.8;
+                // 1. Base Stem Structure
+                const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.95 });
+                const stemCount = 5;
+                for (let s = 0; s < stemCount; s++) {
+                    const stemH = randomBushRad * 0.45;
+                    const stemGeo = new THREE.CylinderGeometry(0.012, 0.03, stemH, 5);
+                    const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+                    const stemAngle = (s / stemCount) * Math.PI * 2;
+                    const outwardTilt = 0.35;
+                    stemMesh.position.set(
+                        Math.cos(stemAngle) * (randomBushRad * 0.12),
+                        stemH / 2 - 0.03,
+                        Math.sin(stemAngle) * (randomBushRad * 0.12)
+                    );
+                    stemMesh.rotation.z = Math.cos(stemAngle) * outwardTilt;
+                    stemMesh.rotation.x = Math.sin(stemAngle) * outwardTilt;
+                    bushGroup.add(stemMesh);
+                }
+
+                // 2. Dark Shadow Core
+                const shadowMat = new THREE.MeshStandardMaterial({ color: 0x0c260c, roughness: 0.95 });
+                const shadowGeo = new THREE.SphereGeometry(randomBushRad * 0.65, 8, 8);
+                const shadowCore = new THREE.Mesh(shadowGeo, shadowMat);
+                shadowCore.position.y = randomBushRad * 0.4;
+                shadowCore.scale.set(1, 0.8, 1);
+                bushGroup.add(shadowCore);
+
+                // 3. Illustrated Leaf Blades
+                const foliageColors = [0x144414, 0x1e5c1e, 0x2c821a, 0x5cb814];
+                const leafCount = Math.floor(40 + (randomBushRad * 35));
+                const leafGeo = new THREE.CircleGeometry(randomBushRad * 0.22, 6);
+
+                for (let l = 0; l < leafCount; l++) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.random() * 0.88);
+                    const surfaceDist = randomBushRad * (0.82 + Math.random() * 0.24);
+                    const pX = Math.sin(phi) * Math.cos(theta) * surfaceDist;
+                    const pZ = Math.sin(phi) * Math.sin(theta) * surfaceDist;
+                    const pY = Math.cos(phi) * surfaceDist * 0.85 + (randomBushRad * 0.12);
+                    const normalizedHeight = pY / (randomBushRad * 1.1);
+                    let colorIdx = normalizedHeight > 0.74 ? 3 : (normalizedHeight < 0.38 ? 0 : 2);
+
+                    const leafMat = new THREE.MeshStandardMaterial({
+                        color: foliageColors[colorIdx],
+                        roughness: 0.65,
+                        side: THREE.DoubleSide
+                    });
+                    const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+                    leafMesh.position.set(pX, pY, pZ);
+                    leafMesh.lookAt(new THREE.Vector3(pX * 2, pY + 0.15, pZ * 2));
+                    leafMesh.scale.set(0.65 + Math.random() * 0.25, 1.35 + Math.random() * 0.35, 1.0);
+                    bushGroup.add(leafMesh);
+                }
+
+                sceneryGroup.add(bushGroup);
+                physics.obstacles.push({
+                    type: 'bush',
+                    x: pt.x,
+                    z: pt.z,
+                    radius: randomBushRad
+                });
+                scene.add(sceneryGroup);
+                sceneryObjects.push(sceneryGroup);
+                return;
+            }
+
+            // Cycles through 3 height tiers: 33% Small (0.75x), 33% Medium (1.0x), 33% Tall (1.25x)
+            const heightTiers = [0.85, 1.10, 1.25];
+            const tierMultiplier = heightTiers[index % 3];
+
+            const randomScale = (pt.scale || currentHoleConfig.treeScale || 3.8) * tierMultiplier;
             const heightScale = currentHoleConfig.treeHeightScale || 1.0;
-            const calculatedTrunkRad = 0.25 * randomScale;
-            const calculatedTrunkH = 1.4 * randomScale * heightScale;
-            const calculatedFoliageRad = 1.1 * randomScale;
+            const calculatedTrunkRad = 0.32 * randomScale;
+            const calculatedTrunkH = 1.0 * randomScale * heightScale;
+            const calculatedFoliageRad = 1.35 * randomScale;
 
-            const trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad, calculatedTrunkH, 8);
+            // Flared oak trunk: wider base tapering up to the main crotch of the tree
+            const trunkGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.7, calculatedTrunkRad * 1.35, calculatedTrunkH, 10);
             const trunkMesh = new THREE.Mesh(trunkGeo, trunkMat);
             trunkMesh.position.y = calculatedTrunkH / 2;
             sceneryGroup.add(trunkMesh);
 
             const finalizedFoliageRadius = calculatedFoliageRad * 1.1;
-            const finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.1;
+            const finalizedTotalHeight = calculatedTrunkH + calculatedFoliageRad * 2.0;
 
-            // Main top canopy (Original sizes preserved)
-            const positions = [
-                [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],
-                [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
-                [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
-                [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45],
-                [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]
-            ];
-
-            positions.forEach(p => {
-                const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
-                const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
-                leafMesh.position.set(p[0], p[1], p[2]);
-                sceneryGroup.add(leafMesh);
-            });
-
-            // Full wooden limbs with leafy branch canopies
+            // REALISTIC OAK STRUCTURE: Forking boughs and dense 3D foliage dome
             if (heightScale > 1.0) {
-                const numTiers = 3; // 3 main branch levels along the trunk
-                for (let tier = 1; tier <= numTiers; tier++) {
-                    const tierY = calculatedTrunkH * (0.28 + (tier - 1) * 0.18); // Heights at 28%, 46%, and 64% up trunk
-                    const clusterCount = 3; // 3 branches per level
+                // 1. Primary Boughs - thick limbs forking out from the top of the main trunk
+                const boughCount = 5;
+                const boughLength = calculatedFoliageRad * 0.95;
 
-                    for (let c = 0; c < clusterCount; c++) {
-                        // Spiral branches around the trunk
-                        const angle = (c * (Math.PI * 2 / clusterCount)) + (tier * 1.5);
-                        const branchLength = finalizedFoliageRadius * 0.85; // Reaches significantly further out
+                for (let b = 0; b < boughCount; b++) {
+                    const angle = (b / boughCount) * Math.PI * 2 + (index * 0.7);
+                    const tilt = 0.55 + (b % 2) * 0.15; // ~32 to 40 degree outward angle
 
-                        const branchGroup = new THREE.Group();
-                        branchGroup.position.set(0, tierY, 0);
-                        branchGroup.rotation.y = angle;
-                        branchGroup.rotation.z = -0.50; // Angled ~30 degrees upward
-                        branchGroup.rotation.order = 'YXZ';
+                    const boughGroup = new THREE.Group();
+                    boughGroup.position.set(0, calculatedTrunkH * 0.75, 0);
+                    boughGroup.rotation.y = angle;
+                    boughGroup.rotation.z = -tilt;
+                    boughGroup.rotation.order = 'YXZ';
 
-                        // 1. Thick wooden branch tapering from base to tip
-                        const branchGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.15, calculatedTrunkRad * 0.38, branchLength, 6);
-                        branchGeo.translate(0, branchLength / 2, 0);
-                        const branchMesh = new THREE.Mesh(branchGeo, trunkMat);
-                        branchGroup.add(branchMesh);
+                    // Tapered main bough limb
+                    const boughGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.22, calculatedTrunkRad * 0.55, boughLength, 8);
+                    boughGeo.translate(0, boughLength / 2, 0);
+                    const boughMesh = new THREE.Mesh(boughGeo, trunkMat);
+                    boughGroup.add(boughMesh);
 
-                        // --- CHANGE THIS NUMBER ANYTIME TO ADD MORE OR FEWER LEAVES ---
-                        const leavesPerBranch = 5;
+                    // Secondary twig splitting off each bough
+                    const subLength = boughLength * 0.55;
+                    const subGroup = new THREE.Group();
+                    subGroup.position.set(0, boughLength * 0.65, 0);
+                    subGroup.rotation.z = 0.45;
+                    const subGeo = new THREE.CylinderGeometry(calculatedTrunkRad * 0.12, calculatedTrunkRad * 0.22, subLength, 6);
+                    subGeo.translate(0, subLength / 2, 0);
+                    subGroup.add(new THREE.Mesh(subGeo, trunkMat));
+                    boughGroup.add(subGroup);
 
-                        const leafPadGeo = new THREE.SphereGeometry(finalizedFoliageRadius * 0.08, 12, 8);
-                        for (let l = 1; l <= leavesPerBranch; l++) {
-                            const leafMesh = new THREE.Mesh(leafPadGeo, foliageMat);
-                            const posAlongBranch = (l / leavesPerBranch); // Spreads leaves evenly along branch
-                            const sideOffset = (l % 2 === 0 ? 0.08 : -0.08); // Alternates left & right sides
-                            leafMesh.scale.set(0.7, 0.22, 0.6);
-                            leafMesh.position.set(sideOffset, branchLength * posAlongBranch, 0);
-                            branchGroup.add(leafMesh);
-                        }
-
-                        sceneryGroup.add(branchGroup);
-                    }
+                    sceneryGroup.add(boughGroup);
                 }
+
+                // 2. Full 3D Dome Canopy (Overlapping volumetric foliage spheres filling out the crown)
+                const domePuffs = [
+                    // Center high crown
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.85, 0, 0.75],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.65, 0, 0.85],
+
+                    // Middle spreading ring of foliage
+                    [finalizedFoliageRadius * 0.55, calculatedTrunkH + finalizedFoliageRadius * 0.5, 0, 0.60],
+                    [-finalizedFoliageRadius * 0.55, calculatedTrunkH + finalizedFoliageRadius * 0.5, 0, 0.60],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.55, 0.60],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.55, 0.60],
+
+                    // Diagonal corner fillers for a round, organic dome
+                    [finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, finalizedFoliageRadius * 0.4, 0.52],
+                    [-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, finalizedFoliageRadius * 0.4, 0.52],
+                    [finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, -finalizedFoliageRadius * 0.4, 0.52],
+                    [-finalizedFoliageRadius * 0.4, calculatedTrunkH + finalizedFoliageRadius * 0.4, -finalizedFoliageRadius * 0.4, 0.52],
+
+                    // Lower skirt canopy
+                    [finalizedFoliageRadius * 0.65, calculatedTrunkH + finalizedFoliageRadius * 0.25, 0, 0.48],
+                    [-finalizedFoliageRadius * 0.65, calculatedTrunkH + finalizedFoliageRadius * 0.25, 0, 0.48],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.25, finalizedFoliageRadius * 0.65, 0.48],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.25, -finalizedFoliageRadius * 0.65, 0.48]
+                ];
+
+                domePuffs.forEach(p => {
+                    const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 16, 16);
+                    const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    // Slightly squash vertically for a natural oak canopy shape
+                    leafMesh.scale.set(1.05, 0.85, 1.05);
+                    sceneryGroup.add(leafMesh);
+                });
+            } else {
+                // Standard default tree canopy for heightScale <= 1.0
+                const positions = [
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.7, 0, 0.7],
+                    [-finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
+                    [finalizedFoliageRadius * 0.5, calculatedTrunkH + finalizedFoliageRadius * 0.4, 0, 0.55],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, -finalizedFoliageRadius * 0.4, 0.45],
+                    [0, calculatedTrunkH + finalizedFoliageRadius * 0.5, finalizedFoliageRadius * 0.4, 0.45]
+                ];
+
+                positions.forEach(p => {
+                    const leafGeo = new THREE.SphereGeometry(finalizedFoliageRadius * p[3], 24, 24);
+                    const leafMesh = new THREE.Mesh(leafGeo, foliageMat);
+                    leafMesh.position.set(p[0], p[1], p[2]);
+                    sceneryGroup.add(leafMesh);
+                });
             }
 
             physics.obstacles.push({
@@ -3917,6 +3720,9 @@ function resetEntireGame(advanceHole = false) {
         createCartPath(currentHoleConfig.cartPath, 2.2);
     }
 
+    // Spawn 3D neighboring fairways, greens, pins, and bunkers
+    generateAdjacentHoles(scene, sceneryObjects, physics, currentHoleConfig, holePosition, greenCenterZ);
+
     generateNewWind();
     updateDistanceDisplay();
 
@@ -4189,141 +3995,146 @@ function animate() {
         return;
     }
 
-    // 2. CONTINUOUS HOLE COLLISION & SMOOTH SINKING ANIMATION
     if (!isSinking) {
         const dx = ball.position.x - holePosition.x;
         const dz = ball.position.z - holePosition.z;
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
-        // DYNAMIC CAPTURE BOUNDARY: Calculate the active club type locally to keep scope insulated.
-        // If putting, scale the physics lip radius to perfectly match the visible cup rim (0.17) plus
-        // the ball's real-time physical radius (0.25 * current scale) so ghost-captures are eliminated!
-        const collisionClub = input ? input.getClubInfo() : null;
-        const collisionIsPutting = collisionClub && collisionClub.name === 'Putter';
-        const maxLipRadius = collisionIsPutting ? 0.15 : 0.19;
+        const ballRadius = 0.25 * (ball ? ball.scale.x : 0.51);
+        const cupRimRadius = 0.115;
+        const pinRadius = 0.025;
+        const maxInfluenceRadius = cupRimRadius + ballRadius + 0.005;
 
-        if (distanceToHole < maxLipRadius && ball.position.y <= (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z) + 0.15)) {
+        const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
+        const isNearGround = ball.position.y <= (groundHeight + ballRadius + 0.12);
+
+        if (distanceToHole < maxInfluenceRadius && isNearGround && physics.isMoving) {
             const rawSpeed = physics.velocity.length();
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
-            // Dead center drop condition: sinks immediately if struck true, otherwise bounces off pin
-            if (distanceToHole < 0.06) {
-                if (trueWorldSpeed <= 0.12) {
-                    isSinking = true;
-                    ball.userData.isLipRiding = false;
-                    physics.velocity.set(0, 0, 0);
-                    physics.isMoving = false;
-                    wasMoving = false;
-                } else if (pin && pin.visible && !ball.userData.hasHitPin) {
-                    // PIN RICOCHET: Only ricochet if the pin is actually in the hole!
-                    ball.userData.hasHitPin = true;
-                    ball.userData.isLipRiding = false;
-
-                    // Reverse the horizontal direction and apply a speed dampening penalty
-                    const currentSpeed = physics.velocity.length();
-                    let bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI + (Math.random() - 0.5) * 0.5;
-
-                    physics.velocity.x = Math.sin(bounceAngle) * currentSpeed * 0.35;
-                    physics.velocity.z = Math.cos(bounceAngle) * currentSpeed * 0.35;
-
-                    // Give it a tiny vertical pop off the rim for realistic physics texture
-                    if (!physics.isPutting) {
-                        physics.velocity.y = 0.08;
-                    }
-
-                    // Play the crisp iron/metallic audio note for hitting the pin
-                    if (sounds) sounds.play('iron');
-                }
+            // 1. If ball already deflected, lipped out, or bounced off the pin, let it roll out
+            if (ball.userData.hasLipDeflected || ball.userData.hasHitPin) {
+                // In deflection exit path
             }
-            // Handle off-center lip captures when traveling at look-in speeds
-            else if (rawSpeed > 0.02 && trueWorldSpeed <= 0.65) {
-                if (distanceToHole > 0.25) {
-                    ball.userData.hasHitPin = false;
-                }
-
-                if (!ball.userData.isLipRiding) {
-                    ball.userData.isLipRiding = true;
-                    ball.userData.lipAngleTraveled = 0;
-                    ball.userData.lastLipAngle = Math.atan2(dz, dx);
-
-                    // Cross-product check to figure out if it entered Clockwise or Counter-Clockwise
-                    const perpX = -dz / distanceToHole;
-                    const perpZ = dx / distanceToHole;
-                    const tangentDot = physics.velocity.x * perpX + physics.velocity.z * perpZ;
-                    ball.userData.lipDirection = Math.sign(tangentDot) || 1;
-                }
-
-                // Track continuous angular progression around the rim
+            // 2. Continuing an active Lip-Ride around the rim
+            else if (ball.userData.isLipRiding) {
                 const currentAngle = Math.atan2(dz, dx);
                 let angleDelta = currentAngle - ball.userData.lastLipAngle;
                 if (angleDelta > Math.PI) angleDelta -= Math.PI * 2;
                 if (angleDelta < -Math.PI) angleDelta += Math.PI * 2;
-
                 ball.userData.lipAngleTraveled += Math.abs(angleDelta);
                 ball.userData.lastLipAngle = currentAngle;
 
-                const hDirX = dx / distanceToHole;
-                const hDirZ = dz / distanceToHole;
+                const hDirX = dx / (distanceToHole || 1);
+                const hDirZ = dz / (distanceToHole || 1);
                 const tanX = -hDirZ * ball.userData.lipDirection;
                 const tanZ = hDirX * ball.userData.lipDirection;
 
-                // Pull ball position smoothly onto the physical lip of the cup (radius 0.11)
-                const targetLipDist = 0.092;
-                const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.20);
+                // Pull smoothly onto rim circumference track
+                const targetLipDist = cupRimRadius - 0.010;
+                const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.40);
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
 
-                // Blasted past the cup: too hot to grip the edge
-                if (trueWorldSpeed > 0.65) {
+                // Apply velocity tangent to lip with subtle friction drag
+                physics.velocity.x = (tanX * 0.94 - hDirX * 0.08) * rawSpeed * 0.985;
+                physics.velocity.z = (tanZ * 0.94 - hDirZ * 0.08) * rawSpeed * 0.985;
+
+                const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
+                ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.04, 0.20);
+
+                // A. Lip-In: Ball loses kinetic energy on the rim and drops into cup
+                if (trueWorldSpeed < 0.042) {
+                    isSinking = true;
                     ball.userData.isLipRiding = false;
+                    physics.velocity.x *= 0.3;
+                    physics.velocity.z *= 0.3;
+                    if (sounds) sounds.play('sink');
                 }
-                // Lip-ride simulation engagement loop
-                else {
-                    // Gentle friction (0.96) allows the ball to visibly circle the rim for ~20-30 frames
-                    const frictionFactor = 0.96;
-                    physics.velocity.x = tanX * rawSpeed * frictionFactor;
-                    physics.velocity.z = tanZ * rawSpeed * frictionFactor;
+                // B. Horseshoe Lip-Out: Ball spins around the back of the cup (> 2.6 rad / ~150 deg) and whips away
+                else if (ball.userData.lipAngleTraveled > 2.6) {
+                    physics.velocity.x = (tanX * 0.85 + hDirX * 0.65) * rawSpeed * 0.95;
+                    physics.velocity.z = (tanZ * 0.85 + hDirZ * 0.65) * rawSpeed * 0.95;
+                    ball.userData.isLipRiding = false;
+                    ball.userData.hasLipDeflected = true;
+                    if (sounds) sounds.play('putt');
+                }
+            }
+            // 3. New Entry into Cup Zone
+            else {
+                const crossTrack = rawSpeed > 0.0001 ? (Math.abs(dx * physics.velocity.z - dz * physics.velocity.x) / rawSpeed) : distanceToHole;
 
-                    // Pull gravity down visually to settle the ball slightly inside the 3D rim track
-                    const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
-                    ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.10, 0.15);
-
-                    // PATHWAY A: LIP-IN (Slowed down enough to drop in after a curve)
-                    if (physics.velocity.length() * currentScale < 0.08) {
+                // A. Physical Pin Collision (if pin is visible and struck)
+                if (pin && pin.visible && distanceToHole <= (pinRadius + ballRadius + 0.015) && !ball.userData.hasHitPin) {
+                    ball.userData.hasHitPin = true;
+                    ball.userData.hasLipDeflected = true;
+                    ball.userData.isLipRiding = false;
+                    const bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI;
+                    physics.velocity.x = Math.sin(bounceAngle) * rawSpeed * 0.45;
+                    physics.velocity.z = Math.cos(bounceAngle) * rawSpeed * 0.45;
+                    if (sounds) sounds.play('iron');
+                }
+                // B. Center Channel Entry (Direct path towards cup center)
+                else if (crossTrack <= 0.048 && distanceToHole <= 0.075) {
+                    // Good pace -> Drops in smoothly
+                    if (trueWorldSpeed <= 0.130) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
-                        physics.velocity.set(0, 0, 0);
-                        physics.isMoving = false;
-                        wasMoving = false;
+                        physics.velocity.x *= 0.2;
+                        physics.velocity.z *= 0.2;
+                        if (sounds) sounds.play('sink');
                     }
-                    // PATHWAY B: SPIN-OUT (Carries too much speed past ~100 degrees of arc and slings off the rim)
-                    else if (ball.userData.lipAngleTraveled > 1.8) {
-                        physics.velocity.x = (tanX + hDirX * 0.40) * rawSpeed * 0.85;
-                        physics.velocity.z = (tanZ + hDirZ * 0.40) * rawSpeed * 0.85;
+                    // Too fast -> Blows straight over the cup
+                    else {
+                        ball.userData.hasLipDeflected = true;
                         ball.userData.isLipRiding = false;
+                        physics.velocity.x *= 0.92;
+                        physics.velocity.z *= 0.92;
+                        if (sounds) sounds.play('putt');
                     }
                 }
-            } else {
-                if (distanceToHole > 0.25) {
-                    ball.userData.hasHitPin = false;
+                // C. Outer Rim / Lip Contact
+                else if (crossTrack > 0.048) {
+                    // Fast Glance: Instant outer lip-out deflection
+                    if (trueWorldSpeed > 0.155) {
+                        ball.userData.hasLipDeflected = true;
+                        ball.userData.isLipRiding = false;
+                        const awayX = dx / (distanceToHole || 1);
+                        const awayZ = dz / (distanceToHole || 1);
+                        physics.velocity.x = (physics.velocity.x * 0.45 + awayX * rawSpeed * 0.65);
+                        physics.velocity.z = (physics.velocity.z * 0.45 + awayZ * rawSpeed * 0.65);
+                        if (sounds) sounds.play('putt');
+                    }
+                    // Controlled Pace: Catches the lip and begins riding the rim
+                    else if (rawSpeed > 0.010) {
+                        ball.userData.isLipRiding = true;
+                        ball.userData.hasLipDeflected = false;
+                        ball.userData.lipAngleTraveled = 0;
+                        ball.userData.lastLipAngle = Math.atan2(dz, dx);
+                        const perpX = -dz / (distanceToHole || 1);
+                        const perpZ = dx / (distanceToHole || 1);
+                        const tangentDot = physics.velocity.x * perpX + physics.velocity.z * perpZ;
+                        ball.userData.lipDirection = tangentDot >= 0 ? 1 : -1;
+                    }
                 }
             }
         } else {
             ball.userData.isLipRiding = false;
             ball.userData.hasHitPin = false;
+            if (distanceToHole > maxInfluenceRadius + 0.15) {
+                ball.userData.hasLipDeflected = false;
+            }
         }
     }
     if (isSinking) {
-        // Smoothly pull the ball horizontally toward the exact center of the cup while it drops to create a natural gravity effect
-        ball.position.x = THREE.MathUtils.lerp(ball.position.x, holePosition.x, 0.25);
-        ball.position.z = THREE.MathUtils.lerp(ball.position.z, holePosition.z, 0.25);
+        // Smoothly guide the ball into the cup while dropping below the surface
+        ball.position.x = THREE.MathUtils.lerp(ball.position.x, holePosition.x, 0.20);
+        ball.position.z = THREE.MathUtils.lerp(ball.position.z, holePosition.z, 0.20);
 
-        // Linearly drop the ball downward beneath the flat ground plane layout
-        // FIXED: Only subtract height if the ball hasn't reached its hidden subterranean resting limit yet
-        const localCupFloor = physics.getGroundHeight(holePosition.x, holePosition.z) - 0.45; /* Deeper cup floor to let the ball fully plunge underground */
+        const localCupFloor = physics.getGroundHeight(holePosition.x, holePosition.z) - 0.35;
         if (ball.position.y > localCupFloor) {
-            ball.position.y -= 0.04; /* Snap down faster to simulate weight/gravity */
+            ball.position.y -= 0.035;
         }
 
         // Once it drops safely inside the hole depth out of sight (Y <= localCupFloor)
@@ -4549,43 +4360,32 @@ function animate() {
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
 
-            // === REPLACE WITH THIS EXACT BLOCK ===
             const lookTargetX = ball.position.x + aimDirX * lookDist;
             const lookTargetZ = ball.position.z + aimDirZ * lookDist;
-            let lookTargetY = physics.getGroundHeight(lookTargetX, lookTargetZ); // Modify this line: Changed 'const' to 'let'
 
-            if (teeBox && teeBox.visible) {
-                lookTargetY = ball.position.y - 0.37;
-            }
-            // NEW: If in a deep bunker, override lookTargetY to stay flat with the bunker floor under the ball
-            // instead of looking way up at the high ground outside the trap!
-            else if (isSand) {
-                lookTargetY = ball.position.y - 0.25;
-            }
-            else {
-                // Prevents camera from tilting down into deep bunkers/hazards ahead when ball is on grass
-                lookTargetY = Math.max(lookTargetY, ball.position.y - 0.2);
-            }
-
-
-            const camX = ball.position.x - aimDirX * camDist; // Add this line
-            const camZ = ball.position.z - aimDirZ * camDist; // Add this line
-            const camGroundY = physics.getGroundHeight(camX, camZ); // Add this line: Samples the hill height behind the ball
-
-            // FIXED: Camera tracking now always anchors to the true terrain surface level, preventing the lens from clipping under bunker walls
-            // FIXED: Restore natural ball height tracking so the camera stays low and perfectly level behind the club
+            // Anchor camera height and lookAt target directly to ball elevation
             const stableBallHeight = isSinking ? (physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25) : ball.position.y;
 
-            // FIXED: Remove the conditional check so sand traps use the exact same hill-clipping guard as the fairway and rough
+            let lookTargetY = stableBallHeight;
+            if (teeBox && teeBox.visible) {
+                lookTargetY = stableBallHeight - 0.37;
+            } else if (isSand) {
+                lookTargetY = stableBallHeight - 0.25;
+            }
+
+            const camX = ball.position.x - aimDirX * camDist;
+            const camZ = ball.position.z - aimDirZ * camDist;
+            const camGroundY = physics.getGroundHeight(camX, camZ);
+
             let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
             let activeLookUp = 3.0;
             if (isSand) {
-                camY = stableBallHeight + camHeight; // Force camera to stay low inside the sand trap with the ball
-                activeLookUp = 0.4;                  // Lower the lens pitch so the ball stays centered on screen
+                camY = stableBallHeight + camHeight;
+                activeLookUp = 0.4;
             }
 
-            cameraTargetPos.set(camX, camY, camZ); // Modify this line
-            cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ); // Keep this line
+            cameraTargetPos.set(camX, camY, camZ);
+            cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ);
         }
     }
 
@@ -4658,7 +4458,7 @@ function animate() {
         } else {
             const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
 
-            const flightSpeed = holeDist < 80 ? 0.005 : 0.003;
+            const flightSpeed = 0.005;
             previewProgress += flightSpeed;
             if (previewProgress > 1) previewProgress = 1;
 
@@ -4755,15 +4555,20 @@ function animate() {
 
             // Automatically snap back behind the ball once the full camera flight completes
             if (previewProgress >= 1) {
-                isOverheadActive = false;
-                const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
-                const camDist = onGreen ? 2.5 : 5.5;
-                const camHeight = onGreen ? 1.0 : 1.8;
-                const lookDist = onGreen ? 6.0 : 12.0;
+                if (!overheadPauseStartTime) {
+                    overheadPauseStartTime = performance.now();
+                } else if (performance.now() - overheadPauseStartTime >= 1000) {
+                    overheadPauseStartTime = 0;
+                    isOverheadActive = false;
+                    const onGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
+                    const camDist = onGreen ? 2.5 : 5.5;
+                    const camHeight = onGreen ? 1.0 : 1.8;
+                    const lookDist = onGreen ? 6.0 : 12.0;
 
-                cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
-                cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
-                activeCameraSpeed = 0.02;
+                    cameraTargetPos.set(ball.position.x - aimDirX * camDist, ball.position.y + camHeight, ball.position.z - aimDirZ * camDist);
+                    cameraLookAt.set(ball.position.x + aimDirX * lookDist, ball.position.y + (onGreen ? 0.35 : 0.0), ball.position.z + aimDirZ * lookDist);
+                    activeCameraSpeed = 0.02;
+                }
             }
         }
     }
@@ -4984,8 +4789,9 @@ function animate() {
                 if (bZ <= -20.0 && bZ >= -140.0) activeFW = 18.0;
                 else if (bZ < -140.0 && bZ >= -152.0) activeFW = THREE.MathUtils.lerp(18.0, 8.0, (-140.0 - bZ) / 12.0);
             }
-            const isMobilePortrait = window.innerWidth <= 768 || (window.innerWidth / window.innerHeight) < 1;
-            activeFW += isMobilePortrait ? 1.09 : 0.80;
+
+            // Sync with PhysicsEngine exact visual boundary
+            activeFW += 0.50;
 
             let visualFloorHeight = terrainH;
             if (distanceToPath <= activeFW) {
@@ -5028,8 +4834,9 @@ function animate() {
 
         ball.position.y = surfaceHeight;
     }
-    // --- DYNAMIC CLUB STANCE STATE MACHINE ---
+   // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
+    const distanceGauge = document.getElementById('distanceGauge');
     if (clubSwipeElement && input) {
         // Only modify stance classes if the forward swing animation isn't currently playing
         if (!clubSwipeElement.classList.contains('swipe-animation')) {
@@ -5039,6 +4846,9 @@ function animate() {
 
        // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
             if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
+                if (distanceGauge && !input.isAimMode) {
+                    distanceGauge.classList.remove('hidden');
+                }
                 const activeClub = input.getClubInfo();
 
                 // === REPLACE WITH THIS EXACT BLOCK ===
@@ -5052,6 +4862,10 @@ function animate() {
                 // FIXED: Since the 3D ball is physically lowered into the sand, the 2D overlay tracks the new equator automatically. 
                 // Standardizing clubCushion to 4.0 across all lies prevents the double-sinking visual gap.
                 const dynamicBottom = ballBottomPercent - 2.0;
+
+
+
+
 
                 // Position is now locked at the bottom center via style.css
 
@@ -5124,9 +4938,18 @@ function animate() {
                 // Clear all classes to hide the club entirely when the ball is in motion
                 clubSwipeElement.className = '';
                 clubSwipeElement.style.bottom = ''; // Add this line: Clean up alignment tracking style variables when hidden
+                if (distanceGauge) {
+                    distanceGauge.classList.add('hidden');
+                }
+            }
+        } else {
+            if (distanceGauge) {
+                distanceGauge.classList.add('hidden');
             }
         }
     }
+
+
 
     if (waterHazards && waterHazards.length > 0) {
         const time = performance.now() * 0.0025; // Controls the general speed of the current flow
@@ -5136,23 +4959,25 @@ function animate() {
                 const u = posAttr.getX(i);
                 const v = posAttr.getY(i);
 
-                // Calculate distance from lake center to flatten waves near the shore boundary
-                const distFromCenter = Math.sqrt(u * u + v * v); // Add this line
-                const lakeRadius = mesh.userData.radius || 5; // Add this line
-                // Smoothly fade waves down over the outer 1.5 units of the lake profile
-                // Smoothly fade waves down over the outer 1.5 units of the lake profile
+
+                // Calculate true angle-aware lake radius for round or oval hazards
+                const rx = mesh.userData.radiusX || mesh.userData.radius || 5;
+                const rz = mesh.userData.radiusZ || mesh.userData.radius || 5;
+                const wAngle = Math.atan2(v, u);
+                const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+
+                const distFromCenter = Math.sqrt(u * u + v * v);
                 let waveFade = Math.max(0, Math.min(1, (lakeRadius - distFromCenter) / 1.5));
                 if (mesh.userData && mesh.userData.isRectangular) {
                     waveFade = 1.0; // Keep waves active across the entire ocean surface
                 }
 
-                // Update this entire block: Combines horizontal, vertical, and diagonal cross-waves
-                const wave1 = Math.sin(u * 1.1 + time * 1.5) * 0.025;
-                const wave2 = Math.cos(v * 1.1 + time * 1.9) * 0.02;
-                const wave3 = Math.sin((u + v) * 0.8 + time * 2.3) * 0.015;
+                // Organic radial circular ripples + diagonal cross-currents (no straight columns)
+                const wave1 = Math.sin(distFromCenter * 0.6 - time * 1.6) * 0.030;
+                const wave2 = Math.sin(u * 0.5 + v * 0.5 + time * 1.2) * 0.025;
+                const wave3 = Math.cos(u * 0.4 - v * 0.6 + time * 1.4) * 0.020;
 
-                // Dampen the waves and smoothly transition base level flush with the 0.07 shore height rim
-                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade); // Modify this line
+                const waveHeight = ((wave1 + wave2 + wave3) * waveFade) + 0.01 + (0.06 * waveFade);
 
                 posAttr.setZ(i, waveHeight);
             }
@@ -5980,6 +5805,7 @@ function init() {
             if (!isOverheadActive) {
                 isOverheadActive = true;
                 previewProgress = 0;
+                overheadPauseStartTime = 0;
 
                 if (checkIsBallOnGreenOrFringe()) {
                     // GREEN VIEW START: Position camera low behind the ball
@@ -6007,6 +5833,7 @@ function init() {
             } else {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
+                overheadPauseStartTime = 0;
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
@@ -6107,38 +5934,111 @@ init();
 // ==========================================================================
 const DEBUG_CLICK_COORDS = true;
 
-window.addEventListener('click', (event) => {
-    if (!DEBUG_CLICK_COORDS) return;
+window.addEventListener('keydown', (e) => {
+    if (!ball || !physics || isSinking) return;
 
-    // Ignore UI button clicks
-    if (event.target.closest('.club-option') ||
-        event.target.closest('#overheadBtn') ||
-        event.target.closest('#backspinBtn') ||
-        event.target.closest('#scorecardOverlay')) {
-        return;
-    }
+    const testScenarios = {
+        '1': { name: 'Dead Center Drop-In', offset: 0.000, speed: -0.110, pinIn: false },
+        '2': { name: 'Blow-By (Fast Through Cup)', offset: 0.000, speed: -0.280, pinIn: false },
+        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.078, speed: -0.090, pinIn: false },
+        '4': { name: 'Horseshoe Lip-Out (360 Spin)', offset: 0.082, speed: -0.170, pinIn: false },
+        '5': { name: 'Fast Lip-Out (Glance & Deflect)', offset: 0.096, speed: -0.260, pinIn: false },
+        '6': { name: 'Pin Ricochet (Bounce Off)', offset: 0.000, speed: -0.250, pinIn: true }
+    };
 
-    const mouse = new THREE.Vector2(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        -(event.clientY / window.innerHeight) * 2 + 1
-    );
+    const test = testScenarios[e.key];
+    if (!test) return;
 
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
+    if (teeBox) teeBox.visible = false;
+    if (golfTee) golfTee.visible = false;
 
-    // Raycast against ground meshes
-    const groundTargets = [floor, fairway, green].filter(Boolean);
-    const intersects = raycaster.intersectObjects(groundTargets);
+    // Set pin visibility based on the test
+    if (pin) pin.visible = test.pinIn;
+    if (flag) flag.visible = test.pinIn;
 
-    if (intersects.length > 0) {
-        const point = intersects[0].point;
-        const x = parseFloat(point.x.toFixed(1));
-        const z = parseFloat(point.z.toFixed(1));
+    // 1. Position ball 0.65 units (~1.8 ft) in front of the cup
+    const startX = holePosition.x + test.offset;
+    const startZ = holePosition.z + 0.65;
+    const groundY = physics.getGroundHeight(startX, startZ) + 0.25 * (ball.scale.x || 0.14);
 
-        console.log(`{ x: ${x}, z: ${z} },`);
-    }
+    ball.position.set(startX, groundY, startZ);
+    ball.visible = true;
+    ball.userData.isLipRiding = false;
+    ball.userData.hasLipDeflected = false;
+    ball.userData.hasHitPin = false;
+
+    // 2. Snap camera directly behind the ball looking across toward the hole
+    const camDist = 2.4;
+    const camHeight = 1.1;
+    cameraTargetPos.set(startX, groundY + camHeight, startZ + camDist);
+    cameraLookAt.set(holePosition.x, groundY + 0.05, holePosition.z);
+    camera.position.copy(cameraTargetPos);
+    currentLookAt.copy(cameraLookAt);
+    camera.lookAt(cameraLookAt);
+    camera.fov = 55;
+    camera.updateProjectionMatrix();
+
+    // 3. Launch putt
+    physics.velocity.set(0, 0, test.speed);
+    physics.isMoving = true;
+    physics.isPutting = true;
+    wasMoving = false;
+    isSinking = false;
+
+    updateDistanceDisplay();
+    console.log(`Testing [Key ${e.key}]: ${test.name}`);
 });
 
+
+window.addEventListener('keydown', (e) => {
+    if (!ball || !physics || isSinking) return;
+
+    const testScenarios = {
+        '1': { name: 'Dead Center Drop-In', offset: 0.000, speed: -0.110 },
+        '2': { name: 'Blow-By (Fast Through Cup)', offset: 0.000, speed: -0.280 },
+        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.078, speed: -0.090 },
+        '4': { name: 'Horseshoe Lip-Out (360 Spin)', offset: 0.082, speed: -0.170 },
+        '5': { name: 'Fast Lip-Out (Glance & Deflect)', offset: 0.096, speed: -0.260 }
+    };
+
+    const test = testScenarios[e.key];
+    if (!test) return;
+
+    if (teeBox) teeBox.visible = false;
+    if (golfTee) golfTee.visible = false;
+
+    // 1. Position ball 0.65 units (~1.8 ft) in front of the cup
+    const startX = holePosition.x + test.offset;
+    const startZ = holePosition.z + 0.65;
+    const groundY = physics.getGroundHeight(startX, startZ) + 0.25 * (ball.scale.x || 0.51);
+
+    ball.position.set(startX, groundY, startZ);
+    ball.visible = true;
+    ball.userData.isLipRiding = false;
+    ball.userData.hasLipDeflected = false;
+    ball.userData.hasHitPin = false;
+
+    // 2. Snap camera directly behind the ball looking across toward the hole
+    const camDist = 2.4;
+    const camHeight = 1.1;
+    cameraTargetPos.set(startX, groundY + camHeight, startZ + camDist);
+    cameraLookAt.set(holePosition.x, groundY + 0.05, holePosition.z);
+    camera.position.copy(cameraTargetPos);
+    currentLookAt.copy(cameraLookAt);
+    camera.lookAt(cameraLookAt);
+    camera.fov = 55;
+    camera.updateProjectionMatrix();
+
+    // 3. Launch putt
+    physics.velocity.set(0, 0, test.speed);
+    physics.isMoving = true;
+    physics.isPutting = true;
+    wasMoving = false;
+    isSinking = false;
+
+    updateDistanceDisplay();
+    console.log(`Testing: ${test.name}`);
+});
 
 
 function updateGreenGrid() {
@@ -6263,67 +6163,87 @@ function updateGreenGrid() {
 }
 
 
-// Add this entire function block at the very bottom of src/main.js
 function showScorecard() {
     const overlay = document.getElementById('scorecardOverlay');
     const table = document.getElementById('scorecardTable');
     if (!overlay || !table) return;
 
+    // Detect mobile portrait
+    const isMobilePortrait = (window.innerWidth <= 768) || (window.innerWidth / window.innerHeight < 1);
+
     // Separate completed holes into Front 9 and Back 9 segments
     const maxHolePlayed = completedHoles.reduce((max, h) => Math.max(max, h.hole), 0);
     const showBack9 = maxHolePlayed >= 10 || currentHoleNumber >= 10;
+
+    // On mobile portrait, show Front 9 when playing holes 1-9, and Back 9 when playing hole 10+
+    const renderFront9 = !isMobilePortrait || currentHoleNumber <= 9;
+    const renderBack9 = showBack9 && (!isMobilePortrait || currentHoleNumber >= 10);
 
     let holeHtml = '<th style="z-index: 15;">HOLE</th>';
     let yardsHtml = '<tr><td><strong>YARDS</strong></td>';
     let parHtml = '<tr><td><strong>PAR</strong></td>';
     let scoreHtml = '<tr><td><strong>SCORE</strong></td>';
 
-    // Accumulator metrics for Front 9
+    // Pre-calculate Front 9 totals
     let fYards = 0, fPar = 0, fScore = 0, fPlayed = 0;
-
-    // --- 1. RENDER FRONT 9 (HOLES 1-9) ---
     for (let i = 1; i <= 9; i++) {
         const hData = completedHoles.find(h => h.hole === i);
-        let yards = '---', par = '---', score = '---', scoreClass = '';
-
         if (hData) {
-            yards = hData.yards; par = hData.par; score = hData.score;
             fYards += hData.yards; fPar += hData.par; fScore += hData.score; fPlayed++;
-            if (score <= par) scoreClass = ' class="scorecard-highlight"';
-        } else if (HOLES_CONFIG[i]) {
-            par = HOLES_CONFIG[i].par || '---';
-            if (HOLES_CONFIG[i].waypoints) {
-                const wp = HOLES_CONFIG[i].waypoints;
-                const dx = wp[wp.length - 1].x - wp[0].x;
-                const dz = wp[wp.length - 1].z - wp[0].z;
-                yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
-            }
         }
-
-        holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
-        yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
-        parHtml += `<td class="scorecard-hole-col">${par}</td>`;
-        scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
     }
 
-    // Append Front 9 'OUT' Totals Column
-    holeHtml += `<th class="scorecard-total-col">OUT</th>`;
-    yardsHtml += `<td class="scorecard-total-col">${fYards || '0'}</td>`;
-    parHtml += `<td class="scorecard-total-col">${fPar || '0'}</td>`;
-    scoreHtml += `<td class="scorecard-total-col"><strong>${fPlayed > 0 ? fScore : '---'}</strong></td>`;
+    // --- 1. RENDER FRONT 9 (HOLES 1-9) ---
+    if (renderFront9) {
+        for (let i = 1; i <= 9; i++) {
+            const hData = completedHoles.find(h => h.hole === i);
+            let yards = '---', par = '---', score = '---', scoreClass = '';
 
-    // Accumulator metrics for Back 9
+            if (hData) {
+                yards = hData.yards; par = hData.par; score = hData.score;
+                if (score <= par) scoreClass = ' class="scorecard-highlight"';
+            } else if (HOLES_CONFIG[i]) {
+                par = HOLES_CONFIG[i].par || '---';
+                if (HOLES_CONFIG[i].waypoints) {
+                    const wp = HOLES_CONFIG[i].waypoints;
+                    const dx = wp[wp.length - 1].x - wp[0].x;
+                    const dz = wp[wp.length - 1].z - wp[0].z;
+                    yards = Math.round(Math.sqrt(dx * dx + dz * dz) * 2.76923);
+                }
+            }
+
+            holeHtml += `<th class="scorecard-hole-col">${i}</th>`;
+            yardsHtml += `<td class="scorecard-hole-col">${yards}</td>`;
+            parHtml += `<td class="scorecard-hole-col">${par}</td>`;
+            scoreHtml += `<td class="scorecard-hole-col"${scoreClass}>${score}</td>`;
+        }
+
+        // Append Front 9 'OUT' Totals Column
+        holeHtml += `<th class="scorecard-total-col">OUT</th>`;
+        yardsHtml += `<td class="scorecard-total-col">${fYards || '0'}</td>`;
+        parHtml += `<td class="scorecard-total-col">${fPar || '0'}</td>`;
+        scoreHtml += `<td class="scorecard-total-col"><strong>${fPlayed > 0 ? fScore : '---'}</strong></td>`;
+    }
+
+    // Pre-calculate Back 9 totals
     let bYards = 0, bPar = 0, bScore = 0, bPlayed = 0;
+    if (showBack9 || renderBack9) {
+        for (let i = 10; i <= 18; i++) {
+            const hData = completedHoles.find(h => h.hole === i);
+            if (hData) {
+                bYards += hData.yards; bPar += hData.par; bScore += hData.score; bPlayed++;
+            }
+        }
+    }
 
-    // --- 2. RENDER BACK 9 (HOLES 10-18) IF REACHED ---
-    if (showBack9) {
+    // --- 2. RENDER BACK 9 (HOLES 10-18) IF REACHED & ACTIVE ---
+    if (renderBack9) {
         for (let i = 10; i <= 18; i++) {
             const hData = completedHoles.find(h => h.hole === i);
             let yards = '---', par = '---', score = '---', scoreClass = '';
 
             if (hData) {
                 yards = hData.yards; par = hData.par; score = hData.score;
-                bYards += hData.yards; bPar += hData.par; bScore += hData.score; bPlayed++;
                 if (score <= par) scoreClass = ' class="scorecard-highlight"';
             } else if (HOLES_CONFIG[i]) {
                 par = HOLES_CONFIG[i].par || '---';

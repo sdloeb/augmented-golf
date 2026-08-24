@@ -13,6 +13,7 @@ export class TutorialManager {
             { selector: '#overheadBtn', text: "DRONE VIEW", duration: 3000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK THE CLUB TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK AGAIN FOR SHOT MODE', duration: 6000, action: 'backToShotMode' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
             { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
@@ -239,6 +240,36 @@ export class TutorialManager {
                     }
                 }, 16);
             }, 3000);
+
+        }
+
+        // --- AUTOMATED BACK TO SHOT MODE DEMONSTRATION ---
+        if (step.action === 'backToShotMode') {
+            // 1. Turn off the backspin button
+            setTimeout(() => {
+                const backspinBtn = document.getElementById('backspinBtn');
+                if (backspinBtn && backspinBtn.innerText.includes('ON')) {
+                    backspinBtn.click();
+                }
+            }, 800);
+
+            // 2. Return to Shot Mode (exit Aim Mode)
+            setTimeout(() => {
+                if (window.inputHandler) {
+                    window.inputHandler.isAimMode = false;
+                    window.inputHandler.aimAngleOffset = 0;
+                    window.inputHandler.isSwinging = false;
+                    window.inputHandler.state = 'IDLE';
+                }
+            }, 2000);
+
+            // 3. Change club selection back to Driver
+            setTimeout(() => {
+                if (window.inputHandler) {
+                    window.inputHandler.chosenClubIndex = 0; // Driver
+                    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+                }
+            }, 3200);
         }
 
         // Exit Aim Mode when moving past the demonstration step to prepare for swipe steps
