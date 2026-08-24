@@ -819,24 +819,12 @@ function updateDistanceDisplay() {
   // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
     const distanceGauge = document.getElementById('distanceGauge');
-    const distanceGauge = document.getElementById('distanceGauge');
 
-    // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
+  // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
     if ((physics && physics.isMoving) || isSinking) {
         if (container) container.innerHTML = '';
         if (distanceGauge) distanceGauge.classList.add('hidden');
         return;
-    }
-
-    if (container && input) {
-        container.innerHTML = ''; // Wipe out old button listings
-    // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
-    if ((physics && physics.isMoving) || isSinking) {
-        if (container) container.innerHTML = '';
-        if (distanceGauge) distanceGauge.classList.add('hidden');
-        return;
-    } else if (distanceGauge && (!input || !input.isAimMode)) {
-        distanceGauge.classList.remove('hidden');
     }
 
     if (container && input) {
@@ -4846,9 +4834,7 @@ function animate() {
 
        // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
             if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
-                if (distanceGauge && !input.isAimMode) {
-                    distanceGauge.classList.remove('hidden');
-                }
+             
                 const activeClub = input.getClubInfo();
 
                 // === REPLACE WITH THIS EXACT BLOCK ===

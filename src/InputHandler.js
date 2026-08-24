@@ -687,12 +687,14 @@ onTouchEnd() {
     }
 
 resetSwing() {
-  resetSwing() {
         this.isSwinging = false;
         this.state = 'IDLE';
         this.pullRatio = 0;
         this.maxPullY = this.startY;
         this.clearSwingTrail();
+        if (this.gauge) {
+            this.gauge.classList.add('hidden');
+        }
         if (this.gaugeFill) {
             this.gaugeFill.style.height = '0%';
         }
