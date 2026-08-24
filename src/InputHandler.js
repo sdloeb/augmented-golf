@@ -32,11 +32,12 @@ export class InputHandler {
         this.startY = 0;
         this.maxPullY = 0;
         this.chosenClubIndex = null;
+        this.pullRatio = 0;
 
-      this.isAimMode = false;         
-        this.aimAngleOffset = 0;        
-        this.lastClubTapTime = 0;       
-        this.isAimDragging = false;     
+        this.isAimMode = false;
+        this.aimAngleOffset = 0;
+        this.lastClubTapTime = 0;
+        this.isAimDragging = false;
         this.startAimX = 0;
 
         this.initSwingTrailCanvas();
@@ -99,6 +100,9 @@ export class InputHandler {
         if (!this.gaugeLabel) return;
         const club = this.getClubInfo();
         const currentPull = this.pullRatio || 0;
+        if (this.gaugeFill) {
+            this.gaugeFill.style.height = `${currentPull * 100}%`;
+        }
         if (club.isGreen) {
             const maxFeet = this.getPutterMaxFeet();
             const feet = Math.round(currentPull * maxFeet);
@@ -279,7 +283,7 @@ export class InputHandler {
         const currentX = touch.clientX;
         const currentY = touch.clientY;
 
-     // Upgrade to an active mobile swing if finger drags down past 8px
+        // Upgrade to an active mobile swing if finger drags down past 8px
         if (this.isSwingingFromClub && !this.isSwinging) {
             if (currentY > this.startY + 8) {
                 this.isSwinging = true;
@@ -288,7 +292,7 @@ export class InputHandler {
                 this.pullbackStartTime = performance.now(); // Captures container swipe upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = touch.clientX;
-               this.backswingTrail = [{ x: this.startX, y: this.startY }];
+                this.backswingTrail = [{ x: this.startX, y: this.startY }];
                 this.forwardTrail = [];
 
                 this.gauge.classList.remove('hidden');
@@ -310,7 +314,7 @@ export class InputHandler {
             this.drawSwingTrail();
 
             const club = this.getClubInfo();
-            const targetPullDistance = this.maxPullY - this.startY;
+         const targetPullDistance = Math.max(0, currentY - this.startY);
             const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
             const backswingCap = this.getTreeBackswingCap();
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, backswingCap);
@@ -345,10 +349,10 @@ export class InputHandler {
         }
     }
 
-    onTouchEnd() {
+onTouchEnd() {
         this.isAimDragging = false;
         this.isSwingingFromClub = false;
-        if (this.isSwinging && this.state !== 'IDLE') {
+        if (this.isSwinging || this.state !== 'IDLE' || this.pullRatio > 0) {
             this.resetSwing();
         }
     }
@@ -388,7 +392,7 @@ export class InputHandler {
         const currentX = e.clientX;
         const currentY = e.clientY;
 
-       // Upgrade to an active swing only if dragging downward past the 8px threshold
+        // Upgrade to an active swing only if dragging downward past the 8px threshold
         if (this.isSwingingFromClub && !this.isSwinging) {
             if (currentY > this.startY + 8) {
                 this.isSwinging = true;
@@ -397,7 +401,7 @@ export class InputHandler {
                 this.pullbackStartTime = performance.now(); // Captures handle-drag upgrade timestamp
                 this.pullbackDriftX = 0;
                 this.pullbackAtMaxX = e.clientX;
-               this.backswingTrail = [{ x: this.startX, y: this.startY }];
+                this.backswingTrail = [{ x: this.startX, y: this.startY }];
                 this.forwardTrail = [];
 
                 this.gauge.classList.remove('hidden');
@@ -417,13 +421,13 @@ export class InputHandler {
             this.backswingTrail.push({ x: currentX, y: currentY });
             this.drawSwingTrail();
 
-            const club = this.getClubInfo();
+           const club = this.getClubInfo();
             const currentDrift = currentX - this.startX;
             if (Math.abs(currentDrift) > Math.abs(this.pullbackDriftX || 0)) {
                 this.pullbackDriftX = currentDrift;
             }
 
-            const targetPullDistance = this.maxPullY - this.startY;
+            const targetPullDistance = Math.max(0, currentY - this.startY);
             const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
             const backswingCap = this.getTreeBackswingCap();
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, backswingCap);
@@ -457,15 +461,15 @@ export class InputHandler {
         }
     }
 
-    onMouseUp() {
+  onMouseUp() {
         this.isAimDragging = false;
         this.isSwingingFromClub = false;
-        if (this.isSwinging && this.state !== 'IDLE') {
+        if (this.isSwinging || this.state !== 'IDLE' || this.pullRatio > 0) {
             this.resetSwing();
         }
     }
 
-   executeLaunch(endX, endY) {
+    executeLaunch(endX, endY) {
         if (this.forwardTrail && this.forwardTrail.length > 0) {
             this.forwardTrail.push({ x: endX, y: endY });
             const prevPt = this.forwardTrail[this.forwardTrail.length - 2] || { x: this.startX, y: this.maxPullY };
@@ -480,7 +484,7 @@ export class InputHandler {
         // --- INVISIBLE IMPACT SWEET SPOT BOX (±14px Center Tolerance) ---
         const impactOffset = endX - this.startX;
         const absOffset = Math.abs(impactOffset);
-        const SWEET_SPOT = 14; 
+        const SWEET_SPOT = 14;
         const HEEL_TOE_LIMIT = 30;
 
         let contactQuality = 1.0;
@@ -665,7 +669,7 @@ export class InputHandler {
         const maxAngle = 35 * Math.PI / 180;
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
-      // CLOCK SWING TRACK SPIN LOGIC: Determines aerodynamic curve based on the relationship between backswing and follow-through
+        // CLOCK SWING TRACK SPIN LOGIC: Determines aerodynamic curve based on the relationship between backswing and follow-through
         let spinValue = (followThroughDrift - backswingDrift * 0.5) * 0.4; // Modify this line: Automatically satisfies all 8 curve rules
         spinValue = Math.max(-45, Math.min(45, spinValue)); // Preserved: Keeps maximum spin capped safely
 
@@ -686,18 +690,12 @@ resetSwing() {
         this.isSwinging = false;
         this.state = 'IDLE';
         this.pullRatio = 0;
+        this.maxPullY = this.startY;
         this.clearSwingTrail();
-        if (this.gauge) {
-            this.gauge.classList.add('hidden');
-            if (this.gaugeFill) this.gaugeFill.style.height = '0%';
+        if (this.gaugeFill) {
+            this.gaugeFill.style.height = '0%';
         }
         this.updateGaugeClub();
-
-        setTimeout(() => {
-            if (!this.isSwinging && this.gauge) {
-                this.gauge.classList.add('hidden');
-            }
-        }, 800);
     }
 
     initSwingTrailCanvas() {
@@ -736,7 +734,7 @@ resetSwing() {
         ctx.save();
         ctx.globalAlpha = alpha;
 
-        
+
 
         // 1. Draw Backswing (Glowing Amber / Gold)
         if (this.backswingTrail && this.backswingTrail.length > 1) {
@@ -754,7 +752,7 @@ resetSwing() {
             ctx.stroke();
         }
 
-       // 2. Draw Downswing & Follow-through (Glowing Green - matches pullback line style)
+        // 2. Draw Downswing & Follow-through (Glowing Green - matches pullback line style)
         if (this.forwardTrail && this.forwardTrail.length > 1) {
             ctx.beginPath();
             ctx.moveTo(this.forwardTrail[0].x, this.forwardTrail[0].y);
@@ -769,7 +767,7 @@ resetSwing() {
             ctx.lineJoin = 'round';
             ctx.stroke();
         }
-        
+
 
         ctx.restore();
     }
@@ -798,5 +796,13 @@ resetSwing() {
             }
         };
         this.trailFadeTimer = requestAnimationFrame(fadeLoop);
+    }
+    clearSwingTrail() {
+        if (this.trailFadeTimer) cancelAnimationFrame(this.trailFadeTimer);
+        this.backswingTrail = [];
+        this.forwardTrail = [];
+        if (this.trailCtx && this.trailCanvas) {
+            this.trailCtx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
+        }
     }
 }

@@ -74,7 +74,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 8; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -816,15 +816,21 @@ function updateDistanceDisplay() {
             ctx.restore();
         }
     }
-    // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
+  // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
+    const distanceGauge = document.getElementById('distanceGauge');
+
+    // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
+    if ((physics && physics.isMoving) || isSinking) {
+        if (container) container.innerHTML = '';
+        if (distanceGauge) distanceGauge.classList.add('hidden');
+        return;
+    } else if (distanceGauge && (!input || !input.isAimMode)) {
+        distanceGauge.classList.remove('hidden');
+    }
+
     if (container && input) {
         container.innerHTML = ''; // Wipe out old button listings
-
-        // Hide panel if the ball is currently moving through physical trajectory or sinking out of view
-        if ((physics && physics.isMoving) || isSinking) {
-            return;
-        }
 
         // FIXED: Check distance to the green's center instead of the hole cup
         const greenCheckX = ball.position.x - (green ? green.position.x : 0);
@@ -870,6 +876,7 @@ function updateDistanceDisplay() {
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
             if (cIdx < maxClubIdx) {
                 input.chosenClubIndex = cIdx + 1;
+                input.pullRatio = 0;
                 updateDistanceDisplay();
             }
         });
@@ -888,6 +895,7 @@ function updateDistanceDisplay() {
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
             if (cIdx > 0) {
                 input.chosenClubIndex = cIdx - 1;
+                input.pullRatio = 0;
                 updateDistanceDisplay();
             }
         });
@@ -4816,8 +4824,9 @@ function animate() {
 
         ball.position.y = surfaceHeight;
     }
-    // --- DYNAMIC CLUB STANCE STATE MACHINE ---
+   // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
+    const distanceGauge = document.getElementById('distanceGauge');
     if (clubSwipeElement && input) {
         // Only modify stance classes if the forward swing animation isn't currently playing
         if (!clubSwipeElement.classList.contains('swipe-animation')) {
@@ -4827,6 +4836,9 @@ function animate() {
 
             // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
             if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
+                if (distanceGauge && !input.isAimMode) {
+                    distanceGauge.classList.remove('hidden');
+                }
                 const activeClub = input.getClubInfo();
 
                 // === REPLACE WITH THIS EXACT BLOCK ===
@@ -4916,9 +4928,18 @@ function animate() {
                 // Clear all classes to hide the club entirely when the ball is in motion
                 clubSwipeElement.className = '';
                 clubSwipeElement.style.bottom = ''; // Add this line: Clean up alignment tracking style variables when hidden
+                if (distanceGauge) {
+                    distanceGauge.classList.add('hidden');
+                }
+            }
+        } else {
+            if (distanceGauge) {
+                distanceGauge.classList.add('hidden');
             }
         }
     }
+
+
 
     if (waterHazards && waterHazards.length > 0) {
         const time = performance.now() * 0.0025; // Controls the general speed of the current flow
