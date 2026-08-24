@@ -450,8 +450,33 @@ export class InputHandler {
     }
 
    executeLaunch(endX, endY) {
-        this.forwardTrail.push({ x: endX, y: endY });
+        if (this.forwardTrail && this.forwardTrail.length > 0) {
+            this.forwardTrail.push({ x: endX, y: endY });
+            const prevPt = this.forwardTrail[this.forwardTrail.length - 2] || { x: this.startX, y: this.maxPullY };
+            const dx = endX - prevPt.x;
+            const dy = endY - prevPt.y;
+            const len = Math.hypot(dx, dy) || 1;
+            const extDist = 80;
+            this.forwardTrail.push({ x: endX + (dx / len) * extDist, y: endY + (dy / len) * extDist });
+        }
         this.flashAndFadeTrail();
+
+        // --- INVISIBLE IMPACT SWEET SPOT BOX (±14px Center Tolerance) ---
+        const impactOffset = endX - this.startX;
+        const absOffset = Math.abs(impactOffset);
+        const SWEET_SPOT = 14; 
+        const HEEL_TOE_LIMIT = 30;
+
+        let contactQuality = 1.0;
+        let sprayAngle = 0;
+        let gearSpin = 0;
+
+        if (absOffset > SWEET_SPOT) {
+            const penaltyRatio = Math.min(1.0, (absOffset - SWEET_SPOT) / (HEEL_TOE_LIMIT - SWEET_SPOT));
+            contactQuality = 1.0 - (penaltyRatio * 0.35); // Lose up to 35% distance on mishits
+            sprayAngle = (impactOffset / HEEL_TOE_LIMIT) * (18 * Math.PI / 180); // Deflect up to 18 degrees off-line
+            gearSpin = (impactOffset / HEEL_TOE_LIMIT) * 30.0; // Unintended slice/hook spin
+        }
 
         const club = this.getClubInfo();
 
@@ -624,9 +649,14 @@ export class InputHandler {
         const maxAngle = 35 * Math.PI / 180;
         horizontalAngle = Math.max(-maxAngle, Math.min(maxAngle, horizontalAngle));
 
-        // CLOCK SWING TRACK SPIN LOGIC: Determines aerodynamic curve based on the relationship between backswing and follow-through
+      // CLOCK SWING TRACK SPIN LOGIC: Determines aerodynamic curve based on the relationship between backswing and follow-through
         let spinValue = (followThroughDrift - backswingDrift * 0.5) * 0.4; // Modify this line: Automatically satisfies all 8 curve rules
         spinValue = Math.max(-45, Math.min(45, spinValue)); // Preserved: Keeps maximum spin capped safely
+
+        // Apply sweet spot impact box modifiers
+        finalPower *= contactQuality;
+        horizontalAngle += sprayAngle;
+        spinValue += gearSpin;
 
         // Pass our newly calculated spinValue as the 3rd parameter instead of the old erratic hand drift variable
         this.onLaunch(finalPower, horizontalAngle, spinValue, club.loft !== undefined ? club.loft : 0.042);
@@ -685,6 +715,8 @@ resetSwing() {
         ctx.save();
         ctx.globalAlpha = alpha;
 
+        
+
         // 1. Draw Backswing (Glowing Amber / Gold)
         if (this.backswingTrail && this.backswingTrail.length > 1) {
             ctx.beginPath();
@@ -716,6 +748,7 @@ resetSwing() {
             ctx.lineJoin = 'round';
             ctx.stroke();
         }
+        
 
         ctx.restore();
     }

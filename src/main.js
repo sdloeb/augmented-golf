@@ -4840,6 +4840,10 @@ function animate() {
                 // Standardizing clubCushion to 4.0 across all lies prevents the double-sinking visual gap.
                 const dynamicBottom = ballBottomPercent - 2.0;
 
+
+
+
+
                 // Position is now locked at the bottom center via style.css
 
                 // Establish base club layout shapes
