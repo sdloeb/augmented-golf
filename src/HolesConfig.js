@@ -40,9 +40,9 @@ export const HOLES_CONFIG = {
                 radiusX: 24.0, // Keeps original width
                 radiusZ: 10.0   // Shortens length down the fairway
             },
-            // Restores your original twin traps
-            { type: 'sand', x: -8, z: -138, radius: 5.5, depth: 1.25 },
-            { type: 'sand', x: 8, z: -138, radius: 5.5, depth: 1.25 }
+            //  twin traps by green
+            { type: 'sand', x: -9, z: -135, radius: 5.8, depth: 1.35 },
+            { type: 'sand', x: 10, z: -135, radius: 5.8, depth: 1.35 }
         ],
         customOOB: {
             type: 'stepped',
