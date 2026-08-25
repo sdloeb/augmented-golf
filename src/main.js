@@ -2349,6 +2349,7 @@ function resetEntireGame(advanceHole = false) {
             let minDistOutsideBunker = Infinity;
 
             sandTraps.forEach(sand => {
+                if (sand.userData && sand.userData.isCollar) return;
                 // Pre-filter bounding boxes for sand traps to keep calculations extremely fast
                 if (!sand.userData.isPolygon) {
                     const rLimit = (sand.userData.radius || 5) + 3.5;
@@ -2418,14 +2419,7 @@ function resetEntireGame(advanceHole = false) {
                 }
             });
 
-            // Smooth bunker rough collar factor (0.0 inside/at collar, smoothstep to 1.0 in fairway)
-            let bunkerCollarFactor = 1.0;
-            if (minDistOutsideBunker <= 0.6) {
-                bunkerCollarFactor = 0.0;
-            } else if (minDistOutsideBunker < 1.8) {
-                const tB = (minDistOutsideBunker - 0.6) / 1.2;
-                bunkerCollarFactor = tB * tB * (3 - 2 * tB);
-            }
+        
 
             
             // Around Line 829 in src/main.js
@@ -2499,13 +2493,12 @@ function resetEntireGame(advanceHole = false) {
                 let floorHeight = calculatedHeight;
                 const isHole8BeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4);
                 if (closeToWater || isHole8BeforeFairway) {
-                    // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
-                } else if (distanceToPath <= fW) {
-                    floorHeight -= 0.12 * bunkerCollarFactor;
+              } else if (distanceToPath <= fW) {
+                    floorHeight -= 0.12;
                 } else if (distanceToPath <= fWEdge) {
                     const t = (distanceToPath - fW) / 3.5;
                     const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-                    floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT) * bunkerCollarFactor;
+                    floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
                 // Add smooth 3D micro-spikes to rough geometry vertices, dampening smoothly to zero near bunker and water edges
                 if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
@@ -2606,14 +2599,13 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7));
-                  if (insideSandZone || isOutsideFairwayBounds || bunkerCollarFactor <= 0.0) {
+                 if (isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {
                         // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        const targetFairwayH = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
-                        calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, targetFairwayH, bunkerCollarFactor);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
                     } else {
                         // Smooth side edge taper matching the fairway cut width
                         let sideTaperH = calculatedHeight - 0.03;
@@ -2622,7 +2614,7 @@ function resetEntireGame(advanceHole = false) {
                             const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                             sideTaperH = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
                         }
-                        calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, sideTaperH, bunkerCollarFactor);
+                        calculatedHeight = sideTaperH;
                     }
 
 

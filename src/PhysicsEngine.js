@@ -36,6 +36,7 @@ export class PhysicsEngine {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
 
         for (let sand of this.sandTraps) {
+            if (sand.userData && sand.userData.isCollar) continue;
             if (sand.userData && sand.userData.isPolygon) {
                 const points = sand.userData.points;
                 let inside = false;
@@ -633,6 +634,7 @@ export class PhysicsEngine {
         if (this.sandTraps && this.sandTraps.length > 0) {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
+                if (sand.userData && sand.userData.isCollar) return;
                 let drop = 0;
                 // Restores full natural bunker depth
                 const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.8;
