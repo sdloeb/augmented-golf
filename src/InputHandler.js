@@ -594,9 +594,12 @@ onTouchEnd() {
 
             if (this.ballRef) {
                 let inSand = false;
+                
 
                 if (this.sandTrapsRef) {
+                    
                     for (let sand of this.sandTrapsRef) {
+                        if (sand.userData && sand.userData.isCollar) continue;
                         if (sand.userData && sand.userData.isPolygon) {
                             const points = sand.userData.points;
                             let inside = false;

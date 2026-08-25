@@ -863,6 +863,12 @@ export class PhysicsEngine {
             currentBounceHeight = 0.28;
             currentBounceForwardLoss = (this.bounceCount === 0) ? 0.42 : 0.96;
         }
+        else if (this.sandTraps && this.sandTraps.some(s => s.userData && s.userData.isCollar && Math.hypot(this.ball.position.x - s.position.x, this.ball.position.z - s.position.z) < s.userData.radius)) {
+            this.currentSurface = 'Rough';
+            currentFriction = 0.74;
+            currentBounceHeight = 0.18;
+            currentBounceForwardLoss = 0.30;
+        }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
             this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {
             this.currentSurface = 'Fairway';
