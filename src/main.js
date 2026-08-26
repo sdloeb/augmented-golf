@@ -74,7 +74,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -999,22 +999,131 @@ function generateNewWind() {
  * @param {number} depth - Depth of the bunker
  */
 function createSnakingBunker(path, spacing, radius, depth) {
+    const sampled = [];
     for (let i = 0; i < path.length - 1; i++) {
         const p1 = path[i];
         const p2 = path[i + 1];
-        const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.z - p1.z) ** 2);
-        const steps = Math.floor(dist / spacing);
+        const dx = p2.x - p1.x;
+        const dz = p2.z - p1.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const steps = Math.max(1, Math.floor(dist / spacing));
 
         for (let s = 0; s <= steps; s++) {
+            if (s === steps && i < path.length - 2) continue;
             const t = s / steps;
-            const x = p1.x + (p2.x - p1.x) * t;
-            const z = p1.z + (p2.z - p1.z) * t;
-
-            // Add the bunker circle to the scene and the tracking array
-            // This reuses your existing circle logic
-            addSandTrap(x, z, radius, depth);
+            const x = p1.x + dx * t;
+            const z = p1.z + dz * t;
+            sampled.push({ x, z });
+            addSandTrap(x, z, radius, depth, false);
         }
     }
+
+    const N = sampled.length;
+    if (N < 2) return;
+
+    const perps = [];
+    for (let i = 0; i < N; i++) {
+        const prev = sampled[Math.max(0, i - 1)];
+        const next = sampled[Math.min(N - 1, i + 1)];
+        const dirX = next.x - prev.x;
+        const dirZ = next.z - prev.z;
+        const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1.0;
+        perps.push({ x: -dirZ / len, z: dirX / len });
+    }
+
+    const collarWidth = 1.6;
+    const rIn = radius - 0.05;
+    const rOut = radius + collarWidth;
+    const pairs = [];
+
+    // Left side from start to end
+    for (let i = 0; i < N; i++) {
+        const p = sampled[i];
+        const perp = perps[i];
+        pairs.push({
+            inX: p.x + perp.x * rIn, inZ: p.z + perp.z * rIn,
+            outX: p.x + perp.x * rOut, outZ: p.z + perp.z * rOut
+        });
+    }
+
+    // End cap
+    const pEnd = sampled[N - 1];
+    const pEndPrev = sampled[Math.max(0, N - 2)];
+    const tanEndAngle = Math.atan2(pEnd.z - pEndPrev.z, pEnd.x - pEndPrev.x);
+    const capSteps = 8;
+    for (let c = 1; c < capSteps; c++) {
+        const angle = tanEndAngle + (Math.PI / 2) - (c / capSteps) * Math.PI;
+        const dx = Math.cos(angle);
+        const dz = Math.sin(angle);
+        pairs.push({
+            inX: pEnd.x + dx * rIn, inZ: pEnd.z + dz * rIn,
+            outX: pEnd.x + dx * rOut, outZ: pEnd.z + dz * rOut
+        });
+    }
+
+    // Right side from end back to start
+    for (let i = N - 1; i >= 0; i--) {
+        const p = sampled[i];
+        const perp = perps[i];
+        pairs.push({
+            inX: p.x - perp.x * rIn, inZ: p.z - perp.z * rIn,
+            outX: p.x - perp.x * rOut, outZ: p.z - perp.z * rOut
+        });
+    }
+
+    // Start cap
+    const pStart = sampled[0];
+    const pStartNext = sampled[Math.min(N - 1, 1)];
+    const tanStartAngle = Math.atan2(pStartNext.z - pStart.z, pStartNext.x - pStart.x);
+    for (let c = 1; c < capSteps; c++) {
+        const angle = tanStartAngle - (Math.PI / 2) - (c / capSteps) * Math.PI;
+        const dx = Math.cos(angle);
+        const dz = Math.sin(angle);
+        pairs.push({
+            inX: pStart.x + dx * rIn, inZ: pStart.z + dz * rIn,
+            outX: pStart.x + dx * rOut, outZ: pStart.z + dz * rOut
+        });
+    }
+
+    const positions = [];
+    const indices = [];
+    const numPairs = pairs.length;
+    for (let i = 0; i < numPairs; i++) {
+        const pair = pairs[i];
+        positions.push(pair.inX, -pair.inZ, 0);
+        positions.push(pair.outX, -pair.outZ, 0);
+
+        const nextI = (i + 1) % numPairs;
+        const iIn = i * 2;
+        const iOut = i * 2 + 1;
+        const nextIn = nextI * 2;
+        const nextOut = nextI * 2 + 1;
+
+        indices.push(iIn, nextIn, iOut);
+        indices.push(iOut, nextIn, nextOut);
+    }
+
+    const collarGeo = new THREE.BufferGeometry();
+    collarGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    collarGeo.setIndex(indices);
+    collarGeo.computeVertexNormals();
+
+    const collarMesh = new THREE.Mesh(
+        collarGeo,
+        new THREE.MeshStandardMaterial({
+            color: 0x1e5631,
+            roughness: 0.9,
+            side: THREE.DoubleSide,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -5
+        })
+    );
+    collarMesh.rotation.x = -Math.PI / 2;
+    collarMesh.position.set(0, 0, 0);
+    collarMesh.userData = { isCollar: true, radius: radius + collarWidth };
+    scene.add(collarMesh);
+    sandTraps.push(collarMesh);
 }
 
 
@@ -1042,9 +1151,93 @@ function addPolygonSandTrap(points, depth) {
     mesh.userData = { points: points, depth: depth, isPolygon: true };
     scene.add(mesh);
     sandTraps.push(mesh);
+
+    // Smooth rough collar border around polygon bunkers
+    const N = points.length;
+    if (N >= 3) {
+        let area = 0;
+        for (let i = 0; i < N; i++) {
+            const j = (i + 1) % N;
+            area += points[i].x * points[j].z - points[j].x * points[i].z;
+        }
+        const isCCW = area > 0;
+
+        const outNormals = [];
+        for (let i = 0; i < N; i++) {
+            const prevPt = points[(i - 1 + N) % N];
+            const currPt = points[i];
+            const nextPt = points[(i + 1) % N];
+
+            let e1x = currPt.x - prevPt.x, e1z = currPt.z - prevPt.z;
+            let e2x = nextPt.x - currPt.x, e2z = nextPt.z - currPt.z;
+            const l1 = Math.sqrt(e1x * e1x + e1z * e1z) || 1.0;
+            const l2 = Math.sqrt(e2x * e2x + e2z * e2z) || 1.0;
+            e1x /= l1; e1z /= l1;
+            e2x /= l2; e2z /= l2;
+
+            let n1x = isCCW ? e1z : -e1z;
+            let n1z = isCCW ? -e1x : e1x;
+            let n2x = isCCW ? e2z : -e2z;
+            let n2z = isCCW ? -e2x : e2x;
+
+            let nAvgX = n1x + n2x, nAvgZ = n1z + n2z;
+            const lAvg = Math.sqrt(nAvgX * nAvgX + nAvgZ * nAvgZ) || 1.0;
+            nAvgX /= lAvg; nAvgZ /= lAvg;
+
+            const dot = n1x * nAvgX + n1z * nAvgZ;
+            const miter = 1.0 / Math.max(0.5, dot);
+            outNormals.push({ x: nAvgX * miter, z: nAvgZ * miter });
+        }
+
+        const collarWidth = 1.6;
+        const positions = [];
+        const indices = [];
+        for (let i = 0; i < N; i++) {
+            const p = points[i];
+            const n = outNormals[i];
+            const inX = p.x - n.x * 0.05;
+            const inZ = p.z - n.z * 0.05;
+            const outX = p.x + n.x * collarWidth;
+            const outZ = p.z + n.z * collarWidth;
+
+            positions.push(inX, -inZ, 0);
+            positions.push(outX, -outZ, 0);
+
+            const nextI = (i + 1) % N;
+            const iIn = i * 2;
+            const iOut = i * 2 + 1;
+            const nextIn = nextI * 2;
+            const nextOut = nextI * 2 + 1;
+
+            indices.push(iIn, nextIn, iOut);
+            indices.push(iOut, nextIn, nextOut);
+        }
+
+        const collarGeo = new THREE.BufferGeometry();
+        collarGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        collarGeo.setIndex(indices);
+        collarGeo.computeVertexNormals();
+
+        const collarMesh = new THREE.Mesh(
+            collarGeo,
+            new THREE.MeshStandardMaterial({
+                color: 0x1e5631,
+                roughness: 0.9,
+                side: THREE.DoubleSide,
+                polygonOffset: true,
+                polygonOffsetFactor: -2,
+                polygonOffsetUnits: -5
+            })
+        );
+        collarMesh.rotation.x = -Math.PI / 2;
+        collarMesh.position.set(0, 0, 0);
+        collarMesh.userData = { isCollar: true };
+        scene.add(collarMesh);
+        sandTraps.push(collarMesh);
+    }
 }
 
-function addSandTrap(x, z, r, depth) {
+function addSandTrap(x, z, r, depth, withCollar = true) {
     const sandMesh = new THREE.Mesh(
         new THREE.RingGeometry(0, r, 64, 6), // 64 segments for smoothness
         new THREE.MeshStandardMaterial({
@@ -1063,25 +1256,27 @@ function addSandTrap(x, z, r, depth) {
     scene.add(sandMesh);
     sandTraps.push(sandMesh);
 
-    // Smooth 64-segment rough collar ring around circular bunkers
-    const collarWidth = 1.6;
-    const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
-    const collarMesh = new THREE.Mesh(
-        collarGeo,
-        new THREE.MeshStandardMaterial({
-            color: 0x1e5631,
-            roughness: 0.9,
-            side: THREE.DoubleSide,
-            polygonOffset: true,
-            polygonOffsetFactor: -2,
-            polygonOffsetUnits: -5
-        })
-    );
-    collarMesh.rotation.x = -Math.PI / 2;
-    collarMesh.position.set(x, 0, z);
-    collarMesh.userData = { isCollar: true, radius: r + collarWidth };
-    scene.add(collarMesh);
-    sandTraps.push(collarMesh);
+    if (withCollar) {
+        // Smooth 64-segment rough collar ring around circular bunkers
+        const collarWidth = 1.6;
+        const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
+        const collarMesh = new THREE.Mesh(
+            collarGeo,
+            new THREE.MeshStandardMaterial({
+                color: 0x1e5631,
+                roughness: 0.9,
+                side: THREE.DoubleSide,
+                polygonOffset: true,
+                polygonOffsetFactor: -2,
+                polygonOffsetUnits: -5
+            })
+        );
+        collarMesh.rotation.x = -Math.PI / 2;
+        collarMesh.position.set(x, 0, z);
+        collarMesh.userData = { isCollar: true, radius: r + collarWidth };
+        scene.add(collarMesh);
+        sandTraps.push(collarMesh);
+    }
 }
 
 function createCartPath(pathPoints, width = 2.2) {
