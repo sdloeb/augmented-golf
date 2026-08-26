@@ -483,7 +483,7 @@ html {
 /* Top view style of a premium milled blade putter - compact and detailed */
 /* FIXED: Scaled up all dimensions by 25% while maintaining the exact center face indentation drawing structure */
 #clubSwipe.putter {
-    zoom: 0.57;
+    zoom: 0.53;
     /* NEW: Change this ONE number to scale the entire putter asset up or down instantly! */
 
     border-radius: 4px 4px 6px 6px;
@@ -894,7 +894,7 @@ html {
             left: calc(50% - 77.5px);
             right: auto;
             /* FIXED: Unbinds the default right-margin limits for mobile screens */
-            transform: rotate(0deg) scale(0.9);
+            transform: rotate(0deg) scale(0.8);
             opacity: 1;
         }
 
@@ -902,7 +902,7 @@ html {
             bottom: 30.0%;
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.9);
+            transform: rotate(0deg) scale(0.8);
             opacity: 1;
         }
 
@@ -910,7 +910,7 @@ html {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.9);
+            transform: rotate(0deg) scale(0.8);
             opacity: 1;
         }
 
@@ -918,7 +918,7 @@ html {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.9);
+            transform: rotate(0deg) scale(0.8);
             opacity: 1;
         }
 
@@ -926,7 +926,7 @@ html {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.9);
+            transform: rotate(0deg) scale(0.8);
             opacity: 0;
         }
 
@@ -990,7 +990,7 @@ html {
         bottom: var(--putter-start-bottom, 21.8%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(1.25);
+        transform: rotate(0deg) scale(1.00);
         opacity: 1;
     }
 
@@ -998,7 +998,7 @@ html {
         bottom: var(--putter-base-bottom, 21.8%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(1.25);
+        transform: rotate(0deg) scale(1.00);
         opacity: 1;
     }
 
@@ -1006,7 +1006,7 @@ html {
         bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(1.25);
+        transform: rotate(0deg) scale(1.00);
         opacity: 1;
     }
 
@@ -1014,14 +1014,14 @@ html {
         bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(1.25);
+        transform: rotate(0deg) scale(1.00);
         opacity: 1;
     }
 
     100% {
         bottom: 25.0%;
         left: calc(50% - 77.5px);
-        transform: rotate(0deg) scale(1.25);
+        transform: rotate(0deg) scale(1.00);
         opacity: 0;
     }
 }
