@@ -528,7 +528,16 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8) {
+if (this.currentHoleNumber === 6) {
+            // Pronounced, fixed rolling hills across the Oakmont fairway
+            const roll1 = Math.sin(z * 0.035) * 1.8;                    // Long swells down the fairway
+            const roll2 = Math.cos(x * 0.07 + z * 0.025) * 1.2;         // Diagonal rolling crests across width
+            const roll3 = Math.sin(x * 0.12 + z * 0.06) * 0.5;          // Secondary terrain undulations
+            height = roll1 + roll2 + roll3;
+
+            this.hasBigFeature = false; // Prevents random extreme cliffs/canyons
+        }
+        else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8) {
             const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
