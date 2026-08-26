@@ -2699,9 +2699,9 @@ function resetEntireGame(advanceHole = false) {
                 if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
                     let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
 
-                    // Smoothstep Hermite dampener near bunker edges (3.0 unit safety transition buffer)
-                    if (shortestDistToBunkerEdge < 3.0) {
-                        const tBunker = THREE.MathUtils.clamp(shortestDistToBunkerEdge / 3.0, 0, 1);
+                    // Smoothstep Hermite dampener near bunker edges (fades in only outside the 1.6-unit collar)
+                    if (minDistOutsideBunker < 3.0) {
+                        const tBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 1.6) / 1.4, 0, 1);
                         grassJitter *= THREE.MathUtils.smoothstep(tBunker, 0, 1);
                     }
                     // Smoothstep Hermite dampener near water edges (3.0 unit safety transition buffer)
@@ -2731,8 +2731,9 @@ function resetEntireGame(advanceHole = false) {
                                 roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
                             }
                         }
-                        if (shortestDistToBunkerEdge < 2.0) {
-                            roughLift *= (shortestDistToBunkerEdge / 2.0);
+                        if (minDistOutsideBunker < 3.0) {
+                            const tLiftBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 1.6) / 1.4, 0, 1);
+                            roughLift *= THREE.MathUtils.smoothstep(tLiftBunker, 0, 1);
                         }
                         calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
                     }
@@ -2748,9 +2749,11 @@ function resetEntireGame(advanceHole = false) {
                         }
                     }
 
-                    // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
-                    if (insideSandZone) {
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.75;
+                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+                    if (insideSandZone || minDistOutsideBunker < 1.8) {
+                        const tCollar = Math.max(0, Math.min(1, (1.8 - minDistOutsideBunker) / 1.8));
+                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
+                        calculatedHeight -= smoothTCollar * 0.75;
                     }
                 }
 
