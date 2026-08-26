@@ -68,6 +68,42 @@ export class PhysicsEngine {
         return false;
     }
 
+    isBallInSandCollar(collarWidth = 0.7) {
+        if (!this.sandTraps || this.sandTraps.length === 0) return false;
+        if (this.isBallInSand()) return false;
+
+        const bx = this.ball.position.x;
+        const bz = this.ball.position.z;
+
+        for (let sand of this.sandTraps) {
+            if (sand.userData && sand.userData.isCollar) continue;
+
+            if (sand.userData && sand.userData.isPolygon) {
+                const points = sand.userData.points;
+                let minDistSq = Infinity;
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                    const xi = points[i].x, zi = points[i].z;
+                    const xj = points[j].x, zj = points[j].z;
+                    const l2 = (xi - xj) ** 2 + (zi - zj) ** 2 || 0.0001;
+                    let t = ((bx - xi) * (xj - xi) + (bz - zi) * (zj - zi)) / l2;
+                    t = Math.max(0, Math.min(1, t));
+                    const projX = xi + t * (xj - xi);
+                    const projZ = zi + t * (zj - zi);
+                    const distSq = (bx - projX) ** 2 + (bz - projZ) ** 2;
+                    if (distSq < minDistSq) minDistSq = distSq;
+                }
+                if (Math.sqrt(minDistSq) <= collarWidth) return true;
+            } else {
+                const dx = bx - sand.position.x;
+                const dz = bz - sand.position.z;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                const dist = Math.hypot(dx, dz);
+                if (dist <= sandRadius + collarWidth) return true;
+            }
+        }
+        return false;
+    }
+
     // NEW: Receives the shuffled configurations from the map setup
     setGreenContours(profileOrBack, midOrCenterX, frontOrCenterZ, centerXOrWidth, centerZ, randomWidth) {
         if (profileOrBack && typeof profileOrBack === 'object' && ('backLeft' in profileOrBack || 'features' in profileOrBack || 'back' in profileOrBack || 'rx' in profileOrBack)) {
@@ -412,7 +448,7 @@ export class PhysicsEngine {
 
 
 
-       if (this.currentHoleNumber === 8) {
+        if (this.currentHoleNumber === 8) {
             let baseHeight = 0.0;
 
             // 1. Perched Tee Box (0 to 72 yds / z = 10 to -16)
@@ -433,7 +469,7 @@ export class PhysicsEngine {
                 let smoothT = t * t * (3 - 2 * t);
                 baseHeight = 2.125 * smoothT;
             }
-           // Step 1 Flat Fairway 1 (z = -94.5 to -108.9, 40 yds) -> 100% FLAT at 2.125
+            // Step 1 Flat Fairway 1 (z = -94.5 to -108.9, 40 yds) -> 100% FLAT at 2.125
             else if (z > -108.9) {
                 baseHeight = 2.125;
             }
@@ -463,7 +499,7 @@ export class PhysicsEngine {
                 let smoothT = t * t * (3 - 2 * t);
                 baseHeight = 6.375 + 2.125 * smoothT;
             }
-       // Green Plateau (z = -152.7 to -170.7, Green center at z = -161.2) -> flat at 8.5
+            // Green Plateau (z = -152.7 to -170.7, Green center at z = -161.2) -> flat at 8.5
             else if (z >= -161.7) {
                 baseHeight = 8.5;
             }
@@ -671,7 +707,7 @@ export class PhysicsEngine {
                     const dzS = z - sand.position.z;
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
-                 const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                     const transitionMargin = (this.currentHoleNumber === 8 ? 0.0 : 2.2);
                     const sandRadius = baseRadius + transitionMargin;
 
@@ -755,11 +791,11 @@ export class PhysicsEngine {
             // Hole 3: Pebble Beach chasm gap exclusions
             return (z <= -20.0 && z > -115.0) || (z <= -132.0 && z >= -180.0);
         }
- if (holeNum === 8) {
+        if (holeNum === 8) {
             return (z <= -51.4 && z >= -89.5) ||
-                   (z <= -94.5 && z >= -108.9) ||
-                   (z <= -113.9 && z >= -128.3) ||
-                   (z <= -133.3 && z >= -147.7);
+                (z <= -94.5 && z >= -108.9) ||
+                (z <= -113.9 && z >= -128.3) ||
+                (z <= -133.3 && z >= -147.7);
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)
@@ -863,7 +899,7 @@ export class PhysicsEngine {
             currentBounceHeight = 0.28;
             currentBounceForwardLoss = (this.bounceCount === 0) ? 0.42 : 0.96;
         }
-        else if (this.sandTraps && this.sandTraps.some(s => s.userData && s.userData.isCollar && Math.hypot(this.ball.position.x - s.position.x, this.ball.position.z - s.position.z) < s.userData.radius)) {
+        else if (this.isBallInSandCollar(0.7)) {
             this.currentSurface = 'Rough';
             currentFriction = 0.74;
             currentBounceHeight = 0.18;
