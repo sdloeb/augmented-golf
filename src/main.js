@@ -74,7 +74,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1031,7 +1031,7 @@ function createSnakingBunker(path, spacing, radius, depth) {
         perps.push({ x: -dirZ / len, z: dirX / len });
     }
 
-    const collarWidth = 1.6;
+    const collarWidth = 0.7;
     const rIn = radius - 0.05;
     const rOut = radius + collarWidth;
     const pairs = [];
@@ -1189,7 +1189,7 @@ function addPolygonSandTrap(points, depth) {
             outNormals.push({ x: nAvgX * miter, z: nAvgZ * miter });
         }
 
-        const collarWidth = 1.6;
+        const collarWidth = 0.7;
         const positions = [];
         const indices = [];
         for (let i = 0; i < N; i++) {
@@ -1258,7 +1258,7 @@ function addSandTrap(x, z, r, depth, withCollar = true) {
 
     if (withCollar) {
         // Smooth 64-segment rough collar ring around circular bunkers
-        const collarWidth = 1.6;
+        const collarWidth = 0.7;
         const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
         const collarMesh = new THREE.Mesh(
             collarGeo,
@@ -1959,7 +1959,7 @@ function resetEntireGame(advanceHole = false) {
                     sandTraps.push(sandMesh);
 
                     // Smooth 64-segment rough collar ring around circular bunkers
-                    const collarWidth = 1.6;
+                    const collarWidth = 0.7;
                     const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
                     const collarMesh = new THREE.Mesh(
                         collarGeo,
@@ -2699,9 +2699,9 @@ function resetEntireGame(advanceHole = false) {
                 if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
                     let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
 
-                    // Smoothstep Hermite dampener near bunker edges (fades in only outside the 1.6-unit collar)
-                    if (minDistOutsideBunker < 3.0) {
-                        const tBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 1.6) / 1.4, 0, 1);
+                   // Smoothstep Hermite dampener near bunker edges (fades in only outside the 0.7-unit collar)
+                    if (minDistOutsideBunker < 2.5) {
+                        const tBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
                         grassJitter *= THREE.MathUtils.smoothstep(tBunker, 0, 1);
                     }
                     // Smoothstep Hermite dampener near water edges (3.0 unit safety transition buffer)
@@ -2731,8 +2731,8 @@ function resetEntireGame(advanceHole = false) {
                                 roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
                             }
                         }
-                        if (minDistOutsideBunker < 3.0) {
-                            const tLiftBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 1.6) / 1.4, 0, 1);
+                     if (minDistOutsideBunker < 2.5) {
+                            const tLiftBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
                             roughLift *= THREE.MathUtils.smoothstep(tLiftBunker, 0, 1);
                         }
                         calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
@@ -2749,9 +2749,9 @@ function resetEntireGame(advanceHole = false) {
                         }
                     }
 
-                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
-                    if (insideSandZone || minDistOutsideBunker < 1.8) {
-                        const tCollar = Math.max(0, Math.min(1, (1.8 - minDistOutsideBunker) / 1.8));
+                // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+                    if (insideSandZone || minDistOutsideBunker < 0.9) {
+                        const tCollar = Math.max(0, Math.min(1, (0.9 - minDistOutsideBunker) / 0.9));
                         const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
                         calculatedHeight -= smoothTCollar * 0.75;
                     }
