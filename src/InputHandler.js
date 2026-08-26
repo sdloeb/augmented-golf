@@ -734,6 +734,11 @@ resetSwing() {
 
     drawSwingTrail(alpha = 1.0, isFlash = false) {
         if (!this.trailCtx || !this.trailCanvas) return;
+        const club = this.getClubInfo();
+        if (club && (club.isGreen || club.name === 'Putter')) {
+            this.clearSwingTrail();
+            return;
+        }
         const ctx = this.trailCtx;
         ctx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
 
@@ -779,6 +784,11 @@ resetSwing() {
     }
 
     flashAndFadeTrail() {
+        const club = this.getClubInfo();
+        if (club && (club.isGreen || club.name === 'Putter')) {
+            this.clearSwingTrail();
+            return;
+        }
         if (this.trailFadeTimer) cancelAnimationFrame(this.trailFadeTimer);
         const startTime = performance.now();
         const solidDuration = 1800; // Time in milliseconds lines stay 100% solid (1.8s)
