@@ -981,6 +981,9 @@ export class PhysicsEngine {
             const ballRadius = 0.25 * this.ball.scale.x;
             const trueFloorH = this.getGroundHeight(bX, bZ);
             groundY = trueFloorH + ballRadius - (ballRadius * 0.15);
+      } else if (this.isBallInSandCollar && this.isBallInSandCollar(0.7)) {
+            const ballRadius = 0.25 * this.ball.scale.x;
+            groundY = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.035 + ballRadius - (ballRadius * 0.15);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);

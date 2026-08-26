@@ -4987,6 +4987,9 @@ function animate() {
             // Embed the ball slightly into the sand grain plane (35% ball radius drop) for a natural lie
             const trueFloorH = physics.getGroundHeight(bX, bZ);
             surfaceHeight = trueFloorH + ballRadius - (ballRadius * 0.15);
+       } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
+            // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
+            surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const distanceToPath = physics.getDistanceToSpline(bX, bZ);
