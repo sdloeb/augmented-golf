@@ -74,7 +74,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 2; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -5278,7 +5278,7 @@ function animate() {
                     const vWorldZ = ringZ - ly;
 
                     const vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
-                    ringPosAttr.setZ(i, vGroundY + 0.04);
+                  ringPosAttr.setZ(i, vGroundY + 0.12);
                 }
                 ringPosAttr.needsUpdate = true;
 
@@ -5786,9 +5786,9 @@ function init() {
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 1.0,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -4
+     polygonOffset: true,
+        polygonOffsetFactor: -3,
+        polygonOffsetUnits: -6
     });
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
     clubLandingRing.rotation.x = -Math.PI / 2;
