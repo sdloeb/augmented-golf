@@ -4269,25 +4269,25 @@ function animate() {
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
 
-                // Apply velocity tangent to lip with subtle friction drag
-                physics.velocity.x = (tanX * 0.94 - hDirX * 0.08) * rawSpeed * 0.985;
-                physics.velocity.z = (tanZ * 0.94 - hDirZ * 0.08) * rawSpeed * 0.985;
+              // Apply velocity tangent to lip with subtle friction drag
+                physics.velocity.x = (tanX * 0.98 - hDirX * 0.08) * rawSpeed * 0.994;
+                physics.velocity.z = (tanZ * 0.98 - hDirZ * 0.08) * rawSpeed * 0.994;
 
                 const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                 ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.04, 0.20);
 
-                // A. Lip-In: Ball circles the rim at controlled pace and drops in
-                if ((ball.userData.lipAngleTraveled > 1.2 && trueWorldSpeed < 0.038) || trueWorldSpeed < 0.018) {
+                // A. Lip-In: Ball visibly circles the rim (~160 deg) before dropping in
+                if ((ball.userData.lipAngleTraveled > 2.8 && trueWorldSpeed < 0.045) || trueWorldSpeed < 0.008) {
                     isSinking = true;
                     ball.userData.isLipRiding = false;
                     physics.velocity.x *= 0.2;
                     physics.velocity.z *= 0.2;
                     if (sounds) sounds.play('sink');
                 }
-                // B. Horseshoe Lip-Out: Ball carries pace around rim (> 115 deg) and whips out
-                else if (ball.userData.lipAngleTraveled > 2.0 && trueWorldSpeed >= 0.038) {
-                    physics.velocity.x = (tanX * 0.75 + hDirX * 0.85) * rawSpeed * 0.95;
-                    physics.velocity.z = (tanZ * 0.75 + hDirZ * 0.85) * rawSpeed * 0.95;
+                // B. Horseshoe Lip-Out: Ball carries speed around the rim (> 125 deg) and whips away
+                else if (ball.userData.lipAngleTraveled > 2.2 && trueWorldSpeed >= 0.030) {
+                    physics.velocity.x = (tanX * 0.70 + hDirX * 0.85) * rawSpeed * 0.95;
+                    physics.velocity.z = (tanZ * 0.70 + hDirZ * 0.85) * rawSpeed * 0.95;
                     ball.userData.isLipRiding = false;
                     ball.userData.hasLipDeflected = true;
                     if (sounds) sounds.play('putt');
@@ -4308,9 +4308,9 @@ function animate() {
                     if (sounds) sounds.play('iron');
                 }
                 // B. Center Channel Entry (Direct path towards cup center)
-                else if (crossTrack <= 0.032 && distanceToHole <= 0.075) {
+                else if (crossTrack <= 0.028 && distanceToHole <= 0.075) {
                     // Good pace -> Drops in smoothly
-                    if (trueWorldSpeed <= 0.130) {
+                    if (trueWorldSpeed <= 0.120) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.x *= 0.2;
@@ -4327,9 +4327,9 @@ function animate() {
                     }
                 }
                 // C. Outer Rim / Lip Contact
-                else if (crossTrack > 0.032) {
-                    // Fast Glance: Deflects off outer lip at high speed
-                    if (trueWorldSpeed > 0.220) {
+                else if (crossTrack > 0.028) {
+                    // Fast Glance: Instant outer lip-out deflection at high speed
+                    if (trueWorldSpeed > 0.200) {
                         ball.userData.hasLipDeflected = true;
                         ball.userData.isLipRiding = false;
                         const awayX = dx / (distanceToHole || 1);
@@ -4339,7 +4339,7 @@ function animate() {
                         if (sounds) sounds.play('putt');
                     }
                     // Controlled Pace: Catches the lip and begins riding the rim
-                    else if (rawSpeed > 0.008) {
+                    else if (rawSpeed > 0.006) {
                         ball.userData.isLipRiding = true;
                         ball.userData.hasLipDeflected = false;
                         ball.userData.lipAngleTraveled = 0;
