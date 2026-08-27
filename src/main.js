@@ -2914,51 +2914,51 @@ function resetEntireGame(advanceHole = false) {
         teeBox.lookAt(new THREE.Vector3(firstTarget.x, teeBox.position.y, firstTarget.z)); // Modify this line
     }
 
-    // Fetch the true 3D hill peak height at the tee location
-    const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10) + 0.071;
+        // Fetch the true 3D hill peak height at the tee location
+        const currentTeeBoxY = physics.getGroundHeight(teeBoxX, 10) + 0.071;
 
-    // Snap the ball and plastic tee directly to the top of the hill elevation
-    ball.position.set(teeBoxX, currentTeeBoxY + 0.20, 10);
-    if (golfTee) {
-        golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
-        golfTee.visible = true;
-    }
-    physics.velocity.set(0, 0, 0);
-    physics.isMoving = false;
-    wasMoving = false;
-    if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
-    isSinking = false;
-    if (ball) {
-        ball.isSunk = false;
-        ball.userData.isLipRiding = false;
-    }
-    isOverheadActive = false;
-    ballTargetScale = 1.0;
-    // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
-    const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const initialTeeScale = isMobileOnStart ? 0.53 : 0.53; /* Matches your custom computer desktop size */
-    ballTargetScale = initialTeeScale;
-    ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
+        // Snap the ball and plastic tee directly to the top of the hill elevation
+        ball.position.set(teeBoxX, currentTeeBoxY + 0.20, 10);
+        if (golfTee) {
+            golfTee.position.set(teeBoxX, currentTeeBoxY + 0.06, 10);
+            golfTee.visible = true;
+        }
+        physics.velocity.set(0, 0, 0);
+        physics.isMoving = false;
+        wasMoving = false;
+        if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
+        isSinking = false;
+        if (ball) {
+            ball.isSunk = false;
+            ball.userData.isLipRiding = false;
+        }
+        isOverheadActive = false;
+        ballTargetScale = 1.0;
+        // NEW: Instantly snap the starting scale to avoid the visual shrinking artifact on loading
+        const isMobileOnStart = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+        const initialTeeScale = isMobileOnStart ? 0.53 : 0.53; /* Matches your custom computer desktop size */
+        ballTargetScale = initialTeeScale;
+        ball.scale.set(initialTeeScale, initialTeeScale, initialTeeScale);
 
-    // Calculate the precise target-line vector between the randomized tee and the first fairway waypoint
-    const firstTarget = holeConfig.waypoints[1]; // Add this line
-    const startDirX = firstTarget.x - teeBoxX;    // Modify this line: Points camera down the initial straightaway
-    const startDirZ = firstTarget.z - 10;          // Modify this line: Points camera down the initial straightaway
-    const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ);
+        // Calculate the precise target-line vector between the randomized tee and the first fairway waypoint
+        const firstTarget = holeConfig.waypoints[1]; // Add this line
+        const startDirX = firstTarget.x - teeBoxX;    // Modify this line: Points camera down the initial straightaway
+        const startDirZ = firstTarget.z - 10;          // Modify this line: Points camera down the initial straightaway
+        const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ);
 
-    // Position the camera exactly 5.5 units backward along the true ball-to-hole line of sight
-    const startBackX = -(startDirX / startLength) * 5.5;
-    const startBackZ = -(startDirZ / startLength) * 5.5;
+        // Position the camera exactly 5.5 units backward along the true ball-to-hole line of sight
+        const startBackX = -(startDirX / startLength) * 5.5;
+        const startBackZ = -(startDirZ / startLength) * 5.5;
 
-    cameraTargetPos.set(teeBoxX + startBackX, ball.position.y + 1.8, 10 + startBackZ);
-    // NEW: Look at a fixed target point 12 units directly ahead of the ball instead of tilting down to the hole
-    const startForwardX = startDirX / startLength;
-    const startForwardZ = startDirZ / startLength;
-    cameraLookAt.set(ball.position.x + startForwardX * 12, ball.position.y, ball.position.z + startForwardZ * 12);
-    currentLookAt.copy(cameraLookAt);
+        cameraTargetPos.set(teeBoxX + startBackX, ball.position.y + 1.8, 10 + startBackZ);
+        // NEW: Look at a fixed target point 12 units directly ahead of the ball instead of tilting down to the hole
+        const startForwardX = startDirX / startLength;
+        const startForwardZ = startDirZ / startLength;
+        cameraLookAt.set(ball.position.x + startForwardX * 12, ball.position.y, ball.position.z + startForwardZ * 12);
+        currentLookAt.copy(cameraLookAt);
 
-    // FIXED: Force the camera to instantly teleport to the new Tee Box coordinates instead of slowly floating through space from the previous green location
-    camera.position.copy(cameraTargetPos);
+        // FIXED: Force the camera to instantly teleport to the new Tee Box coordinates instead of slowly floating through space from the previous green location
+        camera.position.copy(cameraTargetPos);
 
     // Properly release GPU memory for all scenery, trees, and buildings
     sceneryObjects.forEach(obj => {
@@ -4276,18 +4276,18 @@ function animate() {
                 const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                 ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.04, 0.20);
 
-                // A. Lip-In: Ball loses kinetic energy on the rim and drops into cup
-                if (trueWorldSpeed < 0.042) {
+                // A. Lip-In: Ball circles the rim at controlled pace and drops in
+                if ((ball.userData.lipAngleTraveled > 1.2 && trueWorldSpeed < 0.038) || trueWorldSpeed < 0.018) {
                     isSinking = true;
                     ball.userData.isLipRiding = false;
-                    physics.velocity.x *= 0.3;
-                    physics.velocity.z *= 0.3;
+                    physics.velocity.x *= 0.2;
+                    physics.velocity.z *= 0.2;
                     if (sounds) sounds.play('sink');
                 }
-                // B. Horseshoe Lip-Out: Ball spins around the back of the cup (> 2.6 rad / ~150 deg) and whips away
-                else if (ball.userData.lipAngleTraveled > 2.6) {
-                    physics.velocity.x = (tanX * 0.85 + hDirX * 0.65) * rawSpeed * 0.95;
-                    physics.velocity.z = (tanZ * 0.85 + hDirZ * 0.65) * rawSpeed * 0.95;
+                // B. Horseshoe Lip-Out: Ball carries pace around rim (> 115 deg) and whips out
+                else if (ball.userData.lipAngleTraveled > 2.0 && trueWorldSpeed >= 0.038) {
+                    physics.velocity.x = (tanX * 0.75 + hDirX * 0.85) * rawSpeed * 0.95;
+                    physics.velocity.z = (tanZ * 0.75 + hDirZ * 0.85) * rawSpeed * 0.95;
                     ball.userData.isLipRiding = false;
                     ball.userData.hasLipDeflected = true;
                     if (sounds) sounds.play('putt');
@@ -4308,7 +4308,7 @@ function animate() {
                     if (sounds) sounds.play('iron');
                 }
                 // B. Center Channel Entry (Direct path towards cup center)
-                else if (crossTrack <= 0.048 && distanceToHole <= 0.075) {
+                else if (crossTrack <= 0.032 && distanceToHole <= 0.075) {
                     // Good pace -> Drops in smoothly
                     if (trueWorldSpeed <= 0.130) {
                         isSinking = true;
@@ -4327,9 +4327,9 @@ function animate() {
                     }
                 }
                 // C. Outer Rim / Lip Contact
-                else if (crossTrack > 0.048) {
-                    // Fast Glance: Instant outer lip-out deflection
-                    if (trueWorldSpeed > 0.155) {
+                else if (crossTrack > 0.032) {
+                    // Fast Glance: Deflects off outer lip at high speed
+                    if (trueWorldSpeed > 0.220) {
                         ball.userData.hasLipDeflected = true;
                         ball.userData.isLipRiding = false;
                         const awayX = dx / (distanceToHole || 1);
@@ -4339,7 +4339,7 @@ function animate() {
                         if (sounds) sounds.play('putt');
                     }
                     // Controlled Pace: Catches the lip and begins riding the rim
-                    else if (rawSpeed > 0.010) {
+                    else if (rawSpeed > 0.008) {
                         ball.userData.isLipRiding = true;
                         ball.userData.hasLipDeflected = false;
                         ball.userData.lipAngleTraveled = 0;
@@ -5278,7 +5278,7 @@ function animate() {
                     const vWorldZ = ringZ - ly;
 
                     const vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
-                  ringPosAttr.setZ(i, vGroundY + 0.12);
+                    ringPosAttr.setZ(i, vGroundY + 0.12);
                 }
                 ringPosAttr.needsUpdate = true;
 
@@ -5786,7 +5786,7 @@ function init() {
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 1.0,
-     polygonOffset: true,
+        polygonOffset: true,
         polygonOffsetFactor: -3,
         polygonOffsetUnits: -6
     });
