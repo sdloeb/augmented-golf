@@ -4263,8 +4263,10 @@ function animate() {
                 const tanX = -hDirZ * ball.userData.lipDirection;
                 const tanZ = hDirX * ball.userData.lipDirection;
 
-                // Pull smoothly onto rim circumference track
-                const targetLipDist = cupRimRadius - 0.010;
+               // Pull smoothly onto rim circumference track
+                // INWARD SPIRAL: Tighten the orbit diameter dynamically as the ball loses speed
+                const spiralFactor = Math.min(1.0, trueWorldSpeed / 0.080);
+                const targetLipDist = (cupRimRadius - 0.010) * (0.3 + 0.7 * spiralFactor);
                 const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.40);
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
@@ -4300,12 +4302,22 @@ function animate() {
                 // A. Physical Pin Collision (if pin is visible and struck)
                 if (pin && pin.visible && distanceToHole <= (pinRadius + ballRadius + 0.015) && !ball.userData.hasHitPin) {
                     ball.userData.hasHitPin = true;
-                    ball.userData.hasLipDeflected = true;
                     ball.userData.isLipRiding = false;
-                    const bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI;
-                    physics.velocity.x = Math.sin(bounceAngle) * rawSpeed * 0.45;
-                    physics.velocity.z = Math.cos(bounceAngle) * rawSpeed * 0.45;
-                    if (sounds) sounds.play('iron');
+
+                    // Soft/medium pace: flagstick absorbs kinetic energy and drops ball into cup
+                    if (trueWorldSpeed <= 0.120) {
+                        isSinking = true;
+                        physics.velocity.x *= 0.1;
+                        physics.velocity.z *= 0.1;
+                        if (sounds) sounds.play('sink');
+                    } else {
+                        // Hard pace: ball ricochets off the flagstick
+                        ball.userData.hasLipDeflected = true;
+                        const bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI;
+                        physics.velocity.x = Math.sin(bounceAngle) * rawSpeed * 0.45;
+                        physics.velocity.z = Math.cos(bounceAngle) * rawSpeed * 0.45;
+                        if (sounds) sounds.play('iron');
+                    }
                 }
                 // B. Center Channel Entry (Direct path towards cup center)
                 else if (crossTrack <= 0.028 && distanceToHole <= 0.075) {
