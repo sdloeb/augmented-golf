@@ -708,5 +708,98 @@ customOOB: {
             stakesPerSide: 12,
             stakesPerRow: 4
         }
+    },
+    9: { // 220-Yard Elevated Downhill Par 3 (Tree Chute to Valley Green)
+        par: 3,
+        fairwayWidth: 12.0,
+        greenRadius: 8.5,
+        greenShape: 'oval',
+        horizonTheme: 'forest',
+        theme: 'forest',
+        treeScale: 4.8,
+        treeHeightScale: 1.6,
+
+        // Back-to-Front Slope with Soft Center Collection Bowl
+        slopeProfile: {
+            backLeft: { rx: -0.020, rz: -0.035 },
+            backRight: { rx: 0.020, rz: -0.035 },
+            midLeft: { rx: -0.015, rz: -0.030 },
+            midRight: { rx: 0.015, rz: -0.030 },
+            frontLeft: { rx: -0.010, rz: -0.035 },
+            frontRight: { rx: 0.015, rz: -0.035 },
+
+            features: [
+                // Subtle tier separating back third of green
+                { type: 'tier', axis: 'z', position: -2.0, width: 3.0, height: 0.12 },
+                // Soft collection bowl in center
+                { type: 'bowl', x: 0.0, z: 1.0, radius: 3.5, depth: 0.08 }
+            ]
+        },
+
+        // EXACT 220 YARD WAYPOINTS (Tee at z=10, Green Center at z=-69.45)
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),       // 1. Elevated Tee Box (0 yds)
+            new THREE.Vector3(0, 0, -69.45)    // 2. Valley Green Center (220 yds total)
+        ],
+
+        // BUNKERS: Wrapping Front-Right Trap, Left-Side Trap, and Front-Left Pot
+        hazards: [
+            // 1. Scalloped Front-Right Wrapping Bunker (protecting right and front-right of green)
+            {
+                type: 'sand',
+                shape: 'snake',
+                radius: 3.8,
+                depth: 1.1,
+                path: [
+                    { x: 9.0, z: -58.0 },
+                    { x: 14.5, z: -60.5 },
+                    { x: 18.0, z: -66.0 }
+                ]
+            },
+
+            // 2. Left-Side Greenside Bunker
+            { type: 'sand', x: -18.0, z: -71.0, radius: 3.5, depth: 1.0 },
+
+            // 3. Front-Left Approach Pot Bunker
+            { type: 'sand', x: -6.5, z: -58.0, radius: 2.8, depth: 1.4 }
+        ],
+
+        // DENSE TREE CHUTE & SURROUNDING PERMANENT WOODS
+        customTrees: [
+            // --- LEFT TREE WALL (Inner row creating narrow chute) ---
+            { x: -14, z: 20 }, { x: -14, z: 10 }, { x: -15, z: 0 }, { x: -15, z: -10 },
+            { x: -16, z: -20 }, { x: -17, z: -30 }, { x: -18, z: -40 }, { x: -19, z: -50 },
+            
+
+            // --- LEFT TREE WALL (Outer row for dense forest depth) ---
+            { x: -22, z: 18 }, { x: -24, z: 8 }, { x: -25, z: -2 }, { x: -26, z: -12 },
+            { x: -28, z: -22 }, { x: -29, z: -32 }, { x: -30, z: -42 }, { x: -31, z: -52 },
+            { x: -32, z: -62 }, { x: -30, z: -72 }, { x: -28, z: -82 },
+
+            // --- RIGHT TREE WALL (Inner row creating narrow chute) ---
+            { x: 14, z: 20 }, { x: 14, z: 10 }, { x: 15, z: 0 }, { x: 15, z: -10 },
+            { x: 16, z: -20 }, { x: 17, z: -30 }, { x: 18, z: -40 }, { x: 19, z: -50 },
+            { x: 20, z: -60 }, { x: 21, z: -70 }, { x: 20, z: -80 },
+
+            // --- RIGHT TREE WALL (Outer row for dense forest depth) ---
+            { x: 22, z: 18 }, { x: 24, z: 8 }, { x: 25, z: -2 }, { x: 26, z: -12 },
+            { x: 28, z: -22 }, { x: 29, z: -32 }, { x: 30, z: -42 }, { x: 31, z: -52 },
+            { x: 32, z: -62 }, { x: 30, z: -72 }, { x: 28, z: -82 },
+
+           
+
+            // --- BACK OF GREEN DROP-OFF CANOPY FRAME ---
+            { x: -14, z: -86 }, { x: -7, z: -89 }, { x: 0, z: -90 }, { x: 7, z: -89 }, { x: 14, z: -86 }
+        ],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -45,
+            maxX: 45,
+            minZ: -100,
+            maxZ: 30,
+            stakesPerSide: 10,
+            stakesPerRow: 4
+        }
     }
 };

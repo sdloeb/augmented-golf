@@ -2685,9 +2685,9 @@ function resetEntireGame(advanceHole = false) {
                 const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
                 const isOnGreenSidesOrBack = false;
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-                let floorHeight = calculatedHeight;
-                const isHole8BeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4);
-                if (closeToWater || isHole8BeforeFairway) {
+               let floorHeight = calculatedHeight;
+                const isHoleBeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4) || (currentHoleNumber === 9 && worldZ > -45.0);
+                if (closeToWater || isHoleBeforeFairway) {
                 } else if (distanceToPath <= fW) {
                     floorHeight -= 0.12;
                 } else if (distanceToPath <= fWEdge) {
@@ -2790,13 +2790,14 @@ function resetEntireGame(advanceHole = false) {
                     // Deep hidden height for out-of-bounds or buried fairway grid points
                     const hiddenFairwayH = floorHeight - 5.0;
 
-                    // Boundary checks for fairway corridor
+                  // Boundary checks for fairway corridor
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7));
+                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
+                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
                     if (isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {

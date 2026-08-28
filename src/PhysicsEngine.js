@@ -523,6 +523,53 @@ export class PhysicsEngine {
             return Math.max(0.001, baseHeight * xFade);
         }
 
+        if (this.currentHoleNumber === 9) {
+            let baseHeight = 0.0;
+
+            // 1. High Perched Tee Box (+14 units elevation)
+            if (z > 5) {
+                baseHeight = 14.0;
+            }
+            // 2. Steep Drop-Off in front of Tee down to valley floor (z = 5 to -12)
+            else if (z >= -12) {
+                let t = (5 - z) / 17.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 14.0 * (1.0 - smoothT);
+            }
+            // 3. Valley Floor (z = -12 to -58) -> flat at 0.0
+            else if (z > -58) {
+                baseHeight = 0.0;
+            }
+            // 4. Gentle Rise onto Green Complex (z = -58 to -65) -> rises from 0.0 to 1.0
+            else if (z >= -65) {
+                let t = (-58 - z) / 7.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 1.0 * smoothT;
+            }
+            // 5. Green Plateau (z = -65 to -76, Green Center at z = -69.45) -> flat at 1.0
+            else if (z >= -76) {
+                baseHeight = 1.0;
+            }
+            // 6. Drop-Off behind Green (z = -76 to -95) -> rolls down 3.5 units
+            else {
+                let t = Math.min(1.0, (-76 - z) / 19.0);
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 1.0 - (3.5 * smoothT);
+            }
+
+            // Side hills framing the chute on Left and Right
+            let distFromCenter = Math.abs(x);
+            let chuteEdge = 13.0;
+            if (distFromCenter > chuteEdge) {
+                let tSide = Math.min(1.0, (distFromCenter - chuteEdge) / 25.0);
+                let smoothSide = tSide * tSide * (3 - 2 * tSide);
+                baseHeight += smoothSide * 7.5;
+            }
+
+            let xFade = Math.min(1, Math.max(0, (65 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
+        }
+
         // Base undulating small mounds and dips (mostly flat, natural ripples)
         const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
@@ -537,8 +584,7 @@ if (this.currentHoleNumber === 6) {
 
             this.hasBigFeature = false; // Prevents random extreme cliffs/canyons
         }
-        else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8) {
-            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
+else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8 || this.currentHoleNumber === 9) {            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
             // Reduced multipliers for an ultra-flat fairway with clear line-of-sight
@@ -805,6 +851,11 @@ if (this.currentHoleNumber === 6) {
                 (z <= -94.5 && z >= -108.9) ||
                 (z <= -113.9 && z >= -128.3) ||
                 (z <= -133.3 && z >= -147.7);
+        }
+
+        if (holeNum === 9) {
+            // Hole 9: Valley drop-off is rough, fairway starts at approach (z = -45.0) down to green
+            return z <= -45.0 && z >= -78.0;
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)
