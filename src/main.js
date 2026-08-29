@@ -4446,7 +4446,7 @@ function animate() {
         } else {
             const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
 
-            const flightSpeed = 0.005;
+            const flightSpeed = 0.003;
             previewProgress += flightSpeed;
             if (previewProgress > 1) previewProgress = 1;
 
