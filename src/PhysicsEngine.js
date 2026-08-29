@@ -353,6 +353,32 @@ export class PhysicsEngine {
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
+// --- CUSTOM HOLE 1 ELEVATED TEE BOX ---
+        if (this.currentHoleNumber === 1) {
+            let baseHeight = 0.0;
+
+            // 1. Perched Tee Box (+4.5 units = ~15 ft elevation)
+            if (z > 5) {
+                baseHeight = 5.5;
+            } else if (z >= -25) {
+                // Smooth slope down into the fairway from z = 5 to z = -25
+                let t = (5 - z) / 30.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 5.5 * (1.0 - smoothT);
+            } else {
+                baseHeight = 0.0; // Flat fairway leading to the water hazard at z = -82.5
+            }
+
+            // Subtle micro-undulations along the fairway
+            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
+            const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
+            baseHeight += (flatWave1 * 0.05 + flatWave2 * 0.02);
+
+            let xFade = Math.min(1, Math.max(0, (70 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
+        }
+
+
         // --- CUSTOM HOLE 2 RUNOUT AND HIGHER BUMPY ROUGH ---
         if (this.currentHoleNumber === 2) {
             let baseHeight = 0.0;

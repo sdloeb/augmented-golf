@@ -36,7 +36,7 @@ export const HOLES_CONFIG = {
             {
                 type: 'lake',
                 x: 0,
-                z: -82.5,
+                z: -80.5,
                 radiusX: 24.0, // Keeps original width
                 radiusZ: 10.0   // Shortens length down the fairway
             },
