@@ -36,6 +36,7 @@ export class PhysicsEngine {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
 
         for (let sand of this.sandTraps) {
+            if (sand.userData && sand.userData.isCollar) continue;
             if (sand.userData && sand.userData.isPolygon) {
                 const points = sand.userData.points;
                 let inside = false;
@@ -62,6 +63,42 @@ export class PhysicsEngine {
                 const dz = this.ball.position.z - sand.position.z;
                 const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                 if (dx * dx + dz * dz < sandRadius * sandRadius) return true;
+            }
+        }
+        return false;
+    }
+
+    isBallInSandCollar(collarWidth = 0.7) {
+        if (!this.sandTraps || this.sandTraps.length === 0) return false;
+        if (this.isBallInSand()) return false;
+
+        const bx = this.ball.position.x;
+        const bz = this.ball.position.z;
+
+        for (let sand of this.sandTraps) {
+            if (sand.userData && sand.userData.isCollar) continue;
+
+            if (sand.userData && sand.userData.isPolygon) {
+                const points = sand.userData.points;
+                let minDistSq = Infinity;
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                    const xi = points[i].x, zi = points[i].z;
+                    const xj = points[j].x, zj = points[j].z;
+                    const l2 = (xi - xj) ** 2 + (zi - zj) ** 2 || 0.0001;
+                    let t = ((bx - xi) * (xj - xi) + (bz - zi) * (zj - zi)) / l2;
+                    t = Math.max(0, Math.min(1, t));
+                    const projX = xi + t * (xj - xi);
+                    const projZ = zi + t * (zj - zi);
+                    const distSq = (bx - projX) ** 2 + (bz - projZ) ** 2;
+                    if (distSq < minDistSq) minDistSq = distSq;
+                }
+                if (Math.sqrt(minDistSq) <= collarWidth) return true;
+            } else {
+                const dx = bx - sand.position.x;
+                const dz = bz - sand.position.z;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                const dist = Math.hypot(dx, dz);
+                if (dist <= sandRadius + collarWidth) return true;
             }
         }
         return false;
@@ -411,7 +448,7 @@ export class PhysicsEngine {
 
 
 
-       if (this.currentHoleNumber === 8) {
+        if (this.currentHoleNumber === 8) {
             let baseHeight = 0.0;
 
             // 1. Perched Tee Box (0 to 72 yds / z = 10 to -16)
@@ -432,7 +469,7 @@ export class PhysicsEngine {
                 let smoothT = t * t * (3 - 2 * t);
                 baseHeight = 2.125 * smoothT;
             }
-           // Step 1 Flat Fairway 1 (z = -94.5 to -108.9, 40 yds) -> 100% FLAT at 2.125
+            // Step 1 Flat Fairway 1 (z = -94.5 to -108.9, 40 yds) -> 100% FLAT at 2.125
             else if (z > -108.9) {
                 baseHeight = 2.125;
             }
@@ -462,7 +499,7 @@ export class PhysicsEngine {
                 let smoothT = t * t * (3 - 2 * t);
                 baseHeight = 6.375 + 2.125 * smoothT;
             }
-       // Green Plateau (z = -152.7 to -170.7, Green center at z = -161.2) -> flat at 8.5
+            // Green Plateau (z = -152.7 to -170.7, Green center at z = -161.2) -> flat at 8.5
             else if (z >= -161.7) {
                 baseHeight = 8.5;
             }
@@ -486,13 +523,68 @@ export class PhysicsEngine {
             return Math.max(0.001, baseHeight * xFade);
         }
 
+        if (this.currentHoleNumber === 9) {
+            let baseHeight = 0.0;
+
+            // 1. High Perched Tee Box (+14 units elevation)
+            if (z > 5) {
+                baseHeight = 14.0;
+            }
+            // 2. Steep Drop-Off in front of Tee down to valley floor (z = 5 to -12)
+            else if (z >= -12) {
+                let t = (5 - z) / 17.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 14.0 * (1.0 - smoothT);
+            }
+            // 3. Valley Floor (z = -12 to -58) -> flat at 0.0
+            else if (z > -58) {
+                baseHeight = 0.0;
+            }
+            // 4. Gentle Rise onto Green Complex (z = -58 to -65) -> rises from 0.0 to 1.0
+            else if (z >= -65) {
+                let t = (-58 - z) / 7.0;
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 1.0 * smoothT;
+            }
+            // 5. Green Plateau (z = -65 to -76, Green Center at z = -69.45) -> flat at 1.0
+            else if (z >= -76) {
+                baseHeight = 1.0;
+            }
+            // 6. Drop-Off behind Green (z = -76 to -95) -> rolls down 3.5 units
+            else {
+                let t = Math.min(1.0, (-76 - z) / 19.0);
+                let smoothT = t * t * (3 - 2 * t);
+                baseHeight = 1.0 - (3.5 * smoothT);
+            }
+
+            // Side hills framing the chute on Left and Right
+            let distFromCenter = Math.abs(x);
+            let chuteEdge = 13.0;
+            if (distFromCenter > chuteEdge) {
+                let tSide = Math.min(1.0, (distFromCenter - chuteEdge) / 25.0);
+                let smoothSide = tSide * tSide * (3 - 2 * tSide);
+                baseHeight += smoothSide * 7.5;
+            }
+
+            let xFade = Math.min(1, Math.max(0, (65 - Math.abs(x)) / 10));
+            return Math.max(0.001, baseHeight * xFade);
+        }
+
         // Base undulating small mounds and dips (mostly flat, natural ripples)
         const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8) {
-            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
+if (this.currentHoleNumber === 6) {
+            // Pronounced, fixed rolling hills across the Oakmont fairway
+            const roll1 = Math.sin(z * 0.035) * 1.8;                    // Long swells down the fairway
+            const roll2 = Math.cos(x * 0.07 + z * 0.025) * 1.2;         // Diagonal rolling crests across width
+            const roll3 = Math.sin(x * 0.12 + z * 0.06) * 0.5;          // Secondary terrain undulations
+            height = roll1 + roll2 + roll3;
+
+            this.hasBigFeature = false; // Prevents random extreme cliffs/canyons
+        }
+else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8 || this.currentHoleNumber === 9) {            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
             // Reduced multipliers for an ultra-flat fairway with clear line-of-sight
@@ -633,6 +725,7 @@ export class PhysicsEngine {
         if (this.sandTraps && this.sandTraps.length > 0) {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
+                if (sand.userData && sand.userData.isCollar) return;
                 let drop = 0;
                 // Restores full natural bunker depth
                 const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.8;
@@ -669,7 +762,7 @@ export class PhysicsEngine {
                     const dzS = z - sand.position.z;
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
-                 const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
                     const transitionMargin = (this.currentHoleNumber === 8 ? 0.0 : 2.2);
                     const sandRadius = baseRadius + transitionMargin;
 
@@ -753,11 +846,16 @@ export class PhysicsEngine {
             // Hole 3: Pebble Beach chasm gap exclusions
             return (z <= -20.0 && z > -115.0) || (z <= -132.0 && z >= -180.0);
         }
- if (holeNum === 8) {
+        if (holeNum === 8) {
             return (z <= -51.4 && z >= -89.5) ||
-                   (z <= -94.5 && z >= -108.9) ||
-                   (z <= -113.9 && z >= -128.3) ||
-                   (z <= -133.3 && z >= -147.7);
+                (z <= -94.5 && z >= -108.9) ||
+                (z <= -113.9 && z >= -128.3) ||
+                (z <= -133.3 && z >= -147.7);
+        }
+
+        if (holeNum === 9) {
+            // Hole 9: Valley drop-off is rough, fairway starts at approach (z = -45.0) down to green
+            return z <= -45.0 && z >= -78.0;
         }
 
         // Global Dynamic Fallback for Hole 4+ (Starts safely at the tee area)
@@ -861,6 +959,12 @@ export class PhysicsEngine {
             currentBounceHeight = 0.28;
             currentBounceForwardLoss = (this.bounceCount === 0) ? 0.42 : 0.96;
         }
+        else if (this.isBallInSandCollar(0.7)) {
+            this.currentSurface = 'Rough';
+            currentFriction = 0.74;
+            currentBounceHeight = 0.18;
+            currentBounceForwardLoss = 0.30;
+        }
         else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
             this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {
             this.currentSurface = 'Fairway';
@@ -937,6 +1041,9 @@ export class PhysicsEngine {
             const ballRadius = 0.25 * this.ball.scale.x;
             const trueFloorH = this.getGroundHeight(bX, bZ);
             groundY = trueFloorH + ballRadius - (ballRadius * 0.15);
+      } else if (this.isBallInSandCollar && this.isBallInSandCollar(0.7)) {
+            const ballRadius = 0.25 * this.ball.scale.x;
+            groundY = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.035 + ballRadius - (ballRadius * 0.15);
         } else if (this.currentSurface === 'Rough') {
             // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
             groundY -= 0.065 * (this.ball.scale.x / 0.51);
@@ -1384,7 +1491,7 @@ export class PhysicsEngine {
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
         // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
         // while leaving regular green shots and rough/fairway stops completely un-impacted.
-        const stopThreshold = this.isPutting ? 0.015 : (onGreen ? 0.018 : 0.01);
+      const stopThreshold = this.isPutting ? 0.003 : (onGreen ? 0.018 : 0.01);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;

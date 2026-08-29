@@ -816,11 +816,11 @@ function updateDistanceDisplay() {
             ctx.restore();
         }
     }
-  // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
+    // --- DYNAMIC CLUB OPTIONS SELECTION GENERATOR ---
     const container = document.getElementById('clubOptionsContainer');
     const distanceGauge = document.getElementById('distanceGauge');
 
-  // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
+    // Hide UI elements if the ball is currently moving through physical trajectory or sinking out of view
     if ((physics && physics.isMoving) || isSinking) {
         if (container) container.innerHTML = '';
         if (distanceGauge) distanceGauge.classList.add('hidden');
@@ -937,7 +937,7 @@ function updateDistanceDisplay() {
         container.appendChild(clubLabelWrapper);
         container.appendChild(rightBtn);
     }
-if (input && typeof input.updateGaugeClub === 'function') {
+    if (input && typeof input.updateGaugeClub === 'function') {
         input.updateGaugeClub();
     }
 }
@@ -999,22 +999,131 @@ function generateNewWind() {
  * @param {number} depth - Depth of the bunker
  */
 function createSnakingBunker(path, spacing, radius, depth) {
+    const sampled = [];
     for (let i = 0; i < path.length - 1; i++) {
         const p1 = path[i];
         const p2 = path[i + 1];
-        const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.z - p1.z) ** 2);
-        const steps = Math.floor(dist / spacing);
+        const dx = p2.x - p1.x;
+        const dz = p2.z - p1.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const steps = Math.max(1, Math.floor(dist / spacing));
 
         for (let s = 0; s <= steps; s++) {
+            if (s === steps && i < path.length - 2) continue;
             const t = s / steps;
-            const x = p1.x + (p2.x - p1.x) * t;
-            const z = p1.z + (p2.z - p1.z) * t;
-
-            // Add the bunker circle to the scene and the tracking array
-            // This reuses your existing circle logic
-            addSandTrap(x, z, radius, depth);
+            const x = p1.x + dx * t;
+            const z = p1.z + dz * t;
+            sampled.push({ x, z });
+            addSandTrap(x, z, radius, depth, false);
         }
     }
+
+    const N = sampled.length;
+    if (N < 2) return;
+
+    const perps = [];
+    for (let i = 0; i < N; i++) {
+        const prev = sampled[Math.max(0, i - 1)];
+        const next = sampled[Math.min(N - 1, i + 1)];
+        const dirX = next.x - prev.x;
+        const dirZ = next.z - prev.z;
+        const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1.0;
+        perps.push({ x: -dirZ / len, z: dirX / len });
+    }
+
+    const collarWidth = 0.7;
+    const rIn = radius - 0.05;
+    const rOut = radius + collarWidth;
+    const pairs = [];
+
+    // Left side from start to end
+    for (let i = 0; i < N; i++) {
+        const p = sampled[i];
+        const perp = perps[i];
+        pairs.push({
+            inX: p.x + perp.x * rIn, inZ: p.z + perp.z * rIn,
+            outX: p.x + perp.x * rOut, outZ: p.z + perp.z * rOut
+        });
+    }
+
+    // End cap
+    const pEnd = sampled[N - 1];
+    const pEndPrev = sampled[Math.max(0, N - 2)];
+    const tanEndAngle = Math.atan2(pEnd.z - pEndPrev.z, pEnd.x - pEndPrev.x);
+    const capSteps = 8;
+    for (let c = 1; c < capSteps; c++) {
+        const angle = tanEndAngle + (Math.PI / 2) - (c / capSteps) * Math.PI;
+        const dx = Math.cos(angle);
+        const dz = Math.sin(angle);
+        pairs.push({
+            inX: pEnd.x + dx * rIn, inZ: pEnd.z + dz * rIn,
+            outX: pEnd.x + dx * rOut, outZ: pEnd.z + dz * rOut
+        });
+    }
+
+    // Right side from end back to start
+    for (let i = N - 1; i >= 0; i--) {
+        const p = sampled[i];
+        const perp = perps[i];
+        pairs.push({
+            inX: p.x - perp.x * rIn, inZ: p.z - perp.z * rIn,
+            outX: p.x - perp.x * rOut, outZ: p.z - perp.z * rOut
+        });
+    }
+
+    // Start cap
+    const pStart = sampled[0];
+    const pStartNext = sampled[Math.min(N - 1, 1)];
+    const tanStartAngle = Math.atan2(pStartNext.z - pStart.z, pStartNext.x - pStart.x);
+    for (let c = 1; c < capSteps; c++) {
+        const angle = tanStartAngle - (Math.PI / 2) - (c / capSteps) * Math.PI;
+        const dx = Math.cos(angle);
+        const dz = Math.sin(angle);
+        pairs.push({
+            inX: pStart.x + dx * rIn, inZ: pStart.z + dz * rIn,
+            outX: pStart.x + dx * rOut, outZ: pStart.z + dz * rOut
+        });
+    }
+
+    const positions = [];
+    const indices = [];
+    const numPairs = pairs.length;
+    for (let i = 0; i < numPairs; i++) {
+        const pair = pairs[i];
+        positions.push(pair.inX, -pair.inZ, 0);
+        positions.push(pair.outX, -pair.outZ, 0);
+
+        const nextI = (i + 1) % numPairs;
+        const iIn = i * 2;
+        const iOut = i * 2 + 1;
+        const nextIn = nextI * 2;
+        const nextOut = nextI * 2 + 1;
+
+        indices.push(iIn, nextIn, iOut);
+        indices.push(iOut, nextIn, nextOut);
+    }
+
+    const collarGeo = new THREE.BufferGeometry();
+    collarGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    collarGeo.setIndex(indices);
+    collarGeo.computeVertexNormals();
+
+    const collarMesh = new THREE.Mesh(
+        collarGeo,
+        new THREE.MeshStandardMaterial({
+            color: 0x1e5631,
+            roughness: 0.9,
+            side: THREE.DoubleSide,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -5
+        })
+    );
+    collarMesh.rotation.x = -Math.PI / 2;
+    collarMesh.position.set(0, 0, 0);
+    collarMesh.userData = { isCollar: true, radius: radius + collarWidth };
+    scene.add(collarMesh);
+    sandTraps.push(collarMesh);
 }
 
 
@@ -1042,9 +1151,93 @@ function addPolygonSandTrap(points, depth) {
     mesh.userData = { points: points, depth: depth, isPolygon: true };
     scene.add(mesh);
     sandTraps.push(mesh);
+
+    // Smooth rough collar border around polygon bunkers
+    const N = points.length;
+    if (N >= 3) {
+        let area = 0;
+        for (let i = 0; i < N; i++) {
+            const j = (i + 1) % N;
+            area += points[i].x * points[j].z - points[j].x * points[i].z;
+        }
+        const isCCW = area > 0;
+
+        const outNormals = [];
+        for (let i = 0; i < N; i++) {
+            const prevPt = points[(i - 1 + N) % N];
+            const currPt = points[i];
+            const nextPt = points[(i + 1) % N];
+
+            let e1x = currPt.x - prevPt.x, e1z = currPt.z - prevPt.z;
+            let e2x = nextPt.x - currPt.x, e2z = nextPt.z - currPt.z;
+            const l1 = Math.sqrt(e1x * e1x + e1z * e1z) || 1.0;
+            const l2 = Math.sqrt(e2x * e2x + e2z * e2z) || 1.0;
+            e1x /= l1; e1z /= l1;
+            e2x /= l2; e2z /= l2;
+
+            let n1x = isCCW ? e1z : -e1z;
+            let n1z = isCCW ? -e1x : e1x;
+            let n2x = isCCW ? e2z : -e2z;
+            let n2z = isCCW ? -e2x : e2x;
+
+            let nAvgX = n1x + n2x, nAvgZ = n1z + n2z;
+            const lAvg = Math.sqrt(nAvgX * nAvgX + nAvgZ * nAvgZ) || 1.0;
+            nAvgX /= lAvg; nAvgZ /= lAvg;
+
+            const dot = n1x * nAvgX + n1z * nAvgZ;
+            const miter = 1.0 / Math.max(0.5, dot);
+            outNormals.push({ x: nAvgX * miter, z: nAvgZ * miter });
+        }
+
+        const collarWidth = 0.7;
+        const positions = [];
+        const indices = [];
+        for (let i = 0; i < N; i++) {
+            const p = points[i];
+            const n = outNormals[i];
+            const inX = p.x - n.x * 0.05;
+            const inZ = p.z - n.z * 0.05;
+            const outX = p.x + n.x * collarWidth;
+            const outZ = p.z + n.z * collarWidth;
+
+            positions.push(inX, -inZ, 0);
+            positions.push(outX, -outZ, 0);
+
+            const nextI = (i + 1) % N;
+            const iIn = i * 2;
+            const iOut = i * 2 + 1;
+            const nextIn = nextI * 2;
+            const nextOut = nextI * 2 + 1;
+
+            indices.push(iIn, nextIn, iOut);
+            indices.push(iOut, nextIn, nextOut);
+        }
+
+        const collarGeo = new THREE.BufferGeometry();
+        collarGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        collarGeo.setIndex(indices);
+        collarGeo.computeVertexNormals();
+
+        const collarMesh = new THREE.Mesh(
+            collarGeo,
+            new THREE.MeshStandardMaterial({
+                color: 0x1e5631,
+                roughness: 0.9,
+                side: THREE.DoubleSide,
+                polygonOffset: true,
+                polygonOffsetFactor: -2,
+                polygonOffsetUnits: -5
+            })
+        );
+        collarMesh.rotation.x = -Math.PI / 2;
+        collarMesh.position.set(0, 0, 0);
+        collarMesh.userData = { isCollar: true };
+        scene.add(collarMesh);
+        sandTraps.push(collarMesh);
+    }
 }
 
-function addSandTrap(x, z, r, depth) {
+function addSandTrap(x, z, r, depth, withCollar = true) {
     const sandMesh = new THREE.Mesh(
         new THREE.RingGeometry(0, r, 64, 6), // 64 segments for smoothness
         new THREE.MeshStandardMaterial({
@@ -1062,6 +1255,28 @@ function addSandTrap(x, z, r, depth) {
     sandMesh.userData = { radius: r, depth: depth };
     scene.add(sandMesh);
     sandTraps.push(sandMesh);
+
+    if (withCollar) {
+        // Smooth 64-segment rough collar ring around circular bunkers
+        const collarWidth = 0.7;
+        const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
+        const collarMesh = new THREE.Mesh(
+            collarGeo,
+            new THREE.MeshStandardMaterial({
+                color: 0x1e5631,
+                roughness: 0.9,
+                side: THREE.DoubleSide,
+                polygonOffset: true,
+                polygonOffsetFactor: -2,
+                polygonOffsetUnits: -5
+            })
+        );
+        collarMesh.rotation.x = -Math.PI / 2;
+        collarMesh.position.set(x, 0, z);
+        collarMesh.userData = { isCollar: true, radius: r + collarWidth };
+        scene.add(collarMesh);
+        sandTraps.push(collarMesh);
+    }
 }
 
 function createCartPath(pathPoints, width = 2.2) {
@@ -1738,11 +1953,30 @@ function resetEntireGame(advanceHole = false) {
                     );
                     sandMesh.rotation.x = -Math.PI / 2;
 
-                    // FIXED: Set position.y to 0 so absolute heights don't double-stack and float over hills
                     sandMesh.position.set(x, 0, z);
                     sandMesh.userData = { radius: r, depth: sandDepth };
                     scene.add(sandMesh);
                     sandTraps.push(sandMesh);
+
+                    // Smooth 64-segment rough collar ring around circular bunkers
+                    const collarWidth = 0.7;
+                    const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
+                    const collarMesh = new THREE.Mesh(
+                        collarGeo,
+                        new THREE.MeshStandardMaterial({
+                            color: 0x1e5631,
+                            roughness: 0.9,
+                            side: THREE.DoubleSide,
+                            polygonOffset: true,
+                            polygonOffsetFactor: -2,
+                            polygonOffsetUnits: -5
+                        })
+                    );
+                    collarMesh.rotation.x = -Math.PI / 2;
+                    collarMesh.position.set(x, 0, z);
+                    collarMesh.userData = { isCollar: true, radius: r + collarWidth };
+                    scene.add(collarMesh);
+                    sandTraps.push(collarMesh);
                 }
             }
             else if (hz.type === 'lake') {
@@ -2307,11 +2541,13 @@ function resetEntireGame(advanceHole = false) {
             let insideSandZone = false;
             let activeSandDepth = 0;
             let shortestDistToBunkerEdge = Infinity; // Track proximity for edge shadow depth
+            let minDistOutsideBunker = Infinity;
 
             sandTraps.forEach(sand => {
+                if (sand.userData && sand.userData.isCollar) return;
                 // Pre-filter bounding boxes for sand traps to keep calculations extremely fast
                 if (!sand.userData.isPolygon) {
-                    const rLimit = (sand.userData.radius || 5) + 1.5;
+                    const rLimit = (sand.userData.radius || 5) + 3.5;
                     if (Math.abs(worldX - sand.position.x) > rLimit || Math.abs(worldZ - sand.position.z) > rLimit) return;
                 } else {
                     // Precompute and cache polygon hazard bounding box bounds
@@ -2321,7 +2557,7 @@ function resetEntireGame(advanceHole = false) {
                             if (p.x < sMinX) sMinX = p.x; if (p.x > sMaxX) sMaxX = p.x;
                             if (p.z < sMinZ) sMinZ = p.z; if (p.z > sMaxZ) sMaxZ = p.z;
                         });
-                        sand.userData.fastBox = { minX: sMinX - 1, maxX: sMaxX + 1, minZ: sMinZ - 1, maxZ: sMaxZ + 1 };
+                        sand.userData.fastBox = { minX: sMinX - 3.5, maxX: sMaxX + 3.5, minZ: sMinZ - 3.5, maxZ: sMaxZ + 3.5 };
                     }
                     const b = sand.userData.fastBox;
                     if (worldX < b.minX || worldX > b.maxX || worldZ < b.minZ || worldZ > b.maxZ) return;
@@ -2351,6 +2587,8 @@ function resetEntireGame(advanceHole = false) {
 
                     const currentEdgeDist = Math.sqrt(minEdgeDistSq);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
+                    const distOut = inside ? -currentEdgeDist : currentEdgeDist;
+                    if (distOut < minDistOutsideBunker) minDistOutsideBunker = distOut;
 
                     if (inside) {
                         insideSandZone = true;
@@ -2360,19 +2598,24 @@ function resetEntireGame(advanceHole = false) {
                 } else {
                     const dxS = worldX - sand.position.x;
                     const dzS = worldZ - sand.position.z;
-                    const distToSandSq = dxS * dxS + dzS * dzS;
+                    const distToSand = Math.hypot(dxS, dzS);
 
                     const baseSandRadius = (sand.userData && sand.userData.radius ? sand.userData.radius : 5);
-                    const currentEdgeDist = Math.abs(Math.sqrt(distToSandSq) - baseSandRadius);
+                    const currentEdgeDist = Math.abs(distToSand - baseSandRadius);
                     if (currentEdgeDist < shortestDistToBunkerEdge) shortestDistToBunkerEdge = currentEdgeDist;
+                    const distOut = distToSand - baseSandRadius;
+                    if (distOut < minDistOutsideBunker) minDistOutsideBunker = distOut;
 
-                    if (distToSandSq < baseSandRadius * baseSandRadius) {
+                    if (distToSand < baseSandRadius) {
                         insideSandZone = true;
                         const depth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.6;
                         if (depth > activeSandDepth) activeSandDepth = depth;
                     }
                 }
             });
+
+
+
 
             // Around Line 829 in src/main.js
             const gX = worldX - (green ? green.position.x : 0);
@@ -2442,10 +2685,9 @@ function resetEntireGame(advanceHole = false) {
                 const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
                 const isOnGreenSidesOrBack = false;
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-                let floorHeight = calculatedHeight;
-                const isHole8BeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4);
-                if (closeToWater || isHole8BeforeFairway) {
-                    // Skip fairway cuts right around the hazard to guarantee uniform alignment with the dirt ring
+               let floorHeight = calculatedHeight;
+                const isHoleBeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4) || (currentHoleNumber === 9 && worldZ > -45.0);
+                if (closeToWater || isHoleBeforeFairway) {
                 } else if (distanceToPath <= fW) {
                     floorHeight -= 0.12;
                 } else if (distanceToPath <= fWEdge) {
@@ -2453,14 +2695,13 @@ function resetEntireGame(advanceHole = false) {
                     const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
-
                 // Add smooth 3D micro-spikes to rough geometry vertices, dampening smoothly to zero near bunker and water edges
                 if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
                     let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
 
-                    // Smoothstep Hermite dampener near bunker edges (3.0 unit safety transition buffer)
-                    if (shortestDistToBunkerEdge < 3.0) {
-                        const tBunker = THREE.MathUtils.clamp(shortestDistToBunkerEdge / 3.0, 0, 1);
+                    // Smoothstep Hermite dampener near bunker edges (fades in only outside the 0.7-unit collar)
+                    if (minDistOutsideBunker < 2.5) {
+                        const tBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
                         grassJitter *= THREE.MathUtils.smoothstep(tBunker, 0, 1);
                     }
                     // Smoothstep Hermite dampener near water edges (3.0 unit safety transition buffer)
@@ -2490,8 +2731,9 @@ function resetEntireGame(advanceHole = false) {
                                 roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
                             }
                         }
-                        if (shortestDistToBunkerEdge < 2.0) {
-                            roughLift *= (shortestDistToBunkerEdge / 2.0);
+                        if (minDistOutsideBunker < 2.5) {
+                            const tLiftBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
+                            roughLift *= THREE.MathUtils.smoothstep(tLiftBunker, 0, 1);
                         }
                         calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
                     }
@@ -2507,9 +2749,11 @@ function resetEntireGame(advanceHole = false) {
                         }
                     }
 
-                    // 3. SAND PROTECTION: Push the grass floor deep down inside sand traps so no green blades clip through the bunkers
-                    if (insideSandZone) {
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ) - 0.75;
+                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+                    if (insideSandZone || minDistOutsideBunker < 0.9) {
+                        const tCollar = Math.max(0, Math.min(1, (0.9 - minDistOutsideBunker) / 0.9));
+                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
+                        calculatedHeight -= smoothTCollar * 0.75;
                     }
                 }
 
@@ -2546,14 +2790,15 @@ function resetEntireGame(advanceHole = false) {
                     // Deep hidden height for out-of-bounds or buried fairway grid points
                     const hiddenFairwayH = floorHeight - 5.0;
 
-                    // Boundary checks for fairway corridor
+                  // Boundary checks for fairway corridor
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7));
-                    if (insideSandZone || isOutsideFairwayBounds) {
+                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
+                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
+                    if (isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {
                         // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
@@ -2562,13 +2807,13 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
                     } else {
                         // Smooth side edge taper matching the fairway cut width
+                        let sideTaperH = calculatedHeight - 0.03;
                         if (distanceToPath > fW) {
                             const tEdge = THREE.MathUtils.clamp((distanceToPath - fW) / 3.5, 0, 1);
                             const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
-                            calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
-                        } else {
-                            calculatedHeight -= 0.03;
+                            sideTaperH = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
                         }
+                        calculatedHeight = sideTaperH;
                     }
 
 
@@ -2582,7 +2827,7 @@ function resetEntireGame(advanceHole = false) {
 
             // NEW: If deforming a sand trap mesh itself, add a tiny positive offset cushion to prevent z-fighting clips
             if (sandTraps.includes(targetMesh)) {
-                calculatedHeight += 0.02;
+                calculatedHeight += targetMesh.userData && targetMesh.userData.isCollar ? 0.035 : 0.02;
             } else if (waterShores.includes(targetMesh) && targetMesh.geometry.type === 'RingGeometry') {
                 // Surgically offset the dirt border ring locally relative to its high/low lake position
                 calculatedHeight += (0.022 - targetMesh.position.y);
@@ -4019,31 +4264,33 @@ function animate() {
                 const tanX = -hDirZ * ball.userData.lipDirection;
                 const tanZ = hDirX * ball.userData.lipDirection;
 
-                // Pull smoothly onto rim circumference track
-                const targetLipDist = cupRimRadius - 0.010;
+               // Pull smoothly onto rim circumference track
+                // INWARD SPIRAL: Tighten the orbit diameter dynamically as the ball loses speed
+                const spiralFactor = Math.min(1.0, trueWorldSpeed / 0.080);
+                const targetLipDist = (cupRimRadius - 0.010) * (0.3 + 0.7 * spiralFactor);
                 const newDist = THREE.MathUtils.lerp(distanceToHole, targetLipDist, 0.40);
                 ball.position.x = holePosition.x + hDirX * newDist;
                 ball.position.z = holePosition.z + hDirZ * newDist;
 
                 // Apply velocity tangent to lip with subtle friction drag
-                physics.velocity.x = (tanX * 0.94 - hDirX * 0.08) * rawSpeed * 0.985;
-                physics.velocity.z = (tanZ * 0.94 - hDirZ * 0.08) * rawSpeed * 0.985;
+                physics.velocity.x = (tanX * 0.98 - hDirX * 0.08) * rawSpeed * 0.994;
+                physics.velocity.z = (tanZ * 0.98 - hDirZ * 0.08) * rawSpeed * 0.994;
 
                 const cupFloorY = physics.getGroundHeight(holePosition.x, holePosition.z);
                 ball.position.y = THREE.MathUtils.lerp(ball.position.y, cupFloorY + 0.04, 0.20);
 
-                // A. Lip-In: Ball loses kinetic energy on the rim and drops into cup
-                if (trueWorldSpeed < 0.042) {
+                // A. Lip-In: Ball visibly circles the rim (~115 deg) before dropping in
+                if ((ball.userData.lipAngleTraveled > 2.0 && trueWorldSpeed < 0.045) || trueWorldSpeed < 0.008) {
                     isSinking = true;
                     ball.userData.isLipRiding = false;
-                    physics.velocity.x *= 0.3;
-                    physics.velocity.z *= 0.3;
+                    physics.velocity.x *= 0.2;
+                    physics.velocity.z *= 0.2;
                     if (sounds) sounds.play('sink');
                 }
-                // B. Horseshoe Lip-Out: Ball spins around the back of the cup (> 2.6 rad / ~150 deg) and whips away
-                else if (ball.userData.lipAngleTraveled > 2.6) {
-                    physics.velocity.x = (tanX * 0.85 + hDirX * 0.65) * rawSpeed * 0.95;
-                    physics.velocity.z = (tanZ * 0.85 + hDirZ * 0.65) * rawSpeed * 0.95;
+                // B. Horseshoe Lip-Out: Ball carries speed around the rim (> 125 deg) and whips away
+                else if (ball.userData.lipAngleTraveled > 2.2 && trueWorldSpeed >= 0.045) {
+                    physics.velocity.x = (tanX * 0.70 + hDirX * 0.85) * rawSpeed * 0.95;
+                    physics.velocity.z = (tanZ * 0.70 + hDirZ * 0.85) * rawSpeed * 0.95;
                     ball.userData.isLipRiding = false;
                     ball.userData.hasLipDeflected = true;
                     if (sounds) sounds.play('putt');
@@ -4056,17 +4303,27 @@ function animate() {
                 // A. Physical Pin Collision (if pin is visible and struck)
                 if (pin && pin.visible && distanceToHole <= (pinRadius + ballRadius + 0.015) && !ball.userData.hasHitPin) {
                     ball.userData.hasHitPin = true;
-                    ball.userData.hasLipDeflected = true;
                     ball.userData.isLipRiding = false;
-                    const bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI;
-                    physics.velocity.x = Math.sin(bounceAngle) * rawSpeed * 0.45;
-                    physics.velocity.z = Math.cos(bounceAngle) * rawSpeed * 0.45;
-                    if (sounds) sounds.play('iron');
+
+                    // Soft/medium pace: flagstick absorbs kinetic energy and drops ball into cup
+                    if (trueWorldSpeed <= 0.120) {
+                        isSinking = true;
+                        physics.velocity.x *= 0.1;
+                        physics.velocity.z *= 0.1;
+                        if (sounds) sounds.play('sink');
+                    } else {
+                        // Hard pace: ball ricochets off the flagstick
+                        ball.userData.hasLipDeflected = true;
+                        const bounceAngle = Math.atan2(physics.velocity.x, physics.velocity.z) + Math.PI;
+                        physics.velocity.x = Math.sin(bounceAngle) * rawSpeed * 0.45;
+                        physics.velocity.z = Math.cos(bounceAngle) * rawSpeed * 0.45;
+                        if (sounds) sounds.play('iron');
+                    }
                 }
                 // B. Center Channel Entry (Direct path towards cup center)
-                else if (crossTrack <= 0.048 && distanceToHole <= 0.075) {
+                else if (crossTrack <= 0.028 && distanceToHole <= 0.075) {
                     // Good pace -> Drops in smoothly
-                    if (trueWorldSpeed <= 0.130) {
+                    if (trueWorldSpeed <= 0.120) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
                         physics.velocity.x *= 0.2;
@@ -4083,9 +4340,9 @@ function animate() {
                     }
                 }
                 // C. Outer Rim / Lip Contact
-                else if (crossTrack > 0.048) {
-                    // Fast Glance: Instant outer lip-out deflection
-                    if (trueWorldSpeed > 0.155) {
+                else if (crossTrack > 0.028) {
+                    // Fast Glance: Instant outer lip-out deflection at high speed
+                    if (trueWorldSpeed > 0.200) {
                         ball.userData.hasLipDeflected = true;
                         ball.userData.isLipRiding = false;
                         const awayX = dx / (distanceToHole || 1);
@@ -4095,7 +4352,7 @@ function animate() {
                         if (sounds) sounds.play('putt');
                     }
                     // Controlled Pace: Catches the lip and begins riding the rim
-                    else if (rawSpeed > 0.010) {
+                    else if (rawSpeed > 0.006) {
                         ball.userData.isLipRiding = true;
                         ball.userData.hasLipDeflected = false;
                         ball.userData.lipAngleTraveled = 0;
@@ -4446,6 +4703,10 @@ function animate() {
         } else {
             const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
 
+            const yardsToHole = holeDist * 2.76923;
+            // Base duration (1.8s) + smooth square root scaling for longer distances
+            const flightDurationSec = THREE.MathUtils.clamp(1.8 + Math.sqrt(yardsToHole) * 0.65, 2.0, 4.0);
+            const flightSpeed = 1.0 / (flightDurationSec * 60);
             const flightSpeed = 0.003;
             previewProgress += flightSpeed;
             if (previewProgress > 1) previewProgress = 1;
@@ -4743,6 +5004,9 @@ function animate() {
             // Embed the ball slightly into the sand grain plane (35% ball radius drop) for a natural lie
             const trueFloorH = physics.getGroundHeight(bX, bZ);
             surfaceHeight = trueFloorH + ballRadius - (ballRadius * 0.15);
+        } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
+            // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
+            surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
         } else if (physics.currentSurface === 'Rough') {
             // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
             const distanceToPath = physics.getDistanceToSpline(bX, bZ);
@@ -4822,7 +5086,7 @@ function animate() {
 
         ball.position.y = surfaceHeight;
     }
-   // --- DYNAMIC CLUB STANCE STATE MACHINE ---
+    // --- DYNAMIC CLUB STANCE STATE MACHINE ---
     const clubSwipeElement = document.getElementById('clubSwipe');
     const distanceGauge = document.getElementById('distanceGauge');
     if (clubSwipeElement && input) {
@@ -4832,9 +5096,9 @@ function animate() {
             let timeSinceStop = performance.now() - shotStoppedTime;
             let isPostShotResting = !physics.isMoving && (timeSinceStop < POST_SHOT_DELAY);
 
-       // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
+            // Added !isPostShotResting to hide the club until the camera completely finishes its drone pan
             if (!physics.isMoving && !isSinking && !isOverheadActive && !isPostShotResting) {
-             
+
                 const activeClub = input.getClubInfo();
 
                 // === REPLACE WITH THIS EXACT BLOCK ===
@@ -5028,7 +5292,7 @@ function animate() {
                     const vWorldZ = ringZ - ly;
 
                     const vGroundY = physics.getGroundHeight(vWorldX, vWorldZ);
-                    ringPosAttr.setZ(i, vGroundY + 0.04);
+                    ringPosAttr.setZ(i, vGroundY + 0.12);
                 }
                 ringPosAttr.needsUpdate = true;
 
@@ -5537,8 +5801,8 @@ function init() {
         transparent: true,
         opacity: 1.0,
         polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -4
+        polygonOffsetFactor: -3,
+        polygonOffsetUnits: -6
     });
     clubLandingRing = new THREE.Mesh(ringGeo, ringMat);
     clubLandingRing.rotation.x = -Math.PI / 2;
@@ -5926,7 +6190,7 @@ window.addEventListener('keydown', (e) => {
     const testScenarios = {
         '1': { name: 'Dead Center Drop-In', offset: 0.000, speed: -0.110, pinIn: false },
         '2': { name: 'Blow-By (Fast Through Cup)', offset: 0.000, speed: -0.280, pinIn: false },
-        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.078, speed: -0.090, pinIn: false },
+        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.070, speed: -0.065, pinIn: false }, 
         '4': { name: 'Horseshoe Lip-Out (360 Spin)', offset: 0.082, speed: -0.170, pinIn: false },
         '5': { name: 'Fast Lip-Out (Glance & Deflect)', offset: 0.096, speed: -0.260, pinIn: false },
         '6': { name: 'Pin Ricochet (Bounce Off)', offset: 0.000, speed: -0.250, pinIn: true }
@@ -5941,6 +6205,7 @@ window.addEventListener('keydown', (e) => {
     // Set pin visibility based on the test
     if (pin) pin.visible = test.pinIn;
     if (flag) flag.visible = test.pinIn;
+    window.wasFlagHiddenOnShot = !test.pinIn;
 
     // 1. Position ball 0.65 units (~1.8 ft) in front of the cup
     const startX = holePosition.x + test.offset;
@@ -5975,56 +6240,6 @@ window.addEventListener('keydown', (e) => {
     console.log(`Testing [Key ${e.key}]: ${test.name}`);
 });
 
-
-window.addEventListener('keydown', (e) => {
-    if (!ball || !physics || isSinking) return;
-
-    const testScenarios = {
-        '1': { name: 'Dead Center Drop-In', offset: 0.000, speed: -0.110 },
-        '2': { name: 'Blow-By (Fast Through Cup)', offset: 0.000, speed: -0.280 },
-        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.078, speed: -0.090 },
-        '4': { name: 'Horseshoe Lip-Out (360 Spin)', offset: 0.082, speed: -0.170 },
-        '5': { name: 'Fast Lip-Out (Glance & Deflect)', offset: 0.096, speed: -0.260 }
-    };
-
-    const test = testScenarios[e.key];
-    if (!test) return;
-
-    if (teeBox) teeBox.visible = false;
-    if (golfTee) golfTee.visible = false;
-
-    // 1. Position ball 0.65 units (~1.8 ft) in front of the cup
-    const startX = holePosition.x + test.offset;
-    const startZ = holePosition.z + 0.65;
-    const groundY = physics.getGroundHeight(startX, startZ) + 0.25 * (ball.scale.x || 0.51);
-
-    ball.position.set(startX, groundY, startZ);
-    ball.visible = true;
-    ball.userData.isLipRiding = false;
-    ball.userData.hasLipDeflected = false;
-    ball.userData.hasHitPin = false;
-
-    // 2. Snap camera directly behind the ball looking across toward the hole
-    const camDist = 2.4;
-    const camHeight = 1.1;
-    cameraTargetPos.set(startX, groundY + camHeight, startZ + camDist);
-    cameraLookAt.set(holePosition.x, groundY + 0.05, holePosition.z);
-    camera.position.copy(cameraTargetPos);
-    currentLookAt.copy(cameraLookAt);
-    camera.lookAt(cameraLookAt);
-    camera.fov = 55;
-    camera.updateProjectionMatrix();
-
-    // 3. Launch putt
-    physics.velocity.set(0, 0, test.speed);
-    physics.isMoving = true;
-    physics.isPutting = true;
-    wasMoving = false;
-    isSinking = false;
-
-    updateDistanceDisplay();
-    console.log(`Testing: ${test.name}`);
-});
 
 
 function updateGreenGrid() {

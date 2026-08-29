@@ -87,6 +87,7 @@ export class InputHandler {
         const rawUnits = this.getDistance() / 2.76923;
         // MODIFIED: Swapped 3.0 for 1.75 to perfectly match the HUD green display engine
         const distanceInFeet = rawUnits * 1.75;
+        if (distanceInFeet <= 4) return 10;
         if (distanceInFeet <= 10) return 20;
         if (distanceInFeet <= 20) return 30;
         if (distanceInFeet <= 30) return 40;
@@ -314,7 +315,7 @@ export class InputHandler {
             this.drawSwingTrail();
 
             const club = this.getClubInfo();
-         const targetPullDistance = Math.max(0, currentY - this.startY);
+            const targetPullDistance = Math.max(0, currentY - this.startY);
             const maxPullPixels = club.isGreen ? 160 : 180; // Changed 360 to 160 to increase sensitivity
             const backswingCap = this.getTreeBackswingCap();
             const pullRatio = Math.min(targetPullDistance / maxPullPixels, backswingCap);
@@ -349,7 +350,7 @@ export class InputHandler {
         }
     }
 
-onTouchEnd() {
+    onTouchEnd() {
         this.isAimDragging = false;
         this.isSwingingFromClub = false;
         if (this.isSwinging || this.state !== 'IDLE' || this.pullRatio > 0) {
@@ -421,7 +422,7 @@ onTouchEnd() {
             this.backswingTrail.push({ x: currentX, y: currentY });
             this.drawSwingTrail();
 
-           const club = this.getClubInfo();
+            const club = this.getClubInfo();
             const currentDrift = currentX - this.startX;
             if (Math.abs(currentDrift) > Math.abs(this.pullbackDriftX || 0)) {
                 this.pullbackDriftX = currentDrift;
@@ -461,7 +462,7 @@ onTouchEnd() {
         }
     }
 
-  onMouseUp() {
+    onMouseUp() {
         this.isAimDragging = false;
         this.isSwingingFromClub = false;
         if (this.isSwinging || this.state !== 'IDLE' || this.pullRatio > 0) {
@@ -491,14 +492,14 @@ onTouchEnd() {
         let sprayAngle = 0;
         let gearSpin = 0;
 
-        if (absOffset > SWEET_SPOT) {
+        const club = this.getClubInfo();
+
+        if (!club.isGreen && absOffset > SWEET_SPOT) {
             const penaltyRatio = Math.min(1.0, (absOffset - SWEET_SPOT) / (HEEL_TOE_LIMIT - SWEET_SPOT));
             contactQuality = 1.0 - (penaltyRatio * 0.35); // Lose up to 35% distance on mishits
             sprayAngle = (impactOffset / HEEL_TOE_LIMIT) * (18 * Math.PI / 180); // Deflect up to 18 degrees off-line
             gearSpin = (impactOffset / HEEL_TOE_LIMIT) * 30.0; // Unintended slice/hook spin
         }
-
-        const club = this.getClubInfo();
 
         const backswingCap = this.getTreeBackswingCap();
         const maxPullPixels = (club.isGreen ? 160 : 180) * backswingCap;
@@ -595,8 +596,11 @@ onTouchEnd() {
             if (this.ballRef) {
                 let inSand = false;
 
+
                 if (this.sandTrapsRef) {
+
                     for (let sand of this.sandTrapsRef) {
+                        if (sand.userData && sand.userData.isCollar) continue;
                         if (sand.userData && sand.userData.isPolygon) {
                             const points = sand.userData.points;
                             let inside = false;
@@ -686,7 +690,7 @@ onTouchEnd() {
         this.resetSwing();              // Preserved: Hides power bar and readies next shot
     }
 
-resetSwing() {
+    resetSwing() {
         this.isSwinging = false;
         this.state = 'IDLE';
         this.pullRatio = 0;
@@ -731,6 +735,11 @@ resetSwing() {
 
     drawSwingTrail(alpha = 1.0, isFlash = false) {
         if (!this.trailCtx || !this.trailCanvas) return;
+        const club = this.getClubInfo();
+        if (club && (club.isGreen || club.name === 'Putter')) {
+            this.clearSwingTrail();
+            return;
+        }
         const ctx = this.trailCtx;
         ctx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
 
@@ -776,6 +785,11 @@ resetSwing() {
     }
 
     flashAndFadeTrail() {
+        const club = this.getClubInfo();
+        if (club && (club.isGreen || club.name === 'Putter')) {
+            this.clearSwingTrail();
+            return;
+        }
         if (this.trailFadeTimer) cancelAnimationFrame(this.trailFadeTimer);
         const startTime = performance.now();
         const solidDuration = 1800; // Time in milliseconds lines stay 100% solid (1.8s)
