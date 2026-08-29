@@ -4705,9 +4705,9 @@ function animate() {
 
             const yardsToHole = holeDist * 2.76923;
             // Base duration (1.8s) + smooth square root scaling for longer distances
-            const flightDurationSec = THREE.MathUtils.clamp(1.8 + Math.sqrt(yardsToHole) * 0.65, 2.0, 4.0);
+            const flightDurationSec = THREE.MathUtils.clamp(1.8 + Math.sqrt(yardsToHole) * 0.65, 2.0, 6.0);
             const flightSpeed = 1.0 / (flightDurationSec * 60);
-            const flightSpeed = 0.003;
+            
             previewProgress += flightSpeed;
             if (previewProgress > 1) previewProgress = 1;
 
