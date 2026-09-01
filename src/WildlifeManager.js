@@ -77,7 +77,7 @@ export class WildlifeManager {
         }
 
         // --- 2. AMBIENT BUGS & FIREFLIES (Hovering over grass and hazards) ---
-        const bugCount = 35;
+        const bugCount = 15;
         const bugColors = [0xd4e157, 0x81c784, 0xffeb3b, 0x80deea];
 
         for (let i = 0; i < bugCount; i++) {
