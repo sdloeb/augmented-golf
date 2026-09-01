@@ -4,6 +4,7 @@ import { SoundManager } from './SoundManager.js';
 import { TutorialManager } from './TutorialManager.js';
 import { generateAdjacentHoles } from './AdjacentHoles.js';
 import { HOLES_CONFIG } from './HolesConfig.js';
+import { WildlifeManager } from './WildlifeManager.js';
 
 
 
@@ -74,6 +75,7 @@ let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
+let wildlife;
 let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
@@ -1610,6 +1612,7 @@ function resetEntireGame(advanceHole = false) {
         rainParticles.forEach(p => scene.remove(p));
         rainParticles = [];
     }
+    if (wildlife) wildlife.reset(currentHoleConfig, holePosition);
     isRaining = Math.random() < 0.05; // 25% chance of rain on any given hole
     if (isRaining) {
         document.body.classList.add('storm-mode');
@@ -5324,6 +5327,8 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
+if (wildlife) wildlife.update(currentTime, isRaining);
+
     // Add this block: Procedural 3D Rain Generation and Particle Recycling Simulation
     if (isRaining && rainParticles.length < 120 && scene) {
         const rGeo = new THREE.BoxGeometry(0.015, 0.4, 0.015);
@@ -5822,6 +5827,8 @@ function init() {
 
     sounds = new SoundManager();
     physics.sounds = sounds;
+
+    wildlife = new WildlifeManager(scene, physics);
 
     input = new InputHandler((power, angle, spin, loft) => {
         const dxStart = ball.position.x - holePosition.x;
