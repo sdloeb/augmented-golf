@@ -18,7 +18,9 @@ export class WildlifeManager {
         const totalSpanZ = Math.abs(greenZ - teeZ);
 
         // --- 1. BIRDS IN FLIGHT (Flapping 3D wings circling the sky) ---
-        const birdCount = 6;
+        const theme = (holeConfig && holeConfig.theme) ? holeConfig.theme : 'standard';
+        const baseBirdCount = theme === 'forest' ? 5 : (theme === 'open' ? 2 : 3);
+        const birdCount = baseBirdCount + Math.floor(Math.random() * 4);
         const birdMat = new THREE.MeshStandardMaterial({
             color: 0x222222,
             roughness: 0.8,
@@ -70,29 +72,49 @@ export class WildlifeManager {
                 speed: speed,
                 phase: phase,
                 flapSpeed: flapSpeed,
-                direction: Math.random() > 0.5 ? 1 : -1
+                direction: Math.random() > 0.5 ? 1 : -1,
+                glideOffset: Math.random() * 100,
+                swoopAmp: 2.0 + Math.random() * 3.5
             });
 
             this.birdGroup.add(bird);
         }
 
-        // --- 2. AMBIENT BUGS & FIREFLIES (Hovering over grass and hazards) ---
-        const bugCount = 15;
-        const bugColors = [0xd4e157, 0x81c784, 0xffeb3b, 0x80deea];
+   
+      // --- 2. AMBIENT BUGS & BUTTERFLIES (Contextual spawns) ---
+        const bugCount = 3 + Math.floor(Math.random() * 10);
+        const bugColors = [0xffffff, 0xfad02c, 0x4fc3f7, 0xd4e157, 0xff8a65];
 
         for (let i = 0; i < bugCount; i++) {
-            const color = bugColors[i % bugColors.length];
+            const isButterfly = Math.random() < 0.45;
+            const color = isButterfly 
+                ? bugColors[Math.floor(Math.random() * bugColors.length)]
+                : 0xd4e157;
+
             const bugMat = new THREE.MeshBasicMaterial({
                 color: color,
                 transparent: true,
-                opacity: 0.85
+                opacity: isButterfly ? 0.95 : 0.65
             });
 
-            const bugGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+            const bugGeo = isButterfly 
+                ? new THREE.BoxGeometry(0.14, 0.02, 0.12)
+                : new THREE.BoxGeometry(0.05, 0.05, 0.05);
             const bugMesh = new THREE.Mesh(bugGeo, bugMat);
 
-            const anchorX = (Math.random() - 0.5) * 55;
-            const anchorZ = teeZ - Math.random() * (totalSpanZ + 15);
+            // Anchor selection: 35% near water/hazards, 35% near trees/rough, 30% near tee/fairway
+            let anchorX = (Math.random() - 0.5) * 40;
+            let anchorZ = teeZ - Math.random() * (totalSpanZ * 0.5);
+
+            if (this.physics && this.physics.waterHazards && this.physics.waterHazards.length > 0 && Math.random() < 0.35) {
+                const w = this.physics.waterHazards[Math.floor(Math.random() * this.physics.waterHazards.length)];
+                anchorX = w.position.x + (Math.random() - 0.5) * 10;
+                anchorZ = w.position.z + (Math.random() - 0.5) * 10;
+            } else if (this.physics && this.physics.obstacles && this.physics.obstacles.length > 0 && Math.random() < 0.35) {
+                const obs = this.physics.obstacles[Math.floor(Math.random() * this.physics.obstacles.length)];
+                anchorX = obs.x + (Math.random() - 0.5) * 6;
+                anchorZ = obs.z + (Math.random() - 0.5) * 6;
+            }
             const hoverHeight = 0.8 + Math.random() * 2.2;
             const wanderSpeed = 0.002 + Math.random() * 0.003;
             const wanderRadius = 1.5 + Math.random() * 3.0;
@@ -101,11 +123,12 @@ export class WildlifeManager {
                 mesh: bugMesh,
                 anchorX: anchorX,
                 anchorZ: anchorZ,
-                hoverHeight: hoverHeight,
-                wanderSpeed: wanderSpeed,
-                wanderRadius: wanderRadius,
+                hoverHeight: isButterfly ? (0.4 + Math.random() * 0.9) : (0.8 + Math.random() * 2.0),
+                wanderSpeed: isButterfly ? (0.0012 + Math.random() * 0.001) : (0.003 + Math.random() * 0.004),
+                wanderRadius: isButterfly ? (2.5 + Math.random() * 4.0) : (0.8 + Math.random() * 1.5),
                 phase: Math.random() * Math.PI * 2,
-                noiseOffset: Math.random() * 100
+                noiseOffset: Math.random() * 100,
+                isButterfly: isButterfly
             });
 
             this.bugGroup.add(bugMesh);
@@ -135,7 +158,10 @@ export class WildlifeManager {
             b.group.position.set(x, y, z);
             b.group.lookAt(nextX, nextY, nextZ);
 
-            const flapAngle = Math.sin(time * b.flapSpeed) * 0.65;
+            // Periodic glide where flapping pauses
+            const glideCycle = Math.sin(time * 0.0015 + b.glideOffset);
+            const isGliding = glideCycle > 0.45;
+            const flapAngle = isGliding ? 0.08 : Math.sin(time * b.flapSpeed) * 0.65;
             b.leftWing.rotation.z = flapAngle;
             b.rightWing.rotation.z = -flapAngle;
         }
@@ -158,8 +184,15 @@ export class WildlifeManager {
 
             bg.mesh.position.set(currentX, currentY, currentZ);
 
-            const flutter = 0.8 + Math.sin(time * 0.03 + bg.noiseOffset) * 0.3;
-            bg.mesh.scale.set(flutter, flutter, flutter);
+           if (bg.isButterfly) {
+                // Quick wing clap rotation + erratic flutter
+                const flap = Math.sin(time * 0.035 + bg.noiseOffset);
+                bg.mesh.scale.set(0.7 + Math.abs(flap) * 0.5, 1.0, 0.9);
+                bg.mesh.rotation.y += 0.04;
+            } else {
+                const flutter = 0.8 + Math.sin(time * 0.03 + bg.noiseOffset) * 0.3;
+                bg.mesh.scale.set(flutter, flutter, flutter);
+            }
         }
     }
 
