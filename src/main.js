@@ -4729,9 +4729,11 @@ function animate() {
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
 
-            // Query your active club details to cap the flight trajectory right at the yellow target circle range
+           // Query your active club details to cap the flight trajectory right at the yellow target circle range
             const club = input ? input.getClubInfo() : null;
-            const ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
+            let ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
+            const stopAtGreen = (yardsToHole <= 100) && (ringDist >= holeDist);
+            if (stopAtGreen) ringDist = holeDist;
 
             // Projected target point straight down the custom aim line capped at your club ring distance
             const targetX = ball.position.x + aimDirX * ringDist;
@@ -4766,9 +4768,9 @@ function animate() {
             const totalFlightDist = distLeg1 + distLeg2 || 1;
             const splitPoint = distLeg1 / totalFlightDist;
 
-            if (previewProgress < splitPoint) {
+           if (stopAtGreen || previewProgress < splitPoint) {
                 // PART 1: Fly from Tee Box to your custom Aim Point
-                const t = previewProgress / splitPoint; // Scales local segment progress uniformly
+                const t = stopAtGreen ? previewProgress : (previewProgress / splitPoint);
                 currentX = THREE.MathUtils.lerp(startCamX, midCamX, t);
                 currentZ = THREE.MathUtils.lerp(startCamZ, midCamZ, t);
 
