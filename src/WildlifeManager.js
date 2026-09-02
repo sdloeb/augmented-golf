@@ -55,10 +55,10 @@ export class WildlifeManager {
             const orbitCenterZ = teeZ - Math.random() * totalSpanZ;
             const orbitRadiusX = 25 + Math.random() * 35;
             const orbitRadiusZ = 30 + Math.random() * 40;
-            const altitude = 18 + Math.random() * 14;
-            const speed = 0.0004 + Math.random() * 0.0003;
+            const altitude = 26 + Math.random() * 14;
+            const speed = 0.0002 + Math.random() * 0.00015;
             const phase = Math.random() * Math.PI * 2;
-            const flapSpeed = 0.012 + Math.random() * 0.006;
+            const flapSpeed = 0.007 + Math.random() * 0.003;
 
             this.birds.push({
                 group: bird,
