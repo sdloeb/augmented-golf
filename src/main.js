@@ -98,7 +98,7 @@ let overheadPauseStartTime = 0;
 let shotStartTime = 0;
 let isLongShot = false;
 let shotStoppedTime = 0;       // <-- Capture the exact timestamp when the ball settles
-const POST_SHOT_DELAY = 1800;
+const POST_SHOT_DELAY = 2500;
 
 // --- DISTANT 360 HORIZON RING SYSTEM ---
 let horizonRingMesh = null;
@@ -4530,15 +4530,15 @@ function animate() {
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
 
                 // ADJUSTED: Pushed horizontal cushion back to 20.0 to stay further behind the ball
-                const backX = -(dirX / length) * 20.0;
-                const backZ = -(dirZ / length) * 20.0;
+                const backX = -(dirX / length) * 28.0;
+                const backZ = -(dirZ / length) * 28.0;
 
                 const moveCamX = ball.position.x + backX; // Add this line
                 const moveCamZ = ball.position.z + backZ; // Add this line
                 const moveCamGroundY = physics.getGroundHeight(moveCamX, moveCamZ); // Add this line: Samples ground directly beneath moving camera
 
                 // ADJUSTED: Raised vertical cushion to 5.5 to keep a higher, clear blimp-style angle
-                const moveCamY = Math.max(ball.position.y + 5.5, moveCamGroundY + 5.5);
+                const moveCamY = Math.max(ball.position.y + 7.5, moveCamGroundY + 7.5);
 
                 cameraTargetPos.set(moveCamX, moveCamY, moveCamZ); // Modify this line
 
@@ -4935,7 +4935,7 @@ function animate() {
     // NEW: Post-shot camera fader to create a slow cinematic pan into your address stance position
     let timeSinceStop = performance.now() - shotStoppedTime;
     if (!physics.isMoving && timeSinceStop < POST_SHOT_DELAY && !isOverheadActive && !isSinking) {
-        activeCameraSpeed = 0.035; // Drastically lower interpolation speed for a luxurious tracking glide
+        activeCameraSpeed = 0.018; // Drastically lower interpolation speed for a luxurious tracking glide
     }
 
     camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Existing line below your new addition
