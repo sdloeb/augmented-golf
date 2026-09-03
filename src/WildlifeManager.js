@@ -8,6 +8,9 @@ export class WildlifeManager {
         this.bugGroup = new THREE.Group();
         this.scene.add(this.birdGroup);
         this.scene.add(this.bugGroup);
+        this.waterfowl = [];
+        this.waterfowlGroup = new THREE.Group();
+        this.scene.add(this.waterfowlGroup);
     }
 
     reset(holeConfig, holePosition) {
@@ -133,6 +136,122 @@ export class WildlifeManager {
 
             this.bugGroup.add(bugMesh);
         }
+        // --- 3. DUCKS & GEESE ON WATER HAZARDS ---
+        if (this.physics && this.physics.waterHazards && this.physics.waterHazards.length > 0) {
+            // 70% chance to spawn waterfowl whenever water hazards exist on the hole
+            if (Math.random() < 0.70) {
+                const lakes = this.physics.waterHazards.filter(w => !w.userData || !w.userData.isRectangular);
+                if (lakes.length > 0) {
+                    const targetLake = lakes[Math.floor(Math.random() * lakes.length)];
+                    const rx = targetLake.userData.radiusX || targetLake.userData.radius || 10;
+                    const rz = targetLake.userData.radiusZ || targetLake.userData.radius || 10;
+                    const waterSurfaceY = targetLake.position.y + 0.02;
+
+                    const fowlCount = 2 + Math.floor(Math.random() * 3); // 2 to 4 birds
+
+                    for (let f = 0; f < fowlCount; f++) {
+                        const isGoose = Math.random() > 0.5; // Mix of mallard ducks and Canada geese
+                        const birdGroup = new THREE.Group();
+
+                        if (isGoose) {
+                            // --- CANADA GOOSE ---
+                            const scale = 0.65 + Math.random() * 0.15;
+                            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5a534c, roughness: 0.8 });
+                            const neckMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+                            const whitePatchMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+                            const billMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 });
+
+                            // Body
+                            const bodyGeo = new THREE.SphereGeometry(0.32 * scale, 8, 8);
+                            bodyGeo.scale(0.85, 0.75, 1.4);
+                            const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                            bodyMesh.position.set(0, 0.12 * scale, 0);
+                            birdGroup.add(bodyMesh);
+
+                            // Tall neck
+                            const neckGeo = new THREE.CylinderGeometry(0.06 * scale, 0.08 * scale, 0.38 * scale, 6);
+                            const neckMesh = new THREE.Mesh(neckGeo, neckMat);
+                            neckMesh.position.set(0, 0.32 * scale, 0.24 * scale);
+                            neckMesh.rotation.x = 0.3;
+                            birdGroup.add(neckMesh);
+
+                            // Head
+                            const headGeo = new THREE.SphereGeometry(0.10 * scale, 6, 6);
+                            const headMesh = new THREE.Mesh(headGeo, neckMat);
+                            headMesh.position.set(0, 0.48 * scale, 0.32 * scale);
+                            birdGroup.add(headMesh);
+
+                            // White cheek patch
+                            const patchGeo = new THREE.BoxGeometry(0.21 * scale, 0.08 * scale, 0.08 * scale);
+                            const patchMesh = new THREE.Mesh(patchGeo, whitePatchMat);
+                            patchMesh.position.set(0, 0.48 * scale, 0.30 * scale);
+                            birdGroup.add(patchMesh);
+
+                            // Bill
+                            const billGeo = new THREE.ConeGeometry(0.04 * scale, 0.12 * scale, 4);
+                            billGeo.rotateX(Math.PI / 2);
+                            const billMesh = new THREE.Mesh(billGeo, billMat);
+                            billMesh.position.set(0, 0.46 * scale, 0.44 * scale);
+                            birdGroup.add(billMesh);
+                        } else {
+                            // --- MALLARD DUCK ---
+                            const scale = 0.42 + Math.random() * 0.10;
+                            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6e5239, roughness: 0.8 });
+                            const headMat = new THREE.MeshStandardMaterial({ color: 0x095228, roughness: 0.4, metalness: 0.2 });
+                            const billMat = new THREE.MeshStandardMaterial({ color: 0xe5b217, roughness: 0.4 });
+                            const collarMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+
+                            // Body
+                            const bodyGeo = new THREE.SphereGeometry(0.26 * scale, 8, 8);
+                            bodyGeo.scale(0.85, 0.70, 1.3);
+                            const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                            bodyMesh.position.set(0, 0.10 * scale, 0);
+                            birdGroup.add(bodyMesh);
+
+                            // White neck collar
+                            const collarGeo = new THREE.CylinderGeometry(0.075 * scale, 0.085 * scale, 0.05 * scale, 6);
+                            const collarMesh = new THREE.Mesh(collarGeo, collarMat);
+                            collarMesh.position.set(0, 0.21 * scale, 0.18 * scale);
+                            collarMesh.rotation.x = 0.2;
+                            birdGroup.add(collarMesh);
+
+                            // Emerald head
+                            const headGeo = new THREE.SphereGeometry(0.11 * scale, 6, 6);
+                            const headMesh = new THREE.Mesh(headGeo, headMat);
+                            headMesh.position.set(0, 0.28 * scale, 0.22 * scale);
+                            birdGroup.add(headMesh);
+
+                            // Yellow bill
+                            const billGeo = new THREE.BoxGeometry(0.06 * scale, 0.03 * scale, 0.11 * scale);
+                            const billMesh = new THREE.Mesh(billGeo, billMat);
+                            billMesh.position.set(0, 0.27 * scale, 0.33 * scale);
+                            birdGroup.add(billMesh);
+                        }
+
+                        // Keep birds floating inside safe water margins (30% to 70% of radius from center)
+                        const spawnAngle = (f / fowlCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+                        const spawnDistFactor = 0.30 + Math.random() * 0.40;
+
+                        const orbitRadiusX = rx * spawnDistFactor;
+                        const orbitRadiusZ = rz * spawnDistFactor;
+
+                        this.waterfowl.push({
+                            group: birdGroup,
+                            lakeX: targetLake.position.x,
+                            lakeZ: targetLake.position.z,
+                            waterY: waterSurfaceY,
+                            radiusX: orbitRadiusX,
+                            radiusZ: orbitRadiusZ,
+                            angle: spawnAngle,
+                            speed: (0.0003 + Math.random() * 0.0002) * (Math.random() > 0.5 ? 1 : -1),
+                            bobPhase: Math.random() * Math.PI * 2
+                        });
+
+                        this.waterfowlGroup.add(birdGroup);
+                    }
+                }
+            }
+        }
     }
 
     update(time, isRaining) {
@@ -192,7 +311,28 @@ export class WildlifeManager {
             } else {
                 const flutter = 0.8 + Math.sin(time * 0.03 + bg.noiseOffset) * 0.3;
                 bg.mesh.scale.set(flutter, flutter, flutter);
+
             }
+        }
+        // --- 3. UPDATE WATERFOWL (Paddle & water ripple bobbing) ---
+        for (let i = 0; i < this.waterfowl.length; i++) {
+            const wf = this.waterfowl[i];
+            wf.angle += wf.speed;
+
+            const posX = wf.lakeX + Math.cos(wf.angle) * wf.radiusX;
+            const posZ = wf.lakeZ + Math.sin(wf.angle) * wf.radiusZ;
+
+            // Subtle vertical ripple bobbing
+            const bob = Math.sin(time * 0.003 + wf.bobPhase) * 0.015;
+            const posY = wf.waterY + bob;
+
+            wf.group.position.set(posX, posY, posZ);
+
+            // Orient head forward along the swimming path
+            const nextAngle = wf.angle + wf.speed * 10;
+            const nextX = wf.lakeX + Math.cos(nextAngle) * wf.radiusX;
+            const nextZ = wf.lakeZ + Math.sin(nextAngle) * wf.radiusZ;
+            wf.group.lookAt(nextX, posY, nextZ);
         }
     }
 
@@ -219,5 +359,16 @@ export class WildlifeManager {
         }
         this.birds = [];
         this.bugs = [];
+        while (this.waterfowlGroup.children.length > 0) {
+            const obj = this.waterfowlGroup.children[0];
+            this.waterfowlGroup.remove(obj);
+            obj.traverse(child => {
+                if (child.isMesh) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                }
+            });
+        }
+        this.waterfowl = [];
     }
 }
