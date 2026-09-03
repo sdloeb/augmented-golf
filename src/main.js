@@ -4525,7 +4525,7 @@ function animate() {
             ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0005));
         }
         if (isLongShot) {
-            if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive) {
+           if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive && !physics.hasLanded) {
                 const dirX = holePosition.x - ball.position.x;
                 const dirZ = holePosition.z - ball.position.z;
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
