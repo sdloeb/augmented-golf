@@ -194,38 +194,83 @@ export class WildlifeManager {
                             billMesh.position.set(0, 0.46 * scale, 0.44 * scale);
                             birdGroup.add(billMesh);
                         } else {
-                            // --- MALLARD DUCK ---
+                       // --- MALLARD DUCK ---
                             const scale = 0.42 + Math.random() * 0.10;
-                            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6e5239, roughness: 0.8 });
-                            const headMat = new THREE.MeshStandardMaterial({ color: 0x095228, roughness: 0.4, metalness: 0.2 });
-                            const billMat = new THREE.MeshStandardMaterial({ color: 0xe5b217, roughness: 0.4 });
-                            const collarMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
 
-                            // Body
+                            // 1. Materials matching the reference photo
+                            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xc8cbcc, roughness: 0.8 }); // Light silvery-gray flanks
+                            const backMat = new THREE.MeshStandardMaterial({ color: 0x5a5048, roughness: 0.85 }); // Grayish-brown back/wings
+                            const breastMat = new THREE.MeshStandardMaterial({ color: 0x482415, roughness: 0.75 }); // Rich chestnut breast
+                            const headMat = new THREE.MeshStandardMaterial({ color: 0x085226, roughness: 0.35, metalness: 0.25 }); // Glossy emerald head
+                            const billMat = new THREE.MeshStandardMaterial({ color: 0xffd200, roughness: 0.35 }); // Vibrant yellow bill
+                            const collarMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }); // Crisp white neck ring
+                            const tailWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.6 }); // White outer tail
+                            const tailDarkMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.7 }); // Black curled rump coverts
+                            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 }); // Dark eye
+
+                            // 2. Main Body (Light Silvery-Gray Flanks)
                             const bodyGeo = new THREE.SphereGeometry(0.26 * scale, 8, 8);
-                            bodyGeo.scale(0.85, 0.70, 1.3);
+                            bodyGeo.scale(0.85, 0.70, 1.15);
                             const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-                            bodyMesh.position.set(0, 0.10 * scale, 0);
+                            bodyMesh.position.set(0, 0.10 * scale, -0.02 * scale);
                             birdGroup.add(bodyMesh);
 
-                            // White neck collar
-                            const collarGeo = new THREE.CylinderGeometry(0.075 * scale, 0.085 * scale, 0.05 * scale, 6);
+                            // 3. Back / Folded Wings (Darker Gray-Brown)
+                            const backGeo = new THREE.SphereGeometry(0.23 * scale, 8, 8);
+                            backGeo.scale(0.80, 0.55, 1.10);
+                            const backMesh = new THREE.Mesh(backGeo, backMat);
+                            backMesh.position.set(0, 0.15 * scale, -0.04 * scale);
+                            birdGroup.add(backMesh);
+
+                            // 4. Chest / Breast (Chestnut Brown)
+                            const breastGeo = new THREE.SphereGeometry(0.20 * scale, 8, 8);
+                            breastGeo.scale(0.85, 0.85, 0.95);
+                            const breastMesh = new THREE.Mesh(breastGeo, breastMat);
+                            breastMesh.position.set(0, 0.12 * scale, 0.13 * scale);
+                            birdGroup.add(breastMesh);
+
+                            // 5. White Tail Feathers
+                            const tailWhiteGeo = new THREE.ConeGeometry(0.08 * scale, 0.22 * scale, 5);
+                            tailWhiteGeo.rotateX(-Math.PI / 2 - 0.25);
+                            const tailWhiteMesh = new THREE.Mesh(tailWhiteGeo, tailWhiteMat);
+                            tailWhiteMesh.position.set(0, 0.13 * scale, -0.32 * scale);
+                            birdGroup.add(tailWhiteMesh);
+
+                            // 6. Black Curled Rump Coverts (Above white tail)
+                            const tailDarkGeo = new THREE.SphereGeometry(0.07 * scale, 6, 6);
+                            tailDarkGeo.scale(0.8, 0.6, 1.0);
+                            const tailDarkMesh = new THREE.Mesh(tailDarkGeo, tailDarkMat);
+                            tailDarkMesh.position.set(0, 0.16 * scale, -0.27 * scale);
+                            birdGroup.add(tailDarkMesh);
+
+                            // 7. Crisp White Neck Ring
+                            const collarGeo = new THREE.CylinderGeometry(0.075 * scale, 0.085 * scale, 0.04 * scale, 8);
                             const collarMesh = new THREE.Mesh(collarGeo, collarMat);
-                            collarMesh.position.set(0, 0.21 * scale, 0.18 * scale);
+                            collarMesh.position.set(0, 0.20 * scale, 0.18 * scale);
                             collarMesh.rotation.x = 0.2;
                             birdGroup.add(collarMesh);
 
-                            // Emerald head
-                            const headGeo = new THREE.SphereGeometry(0.11 * scale, 6, 6);
+                            // 8. Emerald Green Head
+                            const headGeo = new THREE.SphereGeometry(0.11 * scale, 8, 8);
                             const headMesh = new THREE.Mesh(headGeo, headMat);
                             headMesh.position.set(0, 0.28 * scale, 0.22 * scale);
                             birdGroup.add(headMesh);
 
-                            // Yellow bill
-                            const billGeo = new THREE.BoxGeometry(0.06 * scale, 0.03 * scale, 0.11 * scale);
+                            // 9. Bright Yellow Bill
+                            const billGeo = new THREE.BoxGeometry(0.065 * scale, 0.028 * scale, 0.13 * scale);
                             const billMesh = new THREE.Mesh(billGeo, billMat);
-                            billMesh.position.set(0, 0.27 * scale, 0.33 * scale);
+                            billMesh.position.set(0, 0.265 * scale, 0.33 * scale);
                             birdGroup.add(billMesh);
+
+                            // 10. Dark Eyes
+                            const eyeGeo = new THREE.SphereGeometry(0.016 * scale, 4, 4);
+                            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                            leftEye.position.set(-0.10 * scale, 0.29 * scale, 0.24 * scale);
+                            birdGroup.add(leftEye);
+
+                            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                            rightEye.position.set(0.10 * scale, 0.29 * scale, 0.24 * scale);
+                            birdGroup.add(rightEye);
                         }
 
                         // Keep birds floating inside safe water margins (30% to 70% of radius from center)
