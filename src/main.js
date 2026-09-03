@@ -1612,7 +1612,7 @@ function resetEntireGame(advanceHole = false) {
         rainParticles.forEach(p => scene.remove(p));
         rainParticles = [];
     }
-    if (wildlife) wildlife.reset(currentHoleConfig, holePosition);
+    
     isRaining = Math.random() < 0.05; // 25% chance of rain on any given hole
     if (isRaining) {
         document.body.classList.add('storm-mode');
@@ -3969,6 +3969,7 @@ function resetEntireGame(advanceHole = false) {
     const totalDx = ball.position.x - holePosition.x;
     const totalDz = ball.position.z - holePosition.z;
     currentHoleYards = Math.round(Math.sqrt(totalDx * totalDx + totalDz * totalDz) * 2.76923);
+    if (wildlife) wildlife.reset(currentHoleConfig, holePosition);
 }
 
 

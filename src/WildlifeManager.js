@@ -139,7 +139,7 @@ export class WildlifeManager {
         // --- 3. DUCKS & GEESE ON WATER HAZARDS ---
         if (this.physics && this.physics.waterHazards && this.physics.waterHazards.length > 0) {
             // 70% chance to spawn waterfowl whenever water hazards exist on the hole
-            if (Math.random() < 0.70) {
+            if (Math.random() < 0.85) {
                 const lakes = this.physics.waterHazards.filter(w => !w.userData || !w.userData.isRectangular);
                 if (lakes.length > 0) {
                     const targetLake = lakes[Math.floor(Math.random() * lakes.length)];
