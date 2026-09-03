@@ -769,8 +769,8 @@ html {
 
     #backspinBtn {
         position: absolute !important;
-        top: calc(max(20px, env(safe-area-inset-top)) + 166px) !important;
-        left: max(20px, env(safe-area-inset-left)) !important;
+        top: calc(max(20px, env(safe-area-inset-top)) + 140px) !important;
+        left: max(50px, env(safe-area-inset-left)) !important;
         right: auto !important;
         bottom: auto !important;
         transform: none !important;

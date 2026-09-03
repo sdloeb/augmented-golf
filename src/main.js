@@ -1612,7 +1612,7 @@ function resetEntireGame(advanceHole = false) {
         rainParticles.forEach(p => scene.remove(p));
         rainParticles = [];
     }
-    
+
     isRaining = Math.random() < 0.05; // 25% chance of rain on any given hole
     if (isRaining) {
         document.body.classList.add('storm-mode');
@@ -2656,17 +2656,14 @@ function resetEntireGame(advanceHole = false) {
                     }
                 }
 
-
-                // FIXED: Replaced undefined greenCenterX with your safe horizontal green positioning reference
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
                 const distToGreenCenter = Math.sqrt(relX * relX + relZ * relZ);
 
-                // FIXED: Added 'physics.' prefix to approachDirX and approachDirZ to fix the blank screen ReferenceError crash
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
 
-                // Use the angle-warped green radius instead of a static circle fallback
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+                const fringeOuterR = activeRadius + 1.0;
 
                 // Universal procedural apron taper logic for all standard and random holes
                 if (currentHoleNumber !== 3) {
@@ -2684,22 +2681,28 @@ function resetEntireGame(advanceHole = false) {
 
                 const fWEdge = fW + 3.5;
 
-                // FIXED: Terminate cutoff cleanly along the green's circular edge and back equator sides
-                const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
-                const isOnGreenSidesOrBack = false;
+                const pastFairwayDist = approachDot + (distToGreenCenter - activeRadius) * 0.5;
+                const isPastFairway = (distToGreenCenter < activeRadius) || (pastFairwayDist > 0);
+
+                // Smoothly transition fairway cut only once past the green's equator
+                const lateralExcess = Math.max(0, distanceToPath - fW);
+                const forwardExcess = (distToGreenCenter >= fringeOuterR && pastFairwayDist > 0) ? pastFairwayDist : 0;
+                const fairwayExcess = Math.max(lateralExcess, forwardExcess);
+
                 // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-               let floorHeight = calculatedHeight;
+                let floorHeight = calculatedHeight;
                 const isHoleBeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4) || (currentHoleNumber === 9 && worldZ > -45.0);
                 if (closeToWater || isHoleBeforeFairway) {
-                } else if (distanceToPath <= fW) {
+                } else if (fairwayExcess <= 0) {
                     floorHeight -= 0.12;
-                } else if (distanceToPath <= fWEdge) {
-                    const t = (distanceToPath - fW) / 3.5;
+                } else if (fairwayExcess <= 3.5) {
+                    const t = fairwayExcess / 3.5;
                     const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
+
                 // Add smooth 3D micro-spikes to rough geometry vertices, dampening smoothly to zero near bunker and water edges
-                if (distanceToPath > fWEdge && !insideWaterZone && !insideSandZone && distToGreen > fringeOuterR) {
+                if (fairwayExcess >= 3.5 && !insideWaterZone && !insideSandZone && distToGreenCenter > fringeOuterR) {
                     let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
 
                     // Smoothstep Hermite dampener near bunker edges (fades in only outside the 0.7-unit collar)
@@ -2722,31 +2725,25 @@ function resetEntireGame(advanceHole = false) {
 
                     // 1. HILLS: Calculate a smooth gradual step-up right where the fairway and green fringe end
                     if (!insideSandZone && !insideWaterZone && currentHoleNumber !== 5) {
-                        let roughLift = 0;
-                        if (isPastFairway) {
-                            if (distToGreen > fringeOuterR) {
-                                const tGreen = Math.min(1, (distToGreen - fringeOuterR) / 3.5);
-                                roughLift = THREE.MathUtils.smoothstep(tGreen, 0, 1);
-                            }
-                        } else {
-                            if (distanceToPath > fW) {
-                                const tPath = Math.min(1, (distanceToPath - fW) / 3.5);
-                                roughLift = THREE.MathUtils.smoothstep(tPath, 0, 1);
-                            }
-                        }
+                        const tFairway = Math.min(1, fairwayExcess / 3.5);
+                        const tGreen = Math.min(1, Math.max(0, distToGreenCenter - fringeOuterR) / 3.5);
+                        const tRough = Math.min(tFairway, tGreen);
+                        const roughLift = THREE.MathUtils.smoothstep(tRough, 0, 1);
+
+                        let liftMult = 1.0;
                         if (minDistOutsideBunker < 2.5) {
                             const tLiftBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
-                            roughLift *= THREE.MathUtils.smoothstep(tLiftBunker, 0, 1);
+                            liftMult = THREE.MathUtils.smoothstep(tLiftBunker, 0, 1);
                         }
-                        calculatedHeight += roughLift * 0.3; // Smooth hill ramp matching transition width
+                        calculatedHeight += roughLift * liftMult * 0.3; // Smooth hill ramp matching transition width
                     }
 
                     // Smoothly slope terrain floor beneath green fringe to prevent sharp edge clipping
-                    if (distToGreen < fringeOuterR + 1.5) {
+                    if (distToGreenCenter < fringeOuterR + 1.5) {
                         if (currentHoleNumber === 5) {
                             calculatedHeight -= 1.5; // Pull rough floor underground on Hole 5 island green so it doesn't poke out of the retaining wall
                         } else {
-                            const tFloor = Math.max(0, Math.min(1, (fringeOuterR + 1.5 - distToGreen) / 3.0));
+                            const tFloor = Math.max(0, Math.min(1, (fringeOuterR + 1.5 - distToGreenCenter) / 3.0));
                             const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
                             calculatedHeight -= smoothTFloor * 0.15; // Subtle 0.15 drop under fringe to prevent z-fighting without creating deep canyons
                         }
@@ -2793,8 +2790,71 @@ function resetEntireGame(advanceHole = false) {
                     // Deep hidden height for out-of-bounds or buried fairway grid points
                     const hiddenFairwayH = floorHeight - 5.0;
 
-                  // Boundary checks for fairway corridor
+                    // Boundary checks for fairway corridor
+                    const isOutsideFairwayBounds = (fairwayExcess > 3.5) ||
+                        (distanceToPath > fWEdge) ||
+                        (!isCustomHole && worldZ > -8.0) ||
+                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
+                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
+                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
+                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
+                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
+
+                    if (isOutsideFairwayBounds) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else if (distToGreenCenter < fringeR) {
+                        // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
+                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
+                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
+                    } else {
+                        // Smooth side edge taper matching the fairway cut width
+                        let sideTaperH = calculatedHeight - 0.03;
+                        if (fairwayExcess > 0) {
+                            const tEdge = THREE.MathUtils.clamp(fairwayExcess / 3.5, 0, 1);
+                            const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
+                            sideTaperH = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
+                        }
+                        calculatedHeight = sideTaperH;
+                    }
+                }
+
+                if (targetMesh === fairway) {
+                    // Dynamically curve mow lines along the fairway centerline path
+                    if (uvAttr && physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
+                        const points = physics.fairwayPoints;
+                        let minDistSq = Infinity;
+                        let closestIdx = 0;
+                        const step = 4;
+                        for (let j = 0; j < points.length; j += step) {
+                            const pt = points[j];
+                            const dSq = (worldX - pt.x) * (worldX - pt.x) + (worldZ - pt.z) * (worldZ - pt.z);
+                            if (dSq < minDistSq) {
+                                minDistSq = dSq;
+                                closestIdx = j;
+                            }
+                        }
+                        const p = points[closestIdx];
+                        const pNext = points[Math.min(points.length - 1, closestIdx + 2)];
+                        const pPrev = points[Math.max(0, closestIdx - 2)];
+                        let tanX = pNext.x - pPrev.x;
+                        let tanZ = pNext.z - pPrev.z;
+                        const tanLen = Math.sqrt(tanX * tanX + tanZ * tanZ) || 1;
+                        const perpX = -tanZ / tanLen;
+                        const perpZ = tanX / tanLen;
+                        const signedDist = (worldX - p.x) * perpX + (worldZ - p.z) * perpZ;
+                        uvAttr.setX(i, signedDist / 5.5);
+                    }
+                    const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
+                    const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
+                    const fringeR = activeR + 1.0;
+
+                    // Deep hidden height for out-of-bounds or buried fairway grid points
+                    const hiddenFairwayH = floorHeight - 5.0;
+
+                    // Boundary checks for fairway corridor
                     const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
+                        isPastFairway ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
@@ -4268,7 +4328,7 @@ function animate() {
                 const tanX = -hDirZ * ball.userData.lipDirection;
                 const tanZ = hDirX * ball.userData.lipDirection;
 
-               // Pull smoothly onto rim circumference track
+                // Pull smoothly onto rim circumference track
                 // INWARD SPIRAL: Tighten the orbit diameter dynamically as the ball loses speed
                 const spiralFactor = Math.min(1.0, trueWorldSpeed / 0.080);
                 const targetLipDist = (cupRimRadius - 0.010) * (0.3 + 0.7 * spiralFactor);
@@ -4525,7 +4585,7 @@ function animate() {
             ballTargetScale = Math.max(0.30, activeLaunchScale - (distanceTraveled * 0.0005));
         }
         if (isLongShot) {
-           if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive && !physics.hasLanded) {
+            if ((performance.now() - shotStartTime > (window.cameraDelayTime || 2000)) && !isOverheadActive && !physics.hasLanded) {
                 const dirX = holePosition.x - ball.position.x;
                 const dirZ = holePosition.z - ball.position.z;
                 const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
@@ -4711,7 +4771,7 @@ function animate() {
             // Base duration (1.8s) + smooth square root scaling for longer distances
             const flightDurationSec = THREE.MathUtils.clamp(1.8 + Math.sqrt(yardsToHole) * 0.65, 2.0, 6.0);
             const flightSpeed = 1.0 / (flightDurationSec * 60);
-            
+
             previewProgress += flightSpeed;
             if (previewProgress > 1) previewProgress = 1;
 
@@ -4730,7 +4790,7 @@ function animate() {
             const aimDirX = Math.sin(angle);
             const aimDirZ = Math.cos(angle);
 
-           // Query your active club details to cap the flight trajectory right at the yellow target circle range
+            // Query your active club details to cap the flight trajectory right at the yellow target circle range
             const club = input ? input.getClubInfo() : null;
             let ringDist = (club && !club.isGreen) ? (club.maxYards / 2.76923) : Math.sqrt(dX * dX + dZ * dZ);
             const stopAtGreen = (yardsToHole <= 100) && (ringDist >= holeDist);
@@ -4769,7 +4829,7 @@ function animate() {
             const totalFlightDist = distLeg1 + distLeg2 || 1;
             const splitPoint = distLeg1 / totalFlightDist;
 
-           if (stopAtGreen || previewProgress < splitPoint) {
+            if (stopAtGreen || previewProgress < splitPoint) {
                 // PART 1: Fly from Tee Box to your custom Aim Point
                 const t = stopAtGreen ? previewProgress : (previewProgress / splitPoint);
                 currentX = THREE.MathUtils.lerp(startCamX, midCamX, t);
@@ -5330,7 +5390,7 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
-if (wildlife) wildlife.update(currentTime, isRaining);
+    if (wildlife) wildlife.update(currentTime, isRaining);
 
     // Add this block: Procedural 3D Rain Generation and Particle Recycling Simulation
     if (isRaining && rainParticles.length < 120 && scene) {
@@ -6200,7 +6260,7 @@ window.addEventListener('keydown', (e) => {
     const testScenarios = {
         '1': { name: 'Dead Center Drop-In', offset: 0.000, speed: -0.110, pinIn: false },
         '2': { name: 'Blow-By (Fast Through Cup)', offset: 0.000, speed: -0.280, pinIn: false },
-        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.070, speed: -0.065, pinIn: false }, 
+        '3': { name: 'Lip-In (Edge Roll & Drop)', offset: 0.070, speed: -0.065, pinIn: false },
         '4': { name: 'Horseshoe Lip-Out (360 Spin)', offset: 0.082, speed: -0.170, pinIn: false },
         '5': { name: 'Fast Lip-Out (Glance & Deflect)', offset: 0.096, speed: -0.260, pinIn: false },
         '6': { name: 'Pin Ricochet (Bounce Off)', offset: 0.000, speed: -0.250, pinIn: true }
