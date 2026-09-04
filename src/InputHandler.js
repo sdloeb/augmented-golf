@@ -527,8 +527,8 @@ export class InputHandler {
                 tempoModifier = Math.max(0.80, 1.0 - (this.backswingDuration - 650) * 0.005);
             }
             // Only apply a ratio penalty if the forward downswing is abnormally slow/lazy compared to backswing (exempt short control chips)
-            if (tempoRatio > 1.8 && actualForwardDistance > 45) {
-                tempoModifier *= Math.max(0.45, 1.8 / tempoRatio);
+            if (tempoRatio > 3.5 && actualForwardDistance > 45) {
+                tempoModifier *= Math.max(0.45, 3.5 / tempoRatio);
             }
         }
         finalPower *= tempoModifier;
@@ -543,8 +543,8 @@ export class InputHandler {
         // 2. BASELINE RE-ACCELERATION DOWNSWING SPEED CHECK (exempt short control chips)
         if (!club.isGreen && actualForwardDistance > 45) {
             let speedMultiplier = 1.0;
-            if (forwardDuration > 130) {
-                speedMultiplier = Math.max(0.4, 1.0 - (forwardDuration - 130) * 0.0025);
+            if (forwardDuration > 400) {
+                speedMultiplier = Math.max(0.4, 1.0 - (forwardDuration - 400) * 0.0025);
             }
             finalPower *= speedMultiplier;
         }
