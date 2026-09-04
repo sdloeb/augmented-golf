@@ -33,7 +33,7 @@ export class InputHandler {
         this.maxPullY = 0;
         this.chosenClubIndex = null;
         this.pullRatio = 0;
-
+        this.showSwingTrail = false; // Set to false to disable swing lines (toggle to true later for player option)
         this.isAimMode = false;
         this.aimAngleOffset = 0;
         this.lastClubTapTime = 0;
@@ -734,6 +734,7 @@ export class InputHandler {
     }
 
     drawSwingTrail(alpha = 1.0, isFlash = false) {
+        if (!this.showSwingTrail) { this.clearSwingTrail(); return; }
         if (!this.trailCtx || !this.trailCanvas) return;
         const club = this.getClubInfo();
         if (club && (club.isGreen || club.name === 'Putter')) {
@@ -785,6 +786,7 @@ export class InputHandler {
     }
 
     flashAndFadeTrail() {
+        if (!this.showSwingTrail) { this.clearSwingTrail(); return; }
         const club = this.getClubInfo();
         if (club && (club.isGreen || club.name === 'Putter')) {
             this.clearSwingTrail();
