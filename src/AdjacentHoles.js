@@ -613,8 +613,8 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
     }
 
     // Grid sampling across entire course property (-140 to 140 X, -250 to 45 Z)
-    for (let gx = -135; gx <= 135; gx += 13) {
-        for (let gz = -245; gz <= 45; gz += 13) {
+    for (let gx = -135; gx <= 135; gx += 22) {
+        for (let gz = -245; gz <= 45; gz += 22) {
             const pseudoSeed1 = Math.sin(gx * 12.9898 + gz * 78.233) * 43758.5453;
             const pseudoSeed2 = Math.cos(gx * 93.9898 + gz * 67.345) * 24634.6345;
             const jitterX = (pseudoSeed1 - Math.floor(pseudoSeed1) - 0.5) * 8.0;
