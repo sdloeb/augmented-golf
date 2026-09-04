@@ -2757,68 +2757,7 @@ function resetEntireGame(advanceHole = false) {
                     }
                 }
 
-                if (targetMesh === fairway) {
-                    // Dynamically curve mow lines along the fairway centerline path
-                    if (uvAttr && physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
-                        const points = physics.fairwayPoints;
-                        let minDistSq = Infinity;
-                        let closestIdx = 0;
-                        const step = 4;
-                        for (let j = 0; j < points.length; j += step) {
-                            const pt = points[j];
-                            const dSq = (worldX - pt.x) * (worldX - pt.x) + (worldZ - pt.z) * (worldZ - pt.z);
-                            if (dSq < minDistSq) {
-                                minDistSq = dSq;
-                                closestIdx = j;
-                            }
-                        }
-                        const p = points[closestIdx];
-                        const pNext = points[Math.min(points.length - 1, closestIdx + 2)];
-                        const pPrev = points[Math.max(0, closestIdx - 2)];
-                        let tanX = pNext.x - pPrev.x;
-                        let tanZ = pNext.z - pPrev.z;
-                        const tanLen = Math.sqrt(tanX * tanX + tanZ * tanZ) || 1;
-                        const perpX = -tanZ / tanLen;
-                        const perpZ = tanX / tanLen;
-                        const signedDist = (worldX - p.x) * perpX + (worldZ - p.z) * perpZ;
-                        uvAttr.setX(i, signedDist / 5.5);
-                    }
-                    const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
-                    const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                    const fringeR = activeR + 1.0;
-
-                    // Deep hidden height for out-of-bounds or buried fairway grid points
-                    const hiddenFairwayH = floorHeight - 5.0;
-
-                    // Boundary checks for fairway corridor
-                    const isOutsideFairwayBounds = (fairwayExcess > 3.5) ||
-                        (distanceToPath > fWEdge) ||
-                        (!isCustomHole && worldZ > -8.0) ||
-                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
-                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
-                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-
-                    if (isOutsideFairwayBounds) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else if (distToGreenCenter < fringeR) {
-                        // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
-                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
-                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
-                    } else {
-                        // Smooth side edge taper matching the fairway cut width
-                        let sideTaperH = calculatedHeight - 0.03;
-                        if (fairwayExcess > 0) {
-                            const tEdge = THREE.MathUtils.clamp(fairwayExcess / 3.5, 0, 1);
-                            const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
-                            sideTaperH = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
-                        }
-                        calculatedHeight = sideTaperH;
-                    }
-                }
-
+             
                 if (targetMesh === fairway) {
                     // Dynamically curve mow lines along the fairway centerline path
                     if (uvAttr && physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
