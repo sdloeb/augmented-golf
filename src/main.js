@@ -684,11 +684,17 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-        if (ballDist < activeR || isOnFringe || isPuttingClub) {
-            // Display precisely in feet matching visual putting perspective
-            const feet = Math.round(gameDistance * 1.75);
-            distanceText.innerText = feet;
-            unitText.innerText = "feet";
+             if (ballDist < activeR || isOnFringe || isPuttingClub) {
+            // Display precisely in feet matching visual putting perspective, switching to inches inside 1 foot
+            const preciseFeet = gameDistance * 1.75;
+            if (preciseFeet < 1) {
+                const inches = Math.max(1, Math.round(preciseFeet * 12));
+                distanceText.innerText = inches;
+                unitText.innerText = inches === 1 ? "inch" : "inches";
+            } else {
+                distanceText.innerText = Math.round(preciseFeet);
+                unitText.innerText = "feet";
+            }
         } else {
             // Fairway, rough, and deep approach shots accurately maintain the global course yardage scale
             const yards = Math.round(gameDistance * 2.76923);
