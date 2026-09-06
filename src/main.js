@@ -630,7 +630,7 @@ function onWindowResize() {
 
 function getPuttingAddressBallScale() {
     const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const basePuttScale = isMobile ? 0.13 : 0.11;
+    const basePuttScale = isMobile ? 0.14 : 0.12;
     if (!ball || !holePosition) return basePuttScale;
 
     const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
