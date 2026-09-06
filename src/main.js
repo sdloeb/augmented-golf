@@ -4874,26 +4874,33 @@ function animate() {
         const dX = holePosition.x - refX;
         const dZ = holePosition.z - refZ;
 
-        let angle = Math.atan2(dX, dZ);
+       let angle = Math.atan2(dX, dZ);
         if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
         const dirX = Math.sin(angle);
         const dirZ = Math.cos(angle);
 
+        // Longer putts pull the address camera back a bit so distance reads accurately instead of always looking equally close
+        const puttDistUnits = Math.sqrt(dX * dX + dZ * dZ);
+        const addressCamBoost = Math.max(0, Math.min(1.6, (puttDistUnits - 3.0) * 0.18));
+
+
+
+        
         // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
         const aspect = window.innerWidth / window.innerHeight;
         let targetFov, rigidCamDist, rigidCamHeight, lookUpOffset;
 
         if (aspect < 1) {
             targetFov = 65;
-            rigidCamDist = 2.2;
-            rigidCamHeight = 1.1;
+           rigidCamDist = 2.2 + addressCamBoost;
+            rigidCamHeight = 1.1 + addressCamBoost * 0.2;
             lookUpOffset = -0.40;
         } else {
             // MODIFIED: Widened targetFov from 40 to 55 and pulled cam closer (3.5 to 2.4)
             // This eliminates the telephoto zoom effect so a 4-foot putt visually looks exactly 4 feet away.
             targetFov = 55;
-            rigidCamDist = 2.4;
-            rigidCamHeight = 1.1;
+            rigidCamDist = 2.4 + addressCamBoost;
+            rigidCamHeight = 1.1 + addressCamBoost * 0.2;
             lookUpOffset = -0.40;
         }
 
