@@ -628,6 +628,24 @@ function onWindowResize() {
     document.documentElement.style.setProperty('--club-scale', window.innerHeight / 1080);
 }
 
+function getPuttingAddressBallScale() {
+    const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+    const basePuttScale = isMobile ? 0.16 : 0.12;
+    if (!ball || !holePosition) return basePuttScale;
+
+    const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
+    const addressCamBoost = Math.max(0, Math.min(1.6, (puttDistUnits - 3.0) * 0.18));
+    const aspect = window.innerWidth / window.innerHeight;
+    const baseCamDist = aspect < 1 ? 2.2 : 2.4;
+    const baseCamHeight = 1.1;
+    const boostedDist = baseCamDist + addressCamBoost;
+    const boostedHeight = baseCamHeight + addressCamBoost * 0.2;
+    const scaleRatio = Math.hypot(boostedDist, boostedHeight) / Math.hypot(baseCamDist, baseCamHeight);
+
+    return basePuttScale * scaleRatio;
+}
+
+
 function checkIsBallOnGreenOrFringe() {
     if (!ball) return false;
     const greenCheckX = ball.position.x - (green ? green.position.x : 0);
@@ -4608,9 +4626,12 @@ function animate() {
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
             ballTargetScale = isMobile ? 0.35 : 0.35; // Change first number for mobile, second for desktop
-        } else if (onGreen) {
-            // Optional: First number is mobile size, second number is computer size
-            ballTargetScale = isMobile ? 0.16 : 0.14;
+              } else if (onGreen) {
+            if (currentClub && currentClub.name === 'Putter') {
+                ballTargetScale = getPuttingAddressBallScale();
+            } else {
+                ballTargetScale = isMobile ? 0.16 : 0.14;
+            }
         } else {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
