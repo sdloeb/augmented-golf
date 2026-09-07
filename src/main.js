@@ -702,7 +702,7 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-             if (ballDist < activeR || isOnFringe || isPuttingClub) {
+        if (ballDist < activeR || isOnFringe || isPuttingClub) {
             // Display precisely in feet matching visual putting perspective, switching to inches inside 1 foot
             const preciseFeet = gameDistance * 1.75;
             if (preciseFeet < 1) {
@@ -2708,8 +2708,11 @@ function resetEntireGame(advanceHole = false) {
                 const pastFairwayDist = approachDot + (distToGreenCenter - activeRadius) * 0.5;
                 const isPastFairway = (distToGreenCenter < activeRadius) || (pastFairwayDist > 0);
 
-                // Smoothly transition fairway cut only once past the green's equator
-                const lateralExcess = Math.max(0, distanceToPath - fW);
+                               // Smoothly transition fairway cut only once past the green's equator
+                // Widen the allowed corridor near water hazards so the fairway reaches the shoreline
+                // instead of tapering off early and leaving a jagged gap between fairway and water
+                                const waterWidening = Math.max(0, 10.0 - shortestDistToWaterEdge);
+                const lateralExcess = Math.max(0, distanceToPath - fW - waterWidening);
                 const forwardExcess = (distToGreenCenter >= fringeOuterR && pastFairwayDist > 0) ? pastFairwayDist : 0;
                 const fairwayExcess = Math.max(lateralExcess, forwardExcess);
 
@@ -2781,7 +2784,7 @@ function resetEntireGame(advanceHole = false) {
                     }
                 }
 
-             
+
                 if (targetMesh === fairway) {
                     // Dynamically curve mow lines along the fairway centerline path
                     if (uvAttr && physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
@@ -2810,7 +2813,7 @@ function resetEntireGame(advanceHole = false) {
                     }
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                                       const fringeR = activeR + 1.0;
+                    const fringeR = activeR + 1.0;
 
                     // Deep hidden height for out-of-bounds or buried fairway grid points
                     const hiddenFairwayH = floorHeight - 5.0;
@@ -2829,7 +2832,7 @@ function resetEntireGame(advanceHole = false) {
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
-                                  } else {
+                    } else {
                         // Smooth taper using the same fairwayExcess value the rough floor already blends with,
                         // so the fairway's edge (sides AND past the green) lines up with the rough with no seam
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 3.5, 0, 1);
@@ -2838,6 +2841,13 @@ function resetEntireGame(advanceHole = false) {
                     }
 
 
+                }
+
+                // Smoothly lower fairway/rough toward the water's buried depth as the shoreline gets close, avoiding a hard cliff at the water's edge
+                if ((targetMesh === floor || targetMesh === fairway) && shortestDistToWaterEdge < 3.0) {
+                    const tShore = THREE.MathUtils.clamp((3.0 - shortestDistToWaterEdge) / 3.0, 0, 1);
+                    const smoothShore = tShore * tShore * (3 - 2 * tShore);
+                    calculatedHeight = THREE.MathUtils.lerp(calculatedHeight, calculatedHeight - 0.2, smoothShore);
                 }
             } else {
                 // Pull grass meshes underground inside water lines to prevent clipping at the banks
@@ -4277,8 +4287,8 @@ function animate() {
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
 
-           
-   const hDirX = dx / (distanceToHole || 1);
+
+            const hDirX = dx / (distanceToHole || 1);
             const hDirZ = dz / (distanceToHole || 1);
 
             // Hill influence: negative when ball is uphill (gravity helps in), positive when downhill (gravity pulls away)
@@ -4621,7 +4631,7 @@ function animate() {
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
             ballTargetScale = isMobile ? 0.35 : 0.35; // Change first number for mobile, second for desktop
-              } else if (onGreen) {
+        } else if (onGreen) {
             if (currentClub && currentClub.name === 'Putter') {
                 ballTargetScale = getPuttingAddressBallScale();
             } else {
@@ -4896,7 +4906,7 @@ function animate() {
         const dX = holePosition.x - refX;
         const dZ = holePosition.z - refZ;
 
-       let angle = Math.atan2(dX, dZ);
+        let angle = Math.atan2(dX, dZ);
         if (input && input.aimAngleOffset) angle += input.aimAngleOffset;
         const dirX = Math.sin(angle);
         const dirZ = Math.cos(angle);
@@ -4907,14 +4917,14 @@ function animate() {
 
 
 
-        
+
         // Dynamic Profile Matrix to automatically adapt when switching between mobile portrait and desktop monitors
         const aspect = window.innerWidth / window.innerHeight;
         let targetFov, rigidCamDist, rigidCamHeight, lookUpOffset;
 
         if (aspect < 1) {
             targetFov = 65;
-           rigidCamDist = 2.2 + addressCamBoost;
+            rigidCamDist = 2.2 + addressCamBoost;
             rigidCamHeight = 1.1 + addressCamBoost * 0.2;
             lookUpOffset = -0.40;
         } else {
