@@ -92,7 +92,11 @@ export class SoundManager {
             const sound = audioArray[idx];
 
             if (sound) {
-                sound.currentTime = 0;
+                                try {
+                    sound.currentTime = 0;
+                } catch (resetErr) {
+                    console.log("Audio currentTime reset skipped:", resetErr);
+                }
                 sound.play().catch(err => console.log("Audio playback waiting for user interaction:", err));
             }
 
