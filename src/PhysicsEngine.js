@@ -839,11 +839,13 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
             this.velocity.y = 0;
             this.velocity.x *= 0.5;
             this.velocity.z *= 0.5;
-        } else {
+              } else {
             // Calculates low-piercing woods vs high-popping wedges
-            this.velocity.y = power * loft;
+            // Add this line: Bump & Run flattens the launch so the shot flies low and lands short instead of popping up
+            const effectiveLoft = this.hasBump ? Math.max(0.022, loft * 0.55) : loft;
+            this.velocity.y = power * effectiveLoft;
 
-            const horizontalAdjustment = 1.0 / (loft * 18.0);
+            const horizontalAdjustment = 1.0 / (effectiveLoft * 18.0);
             this.velocity.x *= horizontalAdjustment;
             this.velocity.z *= horizontalAdjustment;
         }
@@ -1497,7 +1499,15 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
 
                         this.velocity.x *= activeMultiplier;
                         this.velocity.z *= activeMultiplier;
-                    }
+                                 }
+                } else if (this.hasBump && this.bounceCount === 1 && !inSand) {
+                    // Bump & Run: keep driving the ball forward through the first hop instead of checking up,
+                    // so it releases and rolls out along the ground like a real bump-and-run chip
+                    const incomingBumpSpeed = Math.hypot(this.velocity.x / adaptiveForwardLoss, this.velocity.z / adaptiveForwardLoss);
+                    const bumpSpeedFactor = Math.min(1.0, Math.max(0.0, incomingBumpSpeed / 0.01));
+                    const bumpMultiplier = THREE.MathUtils.lerp(1.0, 1.3, bumpSpeedFactor);
+                    this.velocity.x *= bumpMultiplier;
+                    this.velocity.z *= bumpMultiplier;
                 }
             } else {
 

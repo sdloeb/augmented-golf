@@ -67,6 +67,7 @@ let completedHoles = [];
 let isRaining = false;
 let isOutOfBoundsResetting = false;
 let isBackspinOn = false;
+let isBumpOn = false; // Add this line: Tracks the Bump & Run toggle for short chip shots
 let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
 let currentHoleYards = 0;
@@ -4005,17 +4006,30 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-    // Update backspin button visibility state based on aim mode and active club choice
+       // Update backspin/bump button visibility, label, and mode based on aim mode, club, and distance to hole
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn && input) {
         const activeClub = input.getClubInfo();
         const allowedClub = activeClub && activeClub.name.includes('Iron');
         const inBunker = physics && physics.isBallInSand();
         const inRough = physics && physics.currentSurface === 'Rough';
+        // Add this line: Within 30 yards, this button becomes a Bump & Run toggle instead of Backspin
+        const isChipRange = input.getDistance ? input.getDistance() <= 30 : false;
+        backspinBtn.dataset.mode = isChipRange ? 'bump' : 'backspin'; // Add this line
 
         // Hide backspin button if in the sand trap or rough
         if (input.isAimMode && allowedClub && !inBunker && !inRough && !physics.isMoving && !isSinking) {
             backspinBtn.classList.remove('hidden');
+            // Add this block: Keep the label and color synced to whichever mode is currently active
+            if (isChipRange) {
+                backspinBtn.innerText = isBumpOn ? "BUMP ON" : "BUMP OFF";
+                backspinBtn.style.borderColor = isBumpOn ? "#33ccff" : "#ffffff";
+                backspinBtn.style.color = isBumpOn ? "#33ccff" : "#ffffff";
+            } else {
+                backspinBtn.innerText = isBackspinOn ? "BACKSPIN ON" : "BACKSPIN OFF";
+                backspinBtn.style.borderColor = isBackspinOn ? "#ff3366" : "#ffffff";
+                backspinBtn.style.color = isBackspinOn ? "#ff3366" : "#ffffff";
+            }
         } else {
             backspinBtn.classList.add('hidden');
         }
@@ -5916,9 +5930,13 @@ function init() {
         window.shotStartZ = ball.position.z;
         isOverheadActive = false;
 
-        // Reset backspin parameters back to off default upon striking the shot
-        if (physics) physics.hasBackspin = isBackspinOn;
+           // Reset backspin/bump parameters back to off default upon striking the shot
+        if (physics) {
+            physics.hasBackspin = isBackspinOn;
+            physics.hasBump = isBumpOn; // Add this line
+        }
         isBackspinOn = false;
+        isBumpOn = false; // Add this line
         const currentBackspinBtn = document.getElementById('backspinBtn');
         if (currentBackspinBtn) {
             currentBackspinBtn.innerText = "BACKSPIN OFF";
@@ -6184,14 +6202,17 @@ function init() {
     // Add backspin button interaction click listeners
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn) {
-        const handleBackspinToggle = (e) => {
+             const handleBackspinToggle = (e) => {
             e.stopPropagation();
             if (e.type === 'touchstart') e.preventDefault();
 
-            isBackspinOn = !isBackspinOn;
-            backspinBtn.innerText = isBackspinOn ? "BACKSPIN ON" : "BACKSPIN OFF";
-            backspinBtn.style.borderColor = isBackspinOn ? "#ff3366" : "#ffffff";
-            backspinBtn.style.color = isBackspinOn ? "#ff3366" : "#ffffff";
+            // Add this block: Toggle whichever mode the button is currently showing (Bump & Run vs Backspin);
+            // the label and color update automatically next frame in animate()
+            if (backspinBtn.dataset.mode === 'bump') {
+                isBumpOn = !isBumpOn;
+            } else {
+                isBackspinOn = !isBackspinOn;
+            }
         };
         backspinBtn.addEventListener('click', handleBackspinToggle);
         backspinBtn.addEventListener('touchstart', handleBackspinToggle, { passive: false });
