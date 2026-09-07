@@ -2811,13 +2811,14 @@ function resetEntireGame(advanceHole = false) {
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                     const fringeR = activeR + 1.0;
+                                       const isNearGreenFringe = distToGreenCenter < fringeR; // Add this line: extends fairway coverage under the fringe collar so side edges don't cut off early const isNearGreenFringe = distToGreenCenter < (fringeR + 1.0); // Add this line: extends fairway coverage under the fringe collar so side edges don't cut off early
 
                     // Deep hidden height for out-of-bounds or buried fairway grid points
                     const hiddenFairwayH = floorHeight - 5.0;
 
                     // Boundary checks for fairway corridor
-                    const isOutsideFairwayBounds = (distanceToPath > fWEdge) ||
-                        isPastFairway ||
+                                      const isOutsideFairwayBounds = (distanceToPath > fWEdge && !isNearGreenFringe) ||
+                        (isPastFairway && !isNearGreenFringe) ||
                         (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
