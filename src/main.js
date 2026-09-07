@@ -2810,16 +2810,13 @@ function resetEntireGame(advanceHole = false) {
                     }
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                    const fringeR = activeR + 1.0;
-                                       const isNearGreenFringe = distToGreenCenter < fringeR; // Add this line: extends fairway coverage under the fringe collar so side edges don't cut off early const isNearGreenFringe = distToGreenCenter < (fringeR + 1.0); // Add this line: extends fairway coverage under the fringe collar so side edges don't cut off early
+                                       const fringeR = activeR + 1.0;
 
                     // Deep hidden height for out-of-bounds or buried fairway grid points
                     const hiddenFairwayH = floorHeight - 5.0;
 
                     // Boundary checks for fairway corridor
-                                      const isOutsideFairwayBounds = (distanceToPath > fWEdge && !isNearGreenFringe) ||
-                        (isPastFairway && !isNearGreenFringe) ||
-                        (!isCustomHole && worldZ > -8.0) ||
+                    const isOutsideFairwayBounds = (!isCustomHole && worldZ > -8.0) ||
                         (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
@@ -2832,15 +2829,12 @@ function resetEntireGame(advanceHole = false) {
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
-                    } else {
-                        // Smooth side edge taper matching the fairway cut width
-                        let sideTaperH = calculatedHeight - 0.03;
-                        if (distanceToPath > fW) {
-                            const tEdge = THREE.MathUtils.clamp((distanceToPath - fW) / 3.5, 0, 1);
-                            const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
-                            sideTaperH = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
-                        }
-                        calculatedHeight = sideTaperH;
+                                  } else {
+                        // Smooth taper using the same fairwayExcess value the rough floor already blends with,
+                        // so the fairway's edge (sides AND past the green) lines up with the rough with no seam
+                        const tEdge = THREE.MathUtils.clamp(fairwayExcess / 3.5, 0, 1);
+                        const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
                     }
 
 
