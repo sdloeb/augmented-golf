@@ -50,11 +50,36 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
             vz: Math.sin(angle) * horizSpeed,
             life: 1.0,
             // FIXED: Slower decay lets the particles live longer to display a full, gorgeous ballistic arc path
-            decay: 0.012 + Math.random() * 0.012
+                      decay: 0.012 + Math.random() * 0.012
         });
     }
 };
 
+// Non-blocking replacement for alert(): native alert() suspends any audio that is
+// already playing (like the water splash) until the user dismisses it, so penalty
+// messages use this on-screen notice instead, which never pauses the page.
+window.showPenaltyNotice = function (message, callback) {
+    const overlay = document.getElementById('penaltyOverlay');
+    const msgEl = document.getElementById('penaltyMessage');
+    const okBtn = document.getElementById('penaltyOkBtn');
+    if (!overlay || !msgEl || !okBtn) {
+        callback();
+        return;
+    }
+
+    msgEl.innerText = message;
+    overlay.style.display = 'flex';
+
+    const dismiss = () => {
+        overlay.style.display = 'none';
+        okBtn.removeEventListener('click', dismiss);
+        okBtn.removeEventListener('touchstart', dismiss);
+        callback();
+    };
+
+    okBtn.addEventListener('click', dismiss);
+    okBtn.addEventListener('touchstart', dismiss);
+};
 
 let scene, camera, renderer, ball, physics, input, teeBox, currentWindAngle = 0, sounds, golfTee; // Modify this line
 let green, pin, flag, holeCup, fairway, floor, greenFringe;
@@ -2709,10 +2734,10 @@ function resetEntireGame(advanceHole = false) {
                 const pastFairwayDist = approachDot + (distToGreenCenter - activeRadius) * 0.5;
                 const isPastFairway = (distToGreenCenter < activeRadius) || (pastFairwayDist > 0);
 
-                               // Smoothly transition fairway cut only once past the green's equator
+                // Smoothly transition fairway cut only once past the green's equator
                 // Widen the allowed corridor near water hazards so the fairway reaches the shoreline
                 // instead of tapering off early and leaving a jagged gap between fairway and water
-                                const waterWidening = Math.max(0, 10.0 - shortestDistToWaterEdge);
+                const waterWidening = Math.max(0, 10.0 - shortestDistToWaterEdge);
                 const lateralExcess = Math.max(0, distanceToPath - fW - waterWidening);
                 const forwardExcess = (distToGreenCenter >= fringeOuterR && pastFairwayDist > 0) ? pastFairwayDist : 0;
                 const fairwayExcess = Math.max(lateralExcess, forwardExcess);
@@ -4006,7 +4031,7 @@ function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
 
-       // Update backspin/bump button visibility, label, and mode based on aim mode, club, and distance to hole
+    // Update backspin/bump button visibility, label, and mode based on aim mode, club, and distance to hole
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn && input) {
         const activeClub = input.getClubInfo();
@@ -4235,8 +4260,7 @@ function animate() {
         document.getElementById('strokeText').innerText = strokeCount;
 
         setTimeout(() => {
-            alert(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`);
-
+            window.showPenaltyNotice(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`, () => { // Modify this line: swapped the blocking alert() for the non-blocking notice so the splash sound keeps playing
             ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
             ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
             const ballRadius = 0.25 * ball.scale.x;
@@ -4270,7 +4294,8 @@ function animate() {
             cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
 
             updateDistanceDisplay(); // Add this line
-        }, 30); // Add this line
+              }); // Add this line: closes the showPenaltyNotice callback
+        }, 1000); // Add this line
         return;
     }
 
@@ -5930,7 +5955,7 @@ function init() {
         window.shotStartZ = ball.position.z;
         isOverheadActive = false;
 
-           // Reset backspin/bump parameters back to off default upon striking the shot
+        // Reset backspin/bump parameters back to off default upon striking the shot
         if (physics) {
             physics.hasBackspin = isBackspinOn;
             physics.hasBump = isBumpOn; // Add this line
@@ -6202,7 +6227,7 @@ function init() {
     // Add backspin button interaction click listeners
     const backspinBtn = document.getElementById('backspinBtn');
     if (backspinBtn) {
-             const handleBackspinToggle = (e) => {
+        const handleBackspinToggle = (e) => {
             e.stopPropagation();
             if (e.type === 'touchstart') e.preventDefault();
 

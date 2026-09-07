@@ -353,7 +353,7 @@ export class PhysicsEngine {
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
         let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
 
-// --- CUSTOM HOLE 1 ELEVATED TEE BOX ---
+        // --- CUSTOM HOLE 1 ELEVATED TEE BOX ---
         if (this.currentHoleNumber === 1) {
             let baseHeight = 0.0;
 
@@ -601,7 +601,7 @@ export class PhysicsEngine {
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
         // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-if (this.currentHoleNumber === 6) {
+        if (this.currentHoleNumber === 6) {
             // Pronounced, fixed rolling hills across the Oakmont fairway
             const roll1 = Math.sin(z * 0.035) * 1.8;                    // Long swells down the fairway
             const roll2 = Math.cos(x * 0.07 + z * 0.025) * 1.2;         // Diagonal rolling crests across width
@@ -610,7 +610,8 @@ if (this.currentHoleNumber === 6) {
 
             this.hasBigFeature = false; // Prevents random extreme cliffs/canyons
         }
-else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8 || this.currentHoleNumber === 9) {            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
+        else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8 || this.currentHoleNumber === 9) {
+            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
             const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
 
             // Reduced multipliers for an ultra-flat fairway with clear line-of-sight
@@ -643,7 +644,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
     }
 
     // FIXED UNIFIED HEIGHTMAP: Carves out smooth, deep 3D valleys for hazards cleanly in a single pass
-    getGroundHeight(x, z) {
+    getGroundHeight(x, z, forCollision = false) { // Modify this line: added forCollision so ball landing can use the shallow water surface instead of the deep buried lake bed
         const gX = x - this.greenCenterX;
         const gZ = z - this.greenCenterZ;
         const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
@@ -733,7 +734,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
                         // Keep island green and fringe elevated above the lake water
                         if (distFromGreen >= activeRadius + 2.0) {
                             baseHeight = centerLakeHeight;
-                            if (distToWater < lakeRadius - 0.4) {
+                            if (!forCollision && distToWater < lakeRadius - 0.4) { // Modify this line: skip the deep basin sink when checking ball collision so the splash fires at the surface, not the lake floor
                                 baseHeight -= 1.2;
                             }
                         }
@@ -839,7 +840,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
             this.velocity.y = 0;
             this.velocity.x *= 0.5;
             this.velocity.z *= 0.5;
-              } else {
+        } else {
             // Calculates low-piercing woods vs high-popping wedges
             // Add this line: Bump & Run flattens the launch so the shot flies low and lands short instead of popping up
             const effectiveLoft = this.hasBump ? Math.max(0.022, loft * 0.55) : loft;
@@ -901,7 +902,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
         let currentBounceForwardLoss = 0.38;
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
-        const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z);
+        const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z, true); // Modify this line: request the shallow water-surface height so the splash triggers as soon as the ball touches the water        let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
         let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
         const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
@@ -1069,7 +1070,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
             const ballRadius = 0.25 * this.ball.scale.x;
             const trueFloorH = this.getGroundHeight(bX, bZ);
             groundY = trueFloorH + ballRadius - (ballRadius * 0.15);
-      } else if (this.isBallInSandCollar && this.isBallInSandCollar(0.7)) {
+        } else if (this.isBallInSandCollar && this.isBallInSandCollar(0.7)) {
             const ballRadius = 0.25 * this.ball.scale.x;
             groundY = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.035 + ballRadius - (ballRadius * 0.15);
         } else if (this.currentSurface === 'Rough') {
@@ -1499,7 +1500,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
 
                         this.velocity.x *= activeMultiplier;
                         this.velocity.z *= activeMultiplier;
-                                 }
+                    }
                 } else if (this.hasBump && this.bounceCount === 1 && !inSand) {
                     // Bump & Run: keep driving the ball forward through the first hop instead of checking up,
                     // so it releases and rolls out along the ground like a real bump-and-run chip
@@ -1527,7 +1528,7 @@ else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.cu
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
         // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
         // while leaving regular green shots and rough/fairway stops completely un-impacted.
-      const stopThreshold = this.isPutting ? 0.003 : (onGreen ? 0.018 : 0.01);
+        const stopThreshold = this.isPutting ? 0.003 : (onGreen ? 0.018 : 0.01);
         if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;

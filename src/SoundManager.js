@@ -92,8 +92,10 @@ export class SoundManager {
             const sound = audioArray[idx];
 
             if (sound) {
-                                try {
-                    sound.currentTime = 0;
+                try {
+                    // The water.wav clip has ~1.1s of near-silent lead-in before the actual splash sound,
+                    // so jump straight to where the splash starts instead of waiting through the silence
+                    sound.currentTime = (soundName === 'water') ? 1.1 : 0;
                 } catch (resetErr) {
                     console.log("Audio currentTime reset skipped:", resetErr);
                 }
