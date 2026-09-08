@@ -93,6 +93,7 @@ let isRaining = false;
 let isOutOfBoundsResetting = false;
 let isBackspinOn = false;
 let isBumpOn = false; // Add this line: Tracks the Bump & Run toggle for short chip shots
+window.isBumpOn = false;
 let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
 let currentHoleYards = 0;
@@ -911,20 +912,25 @@ function updateDistanceDisplay() {
         let currentIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
         const maxClubIdx = isOnFringe ? clubList.length - 1 : clubList.length - 2;
 
+        if (isBumpOn) {
+            currentIdx = (currentIdx === 7) ? 7 : 6;
+            input.chosenClubIndex = currentIdx;
+        }
+
         // 1. BUILD THE LEFT SCROLL ARROW (Goes to shorter distance clubs)
         const leftBtn = document.createElement('button');
         leftBtn.className = 'club-option';
         leftBtn.innerText = '◀';
 
         // Disable the arrow if we are already holding the longest club (Driver at index 0)
-        if (currentIdx === maxClubIdx) {
+        if (isBumpOn ? currentIdx >= 7 : currentIdx === maxClubIdx) {
             leftBtn.style.opacity = '0.3';
             leftBtn.style.pointerEvents = 'none';
         }
         leftBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx < maxClubIdx) {
+            if (isBumpOn ? cIdx < 7 : cIdx < maxClubIdx) {
                 input.chosenClubIndex = cIdx + 1;
                 input.pullRatio = 0;
                 updateDistanceDisplay();
@@ -936,14 +942,14 @@ function updateDistanceDisplay() {
         rightBtn.className = 'club-option';
         rightBtn.innerText = '▶';
 
-        if (currentIdx === 0) {
+        if (isBumpOn ? currentIdx <= 6 : currentIdx === 0) {
             rightBtn.style.opacity = '0.3';
             rightBtn.style.pointerEvents = 'none';
         }
         rightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             let cIdx = input.chosenClubIndex !== null ? input.chosenClubIndex : defaultIdx;
-            if (cIdx > 0) {
+            if (isBumpOn ? cIdx > 6 : cIdx > 0) {
                 input.chosenClubIndex = cIdx - 1;
                 input.pullRatio = 0;
                 updateDistanceDisplay();
@@ -977,8 +983,7 @@ function updateDistanceDisplay() {
             const maxFt = input.getPutterMaxFeet();
             yardsSpan.innerText = `(${maxFt} ft)`;
         } else {
-            yardsSpan.innerText = `(${clubList[currentIdx].maxYards} yds)`;
-        }
+yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards * (isBumpOn ? 0.25 : 1))} yds)`;        }
 
         // Append text elements into our new vertical sub-layout frame
         clubLabelWrapper.appendChild(nameSpan);
@@ -5990,6 +5995,7 @@ function init() {
         }
         isBackspinOn = false;
         isBumpOn = false; // Add this line
+        window.isBumpOn = false;
         const currentBackspinBtn = document.getElementById('backspinBtn');
         if (currentBackspinBtn) {
             currentBackspinBtn.innerText = "BACKSPIN OFF";
@@ -6263,6 +6269,12 @@ function init() {
             // the label and color update automatically next frame in animate()
             if (backspinBtn.dataset.mode === 'bump') {
                 isBumpOn = !isBumpOn;
+                window.isBumpOn = isBumpOn;
+                if (isBumpOn && input) {
+                    input.chosenClubIndex = 6;
+                    input.pullRatio = 0;
+                    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+                }
             } else {
                 isBackspinOn = !isBackspinOn;
             }

@@ -48,7 +48,14 @@ export class InputHandler {
         return CLUBS;
     }
 
+    clampBumpClubIndex(index) {
+        if (!window.isBumpOn) return index;
+        if (index === 7) return 7;
+        return 6;
+    }
+
     getDefaultClubIndex() {
+        if (window.isBumpOn) return 6;
         const currentYards = this.getDistance ? this.getDistance() : 0;
         const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false; // Add this line
         if (currentYards >= 250) return isOnTee ? 0 : 1;
@@ -70,16 +77,22 @@ export class InputHandler {
             return { name: 'Putter', maxYards: 50, isGreen: true };
         }
 
-        const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
-
-        // If player explicitly manually selected a club option, return that one
+        let club;
         if (this.chosenClubIndex !== null && this.chosenClubIndex !== undefined) {
-            return CLUBS[this.chosenClubIndex]; // Modify this line: Allow Driver off the deck for authentic high-risk play
+            club = CLUBS[this.clampBumpClubIndex(this.chosenClubIndex)];
+        } else {
+            club = CLUBS[this.clampBumpClubIndex(this.getDefaultClubIndex())];
         }
 
-        // Default back to standard auto distance selection index
-        const defaultIndex = this.getDefaultClubIndex();
-        return CLUBS[defaultIndex];
+        if (window.isBumpOn && club && !club.isGreen) {
+            return {
+                name: club.name,
+                maxYards: club.maxYards * 0.25,
+                isGreen: club.isGreen,
+                loft: club.loft
+            };
+        }
+        return club;
     }
 
     getPutterMaxFeet() {
