@@ -976,7 +976,8 @@ export class PhysicsEngine {
                 currentFriction = THREE.MathUtils.lerp(0.998, 0.952, (loftRatio - 0.4) / 1.1);
                 currentBounceHeight = 0.14 * (2.0 - loftRatio);
                 if (this.bounceCount === 0) {
-                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.95, 0.76, (loftRatio - 0.4) / 1.1);
+                    const checkT = THREE.MathUtils.clamp((this.currentLoft - 0.040) / 0.023, 0, 1);
+                    currentBounceForwardLoss = THREE.MathUtils.lerp(0.88, 0.38, checkT);
                 } else {
                     currentBounceForwardLoss = 0.97;
                 }
@@ -1154,8 +1155,8 @@ export class PhysicsEngine {
             const slopeMagnitude = Math.sqrt(rawSlopeX * rawSlopeX + rawSlopeZ * rawSlopeZ);
 
             // Preserves legacy slope properties for compatibility with outside rendering tools
-            this.slopeX = rawSlopeX * 0.0075;
-            this.slopeZ = rawSlopeZ * 0.0075;
+            this.slopeX = rawSlopeX * 0.020;
+            this.slopeZ = rawSlopeZ * 0.020;
 
             // 2. Scan active sand trap borders using unified visible boundary
             let currentlyInSand = this.isBallInSand() || this.currentSurface === 'Sand Trap';
@@ -1194,29 +1195,16 @@ export class PhysicsEngine {
                 }
             }
 
+
             // NEW: Anti-infinite rolling capture mechanism on green slopes
             // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
-            // NEW: Anti-infinite rolling capture mechanism on green slopes
-            // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
-            if (onGreen && slopeMagnitude < 0.14) {
+            if (onGreen && slopeMagnitude < 0.020) {
                 const speed = this.velocity.length();
-                if (speed < 0.09) {
-                    // Smoothly scale gravity modifier down instead of a hard cut, letting the ball coast naturally
-                    let fade = (speed - 0.024) / (0.09 - 0.024);
+                if (speed < 0.04) {
+                    let fade = (speed - 0.008) / (0.04 - 0.008);
                     if (fade < 0) fade = 0;
                     if (fade > 1) fade = 1;
                     slopeGravityModifier = fade;
-
-                    // MODIFIED: Balanced hill-lock and short putt launch stabilizer.
-                    // We aggressively scale down the hill's gravity pull under 0.050 speed so the ball 
-                    // cannot break loose and roll down like ice, but we REMOVE the velocity friction choke 
-                    // so short 5-foot putts can launch completely free and smooth.
-                    if (speed < 0.050) {
-                        let slopeFade = speed / 0.050;
-                        slopeGravityModifier *= Math.max(0.0, Math.min(1.0, slopeFade));
-                    }
-
-
                 }
             }
 
@@ -1464,6 +1452,13 @@ export class PhysicsEngine {
                     adaptiveForwardLoss = THREE.MathUtils.lerp(currentBounceForwardLoss, 0.85, tShort);
                 }
 
+                if (onGreen && !this.isPutting && !inSand && this.bounceCount === 1) {
+                    const speedT = THREE.MathUtils.clamp((landingSpeed - 0.06) / 0.40, 0, 1);
+                    const chipKeep = 0.70;
+                    const fullKeep = currentBounceForwardLoss * 0.82;
+                    adaptiveForwardLoss = THREE.MathUtils.lerp(chipKeep, fullKeep, speedT);
+                }
+
                 this.velocity.x *= adaptiveForwardLoss;
                 this.velocity.z *= adaptiveForwardLoss;
 
@@ -1528,8 +1523,7 @@ export class PhysicsEngine {
         // allowing the ball to realistically trickle down to a crawl before coming to a dead stop.
         // MODIFIED: Isolated this.isPutting into its own 0.014 threshold so putts don't bleed out too far at low speeds, 
         // while leaving regular green shots and rough/fairway stops completely un-impacted.
-        const stopThreshold = this.isPutting ? 0.003 : (onGreen ? 0.018 : 0.01);
-        if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
+        const stopThreshold = (this.isPutting || onGreen) ? 0.003 : 0.01; if (this.velocity.length() < stopThreshold && this.ball.position.y <= groundY) {
             this.velocity.set(0, 0, 0);
             this.isMoving = false;
             this.isPutting = false;
