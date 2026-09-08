@@ -68,6 +68,35 @@ export class PhysicsEngine {
         return false;
     }
 
+
+getBallSandDepth() {
+    if (!this.sandTraps || this.sandTraps.length === 0) return 0.8;
+    for (let sand of this.sandTraps) {
+        if (sand.userData && sand.userData.isCollar) continue;
+        let inside = false;
+        if (sand.userData && sand.userData.isPolygon) {
+            const points = sand.userData.points;
+            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                const xi = points[i].x, zi = points[i].z;
+                const xj = points[j].x, zj = points[j].z;
+                const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                    && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                if (intersect) inside = !inside;
+            }
+        } else {
+            const dx = this.ball.position.x - sand.position.x;
+            const dz = this.ball.position.z - sand.position.z;
+            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+            inside = (dx * dx + dz * dz) < sandRadius * sandRadius;
+        }
+        if (inside) {
+            return (sand.userData && sand.userData.depth) ? sand.userData.depth : 0.8;
+        }
+    }
+    return 0.8;
+}
+
+
     isBallInSandCollar(collarWidth = 0.7) {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
         if (this.isBallInSand()) return false;
@@ -962,8 +991,17 @@ export class PhysicsEngine {
         if (inSand) {
             this.currentSurface = 'Sand Trap';
             currentFriction = 0.70;
-            currentBounceHeight = 0.05;          // Minimal bounce height on sand impact
-            currentBounceForwardLoss = 0.12;     // Absorbs 88% of forward speed on impact (ball plugs in sand)
+const sandDepth = this.getBallSandDepth();
+let sandT;
+if (sandDepth <= 0.8) {
+    sandT = THREE.MathUtils.clamp((sandDepth - 0.30) / 0.50, 0, 1);
+    currentBounceHeight = THREE.MathUtils.lerp(0.18, 0.05, sandT);
+    currentBounceForwardLoss = THREE.MathUtils.lerp(0.35, 0.12, sandT);
+} else {
+    sandT = THREE.MathUtils.clamp((sandDepth - 0.80) / 1.00, 0, 1);
+    currentBounceHeight = THREE.MathUtils.lerp(0.05, 0.02, sandT);
+    currentBounceForwardLoss = THREE.MathUtils.lerp(0.12, 0.05, sandT);
+}
         }
         else if (onGreen) {
             this.currentSurface = 'Green';
