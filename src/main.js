@@ -729,8 +729,7 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-        if (ballDist < activeR || isOnFringe || isPuttingClub) {
-            // Display precisely in feet matching visual putting perspective, switching to inches inside 1 foot
+        if (ballDist < activeR || isOnFringe || isPuttingClub || (physics && physics.isPutting) || ballDist < activeR + 3.0) {
             const preciseFeet = gameDistance * 1.75;
             if (preciseFeet < 1) {
                 const inches = Math.max(1, Math.round(preciseFeet * 12));
@@ -4077,7 +4076,7 @@ function animate() {
         backspinBtn.dataset.mode = isChipRange ? 'bump' : 'backspin'; // Add this line
 
         // Hide backspin button if in the sand trap or rough
-        if (input.isAimMode && allowedClub && !inBunker && !inRough && !physics.isMoving && !isSinking) {
+        if (input.isAimMode && allowedClub && !inBunker && !(inRough && !isChipRange) && !physics.isMoving && !isSinking) {
             backspinBtn.classList.remove('hidden');
             // Add this block: Keep the label and color synced to whichever mode is currently active
             if (isChipRange) {
