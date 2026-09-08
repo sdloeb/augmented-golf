@@ -1155,8 +1155,8 @@ export class PhysicsEngine {
             const slopeMagnitude = Math.sqrt(rawSlopeX * rawSlopeX + rawSlopeZ * rawSlopeZ);
 
             // Preserves legacy slope properties for compatibility with outside rendering tools
-            this.slopeX = rawSlopeX * 0.020;
-            this.slopeZ = rawSlopeZ * 0.020;
+            this.slopeX = rawSlopeX * (this.isPutting ? 0.0075 : 0.020);
+            this.slopeZ = rawSlopeZ * (this.isPutting ? 0.0075 : 0.020);
 
             // 2. Scan active sand trap borders using unified visible boundary
             let currentlyInSand = this.isBallInSand() || this.currentSurface === 'Sand Trap';
@@ -1198,7 +1198,7 @@ export class PhysicsEngine {
 
             // NEW: Anti-infinite rolling capture mechanism on green slopes
             // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
-            if (onGreen && slopeMagnitude < 0.020) {
+            if (onGreen && slopeMagnitude < (this.isPutting ? 0.14 : 0.020)) {
                 const speed = this.velocity.length();
                 if (speed < 0.04) {
                     let fade = (speed - 0.008) / (0.04 - 0.008);

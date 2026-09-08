@@ -4134,7 +4134,7 @@ function animate() {
                     const currentTS = (ball.position.y > (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z)) || physics.velocity.y > 0) ? 0.6 : 1.0;
 
                     // Determine rotation angle proportional to actual distance traveled per calculation step
-                    const puttSpinBoost = physics.isPutting ? 2.6 : 1.0;
+                    const puttSpinBoost = physics.isPutting ? 1.6 : 1.0;
                     const angle = ((speed * currentTS) / 0.25) * puttSpinBoost;
                     // Rotate directly on the world-space axis to prevent wobbly Euler angle loops
                     ball.rotateOnWorldAxis(axle, angle);
