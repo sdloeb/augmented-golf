@@ -50,7 +50,7 @@ window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Incre
             vz: Math.sin(angle) * horizSpeed,
             life: 1.0,
             // FIXED: Slower decay lets the particles live longer to display a full, gorgeous ballistic arc path
-                      decay: 0.012 + Math.random() * 0.012
+            decay: 0.012 + Math.random() * 0.012
         });
     }
 };
@@ -2068,16 +2068,41 @@ function resetEntireGame(advanceHole = false) {
                 scene.add(waterMesh);
                 waterHazards.push(waterMesh);
 
+                const shoreWidth = 1.5;
                 const shoreMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(rx - 0.05, rx + 0.6, 64),
+                    new THREE.RingGeometry(rx - 0.05, rx + shoreWidth, 80, 2),
                     new THREE.MeshStandardMaterial({
-                        color: 0x655545,
-                        roughness: 0.95,
-                        metalness: 0.1
+                        color: 0xffffff,
+                        roughness: 0.98,
+                        metalness: 0.05,
+                        vertexColors: THREE.VertexColors
                     })
                 );
+                const shorePos = shoreMesh.geometry.attributes.position;
+                const shoreColors = new Float32Array(shorePos.count * 3);
+                for (let j = 0; j < shorePos.count; j++) {
+                    const pX = shorePos.getX(j);
+                    const pY = shorePos.getY(j);
+                    const angle = Math.atan2(pY, pX);
+                    const rNow = Math.hypot(pX, pY);
+                    const t = (rNow - (rx - 0.05)) / shoreWidth;
+                    const wobble = (t > 0.35)
+                        ? (Math.sin(angle * 5.0) * 0.22 + Math.sin(angle * 11.0) * 0.10) * t
+                        : 0;
+                    const curRx = (rx - 0.05) + (shoreWidth + wobble) * t;
+                    const curRz = (rz - 0.05) + (shoreWidth + wobble) * t;
+                    shorePos.setX(j, Math.cos(angle) * curRx);
+                    shorePos.setY(j, Math.sin(angle) * curRz);
+
+                    const wetR = 0.20, wetG = 0.16, wetB = 0.12;
+                    const dryR = 0.58, dryG = 0.48, dryB = 0.34;
+                    shoreColors[j * 3] = wetR + (dryR - wetR) * t;
+                    shoreColors[j * 3 + 1] = wetG + (dryG - wetG) * t;
+                    shoreColors[j * 3 + 2] = wetB + (dryB - wetB) * t;
+                }
+                shoreMesh.geometry.setAttribute('color', new THREE.BufferAttribute(shoreColors, 3));
+                shoreMesh.geometry.computeVertexNormals();
                 shoreMesh.rotation.x = -Math.PI / 2;
-                shoreMesh.scale.set(1, rz / rx, 1);
                 shoreMesh.position.set(hz.x, lakeGroundY + 0.015 - 1.5, hz.z);
                 scene.add(shoreMesh);
                 waterShores.push(shoreMesh);
@@ -2922,8 +2947,11 @@ function resetEntireGame(advanceHole = false) {
                     }
                 });
             }
-            colorAttr.setXYZ(i, shadowMultiplier, shadowMultiplier, shadowMultiplier);
-
+            if (waterShores.includes(targetMesh) && targetMesh.geometry.type === 'RingGeometry') {
+                colorAttr.setXYZ(i, colorAttr.getX(i) * shadowMultiplier, colorAttr.getY(i) * shadowMultiplier, colorAttr.getZ(i) * shadowMultiplier);
+            } else {
+                colorAttr.setXYZ(i, shadowMultiplier, shadowMultiplier, shadowMultiplier);
+            }
             posAttr.setZ(i, calculatedHeight);
         }
 
@@ -4261,40 +4289,40 @@ function animate() {
 
         setTimeout(() => {
             window.showPenaltyNotice(`Water Hazard! 🌊 One stroke penalty. Dropping back where you last hit.`, () => { // Modify this line: swapped the blocking alert() for the non-blocking notice so the splash sound keeps playing
-            ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
-            ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
-            const ballRadius = 0.25 * ball.scale.x;
-            const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
-            let waterRestY = terrainH + ballRadius;
+                ball.position.x = window.shotStartX !== undefined ? window.shotStartX : 0;
+                ball.position.z = window.shotStartZ !== undefined ? window.shotStartZ : 10;
+                const ballRadius = 0.25 * ball.scale.x;
+                const terrainH = physics.getGroundHeight(ball.position.x, ball.position.z);
+                let waterRestY = terrainH + ballRadius;
 
-            if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
-                waterRestY = terrainH + 0.02 + ballRadius - 0.025;
-            } else if (physics.currentSurface === 'Rough') {
-                waterRestY -= 0.065 * (ball.scale.x / 0.51);
-            }
-            ball.position.y = waterRestY;
-            ball.visible = true;
-
-            // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
-            if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
-                teeBox.visible = true;
-                if (golfTee) {
-                    golfTee.position.set(ball.position.x, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.131, ball.position.z);
-                    golfTee.visible = true;
+                if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
+                    waterRestY = terrainH + 0.02 + ballRadius - 0.025;
+                } else if (physics.currentSurface === 'Rough') {
+                    waterRestY -= 0.065 * (ball.scale.x / 0.51);
                 }
-            }
+                ball.position.y = waterRestY;
+                ball.visible = true;
 
-            // Re-align the camera safely behind the ball looking toward the hole cup
-            const dirX = holePosition.x - ball.position.x;
-            const dirZ = holePosition.z - ball.position.z; // Add this line
-            const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
-            const backX = -(dirX / length) * 7.5; // Add this line
-            const backZ = -(dirZ / length) * 7.5; // Add this line
-            cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ); // Add this line
-            cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
+                // Modify this block: Check the captured shot start directly to beat the first-frame physics jump
+                if (teeBox && window.shotStartZ !== undefined && window.shotStartZ > 5.0) {
+                    teeBox.visible = true;
+                    if (golfTee) {
+                        golfTee.position.set(ball.position.x, physics.getGroundHeight(ball.position.x, ball.position.z) + 0.131, ball.position.z);
+                        golfTee.visible = true;
+                    }
+                }
 
-            updateDistanceDisplay(); // Add this line
-              }); // Add this line: closes the showPenaltyNotice callback
+                // Re-align the camera safely behind the ball looking toward the hole cup
+                const dirX = holePosition.x - ball.position.x;
+                const dirZ = holePosition.z - ball.position.z; // Add this line
+                const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1; // Add this line
+                const backX = -(dirX / length) * 7.5; // Add this line
+                const backZ = -(dirZ / length) * 7.5; // Add this line
+                cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ); // Add this line
+                cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0); // Add this line
+
+                updateDistanceDisplay(); // Add this line
+            }); // Add this line: closes the showPenaltyNotice callback
         }, 1000); // Add this line
         return;
     }
