@@ -983,7 +983,8 @@ function updateDistanceDisplay() {
             const maxFt = input.getPutterMaxFeet();
             yardsSpan.innerText = `(${maxFt} ft)`;
         } else {
-yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards * (isBumpOn ? 0.25 : 1))} yds)`;        }
+            yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards * (isBumpOn ? 0.25 : 1))} yds)`;
+        }
 
         // Append text elements into our new vertical sub-layout frame
         clubLabelWrapper.appendChild(nameSpan);
@@ -4133,8 +4134,8 @@ function animate() {
                     const currentTS = (ball.position.y > (0.25 + physics.getGroundHeight(ball.position.x, ball.position.z)) || physics.velocity.y > 0) ? 0.6 : 1.0;
 
                     // Determine rotation angle proportional to actual distance traveled per calculation step
-                    const angle = (speed * currentTS) / 0.25;
-
+                    const puttSpinBoost = physics.isPutting ? 2.6 : 1.0;
+                    const angle = ((speed * currentTS) / 0.25) * puttSpinBoost;
                     // Rotate directly on the world-space axis to prevent wobbly Euler angle loops
                     ball.rotateOnWorldAxis(axle, angle);
                 }
@@ -5787,11 +5788,16 @@ function init() {
             ballCtx.beginPath(); ballCtx.arc(x, y, 14, 0, Math.PI * 2); ballCtx.fill(); // Add this line
         } // Add this line
     } // Add this line
+
+    ballCtx.fillStyle = '#1a1a1a';
+    ballCtx.fillRect(0, 108, 512, 28);
+    ballCtx.fillStyle = '#c8102e';
+    ballCtx.fillRect(0, 118, 512, 8);
+
     const ballTexture = new THREE.CanvasTexture(ballCanvas); // Add this line
     ballTexture.wrapS = THREE.RepeatWrapping; // Add this line
     ballTexture.wrapT = THREE.RepeatWrapping; // Add this line
-    ballTexture.repeat.set(5, 3); // Lower repeat setting makes individual dimples larger and clear from afar // Add this line
-
+    ballTexture.repeat.set(2, 1);
     const ballMat = new THREE.MeshStandardMaterial({ // Change this line
         color: 0xffffff, // Add this line
         roughness: 0.15, // Smooth glossy coating // Add this line
