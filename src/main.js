@@ -134,7 +134,35 @@ function setGreenContourBoost(on) {
     applyGreenContourShading(want);
 }
 
-// NEW CAMERA FLIGHT TRACKERS
+function setGreenViewMaterialReadMode(on) {
+    // Lower roughness in Green View so lighting + vertex shade make ridges/valleys pop
+    if (green && green.material) {
+        if (on) {
+            if (green.userData._baseRoughness == null) {
+                green.userData._baseRoughness = green.material.roughness;
+            }
+            green.material.roughness = 0.48;
+            green.material.needsUpdate = true;
+        } else if (green.userData._baseRoughness != null) {
+            green.material.roughness = green.userData._baseRoughness;
+            green.material.needsUpdate = true;
+        }
+    }
+    if (greenFringe && greenFringe.material) {
+        if (on) {
+            if (greenFringe.userData._baseRoughness == null) {
+                greenFringe.userData._baseRoughness = greenFringe.material.roughness;
+            }
+            greenFringe.material.roughness = 0.55;
+            greenFringe.material.needsUpdate = true;
+        } else if (greenFringe.userData._baseRoughness != null) {
+            greenFringe.material.roughness = greenFringe.userData._baseRoughness;
+            greenFringe.material.needsUpdate = true;
+        }
+    }
+}
+
+
 
 // NEW CAMERA FLIGHT TRACKERS
 let shotStartTime = 0;
@@ -2515,24 +2543,33 @@ function resetEntireGame(advanceHole = false) {
             const slopeZ = (hB - hF) / (2 * delta); // Corrected: Back - Front to match PhysicsEngine.js
             const steepness = Math.sqrt(slopeX * slopeX + slopeZ * slopeZ);
 
-            // Strength scales up in Green View so ridges/valleys read clearly from the low camera
-            const slopeShading = ((-slopeX - slopeZ) * 0.40 - (steepness * 0.16)) * strength;
-            const boost = Math.max(0, strength - 1);
-            const blend = THREE.MathUtils.clamp(
-                heightDiff * (0.35 * strength) + slopeShading,
-                -0.32 - 0.22 * boost,
-                0.26 + 0.18 * boost
-            );
+          // Strength scales up hard in Green View so ridges/valleys are obvious from the low camera
+const slopeShading = ((-slopeX - slopeZ) * 0.40 - (steepness * 0.16)) * strength;
+// Cartographic hillshade: light from upper-left so faces toward light brighten, away darken
+const hillshade = (strength > 1.01)
+    ? ((-slopeX * 0.85) + (-slopeZ * 0.55)) * (0.95 * (strength - 1))
+    : 0;
+const boost = Math.max(0, strength - 1);
+const blend = THREE.MathUtils.clamp(
+    heightDiff * (0.35 * strength) + slopeShading + hillshade,
+    -0.32 - 0.48 * boost,
+    0.26 + 0.40 * boost
+);
 
-            // Channel weights stay turf-green; slightly richer when boosted for contour readability
-            const rW = 0.13 + 0.05 * boost;
-            const gW = 0.46 + 0.16 * boost;
-            const bW = 0.17 + 0.06 * boost;
-            let r = baseR + blend * rW;
-            let g = baseG + blend * gW;
-            let b = baseB + blend * bW;
+// Channel weights stay turf-green; much richer when boosted for contour readability
+const rW = 0.13 + 0.10 * boost;
+const gW = 0.46 + 0.34 * boost;
+const bW = 0.17 + 0.12 * boost;
+// Slightly deepen the base in read mode so bright ridges contrast more
+const baseMul = strength > 1.01 ? 0.82 : 1.0;
+let r = baseR * baseMul + blend * rW;
+let g = baseG * baseMul + blend * gW;
+let b = baseB * baseMul + blend * bW;
+r = THREE.MathUtils.clamp(r, 0.02, 0.95);
+g = THREE.MathUtils.clamp(g, 0.08, 0.95);
+b = THREE.MathUtils.clamp(b, 0.04, 0.85);
 
-            colorAttr.setXYZ(i, r, g, b);
+colorAttr.setXYZ(i, r, g, b);
         }
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
         if (!colorsOnly) {
@@ -2542,12 +2579,15 @@ function resetEntireGame(advanceHole = false) {
         if (colorAttr) colorAttr.needsUpdate = true;
     };
 
-    applyGreenContourShading = (boosted) => {
-        const strength = boosted ? 2.45 : 1.0;
-        deformVisualGreenMesh(green, strength, true);
-        deformVisualGreenMesh(greenFringe, strength, true);
-    };
-    greenContourBoostActive = false;
+applyGreenContourShading = (boosted) => {
+    // 5.8x was chosen so typical 0.10–0.18 mound heights read clearly in Green View
+    const strength = boosted ? 5.8 : 1.0;
+    deformVisualGreenMesh(green, strength, true);
+    deformVisualGreenMesh(greenFringe, strength, true);
+    setGreenViewMaterialReadMode(boosted);
+};
+greenContourBoostActive = false;
+setGreenViewMaterialReadMode(false);
 
     const deformCourseMesh = (targetMesh, useScale = false) => {
         if (!targetMesh) return;
