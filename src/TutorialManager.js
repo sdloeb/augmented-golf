@@ -20,7 +20,8 @@ export class TutorialManager {
             { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 2000, swingType: 'diagonal' },
             { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 4000, action: 'showRough' },
             { text: 'SAND WILL DECREASE POWER AS WELL', duration: 4000, action: 'showSand' },
-            { text: 'IF WITHIN 35 YARDS OF THE HOLE, YOU HAVE A BUMP AND RUN OPTION', duration: 7000, action: 'showBump' }
+            { text: 'IF WITHIN 35 YARDS OF THE HOLE, YOU HAVE A BUMP AND RUN OPTION', duration: 7000, action: 'showBump' },
+            { text: 'WHEN PUTTING, DOUBLE CLICK TO AIM. RED is downhill, blue is up hill, and white is flat.', duration: 10000, action: 'showPuttDemo' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -119,6 +120,56 @@ export class TutorialManager {
                 window.inputHandler.chosenClubIndex = 6; // 7 Iron
                 if (window.updateDistanceDisplay) window.updateDistanceDisplay();
             }
+            if (step.action === 'showPuttDemo') {
+    if (window.setTutorialBump) window.setTutorialBump(false);
+    if (window.placeTutorialBall) window.placeTutorialBall('puttLie');
+    if (window.inputHandler) {
+        window.inputHandler.chosenClubIndex = 11; // Putter
+        window.inputHandler.aimAngleOffset = 0;
+        if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+    }
+    setTimeout(() => {
+        if (window.inputHandler) {
+            window.inputHandler.isAimMode = true;
+            window.inputHandler.isSwinging = false;
+            window.inputHandler.state = 'IDLE';
+        }
+    }, 400);
+    setTimeout(() => {
+        const startTime = performance.now();
+        const animDuration = 3500;
+        const aimInterval = setInterval(() => {
+            if (!window.inputHandler || !window.isTutorialActive) {
+                clearInterval(aimInterval);
+                return;
+            }
+            const elapsed = performance.now() - startTime;
+            const progress = Math.min(1.0, elapsed / animDuration);
+            if (progress < 0.33) {
+                const p = progress / 0.33;
+                window.inputHandler.aimAngleOffset = -0.22 * Math.sin(p * Math.PI / 2);
+            } else if (progress < 0.75) {
+                const p = (progress - 0.33) / 0.42;
+                window.inputHandler.aimAngleOffset = -0.22 + 0.44 * (0.5 - 0.5 * Math.cos(p * Math.PI));
+            } else {
+                const p = (progress - 0.75) / 0.25;
+                window.inputHandler.aimAngleOffset = 0.22 * (1 - Math.sin(p * Math.PI / 2));
+            }
+            if (progress >= 1.0) {
+                window.inputHandler.aimAngleOffset = 0;
+                clearInterval(aimInterval);
+            }
+        }, 16);
+    }, 800);
+    setTimeout(() => {
+        if (this.textEl) {
+            this.textEl.innerText = 'CLICK GREEN VIEW FOR CLOSE UP PATH TO HOLE';
+        }
+        if (window.triggerTutorialGreenView) window.triggerTutorialGreenView();
+        const greenBtn = document.getElementById('overheadBtn');
+        if (greenBtn) greenBtn.classList.add('tutorial-highlighted');
+    }, 5000);
+}
             setTimeout(() => {
                 if (window.inputHandler) {
                     window.inputHandler.isAimMode = true;

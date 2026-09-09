@@ -5999,8 +5999,9 @@ function init() {
             physics.hasBump = isBumpOn; // Add this line
         }
         isBackspinOn = false;
-        isBumpOn = false; // Add this line
+        isBumpOn = false;
         window.isBumpOn = false;
+        isOverheadActive = false;
         const currentBackspinBtn = document.getElementById('backspinBtn');
         if (currentBackspinBtn) {
             currentBackspinBtn.innerText = "BACKSPIN OFF";
@@ -6243,6 +6244,54 @@ function init() {
             surface = 'Fringe';
         }
 
+        if (x === 'puttLie') {
+            const gx = green ? green.position.x : 0;
+            const gz = (typeof greenCenterZ === 'number') ? greenCenterZ : -150.5;
+            const hx = holePosition.x;
+            const hz = holePosition.z;
+            const dist = (10 + Math.random() * 10) / 1.75;
+
+            const onPuttingSurface = (px, pz) => {
+                const dx = px - gx;
+                const dz = pz - gz;
+                const ang = Math.atan2(-dz, dx);
+                const r = window.getGreenRadiusAtAngle
+                    ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 10.5, window.activeGreenShape || 'kidney')
+                    : 10.5;
+                return Math.hypot(dx, dz) < r - 0.3;
+            };
+
+            let bestX = hx;
+            let bestZ = hz + dist;
+            let bestScore = -1e9;
+            for (let i = 0; i < 72; i++) {
+                const ang = (i / 72) * Math.PI * 2;
+                const px = hx + Math.cos(ang) * dist;
+                const pz = hz + Math.sin(ang) * dist;
+                if (!onPuttingSurface(px, pz)) continue;
+                const score = pz;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestX = px;
+                    bestZ = pz;
+                }
+            }
+            if (bestScore < -1e8) {
+                for (let d = dist; d > 5.5; d -= 0.35) {
+                    const px = hx;
+                    const pz = hz + d;
+                    if (onPuttingSurface(px, pz)) {
+                        bestX = px;
+                        bestZ = pz;
+                        break;
+                    }
+                }
+            }
+            x = bestX;
+            z = bestZ;
+            surface = 'Green';
+        }
+
         physics.velocity.set(0, 0, 0);
         physics.isMoving = false;
         wasMoving = false;
@@ -6254,7 +6303,7 @@ function init() {
         let terrainH = physics.getGroundHeight(x, z);
         let restY = terrainH + ballRadius;
 
-        if (surface === 'Fairway' || surface === 'Fringe') {
+        if (surface === 'Fairway' || surface === 'Fringe' || surface === 'Green') {
             physics.currentSurface = surface;
         } else if (physics.isBallInSand && physics.isBallInSand()) {
             restY = terrainH + 0.02 + ballRadius - 0.025;
@@ -6303,6 +6352,28 @@ function init() {
         const vlen = Math.sqrt(vx * vx + vz * vz) || 1;
         window.placeTutorialBall(hx + (vx / vlen) * dist, hz + (vz / vlen) * dist, 'Fairway');
     };
+
+window.triggerTutorialGreenView = function () {
+    if (!ball || !physics) return;
+    isOverheadActive = true;
+    previewProgress = 0;
+    overheadPauseStartTime = 0;
+    const dxH = holePosition.x - ball.position.x;
+    const dzH = holePosition.z - ball.position.z;
+    const holeDist = Math.sqrt(dxH * dxH + dzH * dzH) || 1;
+    const dirX = dxH / holeDist;
+    const dirZ = dzH / holeDist;
+    const startCamX = ball.position.x - dirX * 1.5;
+    const startCamZ = ball.position.z - dirZ * 1.5;
+    const startGroundY = physics.getGroundHeight(startCamX, startCamZ);
+    cameraTargetPos.set(startCamX, startGroundY + 0.6, startCamZ);
+    cameraLookAt.set(
+        ball.position.x + dirX * 3.0,
+        physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25,
+        ball.position.z + dirZ * 3.0
+    );
+};
+
 
     window.setTutorialBump = function (on) {
         isBumpOn = !!on;
