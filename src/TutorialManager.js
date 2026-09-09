@@ -54,7 +54,7 @@ export class TutorialManager {
         this.textEl.style.top = '50%';
         this.textEl.style.left = '50%';
         this.textEl.style.transform = 'translate(-50%, -50%)Scale(0.9)';
-        this.textEl.style.color = '#eb0303'; // Accent Gold text color
+        this.textEl.style.color = '#ffffff'; // Accent Gold text color
         this.textEl.style.fontFamily = "'Georgia', serif";
         this.textEl.style.fontSize = '32px';
         this.textEl.style.fontWeight = 'bold';
@@ -118,59 +118,21 @@ export class TutorialManager {
 
         // Dynamically change text and shadow glow to red on mobile portrait, keep gold on desktop
         if (isMobilePortrait) {
-            this.textEl.style.color = '#ff3333';
-            this.textEl.style.textShadow = '0 4px 12px rgba(0,0,0,0.9), 0 0 20px rgba(255,51,51,0.45)';
+            this.textEl.style.color = '#ffffff';
+            this.textEl.style.textShadow = '0 0 4px #000000, 0 2px 8px #000000, 0 0 18px rgba(0,0,0,0.9)';
         } else {
-            this.textEl.style.color = '#ff3333';
-            this.textEl.style.textShadow = '0 4px 12px rgba(0,0,0,0.9), 0 0 20px rgba(255,204,102,0.3)';
+            this.textEl.style.color = '#ffffff';
+            this.textEl.style.textShadow = '0 0 4px #000000, 0 2px 8px #000000, 0 0 18px rgba(0,0,0,0.9)';
         }
 
-        if (this.currentStepIndex === 0 || (this.currentStepIndex === 1 && !isMobilePortrait)) {
-            // Steps 0 & 1 (Desktop default): Align text precisely to the RIGHT side of the bounding card
-            this.textEl.style.left = (rect.right + 20) + 'px';
-            this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-            this.textEl.style.fontSize = '32px';
-            this.textEl.style.textAlign = 'left';
-            targetTransform = 'translate(0, -50%) scale(1)';
-            fadeOutTransform = 'translate(0, -50%) scale(0.9)';
-        } else if (this.currentStepIndex === 1 && isMobilePortrait) {
-            // Step 1 (Mobile Portrait): Center BIRD'S-EYE VIEW directly underneath the overhead view button
-            this.textEl.style.left = '125px';
-            this.textEl.style.top = (rect.bottom + 20) + 'px';
-            this.textEl.style.fontSize = '26px';
-            this.textEl.style.textAlign = 'center';
-            targetTransform = 'translate(-50%, 0) scale(1)';
-            fadeOutTransform = 'translate(-50%, 0) scale(0.9)';
-        } else if (this.currentStepIndex === 2) {
-            if (isMobilePortrait) {
-                // Step 2 (Mobile Portrait): Center CHOOSE YOUR CLUB directly underneath the selection container box
-                this.textEl.style.left = (rect.left + rect.width / 2) + 'px';
-                this.textEl.style.top = (rect.bottom + 20) + 'px';
-                this.textEl.style.fontSize = '26px';
-                this.textEl.style.textAlign = 'center';
-                targetTransform = 'translate(-50%, 0) scale(1)';
-                fadeOutTransform = 'translate(-50%, 0) scale(0.9)';
-            } else {
-                // Step 2 (Desktop default): Align text precisely to the LEFT side of the club scroll card
-                this.textEl.style.left = (rect.left - 20) + 'px';
-                this.textEl.style.top = (rect.top + rect.height / 2) + 'px';
-                this.textEl.style.fontSize = '32px';
-                this.textEl.style.textAlign = 'right';
-                targetTransform = 'translate(-100%, -50%) scale(1)';
-                fadeOutTransform = 'translate(-100%, -50%) scale(0.9)';
-            }
-        } else {
-            // Step 3 and later: Position text in the upper center area to leave the center clear for swing animations
-            this.textEl.style.left = '50%';
-            this.textEl.style.top = '50%';
-            this.textEl.style.fontSize = isMobilePortrait ? '28px' : '34px';
-            this.textEl.style.textAlign = 'center';
-            this.textEl.style.width = '80%';
-            this.textEl.style.maxWidth = '600px';
-            targetTransform = 'translate(-50%, -50%) scale(1)';
-            fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
-        }
-
+        this.textEl.style.left = '50%';
+        this.textEl.style.top = '50%';
+        this.textEl.style.fontSize = isMobilePortrait ? '28px' : '32px';
+        this.textEl.style.textAlign = 'center';
+        this.textEl.style.width = '80%';
+        this.textEl.style.maxWidth = '700px';
+        targetTransform = 'translate(-50%, -50%) scale(1)';
+        fadeOutTransform = 'translate(-50%, -50%) scale(0.9)';
         // Remove any old gesture indicators
         const oldHand = document.getElementById('tutorialHandIndicator');
         if (oldHand) oldHand.remove();

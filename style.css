@@ -1172,38 +1172,43 @@ html {
 /* ==========================================================================
    TUTORIAL SPOTLIGHT GLOW STYLES
    ========================================================================== */
-.tutorial-highlighted {
-    box-shadow: 0 0 0 4px #ff3333, 0 10px 25px rgba(0, 0, 0, 0.5) !important;
-    animation: tutorialPulse 1.5s infinite alternate ease-in-out !important;
+.tutorial-highlighted,
+#windContainer.tutorial-highlighted,
+#overheadBtn.tutorial-highlighted,
+#scoreContainer.tutorial-highlighted,
+#clubOptionsContainer.tutorial-highlighted,
+#holeMapContainer.tutorial-highlighted {
+    box-shadow: 0 0 0 4px #ffcc00, 0 10px 25px rgba(0, 0, 0, 0.5);
+    animation: tutorialPulse 0.7s infinite ease-in-out !important;
     z-index: 1000001 !important;
-    transition: all 0.3s ease !important;
+    transition: none !important;
 }
 
-/* Bulletproof specificity override to force an outline around the club graphics */
 #clubSwipe.tutorial-highlighted {
     outline-offset: 6px !important;
-    animation: clubPulse 1.5s infinite alternate ease-in-out !important;
+    animation: clubPulse 0.7s infinite ease-in-out !important;
+    transition: none !important;
 }
 
 @keyframes clubPulse {
-    0% {
-        outline: 2px solid rgba(255, 51, 51, 0.5);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    0%, 100% {
+        outline: 4px solid #ffcc00;
+        box-shadow: 0 0 18px rgba(255, 204, 0, 0.7);
     }
 
-    100% {
-        outline: 5px solid rgba(255, 51, 51, 1);
-        box-shadow: 0 12px 30px rgba(255, 51, 51, 0.4);
+    50% {
+        outline: 4px solid transparent;
+        box-shadow: none;
     }
 }
 
 @keyframes tutorialPulse {
-    0% {
-        box-shadow: 0 0 0 2px #ff3333, 0 4px 10px rgba(0, 0, 0, 0.4);
+    0%, 100% {
+        box-shadow: 0 0 0 4px #ffcc00, 0 0 18px rgba(255, 204, 0, 0.7);
     }
 
-    100% {
-        box-shadow: 0 0 0 6px #ff3333, 0 0 20px rgba(255, 51, 51, 0.6), 0 10px 25px rgba(0, 0, 0, 0.5);
+    50% {
+        box-shadow: 0 0 0 4px transparent;
     }
 }
 
