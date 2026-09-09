@@ -729,7 +729,7 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-        if (ballDist < activeR || isOnFringe || isPuttingClub || (physics && physics.isPutting) || ballDist < activeR + 3.0) {
+        if (ballDist < activeR || isOnFringe) {
             const preciseFeet = gameDistance * 1.75;
             if (preciseFeet < 1) {
                 const inches = Math.max(1, Math.round(preciseFeet * 12));
@@ -3016,6 +3016,7 @@ function resetEntireGame(advanceHole = false) {
     }
     physics.velocity.set(0, 0, 0);
     physics.isMoving = false;
+    physics.isPutting = false;
     wasMoving = false;
     if (input) { input.chosenClubIndex = null; input.aimAngleOffset = 0; input.isAimMode = false; }
     isSinking = false;
