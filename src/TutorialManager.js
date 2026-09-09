@@ -9,11 +9,11 @@
 export class TutorialManager {
     constructor() {
         this.steps = [
-            { selector: '#scoreHudContainer', text: 'TOTAL SCORE, CURRENT STROKES, DISTANCE, & LIE', duration: 4000 },
-            { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 3000 },
-            { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000 },
-            { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000 },
-            { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 4000 },
+            { selector: '#scoreHudContainer', text: 'TOTAL SCORE, CURRENT STROKES, DISTANCE, & LIE', duration: 4000, arrow: true },
+            { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 3000, arrow: true },
+            { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000, arrow: true },
+            { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000, arrow: true },
+            { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 4000, arrow: true },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM. ADD BACKSPIN WHEN AVAILABLE', duration: 5000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 3000, action: 'backToShotMode' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
@@ -26,6 +26,12 @@ export class TutorialManager {
         this.currentStepIndex = 0;
         this.overlayEl = null;
         this.textEl = null;
+        this.arrowSvg = null;
+        this.arrowLine = null;
+        this.arrowHead = null;
+        this._arrowTarget = null;
+        this._onResizeArrow = () => this.refreshArrow();
+
     }
 
     /**
@@ -74,11 +80,101 @@ export class TutorialManager {
 
         document.body.appendChild(this.overlayEl);
         document.body.appendChild(this.textEl);
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.id = 'tutorialArrow';
+        svg.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1000001;overflow:visible;filter:drop-shadow(0 0 3px #000) drop-shadow(0 2px 6px #000);';
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('stroke', '#ffffff');
+        line.setAttribute('stroke-width', '4');
+        line.setAttribute('stroke-linecap', 'round');
+        const head = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        head.setAttribute('fill', '#ffffff');
+        svg.appendChild(line);
+        svg.appendChild(head);
+        document.body.appendChild(svg);
+        this.arrowSvg = svg;
+        this.arrowLine = line;
+        this.arrowHead = head;
+        this.clearArrow();
+        window.addEventListener('resize', this._onResizeArrow);
     }
 
     /**
      * Executes the active step sequence and calculates highlight placement box coordinates
      */
+    clearArrow() {
+        this._arrowTarget = null;
+        if (this.arrowSvg) this.arrowSvg.style.display = 'none';
+    }
+
+    refreshArrow() {
+        if (this._arrowTarget) this.pointArrow(this._arrowTarget);
+    }
+
+    edgePoint(rect, towardX, towardY) {
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = towardX - cx;
+        const dy = towardY - cy;
+        if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) return { x: cx, y: cy };
+        const hw = Math.max(1, rect.width / 2);
+        const hh = Math.max(1, rect.height / 2);
+        const t = Math.min(hw / Math.max(Math.abs(dx), 0.001), hh / Math.max(Math.abs(dy), 0.001));
+        return { x: cx + dx * t, y: cy + dy * t };
+    }
+
+    pointArrow(targetEl) {
+        if (!this.arrowSvg || !this.arrowLine || !this.arrowHead || !this.textEl || !targetEl) return;
+        const textRect = this.textEl.getBoundingClientRect();
+        const tgtRect = targetEl.getBoundingClientRect();
+        if (tgtRect.width < 2 || tgtRect.height < 2) {
+            this.clearArrow();
+            return;
+        }
+        const tcx = textRect.left + textRect.width / 2;
+        const tcy = textRect.top + textRect.height / 2;
+        const gcx = tgtRect.left + tgtRect.width / 2;
+        const gcy = tgtRect.top + tgtRect.height / 2;
+        const startEdge = this.edgePoint(textRect, gcx, gcy);
+        const boxEnd = this.edgePoint(tgtRect, tcx, tcy);
+        const vx = startEdge.x - boxEnd.x;
+        const vy = startEdge.y - boxEnd.y;
+        const dist = Math.hypot(vx, vy) || 1;
+        const gap = 22;
+        const endEdge = { x: boxEnd.x + (vx / dist) * gap, y: boxEnd.y + (vy / dist) * gap };
+        const dx0 = endEdge.x - startEdge.x;
+        const dy0 = endEdge.y - startEdge.y;
+        const fullLen = Math.hypot(dx0, dy0);
+        if (fullLen < 28) {
+            this.clearArrow();
+            return;
+        }
+        const ux = dx0 / fullLen;
+        const uy = dy0 / fullLen;
+        const len = fullLen * 0.75;
+        const midX = (startEdge.x + endEdge.x) / 2;
+        const midY = (startEdge.y + endEdge.y) / 2;
+        const start = { x: midX - ux * (len / 2), y: midY - uy * (len / 2) };
+        const end = { x: midX + ux * (len / 2), y: midY + uy * (len / 2) };
+        const headLen = 16;
+        const headW = 8;
+        const lx = end.x - ux * headLen;
+        const ly = end.y - uy * headLen;
+        this.arrowLine.setAttribute('x1', start.x);
+        this.arrowLine.setAttribute('y1', start.y);
+        this.arrowLine.setAttribute('x2', lx);
+        this.arrowLine.setAttribute('y2', ly);
+        const px = -uy * headW;
+        const py = ux * headW;
+        this.arrowHead.setAttribute('points', `${end.x},${end.y} ${lx + px},${ly + py} ${lx - px},${ly - py}`);
+        this.arrowSvg.style.display = 'block';
+        this._arrowTarget = targetEl;
+    }
+
+    /**
+    * Executes the active step sequence and calculates highlight placement box coordinates
+    */
     executeStep() {
         if (this.currentStepIndex >= this.steps.length) {
             this.end();
@@ -104,6 +200,7 @@ export class TutorialManager {
         if (targetElement && !step.swingType) {
             targetElement.classList.add('tutorial-highlighted');
         }
+        this.clearArrow();
 
         if (step.action === 'showRough' && window.placeTutorialBall) {
             window.placeTutorialBall(-17.4, -134.0);
@@ -134,6 +231,7 @@ export class TutorialManager {
                 if (bumpBtn) {
                     bumpBtn.classList.remove('hidden');
                     bumpBtn.classList.add('tutorial-highlighted');
+                    this.pointArrow(bumpBtn);
                 }
             }, 1400);
         }
@@ -185,7 +283,10 @@ export class TutorialManager {
                 }
                 if (window.triggerTutorialGreenView) window.triggerTutorialGreenView();
                 const greenBtn = document.getElementById('overheadBtn');
-                if (greenBtn) greenBtn.classList.add('tutorial-highlighted');
+                if (greenBtn) {
+                    greenBtn.classList.add('tutorial-highlighted');
+                    this.pointArrow(greenBtn);
+                }
             }, 5000);
         }
 
@@ -261,6 +362,14 @@ export class TutorialManager {
                 }
             }, 2200);
 
+            setTimeout(() => {
+                const backspinBtn = document.getElementById('backspinBtn');
+                if (backspinBtn && !backspinBtn.classList.contains('hidden')) {
+                    backspinBtn.classList.add('tutorial-highlighted');
+                    this.pointArrow(backspinBtn);
+                }
+            }, 2000);
+
             // 4. Move aim left, right, then back to center
             setTimeout(() => {
                 const startTime = performance.now();
@@ -333,10 +442,14 @@ export class TutorialManager {
         this.textEl.innerText = step.text;
         this.textEl.style.opacity = '1';
         this.textEl.style.transform = targetTransform;
+        if (step.arrow && targetElement) {
+            requestAnimationFrame(() => this.pointArrow(targetElement));
+        }
 
         // Schedule next step transition
         setTimeout(() => {
             // Animate text fade-out transition using the custom transform anchors
+            this.clearArrow();
             this.textEl.style.opacity = '0';
             this.textEl.style.transform = fadeOutTransform;
 
@@ -359,9 +472,15 @@ export class TutorialManager {
         const oldHand = document.getElementById('tutorialHandIndicator');
         if (oldHand) oldHand.remove();
 
+        this.clearArrow();
+        window.removeEventListener('resize', this._onResizeArrow);
+        if (this.arrowSvg) this.arrowSvg.remove();
+        this.arrowSvg = null;
+        this.arrowLine = null;
+        this.arrowHead = null;
+
         if (this.overlayEl) this.overlayEl.remove();
         if (this.textEl) this.textEl.remove();
-
         if (window.inputHandler) {
             window.inputHandler.isAimMode = false;
             window.inputHandler.aimAngleOffset = 0;
