@@ -9,19 +9,19 @@
 export class TutorialManager {
     constructor() {
         this.steps = [
-            { selector: '#scoreHudContainer', text: 'YOUR TOTAL SCORE, CURRENT HOLE STROKES, DISTANCE, & LIE', duration: 4000 },
+            { selector: '#scoreHudContainer', text: 'YOUR TOTAL SCORE, CURRENT HOLE STROKES, DISTANCE, & LIE', duration: 1000 },
             { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 1000 },
             { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 1000 },
             { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 1000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 1000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 4000, action: 'aimAndBackspin' },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 1000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 1000, action: 'backToShotMode' },
-            { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 2000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 2000, swingType: 'diagonal' },
-            { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 4000, action: 'showRough' },
-            { text: 'SAND WILL DECREASE POWER AS WELL', duration: 4000, action: 'showSand' },
-            { text: 'IF WITHIN 35 YARDS OF THE HOLE, YOU HAVE A BUMP AND RUN OPTION', duration: 7000, action: 'showBump' },
-            { text: 'WHEN PUTTING, DOUBLE CLICK TO AIM. RED is downhill, blue is up hill, and white is flat.', duration: 10000, action: 'showPuttDemo' }
+            { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 1000, swingType: 'straight' },
+            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 1000, swingType: 'diagonal' },
+            { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 1000, action: 'showRough' },
+            { text: 'SAND WILL DECREASE POWER AS WELL', duration: 1000, action: 'showSand' },
+            { text: 'IF WITHIN 35 YARDS YOU HAVE A 7 OR 8 IRON BUMP AND RUN OPTION', duration: 5000, action: 'showBump' },
+            { text: 'WHEN PUTTING, DOUBLE CLICK PUTTER TO AIM AND SEE PARTIAL PATH. ', duration: 14000, action: 'showPuttDemo' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -116,60 +116,11 @@ export class TutorialManager {
             if (window.updateDistanceDisplay) window.updateDistanceDisplay();
         }
         if (step.action === 'showBump') {
-            if (window.placeTutorialBall) window.placeTutorialBall('fairwayBump'); if (window.inputHandler) {
+            if (window.placeTutorialBall) window.placeTutorialBall('fairwayBump');
+            if (window.inputHandler) {
                 window.inputHandler.chosenClubIndex = 6; // 7 Iron
                 if (window.updateDistanceDisplay) window.updateDistanceDisplay();
             }
-            if (step.action === 'showPuttDemo') {
-    if (window.setTutorialBump) window.setTutorialBump(false);
-    if (window.placeTutorialBall) window.placeTutorialBall('puttLie');
-    if (window.inputHandler) {
-        window.inputHandler.chosenClubIndex = 11; // Putter
-        window.inputHandler.aimAngleOffset = 0;
-        if (window.updateDistanceDisplay) window.updateDistanceDisplay();
-    }
-    setTimeout(() => {
-        if (window.inputHandler) {
-            window.inputHandler.isAimMode = true;
-            window.inputHandler.isSwinging = false;
-            window.inputHandler.state = 'IDLE';
-        }
-    }, 400);
-    setTimeout(() => {
-        const startTime = performance.now();
-        const animDuration = 3500;
-        const aimInterval = setInterval(() => {
-            if (!window.inputHandler || !window.isTutorialActive) {
-                clearInterval(aimInterval);
-                return;
-            }
-            const elapsed = performance.now() - startTime;
-            const progress = Math.min(1.0, elapsed / animDuration);
-            if (progress < 0.33) {
-                const p = progress / 0.33;
-                window.inputHandler.aimAngleOffset = -0.22 * Math.sin(p * Math.PI / 2);
-            } else if (progress < 0.75) {
-                const p = (progress - 0.33) / 0.42;
-                window.inputHandler.aimAngleOffset = -0.22 + 0.44 * (0.5 - 0.5 * Math.cos(p * Math.PI));
-            } else {
-                const p = (progress - 0.75) / 0.25;
-                window.inputHandler.aimAngleOffset = 0.22 * (1 - Math.sin(p * Math.PI / 2));
-            }
-            if (progress >= 1.0) {
-                window.inputHandler.aimAngleOffset = 0;
-                clearInterval(aimInterval);
-            }
-        }, 16);
-    }, 800);
-    setTimeout(() => {
-        if (this.textEl) {
-            this.textEl.innerText = 'CLICK GREEN VIEW FOR CLOSE UP PATH TO HOLE';
-        }
-        if (window.triggerTutorialGreenView) window.triggerTutorialGreenView();
-        const greenBtn = document.getElementById('overheadBtn');
-        if (greenBtn) greenBtn.classList.add('tutorial-highlighted');
-    }, 5000);
-}
             setTimeout(() => {
                 if (window.inputHandler) {
                     window.inputHandler.isAimMode = true;
@@ -177,14 +128,65 @@ export class TutorialManager {
                     window.inputHandler.state = 'IDLE';
                 }
             }, 500);
-setTimeout(() => {
-    if (window.setTutorialBump) window.setTutorialBump(true);
-    const bumpBtn = document.getElementById('backspinBtn');
-    if (bumpBtn) {
-        bumpBtn.classList.remove('hidden');
-        bumpBtn.classList.add('tutorial-highlighted');
-    }
-}, 1400);
+            setTimeout(() => {
+                if (window.setTutorialBump) window.setTutorialBump(true);
+                const bumpBtn = document.getElementById('backspinBtn');
+                if (bumpBtn) {
+                    bumpBtn.classList.remove('hidden');
+                    bumpBtn.classList.add('tutorial-highlighted');
+                }
+            }, 1400);
+        }
+
+        if (step.action === 'showPuttDemo') {
+            if (window.setTutorialBump) window.setTutorialBump(false);
+            if (window.placeTutorialBall) window.placeTutorialBall('puttLie');
+            if (window.inputHandler) {
+                window.inputHandler.chosenClubIndex = 11; // Putter
+                window.inputHandler.aimAngleOffset = 0;
+                if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+            }
+            setTimeout(() => {
+                if (window.inputHandler) {
+                    window.inputHandler.isAimMode = true;
+                    window.inputHandler.isSwinging = false;
+                    window.inputHandler.state = 'IDLE';
+                }
+            }, 400);
+            setTimeout(() => {
+                const startTime = performance.now();
+                const animDuration = 3500;
+                const aimInterval = setInterval(() => {
+                    if (!window.inputHandler || !window.isTutorialActive) {
+                        clearInterval(aimInterval);
+                        return;
+                    }
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(1.0, elapsed / animDuration);
+                    if (progress < 0.33) {
+                        const p = progress / 0.33;
+                        window.inputHandler.aimAngleOffset = -0.22 * Math.sin(p * Math.PI / 2);
+                    } else if (progress < 0.75) {
+                        const p = (progress - 0.33) / 0.42;
+                        window.inputHandler.aimAngleOffset = -0.22 + 0.44 * (0.5 - 0.5 * Math.cos(p * Math.PI));
+                    } else {
+                        const p = (progress - 0.75) / 0.25;
+                        window.inputHandler.aimAngleOffset = 0.22 * (1 - Math.sin(p * Math.PI / 2));
+                    }
+                    if (progress >= 1.0) {
+                        window.inputHandler.aimAngleOffset = 0;
+                        clearInterval(aimInterval);
+                    }
+                }, 16);
+            }, 800);
+            setTimeout(() => {
+                if (this.textEl) {
+                    this.textEl.innerText = 'CLICK GREEN VIEW FOR CLOSE UP PATH. RED DOTS ARE DOWN HILL, BLUE IS UP, AND WHITE IS FLAT';
+                }
+                if (window.triggerTutorialGreenView) window.triggerTutorialGreenView();
+                const greenBtn = document.getElementById('overheadBtn');
+                if (greenBtn) greenBtn.classList.add('tutorial-highlighted');
+            }, 5000);
         }
 
         // Reset club container z-index if it was elevated from a previous run

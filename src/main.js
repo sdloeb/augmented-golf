@@ -6353,26 +6353,26 @@ function init() {
         window.placeTutorialBall(hx + (vx / vlen) * dist, hz + (vz / vlen) * dist, 'Fairway');
     };
 
-window.triggerTutorialGreenView = function () {
-    if (!ball || !physics) return;
-    isOverheadActive = true;
-    previewProgress = 0;
-    overheadPauseStartTime = 0;
-    const dxH = holePosition.x - ball.position.x;
-    const dzH = holePosition.z - ball.position.z;
-    const holeDist = Math.sqrt(dxH * dxH + dzH * dzH) || 1;
-    const dirX = dxH / holeDist;
-    const dirZ = dzH / holeDist;
-    const startCamX = ball.position.x - dirX * 1.5;
-    const startCamZ = ball.position.z - dirZ * 1.5;
-    const startGroundY = physics.getGroundHeight(startCamX, startCamZ);
-    cameraTargetPos.set(startCamX, startGroundY + 0.6, startCamZ);
-    cameraLookAt.set(
-        ball.position.x + dirX * 3.0,
-        physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25,
-        ball.position.z + dirZ * 3.0
-    );
-};
+    window.triggerTutorialGreenView = function () {
+        if (!ball || !physics) return;
+        isOverheadActive = true;
+        previewProgress = 0;
+        overheadPauseStartTime = 0;
+        const dxH = holePosition.x - ball.position.x;
+        const dzH = holePosition.z - ball.position.z;
+        const holeDist = Math.sqrt(dxH * dxH + dzH * dzH) || 1;
+        const dirX = dxH / holeDist;
+        const dirZ = dzH / holeDist;
+        const startCamX = ball.position.x - dirX * 1.5;
+        const startCamZ = ball.position.z - dirZ * 1.5;
+        const startGroundY = physics.getGroundHeight(startCamX, startCamZ);
+        cameraTargetPos.set(startCamX, startGroundY + 0.6, startCamZ);
+        cameraLookAt.set(
+            ball.position.x + dirX * 3.0,
+            physics.getGroundHeight(ball.position.x, ball.position.z) + 0.25,
+            ball.position.z + dirZ * 3.0
+        );
+    };
 
 
     window.setTutorialBump = function (on) {
@@ -6394,6 +6394,9 @@ window.triggerTutorialGreenView = function () {
         physics.currentSurface = 'Tee Box';
         isBumpOn = false;
         window.isBumpOn = false;
+        isOverheadActive = false;
+        previewProgress = 0;
+        overheadPauseStartTime = 0;
         const teeY = physics.getGroundHeight(x, z) + 0.071;
         ball.position.set(x, teeY + 0.20, z);
         if (teeBox) teeBox.visible = true;
