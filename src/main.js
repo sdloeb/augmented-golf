@@ -120,6 +120,21 @@ let overheadTimeout = null;
 let isOverheadActive = false;
 let previewProgress = 0;
 let overheadPauseStartTime = 0;
+let greenContourBoostActive = false;
+let applyGreenContourShading = null;
+
+function setGreenContourBoost(on) {
+    const want = !!on;
+    if (want === greenContourBoostActive) return;
+    if (!applyGreenContourShading) {
+        greenContourBoostActive = want;
+        return;
+    }
+    greenContourBoostActive = want;
+    applyGreenContourShading(want);
+}
+
+// NEW CAMERA FLIGHT TRACKERS
 
 // NEW CAMERA FLIGHT TRACKERS
 let shotStartTime = 0;
@@ -2429,10 +2444,13 @@ function resetEntireGame(advanceHole = false) {
         holeCup.rotation.set(Math.atan2(cupSlopeZ, 1), 0, -Math.atan2(cupSlopeX, 1)); // Add this line: Slopes cup flush to terrain
     } // Change this line
 
-    // Deform the visual green mesh geometries to create real 3D ridges and valleys
-    const deformVisualGreenMesh = (targetMesh) => {
+    // Deform the visual green mesh geometries to create real 3D ridges and valleys.
+    // contourStrength > 1 deepens slope shading for Green View contour reads.
+    // colorsOnly skips height/normal rebuilds when only toggling the read boost.
+    const deformVisualGreenMesh = (targetMesh, contourStrength = 1, colorsOnly = false) => {
         if (!targetMesh) return;
         const posAttr = targetMesh.geometry.attributes.position;
+        const strength = Math.max(0.5, contourStrength);
 
         // Initialize or fetch the geometry color attribute array dynamically
         let colorAttr = targetMesh.geometry.attributes.color;
@@ -2467,7 +2485,9 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight += THREE.MathUtils.lerp(0.019, 0.012, smoothFringe);
             }
 
-            posAttr.setZ(i, calculatedHeight);
+            if (!colorsOnly) {
+                posAttr.setZ(i, calculatedHeight);
+            }
 
             // --- REALISTIC TURF SHADE CONTRAST GENERATOR ---
             let baseR = 0.066, baseG = 0.666, baseB = 0.266; // Standard Green (0x11aa44)
@@ -2495,24 +2515,39 @@ function resetEntireGame(advanceHole = false) {
             const slopeZ = (hB - hF) / (2 * delta); // Corrected: Back - Front to match PhysicsEngine.js
             const steepness = Math.sqrt(slopeX * slopeX + slopeZ * slopeZ);
 
-            // RESTORED BASELINE SHADING: Insulated values to guarantee perfectly smooth, line-free color transitions
-            const slopeShading = (-slopeX - slopeZ) * 0.40 - (steepness * 0.16);
+            // Strength scales up in Green View so ridges/valleys read clearly from the low camera
+            const slopeShading = ((-slopeX - slopeZ) * 0.40 - (steepness * 0.16)) * strength;
+            const boost = Math.max(0, strength - 1);
+            const blend = THREE.MathUtils.clamp(
+                heightDiff * (0.35 * strength) + slopeShading,
+                -0.32 - 0.22 * boost,
+                0.26 + 0.18 * boost
+            );
 
-            // Strict clamping bounds to prevent harsh shadows or bright highlights from breaking vertex blending
-            const blend = THREE.MathUtils.clamp(heightDiff * 0.35 + slopeShading, -0.32, 0.26);
-
-            // Perfectly balanced channel weights to smoothly contour the turf without showing triangle facets
-            let r = baseR + blend * 0.13;
-            let g = baseG + blend * 0.46;
-            let b = baseB + blend * 0.17;
+            // Channel weights stay turf-green; slightly richer when boosted for contour readability
+            const rW = 0.13 + 0.05 * boost;
+            const gW = 0.46 + 0.16 * boost;
+            const bW = 0.17 + 0.06 * boost;
+            let r = baseR + blend * rW;
+            let g = baseG + blend * gW;
+            let b = baseB + blend * bW;
 
             colorAttr.setXYZ(i, r, g, b);
         }
         // Notify the GPU to refresh the coordinates and re-render lighting highlights
-        posAttr.needsUpdate = true;
+        if (!colorsOnly) {
+            posAttr.needsUpdate = true;
+            targetMesh.geometry.computeVertexNormals();
+        }
         if (colorAttr) colorAttr.needsUpdate = true;
-        targetMesh.geometry.computeVertexNormals();
     };
+
+    applyGreenContourShading = (boosted) => {
+        const strength = boosted ? 2.45 : 1.0;
+        deformVisualGreenMesh(green, strength, true);
+        deformVisualGreenMesh(greenFringe, strength, true);
+    };
+    greenContourBoostActive = false;
 
     const deformCourseMesh = (targetMesh, useScale = false) => {
         if (!targetMesh) return;
@@ -4064,6 +4099,9 @@ function resetEntireGame(advanceHole = false) {
 function animate() {
     requestAnimationFrame(animate);
     if (input) input.isOverheadActive = isOverheadActive;
+
+    // Green View only: deepen turf slope shading so contours read clearly, then restore on exit
+    setGreenContourBoost(isOverheadActive && checkIsBallOnGreenOrFringe());
 
     // Update backspin/bump button visibility, label, and mode based on aim mode, club, and distance to hole
     const backspinBtn = document.getElementById('backspinBtn');
