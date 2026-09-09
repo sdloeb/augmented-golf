@@ -9,11 +9,13 @@
 export class TutorialManager {
     constructor() {
         this.steps = [
-            { selector: '#windContainer', text: 'WIND SPEED', duration: 3000 },
-            { selector: '#overheadBtn', text: "DRONE VIEW", duration: 3000 },
-            { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 3000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK THE CLUB TO AIM OR ADD BACKSPIN', duration: 8000, action: 'aimAndBackspin' },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK AGAIN FOR SHOT MODE', duration: 6000, action: 'backToShotMode' },
+            { selector: '#scoreHudContainer', text: 'YOUR TOTAL SCORE, CURRENT HOLE STROKES, DISTANCE, & LIE', duration: 4000 },
+           { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 4000 },
+            { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000 },
+            { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000 },
+            { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 4000 },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 7000, action: 'aimAndBackspin' },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 4000, action: 'backToShotMode' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
             { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
         ];
@@ -98,7 +100,9 @@ export class TutorialManager {
         });
 
         // Add visual pulsing flash onto target element container
-        targetElement.classList.add('tutorial-highlighted');
+if (!step.swingType) {
+    targetElement.classList.add('tutorial-highlighted');
+}
 
         // Reset club container z-index if it was elevated from a previous run
         const clubContainer = document.getElementById('clubContainer');

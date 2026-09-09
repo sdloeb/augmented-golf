@@ -161,6 +161,10 @@ html {
     letter-spacing: 0.5px;
 }
 
+#scoreHudContainer {
+    position: relative;
+}
+
 #scoreContainer {
     position: absolute;
     top: max(20px, env(safe-area-inset-top));
@@ -748,7 +752,7 @@ html {
 @media (orientation: portrait),
 (max-width: 768px) {
 
-/* Clean top-left vertical stack: Wind -> Overhead -> Backspin -> Hole Map */
+    /* Clean top-left vertical stack: Wind -> Overhead -> Backspin -> Hole Map */
     #overheadBtn {
         position: absolute !important;
         top: calc(max(20px, env(safe-area-inset-top)) + 118px) !important;
@@ -1176,6 +1180,7 @@ html {
 #windContainer.tutorial-highlighted,
 #overheadBtn.tutorial-highlighted,
 #scoreContainer.tutorial-highlighted,
+#scoreHudContainer.tutorial-highlighted,
 #clubOptionsContainer.tutorial-highlighted,
 #holeMapContainer.tutorial-highlighted {
     box-shadow: 0 0 0 4px #ffcc00, 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -1191,7 +1196,9 @@ html {
 }
 
 @keyframes clubPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         outline: 4px solid #ffcc00;
         box-shadow: 0 0 18px rgba(255, 204, 0, 0.7);
     }
@@ -1203,7 +1210,9 @@ html {
 }
 
 @keyframes tutorialPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 4px #ffcc00, 0 0 18px rgba(255, 204, 0, 0.7);
     }
 
