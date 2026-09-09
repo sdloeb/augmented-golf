@@ -14,13 +14,13 @@ export class TutorialManager {
             { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000 },
             { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 4000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 5000, action: 'aimAndBackspin' },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM. ADD BACKSPIN WHEN AVAILABLE', duration: 5000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 3000, action: 'backToShotMode' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' },
+            { selector: '#clubSwipe', text: 'PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' },
             { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 3000, action: 'showRough' },
             { text: 'SAND WILL DECREASE POWER AS WELL', duration: 3000, action: 'showSand' },
-            { text: 'IF WITHIN 35 YARDS YOU HAVE A 7 OR 8 IRON BUMP AND RUN OPTION', duration: 4000, action: 'showBump' },
+            { text: 'WITHIN 35, YARDS YOU HAVE A 7 OR 8 IRON BUMP AND RUN OPTION', duration: 4000, action: 'showBump' },
             { text: 'WHEN PUTTING, DOUBLE CLICK PUTTER TO AIM AND SEE PARTIAL PATH. ', duration: 13000, action: 'showPuttDemo' }
         ];
         this.currentStepIndex = 0;

@@ -6715,12 +6715,18 @@ function updateGreenGrid() {
         const arrowSlopeZ = (physics.getGroundHeight(finalWx, finalWz - delta) - physics.getGroundHeight(finalWx, finalWz + delta)) / (2 * delta);
 
         const currentPathSlope = (dirX * arrowSlopeX) + (dirZ * arrowSlopeZ);
-        let dotColor = 0x2288ff; // Uphill Blue
+        const slopeAbs = Math.abs(currentPathSlope);
+        let dotColor = 0xffffff; // Flat White
 
-        if (Math.abs(currentPathSlope) < 0.012) {
-            dotColor = 0xffffff; // Flat White
-        } else if (currentPathSlope > 0.012) {
-            dotColor = 0xff4d4d; // Downhill Red
+        if (slopeAbs >= 0.012) {
+            const steepT = THREE.MathUtils.clamp((slopeAbs - 0.012) / 0.038, 0, 1);
+            const shade = new THREE.Color();
+            if (currentPathSlope > 0) {
+                shade.set(0xffc2c2).lerp(new THREE.Color(0x880000), steepT); // Downhill: light red → dark red
+            } else {
+                shade.set(0xb8dcff).lerp(new THREE.Color(0x003a88), steepT); // Uphill: light blue → dark blue
+            }
+            dotColor = shade.getHex();
         }
 
         const fDx = finalWx - gX;
