@@ -10,16 +10,17 @@ export class TutorialManager {
     constructor() {
         this.steps = [
             { selector: '#scoreHudContainer', text: 'YOUR TOTAL SCORE, CURRENT HOLE STROKES, DISTANCE, & LIE', duration: 4000 },
-            { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 4000 },
-            { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000 },
-            { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000 },
-            { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 4000 },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 7000, action: 'aimAndBackspin' },
-            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 4000, action: 'backToShotMode' },
-            { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' },
+            { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 1000 },
+            { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 1000 },
+            { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 1000 },
+            { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 1000 },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 4000, action: 'aimAndBackspin' },
+            { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 1000, action: 'backToShotMode' },
+            { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 2000, swingType: 'straight' },
+            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 2000, swingType: 'diagonal' },
             { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 4000, action: 'showRough' },
-            { text: 'SAND WILL DECREASE POWER AS WELL', duration: 4000, action: 'showSand' }
+            { text: 'SAND WILL DECREASE POWER AS WELL', duration: 4000, action: 'showSand' },
+            { text: 'IF WITHIN 35 YARDS OF THE HOLE, YOU HAVE A BUMP AND RUN OPTION', duration: 7000, action: 'showBump' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -99,20 +100,41 @@ export class TutorialManager {
         });
 
         // Add visual pulsing flash onto target element container
-       if (targetElement && !step.swingType) {
-    targetElement.classList.add('tutorial-highlighted');
-}
+        if (targetElement && !step.swingType) {
+            targetElement.classList.add('tutorial-highlighted');
+        }
 
-if (step.action === 'showRough' && window.placeTutorialBall) {
-    window.placeTutorialBall(-17.4, -134.0);
-}
-if (step.action === 'showSand' && window.placeTutorialBall) {
-    window.placeTutorialBall(-9.0, -135.0);
-}
-if ((step.action === 'showRough' || step.action === 'showSand') && window.inputHandler) {
-    window.inputHandler.chosenClubIndex = 10; // SW Iron
-    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
-}
+        if (step.action === 'showRough' && window.placeTutorialBall) {
+            window.placeTutorialBall(-17.4, -134.0);
+        }
+        if (step.action === 'showSand' && window.placeTutorialBall) {
+            window.placeTutorialBall(-9.0, -135.0);
+        }
+        if ((step.action === 'showRough' || step.action === 'showSand') && window.inputHandler) {
+            window.inputHandler.chosenClubIndex = 10; // SW Iron
+            if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+        }
+        if (step.action === 'showBump') {
+            if (window.placeTutorialBall) window.placeTutorialBall('fairwayBump'); if (window.inputHandler) {
+                window.inputHandler.chosenClubIndex = 6; // 7 Iron
+                if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+            }
+            setTimeout(() => {
+                if (window.inputHandler) {
+                    window.inputHandler.isAimMode = true;
+                    window.inputHandler.isSwinging = false;
+                    window.inputHandler.state = 'IDLE';
+                }
+            }, 500);
+setTimeout(() => {
+    if (window.setTutorialBump) window.setTutorialBump(true);
+    const bumpBtn = document.getElementById('backspinBtn');
+    if (bumpBtn) {
+        bumpBtn.classList.remove('hidden');
+        bumpBtn.classList.add('tutorial-highlighted');
+    }
+}, 1400);
+        }
 
         // Reset club container z-index if it was elevated from a previous run
         const clubContainer = document.getElementById('clubContainer');
@@ -296,7 +318,7 @@ if ((step.action === 'showRough' || step.action === 'showSand') && window.inputH
 
         if (window.restoreTutorialTee) window.restoreTutorialTee();
 
-// Turn off the tutorial input locks so the player can click and play freely
-window.isTutorialActive = false;
+        // Turn off the tutorial input locks so the player can click and play freely
+        window.isTutorialActive = false;
     }
 }

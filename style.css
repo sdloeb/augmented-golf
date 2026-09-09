@@ -1182,7 +1182,8 @@ html {
 #scoreContainer.tutorial-highlighted,
 #scoreHudContainer.tutorial-highlighted,
 #clubOptionsContainer.tutorial-highlighted,
-#holeMapContainer.tutorial-highlighted {
+#holeMapContainer.tutorial-highlighted,
+#backspinBtn.tutorial-highlighted {
     box-shadow: 0 0 0 4px #ffcc00, 0 10px 25px rgba(0, 0, 0, 0.5);
     animation: tutorialPulse 0.7s infinite ease-in-out !important;
     z-index: 1000001 !important;

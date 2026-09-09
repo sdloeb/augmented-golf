@@ -6177,75 +6177,171 @@ function init() {
     input.holePositionRef = holePosition;
     input.teeBoxRef = teeBox;
 
-  window.inputHandler = input;
-window.updateDistanceDisplay = updateDistanceDisplay;
+    window.inputHandler = input;
+    window.updateDistanceDisplay = updateDistanceDisplay;
 
-window.placeTutorialBall = function (x, z) {
-    if (!ball || !physics) return;
-    if (window.tutorialTeeX === undefined) {
-        window.tutorialTeeX = ball.position.x;
-        window.tutorialTeeZ = ball.position.z;
-    }
-    physics.velocity.set(0, 0, 0);
-    physics.isMoving = false;
-    wasMoving = false;
-    isOverheadActive = false;
+    window.placeTutorialBall = function (x, z, surface) {
+        if (!ball || !physics) return;
+        if (window.tutorialTeeX === undefined) {
+            window.tutorialTeeX = ball.position.x;
+            window.tutorialTeeZ = ball.position.z;
+        }
 
-    ball.position.x = x;
-    ball.position.z = z;
-    const ballRadius = 0.25 * ball.scale.x;
-    const terrainH = physics.getGroundHeight(x, z);
-    let restY = terrainH + ballRadius;
-    if (physics.isBallInSand && physics.isBallInSand()) {
-        restY = terrainH + 0.02 + ballRadius - 0.025;
-        physics.currentSurface = 'Sand Trap';
-    } else {
-        restY -= 0.065 * (ball.scale.x / 0.51);
-        physics.currentSurface = 'Rough';
-    }
-    ball.position.y = restY;
-    ball.visible = true;
-    if (teeBox) teeBox.visible = false;
-    if (golfTee) golfTee.visible = false;
+        if (x === 'fairwayBump') {
+            const gx = green ? green.position.x : 0;
+            const gz = (typeof greenCenterZ === 'number') ? greenCenterZ : -150.5;
+            const hx = holePosition.x;
+            const hz = holePosition.z;
+            const minD = 25 / 2.76923;
+            const maxD = 34 / 2.76923;
+            const preferD = 28 / 2.76923;
 
-    const dirX = holePosition.x - ball.position.x;
-    const dirZ = holePosition.z - ball.position.z;
-    const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-    const backX = -(dirX / length) * 7.5;
-    const backZ = -(dirZ / length) * 7.5;
-    cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
-    cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
-    camera.position.copy(cameraTargetPos);
-    currentLookAt.copy(cameraLookAt);
-    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
-};
+            let bestX = gx + 0.5;
+            let bestZ = gz + 11.0;
+            let bestScore = 1e9;
 
-window.restoreTutorialTee = function () {
-    const x = window.tutorialTeeX !== undefined ? window.tutorialTeeX : 0;
-    const z = window.tutorialTeeZ !== undefined ? window.tutorialTeeZ : 10;
-    if (!ball || !physics) return;
-    physics.velocity.set(0, 0, 0);
-    physics.isMoving = false;
-    physics.currentSurface = 'Tee Box';
-    const teeY = physics.getGroundHeight(x, z) + 0.071;
-    ball.position.set(x, teeY + 0.20, z);
-    if (teeBox) teeBox.visible = true;
-    if (golfTee) {
-        golfTee.position.set(x, teeY + 0.06, z);
-        golfTee.visible = true;
-    }
-    const firstTarget = currentHoleConfig && currentHoleConfig.waypoints ? currentHoleConfig.waypoints[1] : holePosition;
-    const startDirX = firstTarget.x - x;
-    const startDirZ = firstTarget.z - z;
-    const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ) || 1;
-    cameraTargetPos.set(x - (startDirX / startLength) * 5.5, ball.position.y + 1.8, z - (startDirZ / startLength) * 5.5);
-    cameraLookAt.set(x + (startDirX / startLength) * 12, ball.position.y, z + (startDirZ / startLength) * 12);
-    camera.position.copy(cameraTargetPos);
-    currentLookAt.copy(cameraLookAt);
-    window.tutorialTeeX = undefined;
-    window.tutorialTeeZ = undefined;
-    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
-};
+            for (let i = 0; i < 90; i++) {
+                const ang = (i / 90) * Math.PI * 2;
+                const edgeR = window.getGreenRadiusAtAngle
+                    ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 10.5, window.activeGreenShape || 'kidney')
+                    : 10.5;
+                const fringeR = edgeR + 0.55;
+                const px = gx + Math.cos(ang) * fringeR;
+                const pz = gz - Math.sin(ang) * fringeR;
+                const d = Math.hypot(px - hx, pz - hz);
+                if (d < minD || d > maxD) continue;
+                const approachBias = Math.abs(px - 0.5) * 0.15 + Math.max(0, gz - pz) * 0.05;
+                const score = Math.abs(d - preferD) + approachBias;
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestX = px;
+                    bestZ = pz;
+                }
+            }
+
+            if (bestScore > 1e8) {
+                for (let i = 0; i < 90; i++) {
+                    const ang = (i / 90) * Math.PI * 2;
+                    const edgeR = window.getGreenRadiusAtAngle
+                        ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 10.5, window.activeGreenShape || 'kidney')
+                        : 10.5;
+                    const fringeR = edgeR + 0.55;
+                    const px = gx + Math.cos(ang) * fringeR;
+                    const pz = gz - Math.sin(ang) * fringeR;
+                    const d = Math.hypot(px - hx, pz - hz);
+                    const score = Math.abs(d - preferD);
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestX = px;
+                        bestZ = pz;
+                    }
+                }
+            }
+
+            x = bestX;
+            z = bestZ;
+            surface = 'Fringe';
+        }
+
+        physics.velocity.set(0, 0, 0);
+        physics.isMoving = false;
+        wasMoving = false;
+        isOverheadActive = false;
+
+        ball.position.x = x;
+        ball.position.z = z;
+        const ballRadius = 0.25 * ball.scale.x;
+        let terrainH = physics.getGroundHeight(x, z);
+        let restY = terrainH + ballRadius;
+
+        if (surface === 'Fairway' || surface === 'Fringe') {
+            physics.currentSurface = surface;
+        } else if (physics.isBallInSand && physics.isBallInSand()) {
+            restY = terrainH + 0.02 + ballRadius - 0.025;
+            physics.currentSurface = 'Sand Trap';
+        } else {
+            restY -= 0.065 * (ball.scale.x / 0.51);
+            physics.currentSurface = 'Rough';
+        }
+
+        if (surface === 'Fairway' && physics.isBallInSand && physics.isBallInSand()) {
+            x = 0.5;
+            z = holePosition.z + (27.5 / 2.76923);
+            ball.position.x = x;
+            ball.position.z = z;
+            terrainH = physics.getGroundHeight(x, z);
+            restY = terrainH + ballRadius;
+            physics.currentSurface = 'Fairway';
+        }
+
+        ball.position.y = restY;
+        ball.visible = true;
+        if (teeBox) teeBox.visible = false;
+        if (golfTee) golfTee.visible = false;
+
+        const dirX = holePosition.x - ball.position.x;
+        const dirZ = holePosition.z - ball.position.z;
+        const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+        const backX = -(dirX / length) * 7.5;
+        const backZ = -(dirZ / length) * 7.5;
+        cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+        cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+        camera.position.copy(cameraTargetPos);
+        currentLookAt.copy(cameraLookAt);
+        if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+    };
+
+    window.placeTutorialBumpLie = function () {
+        const yards = 27.5;
+        const dist = yards / 2.76923;
+        const hx = holePosition.x;
+        const hz = holePosition.z;
+        const gapX = 0.5;
+        const gapZ = -135.0;
+        const vx = gapX - hx;
+        const vz = gapZ - hz;
+        const vlen = Math.sqrt(vx * vx + vz * vz) || 1;
+        window.placeTutorialBall(hx + (vx / vlen) * dist, hz + (vz / vlen) * dist, 'Fairway');
+    };
+
+    window.setTutorialBump = function (on) {
+        isBumpOn = !!on;
+        window.isBumpOn = isBumpOn;
+        if (isBumpOn && input) {
+            input.chosenClubIndex = 6;
+            input.pullRatio = 0;
+        }
+        if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+    };
+
+    window.restoreTutorialTee = function () {
+        const x = window.tutorialTeeX !== undefined ? window.tutorialTeeX : 0;
+        const z = window.tutorialTeeZ !== undefined ? window.tutorialTeeZ : 10;
+        if (!ball || !physics) return;
+        physics.velocity.set(0, 0, 0);
+        physics.isMoving = false;
+        physics.currentSurface = 'Tee Box';
+        isBumpOn = false;
+        window.isBumpOn = false;
+        const teeY = physics.getGroundHeight(x, z) + 0.071;
+        ball.position.set(x, teeY + 0.20, z);
+        if (teeBox) teeBox.visible = true;
+        if (golfTee) {
+            golfTee.position.set(x, teeY + 0.06, z);
+            golfTee.visible = true;
+        }
+        const firstTarget = currentHoleConfig && currentHoleConfig.waypoints ? currentHoleConfig.waypoints[1] : holePosition;
+        const startDirX = firstTarget.x - x;
+        const startDirZ = firstTarget.z - z;
+        const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ) || 1;
+        cameraTargetPos.set(x - (startDirX / startLength) * 5.5, ball.position.y + 1.8, z - (startDirZ / startLength) * 5.5);
+        cameraLookAt.set(x + (startDirX / startLength) * 12, ball.position.y, z + (startDirZ / startLength) * 12);
+        camera.position.copy(cameraTargetPos);
+        currentLookAt.copy(cameraLookAt);
+        window.tutorialTeeX = undefined;
+        window.tutorialTeeZ = undefined;
+        if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+    };
 
     window.addEventListener('resize', onWindowResize, false);
     onWindowResize();
