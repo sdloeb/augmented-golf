@@ -9,7 +9,7 @@
 export class TutorialManager {
     constructor() {
         this.steps = [
-            { selector: '#scoreHudContainer', text: 'YOUR TOTAL SCORE, CURRENT HOLE STROKES, DISTANCE, & LIE', duration: 4000 },
+            { selector: '#scoreHudContainer', text: 'TOTAL SCORE, CURRENT STROKES, DISTANCE, & LIE', duration: 4000 },
             { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 3000 },
             { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000 },
             { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000 },
@@ -20,7 +20,7 @@ export class TutorialManager {
             { selector: '#clubSwipe', text: 'PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' },
             { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 3000, action: 'showRough' },
             { text: 'SAND WILL DECREASE POWER AS WELL', duration: 3000, action: 'showSand' },
-            { text: 'WITHIN 35, YARDS YOU HAVE A 7 OR 8 IRON BUMP AND RUN OPTION', duration: 4000, action: 'showBump' },
+            { text: 'WITHIN 35 YARDS YOU HAVE A 7 OR 8 IRON BUMP AND RUN OPTION', duration: 4000, action: 'showBump' },
             { text: 'WHEN PUTTING, DOUBLE CLICK PUTTER TO AIM AND SEE PARTIAL PATH. ', duration: 13000, action: 'showPuttDemo' }
         ];
         this.currentStepIndex = 0;
@@ -181,7 +181,7 @@ export class TutorialManager {
             }, 800);
             setTimeout(() => {
                 if (this.textEl) {
-                    this.textEl.innerText = 'CLICK GREEN VIEW FOR CLOSE UP PATH. RED DOTS ARE DOWN HILL, BLUE IS UP, AND WHITE IS FLAT';
+                    this.textEl.innerText = 'CLICK GREEN VIEW FOR UP CLOSE PERSPECTIVE. DIFFERENT SHADES OF RED DOTS ARE DOWN HILL, BLUE IS UP, AND WHITE IS FLAT.';
                 }
                 if (window.triggerTutorialGreenView) window.triggerTutorialGreenView();
                 const greenBtn = document.getElementById('overheadBtn');
