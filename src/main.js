@@ -3500,8 +3500,8 @@ function resetEntireGame(advanceHole = false) {
             let generateAsTree = (currentHoleNumber === 1 && i < 60) || (currentHoleNumber === 2) ? true : (localRandom() < 0.5); if (isShortcutZone) generateAsTree = true;
             if (generateAsTree) {
                 sceneryGroup.userData = { type: 'tree' };
-                let randomScale = currentHoleNumber === 1 ? (7.5 + ((i % 5) * 0.5)) : (currentHoleNumber === 2 ? (5.5 + ((i % 4) * 0.4)) : (3.5 + Math.random() * 1.3));
-                if (isShortcutZone) randomScale = 6.5 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
+                let randomScale = currentHoleNumber === 1 ? (6.0 + ((i % 5) * 0.5)) : (currentHoleNumber === 2 ? (5.5 + ((i % 4) * 0.4)) : (3.5 + Math.random() * 1.3));
+                if (isShortcutZone) randomScale = 7.0 + Math.random() * 2.5; // Add this line: Scales shortcut blocker trees into towering, impenetrable walls
                 let calculatedTrunkRad = 0.18 * randomScale;
                 let calculatedTrunkH = 1.6 * randomScale;
                 let calculatedFoliageRad = 0.9 * randomScale;
