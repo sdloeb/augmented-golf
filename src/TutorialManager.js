@@ -10,14 +10,16 @@ export class TutorialManager {
     constructor() {
         this.steps = [
             { selector: '#scoreHudContainer', text: 'YOUR TOTAL SCORE, CURRENT HOLE STROKES, DISTANCE, & LIE', duration: 4000 },
-           { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 4000 },
+            { selector: '#holeMapContainer', text: 'CURRENT HOLE AND PAR', duration: 4000 },
             { selector: '#windContainer', text: 'WIND DIRECTION AND SPEED', duration: 4000 },
             { selector: '#overheadBtn', text: "OVERHEAD DRONE VIEW", duration: 4000 },
             { selector: '#clubOptionsContainer', text: 'CHOOSE YOUR CLUB', duration: 4000 },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK CLUB TO AIM OR ADD BACKSPIN WHEN AVAILABLE', duration: 7000, action: 'aimAndBackspin' },
             { selector: '#clubSwipe', text: 'DOUBLE CLICK TO GO BACK TO SHOT MODE', duration: 4000, action: 'backToShotMode' },
             { selector: '#clubSwipe', text: 'PULL STRAIGHT BACK AND SWIPE FORWARD IN ONE MOTION', duration: 5000, swingType: 'straight' },
-            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' }
+            { selector: '#clubSwipe', text: 'OR PULL AND SWIPE ON A DIAGONAL FOR DRAW OR FADE', duration: 5000, swingType: 'diagonal' },
+            { text: 'THE ROUGH WILL DECREASE YOUR POWER', duration: 4000, action: 'showRough' },
+            { text: 'SAND WILL DECREASE POWER AS WELL', duration: 4000, action: 'showSand' }
         ];
         this.currentStepIndex = 0;
         this.overlayEl = null;
@@ -82,17 +84,14 @@ export class TutorialManager {
         }
 
         const step = this.steps[this.currentStepIndex];
-        const targetElement = document.querySelector(step.selector);
+        const targetElement = step.selector ? document.querySelector(step.selector) : null;
 
-        if (!targetElement) {
+        if (step.selector && !targetElement) {
             // Safe fallback loop if element isn't visible/rendered on screen yet
             this.currentStepIndex++;
             this.executeStep();
             return;
         }
-
-        // Calculate location geometry bounds for dynamic spotlight rendering
-        const rect = targetElement.getBoundingClientRect();
 
         // Remove old highlights from elements
         document.querySelectorAll('.tutorial-highlighted').forEach(el => {
@@ -100,8 +99,19 @@ export class TutorialManager {
         });
 
         // Add visual pulsing flash onto target element container
-if (!step.swingType) {
+       if (targetElement && !step.swingType) {
     targetElement.classList.add('tutorial-highlighted');
+}
+
+if (step.action === 'showRough' && window.placeTutorialBall) {
+    window.placeTutorialBall(-17.4, -134.0);
+}
+if (step.action === 'showSand' && window.placeTutorialBall) {
+    window.placeTutorialBall(-9.0, -135.0);
+}
+if ((step.action === 'showRough' || step.action === 'showSand') && window.inputHandler) {
+    window.inputHandler.chosenClubIndex = 10; // SW Iron
+    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
 }
 
         // Reset club container z-index if it was elevated from a previous run
@@ -284,7 +294,9 @@ if (!step.swingType) {
             if (window.updateDistanceDisplay) window.updateDistanceDisplay();
         }
 
-        // Turn off the tutorial input locks so the player can click and play freely
-        window.isTutorialActive = false;
+        if (window.restoreTutorialTee) window.restoreTutorialTee();
+
+// Turn off the tutorial input locks so the player can click and play freely
+window.isTutorialActive = false;
     }
 }

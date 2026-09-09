@@ -6177,8 +6177,75 @@ function init() {
     input.holePositionRef = holePosition;
     input.teeBoxRef = teeBox;
 
-    window.inputHandler = input;
-    window.updateDistanceDisplay = updateDistanceDisplay;
+  window.inputHandler = input;
+window.updateDistanceDisplay = updateDistanceDisplay;
+
+window.placeTutorialBall = function (x, z) {
+    if (!ball || !physics) return;
+    if (window.tutorialTeeX === undefined) {
+        window.tutorialTeeX = ball.position.x;
+        window.tutorialTeeZ = ball.position.z;
+    }
+    physics.velocity.set(0, 0, 0);
+    physics.isMoving = false;
+    wasMoving = false;
+    isOverheadActive = false;
+
+    ball.position.x = x;
+    ball.position.z = z;
+    const ballRadius = 0.25 * ball.scale.x;
+    const terrainH = physics.getGroundHeight(x, z);
+    let restY = terrainH + ballRadius;
+    if (physics.isBallInSand && physics.isBallInSand()) {
+        restY = terrainH + 0.02 + ballRadius - 0.025;
+        physics.currentSurface = 'Sand Trap';
+    } else {
+        restY -= 0.065 * (ball.scale.x / 0.51);
+        physics.currentSurface = 'Rough';
+    }
+    ball.position.y = restY;
+    ball.visible = true;
+    if (teeBox) teeBox.visible = false;
+    if (golfTee) golfTee.visible = false;
+
+    const dirX = holePosition.x - ball.position.x;
+    const dirZ = holePosition.z - ball.position.z;
+    const length = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+    const backX = -(dirX / length) * 7.5;
+    const backZ = -(dirZ / length) * 7.5;
+    cameraTargetPos.set(ball.position.x + backX, ball.position.y + 1.8, ball.position.z + backZ);
+    cameraLookAt.set(ball.position.x + (dirX / length) * 12.0, ball.position.y, ball.position.z + (dirZ / length) * 12.0);
+    camera.position.copy(cameraTargetPos);
+    currentLookAt.copy(cameraLookAt);
+    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+};
+
+window.restoreTutorialTee = function () {
+    const x = window.tutorialTeeX !== undefined ? window.tutorialTeeX : 0;
+    const z = window.tutorialTeeZ !== undefined ? window.tutorialTeeZ : 10;
+    if (!ball || !physics) return;
+    physics.velocity.set(0, 0, 0);
+    physics.isMoving = false;
+    physics.currentSurface = 'Tee Box';
+    const teeY = physics.getGroundHeight(x, z) + 0.071;
+    ball.position.set(x, teeY + 0.20, z);
+    if (teeBox) teeBox.visible = true;
+    if (golfTee) {
+        golfTee.position.set(x, teeY + 0.06, z);
+        golfTee.visible = true;
+    }
+    const firstTarget = currentHoleConfig && currentHoleConfig.waypoints ? currentHoleConfig.waypoints[1] : holePosition;
+    const startDirX = firstTarget.x - x;
+    const startDirZ = firstTarget.z - z;
+    const startLength = Math.sqrt(startDirX * startDirX + startDirZ * startDirZ) || 1;
+    cameraTargetPos.set(x - (startDirX / startLength) * 5.5, ball.position.y + 1.8, z - (startDirZ / startLength) * 5.5);
+    cameraLookAt.set(x + (startDirX / startLength) * 12, ball.position.y, z + (startDirZ / startLength) * 12);
+    camera.position.copy(cameraTargetPos);
+    currentLookAt.copy(cameraLookAt);
+    window.tutorialTeeX = undefined;
+    window.tutorialTeeZ = undefined;
+    if (window.updateDistanceDisplay) window.updateDistanceDisplay();
+};
 
     window.addEventListener('resize', onWindowResize, false);
     onWindowResize();
