@@ -69,32 +69,32 @@ export class PhysicsEngine {
     }
 
 
-getBallSandDepth() {
-    if (!this.sandTraps || this.sandTraps.length === 0) return 0.8;
-    for (let sand of this.sandTraps) {
-        if (sand.userData && sand.userData.isCollar) continue;
-        let inside = false;
-        if (sand.userData && sand.userData.isPolygon) {
-            const points = sand.userData.points;
-            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                const xi = points[i].x, zi = points[i].z;
-                const xj = points[j].x, zj = points[j].z;
-                const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                    && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                if (intersect) inside = !inside;
+    getBallSandDepth() {
+        if (!this.sandTraps || this.sandTraps.length === 0) return 0.8;
+        for (let sand of this.sandTraps) {
+            if (sand.userData && sand.userData.isCollar) continue;
+            let inside = false;
+            if (sand.userData && sand.userData.isPolygon) {
+                const points = sand.userData.points;
+                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                    const xi = points[i].x, zi = points[i].z;
+                    const xj = points[j].x, zj = points[j].z;
+                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
+                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
+                    if (intersect) inside = !inside;
+                }
+            } else {
+                const dx = this.ball.position.x - sand.position.x;
+                const dz = this.ball.position.z - sand.position.z;
+                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
+                inside = (dx * dx + dz * dz) < sandRadius * sandRadius;
             }
-        } else {
-            const dx = this.ball.position.x - sand.position.x;
-            const dz = this.ball.position.z - sand.position.z;
-            const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-            inside = (dx * dx + dz * dz) < sandRadius * sandRadius;
+            if (inside) {
+                return (sand.userData && sand.userData.depth) ? sand.userData.depth : 0.8;
+            }
         }
-        if (inside) {
-            return (sand.userData && sand.userData.depth) ? sand.userData.depth : 0.8;
-        }
+        return 0.8;
     }
-    return 0.8;
-}
 
 
     isBallInSandCollar(collarWidth = 0.7) {
@@ -991,17 +991,17 @@ getBallSandDepth() {
         if (inSand) {
             this.currentSurface = 'Sand Trap';
             currentFriction = 0.70;
-const sandDepth = this.getBallSandDepth();
-let sandT;
-if (sandDepth <= 0.8) {
-    sandT = THREE.MathUtils.clamp((sandDepth - 0.30) / 0.50, 0, 1);
-    currentBounceHeight = THREE.MathUtils.lerp(0.18, 0.05, sandT);
-    currentBounceForwardLoss = THREE.MathUtils.lerp(0.35, 0.12, sandT);
-} else {
-    sandT = THREE.MathUtils.clamp((sandDepth - 0.80) / 1.00, 0, 1);
-    currentBounceHeight = THREE.MathUtils.lerp(0.05, 0.02, sandT);
-    currentBounceForwardLoss = THREE.MathUtils.lerp(0.12, 0.05, sandT);
-}
+            const sandDepth = this.getBallSandDepth();
+            let sandT;
+            if (sandDepth <= 0.8) {
+                sandT = THREE.MathUtils.clamp((sandDepth - 0.30) / 0.50, 0, 1);
+                currentBounceHeight = THREE.MathUtils.lerp(0.18, 0.05, sandT);
+                currentBounceForwardLoss = THREE.MathUtils.lerp(0.35, 0.12, sandT);
+            } else {
+                sandT = THREE.MathUtils.clamp((sandDepth - 0.80) / 1.00, 0, 1);
+                currentBounceHeight = THREE.MathUtils.lerp(0.05, 0.02, sandT);
+                currentBounceForwardLoss = THREE.MathUtils.lerp(0.12, 0.05, sandT);
+            }
         }
         else if (onGreen) {
             this.currentSurface = 'Green';
@@ -1193,8 +1193,8 @@ if (sandDepth <= 0.8) {
             const slopeMagnitude = Math.sqrt(rawSlopeX * rawSlopeX + rawSlopeZ * rawSlopeZ);
 
             // Preserves legacy slope properties for compatibility with outside rendering tools
-            this.slopeX = rawSlopeX * (this.isPutting ? 0.0075 : 0.020);
-            this.slopeZ = rawSlopeZ * (this.isPutting ? 0.0075 : 0.020);
+            this.slopeX = rawSlopeX * (this.isPutting ? 0.0075 : 0.009);
+            this.slopeZ = rawSlopeZ * (this.isPutting ? 0.0075 : 0.009);
 
             // 2. Scan active sand trap borders using unified visible boundary
             let currentlyInSand = this.isBallInSand() || this.currentSurface === 'Sand Trap';
@@ -1236,7 +1236,7 @@ if (sandDepth <= 0.8) {
 
             // NEW: Anti-infinite rolling capture mechanism on green slopes
             // If the ball is crawling slowly on a gentle or moderate tier hill, grass friction overcomes gravity
-            if (onGreen && slopeMagnitude < (this.isPutting ? 0.14 : 0.020)) {
+            if (onGreen && slopeMagnitude < (this.isPutting ? 0.14 : 0.12)) {
                 const speed = this.velocity.length();
                 if (speed < 0.04) {
                     let fade = (speed - 0.008) / (0.04 - 0.008);
