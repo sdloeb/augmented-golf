@@ -60,7 +60,8 @@ export const HOLES_CONFIG = {
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
         par: 4,
         theme: 'standard',
-        treeScale: 5.5,
+        treeScale: 2.75,
+        treeHeightScale: 3.0,
         fairwayWidth: 9.5,
         greenRadius: 9.0,
 
@@ -107,7 +108,7 @@ export const HOLES_CONFIG = {
 
             // --- RIGHT SIDE (Far Right Hillside) ---
 
-            { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
+            { x: 10, z: -100 },{ x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
 
             // --- BACK OF GREEN ---
             { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
