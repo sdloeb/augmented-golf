@@ -141,7 +141,7 @@ function setGreenViewMaterialReadMode(on) {
             if (green.userData._baseRoughness == null) {
                 green.userData._baseRoughness = green.material.roughness;
             }
-            green.material.roughness = 0.68;
+            green.material.roughness = 0.92;
             green.material.needsUpdate = true;
         } else if (green.userData._baseRoughness != null) {
             green.material.roughness = green.userData._baseRoughness;
@@ -153,7 +153,7 @@ function setGreenViewMaterialReadMode(on) {
             if (greenFringe.userData._baseRoughness == null) {
                 greenFringe.userData._baseRoughness = greenFringe.material.roughness;
             }
-            greenFringe.material.roughness = 0.72;
+            greenFringe.material.roughness = 0.94;
             greenFringe.material.needsUpdate = true;
         } else if (greenFringe.userData._baseRoughness != null) {
             greenFringe.material.roughness = greenFringe.userData._baseRoughness;
@@ -2554,14 +2554,13 @@ function resetEntireGame(advanceHole = false) {
 
             if (strength > 1.01) {
                 // Multiply base green by a mild shade factor so hue stays turf-like
-                const shade = THREE.MathUtils.clamp(1.0 + blend * 0.55, 0.62, 1.28);
+                const shade = THREE.MathUtils.clamp(1.0 + blend * 0.95, 0.40, 1.50);
                 let r = baseR * shade;
                 let g = baseG * shade;
                 let b = baseB * shade;
-                // Keep finals inside a green-safe band
-                r = THREE.MathUtils.clamp(r, 0.03, 0.22);
-                g = THREE.MathUtils.clamp(g, 0.32, 0.82);
-                b = THREE.MathUtils.clamp(b, 0.12, 0.40);
+                r = THREE.MathUtils.clamp(r, 0.02, 0.30);
+                g = THREE.MathUtils.clamp(g, 0.16, 0.96);
+                b = THREE.MathUtils.clamp(b, 0.07, 0.50);
                 colorAttr.setXYZ(i, r, g, b);
             } else {
                 // Normal play: original additive turf shading
@@ -2581,7 +2580,7 @@ function resetEntireGame(advanceHole = false) {
 
     applyGreenContourShading = (boosted) => {
         // 5.8x was chosen so typical 0.10–0.18 mound heights read clearly in Green View
-        const strength = boosted ? 2.8 : 1.0;
+        const strength = boosted ? 4.6 : 1.0;
         deformVisualGreenMesh(green, strength, true);
         deformVisualGreenMesh(greenFringe, strength, true);
         setGreenViewMaterialReadMode(boosted);
