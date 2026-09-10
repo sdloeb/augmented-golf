@@ -2457,7 +2457,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
     if (pin) pin.position.set(holePosition.x, 1.0 + specificPinCupY, holePosition.z);
-    if (flag) flag.position.set(holePosition.x + 0.29, 1.82 + specificPinCupY, holePosition.z);
+if (flag) flag.position.set(holePosition.x + 0.23, 1.85 + specificPinCupY, holePosition.z);
     if (holeCup) { // Change this line
         const cupDelta = 0.1; // Add this line: Resolution boundary for sampling local slopes
         // MODIFIED: Swapped slope anchors to getGroundHeight to align the contour angles with the cliff table
@@ -5981,16 +5981,16 @@ function init() {
     greenFringe.position.set(0, 0.018, -55); // Add this line
     scene.add(greenFringe); // Add this line
 
-    const pinGeo = new THREE.CylinderGeometry(0.032, 0.032, 2.0, 8);
+    const pinGeo = new THREE.CylinderGeometry(0.045, 0.045, 2.0, 8);
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     pin = new THREE.Mesh(pinGeo, pinMat);
     pin.position.set(0, 1.0, -55);
     scene.add(pin);
-    const flagGeo = new THREE.PlaneGeometry(0.58, 0.36, 10, 10);
+    const flagGeo = new THREE.PlaneGeometry(0.46, 0.30, 10, 10);
     const flagMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
     flag = new THREE.Mesh(flagGeo, flagMat);
-    flag.position.set(0.29, 1.82, -55);
-    scene.add(flag);
+flag.position.set(0.23, 1.85, -55);    
+scene.add(flag);
 
     holeCup = new THREE.Group();
 
