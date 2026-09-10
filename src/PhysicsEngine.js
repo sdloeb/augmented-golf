@@ -362,7 +362,7 @@ export class PhysicsEngine {
                     t = Math.min(1.0, t);
                     pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
                 }
-                cliffEdgeLimit = pathCenter + 15.5;
+                cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
             }
 
             // Apply the drop-off to sea level
@@ -1419,8 +1419,9 @@ export class PhysicsEngine {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
                     }
-                    const cliffEdgeLimit = pathCenter + (this.ball.position.z <= -125 ? 10.5 : 15.5);
-                    // End of added lines
+                    const cliffEdgeLimit = pathCenter + ((typeof window !== 'undefined' && window.getHole3CliffPadding)
+                        ? window.getHole3CliffPadding(this.ball.position.z)
+                        : (this.ball.position.z <= -125 ? 10.5 : 15.5));                    // End of added lines
 
                     if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 &&
                         this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {

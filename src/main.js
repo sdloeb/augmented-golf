@@ -687,6 +687,17 @@ let flagHideTimeout = null;
 
 const GREEN_RADIUS = 12.0;
 
+window.getHole3CliffPadding = function (z) {
+    // Upper hole / hill: keep the original shelf
+    if (z < -115) {
+        return THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 20.0)));
+    }
+    // Lower fairway: pull inland, then swing back out at the hill (boomerang)
+    const inward = 9.0;
+    const t = THREE.MathUtils.clamp((-100 - z) / 15.0, 0, 1);
+    return THREE.MathUtils.lerp(inward, 15.5, t);
+};
+
 // --- UTILITY FUNCTIONS ---
 
 function onWindowResize() {
@@ -1514,8 +1525,7 @@ function generateHazards() {
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
                     }
-                    let cliffPadding = z < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 20.0))) : 15.5;
-                    const cliffEdgeLimit = pathCenter + cliffPadding;
+                    const cliffEdgeLimit = pathCenter + window.getHole3CliffPadding(z);
                     // Check if outer terrace edge (radius + 6.0 padding) spills over the cliff line
                     return ((x + r + 6.0) > cliffEdgeLimit && z <= -51.75);
                 }
@@ -2216,13 +2226,9 @@ function resetEntireGame(advanceHole = false) {
                     }
 
                     // FIXED: Ensure there is NO "let pathCenter = 0;" here anymore!
-                    let cliffPadding = 15.5;
-                    if (currentZ < -115) {
-                        cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - currentZ) / 20.0)));
-                    }
+                    const cliffPadding = window.getHole3CliffPadding(currentZ);
                     const cliffEdgeLimit = pathCenter + cliffPadding;
-
-                    const trueCrestHeight = physics.getCourseHeight(pathCenter, currentZ);
+                    const trueCrestHeight = physics.getCourseHeight(cliffEdgeLimit - 0.55, currentZ);
 
                     // FIXED: Seamlessly taper down rock ruggedness and rotations on the flat fairway section so it functions as a smooth retaining curb
                     let ruggedIntensity = 1.0;
@@ -2253,19 +2259,16 @@ function resetEntireGame(advanceHole = false) {
                     const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12 * ruggedIntensity;
 
                     // Adds a micro-noise jitter to thickness to eliminate machine-smooth flat faces
-                    const organicThickness = sliceLength + 0.08 + (Math.sin(currentZ * 10.0) * 0.03 * ruggedIntensity);
-                    const wallGeo = new THREE.BoxGeometry(rockWidth, 50.0, organicThickness);
+                    const organicThickness = sliceLength + 0.22;
+                    const wallH = 50.0;
+                    const wallGeo = new THREE.BoxGeometry(rockWidth, wallH, organicThickness);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
-
-                    cliffWall.rotation.z = Math.sin(currentZ * 2.0) * 0.03 * ruggedIntensity;
-                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.04 * ruggedIntensity;
-
-                    // Position the rock face flush against the outer boundaries, tracking the leftward shift factor
+                    cliffWall.rotation.z = -0.03 + Math.sin(currentZ * 2.0) * 0.02 * ruggedIntensity;
+                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.02 * ruggedIntensity;
                     const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset - shiftLeft;
-
                     cliffWall.position.set(
                         positionX,
-                        trueCrestHeight + yOffset,
+                        trueCrestHeight + 0.10 - wallH / 2,
                         currentZ - sliceLength / 2
                     );
                     scene.add(cliffWall);
@@ -2457,7 +2460,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Pin the visual flagstick elements seamlessly onto the new 3D elevation slopes coordinate
     if (pin) pin.position.set(holePosition.x, 1.0 + specificPinCupY, holePosition.z);
-if (flag) flag.position.set(holePosition.x + 0.23, 1.85 + specificPinCupY, holePosition.z);
+    if (flag) flag.position.set(holePosition.x + 0.23, 1.85 + specificPinCupY, holePosition.z);
     if (holeCup) { // Change this line
         const cupDelta = 0.1; // Add this line: Resolution boundary for sampling local slopes
         // MODIFIED: Swapped slope anchors to getGroundHeight to align the contour angles with the cliff table
@@ -2655,8 +2658,7 @@ if (flag) flag.position.set(holePosition.x + 0.23, 1.85 + specificPinCupY, holeP
                         t = Math.min(1.0, t);
                         pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
                     }
-                    let cliffPadding = worldZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - worldZ) / 20.0))) : 15.5;
-                    const cliffEdgeLimit = pathCenter + cliffPadding;
+                    const cliffEdgeLimit = pathCenter + window.getHole3CliffPadding(worldZ);
                     const distCliff = Math.abs(worldX - cliffEdgeLimit);
                     if (distCliff < shortestDistToWaterEdge) shortestDistToWaterEdge = distCliff;
 
@@ -4289,8 +4291,7 @@ function animate() {
             if (currentHoleNumber === 3 && ball.position.z <= -130.0) {
                 let bZ = ball.position.z;
                 let pathCenter = bZ >= -125 ? THREE.MathUtils.lerp(0, -14.0, (10 - bZ) / 135) : THREE.MathUtils.lerp(-14.0, 14.0, Math.min(1.0, (-125 - bZ) / 55));
-                let cliffEdgeLimit = bZ < -115 ? 20.0 : (pathCenter + 15.5);
-
+                let cliffEdgeLimit = bZ < -115 ? 20.0 : (pathCenter + window.getHole3CliffPadding(bZ));
                 if (ball.position.x > cliffEdgeLimit) {
                     isOutOfBounds = true;
                 }
@@ -5989,8 +5990,8 @@ function init() {
     const flagGeo = new THREE.PlaneGeometry(0.46, 0.30, 10, 10);
     const flagMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
     flag = new THREE.Mesh(flagGeo, flagMat);
-flag.position.set(0.23, 1.85, -55);    
-scene.add(flag);
+    flag.position.set(0.23, 1.85, -55);
+    scene.add(flag);
 
     holeCup = new THREE.Group();
 
