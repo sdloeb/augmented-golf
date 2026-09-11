@@ -249,7 +249,7 @@ export const HOLES_CONFIG = {
             { type: 'lake', x: 12, z: -73, radiusX: 9.5, radiusZ: 8.5 },
 
             // 2. Bunker straight out off the tee in the left rough at the turn
-            { type: 'sand', x: -25, z: -110, radius: 10.5, depth: 0.75 },
+            { type: 'sand', x: 0, z: -110, radius: 10.5, depth: 0.75 },
 
             // 3. Bunker to the right of the green
             { type: 'sand', x: 83, z: -65, radius: 6.5, depth: 0.7 },

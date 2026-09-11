@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 3; //1st hole start
+let currentHoleNumber = 5; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2341,8 +2341,7 @@ function resetEntireGame(advanceHole = false) {
             const activeShape = (currentHoleConfig && currentHoleConfig.greenShape) ? currentHoleConfig.greenShape : 'circle';
 
             // Warp the radius based on the angle to match the green's exact footprint
-            const dynamicWallRadius = window.getGreenRadiusAtAngle(theta, outerWallRadius, activeShape);
-
+            const dynamicWallRadius = window.getGreenRadiusAtAngle(theta, baseRadius, activeShape) + 1.08;
             const wx = greenCenterX + Math.cos(theta) * dynamicWallRadius;
             const wz = greenCenterZ - Math.sin(theta) * dynamicWallRadius;
             const topY = physics.getGroundHeight(wx, wz) + 0.02;
@@ -5130,9 +5129,20 @@ function animate() {
         // FIXED: Establish a stable height anchor so the camera stays on the green surface while the ball sinks underground
         const stableBallY = isSinking ? (physics.getGroundHeight(holePosition.x, holePosition.z) + 0.25) : ball.position.y;
 
-        const putterCamX = camBaseX - dirX * rigidCamDist;
-        const putterCamZ = camBaseZ - dirZ * rigidCamDist;
-        const putterCamGroundY = physics.getGroundHeight(putterCamX, putterCamZ); // Samples hill contours under the camera
+       let putterCamX = camBaseX - dirX * rigidCamDist;
+let putterCamZ = camBaseZ - dirZ * rigidCamDist;
+if (currentHoleNumber === 5 && green) {
+    const cdx = putterCamX - green.position.x;
+    const cdz = putterCamZ - greenCenterZ;
+    const cDist = Math.hypot(cdx, cdz) || 1;
+    const cAng = Math.atan2(-cdz, cdx);
+    const islandR = window.getGreenRadiusAtAngle(cAng, window.activeGreenRadius || 17.0, window.activeGreenShape || 'wavy') + 0.65;
+    if (cDist > islandR) {
+        putterCamX = green.position.x + (cdx / cDist) * islandR;
+        putterCamZ = greenCenterZ + (cdz / cDist) * islandR;
+    }
+}
+const putterCamGroundY = physics.getGroundHeight(putterCamX, putterCamZ); // Samples hill contours under the camera
         const putterCamY = Math.max(stableBallY + rigidCamHeight, putterCamGroundY + rigidCamHeight); // Keeps view cleanly elevated over the green edge
 
         cameraTargetPos.set(putterCamX, putterCamY, putterCamZ);
