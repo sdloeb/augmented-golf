@@ -1247,17 +1247,62 @@ function createSnakingBunker(path, spacing, radius, depth) {
 
 
 function addPolygonSandTrap(points, depth) {
-    const shape = new THREE.Shape();
-    // FIXED: Invert the Z coordinates to counteract the -Math.PI / 2 mesh rotation flip
-    shape.moveTo(points[0].x, -points[0].z);
-    for (let i = 1; i < points.length; i++) {
-        shape.lineTo(points[i].x, -points[i].z);
+    // Round the authored corners so the bunker reads as one smooth waste area
+    let pts = points.map(p => ({ x: p.x, z: p.z }));
+    for (let pass = 0; pass < 3; pass++) {
+        const next = [];
+        for (let i = 0; i < pts.length; i++) {
+            const a = pts[i];
+            const b = pts[(i + 1) % pts.length];
+            next.push({ x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 });
+            next.push({ x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 });
+        }
+        pts = next;
     }
-    shape.lineTo(points[0].x, -points[0].z); // Close the path
 
-    const geometry = new THREE.ShapeGeometry(shape);
+    const pointInPoly = (x, z) => {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            const xi = pts[i].x, zi = pts[i].z;
+            const xj = pts[j].x, zj = pts[j].z;
+            if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) inside = !inside;
+        }
+        return inside;
+    };
+
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    pts.forEach(p => {
+        if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+        if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+    });
+    const pad = 0.35;
+    const w = (maxX - minX) + pad * 2;
+    const l = (maxZ - minZ) + pad * 2;
+    const cx = (minX + maxX) / 2;
+    const cz = (minZ + maxZ) / 2;
+    const geometry = new THREE.PlaneGeometry(w, l, Math.max(24, Math.ceil(w * 2.8)), Math.max(24, Math.ceil(l * 2.8)));
+    const pos = geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+        const wx = pos.getX(i) + cx;
+        const wz = -pos.getY(i) + cz;
+        if (pointInPoly(wx, wz)) continue;
+        // Walk back toward the center until we sit on the smoothed edge (no folded corners)
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 14; k++) {
+            const m = (lo + hi) * 0.5;
+            const tx = cx + (wx - cx) * m;
+            const tz = cz + (wz - cz) * m;
+            if (pointInPoly(tx, tz)) lo = m; else hi = m;
+        }
+        pos.setX(i, (wx - cx) * lo);
+        pos.setY(i, -((wz - cz) * lo));
+    }
+    geometry.computeVertexNormals();
+
     const material = new THREE.MeshStandardMaterial({
         color: 0xd9c59e,
+        roughness: 0.95,
+        metalness: 0.0,
         side: THREE.DoubleSide,
         polygonOffset: true,
         polygonOffsetFactor: -1,
@@ -1266,25 +1311,25 @@ function addPolygonSandTrap(points, depth) {
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.rotation.x = -Math.PI / 2;
-    mesh.userData = { points: points, depth: depth, isPolygon: true };
+    mesh.position.set(cx, 0, cz);
+    mesh.userData = { points: pts, depth: depth, isPolygon: true };
     scene.add(mesh);
     sandTraps.push(mesh);
 
-    // Smooth rough collar border around polygon bunkers
-    const N = points.length;
+    const N = pts.length;
     if (N >= 3) {
         let area = 0;
         for (let i = 0; i < N; i++) {
             const j = (i + 1) % N;
-            area += points[i].x * points[j].z - points[j].x * points[i].z;
+            area += pts[i].x * pts[j].z - pts[j].x * pts[i].z;
         }
         const isCCW = area > 0;
 
         const outNormals = [];
         for (let i = 0; i < N; i++) {
-            const prevPt = points[(i - 1 + N) % N];
-            const currPt = points[i];
-            const nextPt = points[(i + 1) % N];
+            const prevPt = pts[(i - 1 + N) % N];
+            const currPt = pts[i];
+            const nextPt = pts[(i + 1) % N];
 
             let e1x = currPt.x - prevPt.x, e1z = currPt.z - prevPt.z;
             let e2x = nextPt.x - currPt.x, e2z = nextPt.z - currPt.z;
@@ -1311,10 +1356,10 @@ function addPolygonSandTrap(points, depth) {
         const positions = [];
         const indices = [];
         for (let i = 0; i < N; i++) {
-            const p = points[i];
+            const p = pts[i];
             const n = outNormals[i];
-            const inX = p.x - n.x * 0.05;
-            const inZ = p.z - n.z * 0.05;
+            const inX = p.x - n.x * 0.08;
+            const inZ = p.z - n.z * 0.08;
             const outX = p.x + n.x * collarWidth;
             const outZ = p.z + n.z * collarWidth;
 
@@ -4848,27 +4893,27 @@ function animate() {
             const camZ = ball.position.z - aimDirZ * camDist;
             const camGroundY = physics.getGroundHeight(camX, camZ);
 
-           let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
-let activeLookUp = 3.0;
-if (isSand) {
-    camY = stableBallHeight + camHeight;
-    activeLookUp = 0.4;
-}
+            let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
+            let activeLookUp = 3.0;
+            if (isSand) {
+                camY = stableBallHeight + camHeight;
+                activeLookUp = 0.4;
+            }
 
-// If the camera is perched on a hill behind the ball, look down enough
-// that the ball stays in frame (Hole 6 rolls were throwing it under the lens).
-const extraLift = Math.max(0, camY - (stableBallHeight + camHeight));
-const keepBall = THREE.MathUtils.clamp(extraLift / 1.4, 0, 1);
-const keptLookX = THREE.MathUtils.lerp(lookTargetX, ball.position.x + aimDirX * 1.4, keepBall);
-const keptLookZ = THREE.MathUtils.lerp(lookTargetZ, ball.position.z + aimDirZ * 1.4, keepBall);
-const keptLookY = THREE.MathUtils.lerp(
-    lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0),
-    stableBallHeight + extraLift * 0.2,
-    keepBall
-);
+            // If the camera is perched on a hill behind the ball, look down enough
+            // that the ball stays in frame (Hole 6 rolls were throwing it under the lens).
+            const extraLift = Math.max(0, camY - (stableBallHeight + camHeight));
+            const keepBall = THREE.MathUtils.clamp(extraLift / 1.4, 0, 1);
+            const keptLookX = THREE.MathUtils.lerp(lookTargetX, ball.position.x + aimDirX * 1.4, keepBall);
+            const keptLookZ = THREE.MathUtils.lerp(lookTargetZ, ball.position.z + aimDirZ * 1.4, keepBall);
+            const keptLookY = THREE.MathUtils.lerp(
+                lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0),
+                stableBallHeight + extraLift * 0.2,
+                keepBall
+            );
 
-cameraTargetPos.set(camX, camY, camZ);
-cameraLookAt.set(keptLookX, keptLookY, keptLookZ);
+            cameraTargetPos.set(camX, camY, camZ);
+            cameraLookAt.set(keptLookX, keptLookY, keptLookZ);
         }
     }
 
@@ -5141,20 +5186,20 @@ cameraLookAt.set(keptLookX, keptLookY, keptLookZ);
         // FIXED: Establish a stable height anchor so the camera stays on the green surface while the ball sinks underground
         const stableBallY = isSinking ? (physics.getGroundHeight(holePosition.x, holePosition.z) + 0.25) : ball.position.y;
 
-       let putterCamX = camBaseX - dirX * rigidCamDist;
-let putterCamZ = camBaseZ - dirZ * rigidCamDist;
-if (currentHoleNumber === 5 && green) {
-    const cdx = putterCamX - green.position.x;
-    const cdz = putterCamZ - greenCenterZ;
-    const cDist = Math.hypot(cdx, cdz) || 1;
-    const cAng = Math.atan2(-cdz, cdx);
-    const islandR = window.getGreenRadiusAtAngle(cAng, window.activeGreenRadius || 17.0, window.activeGreenShape || 'wavy') + 0.65;
-    if (cDist > islandR) {
-        putterCamX = green.position.x + (cdx / cDist) * islandR;
-        putterCamZ = greenCenterZ + (cdz / cDist) * islandR;
-    }
-}
-const putterCamGroundY = physics.getGroundHeight(putterCamX, putterCamZ); // Samples hill contours under the camera
+        let putterCamX = camBaseX - dirX * rigidCamDist;
+        let putterCamZ = camBaseZ - dirZ * rigidCamDist;
+        if (currentHoleNumber === 5 && green) {
+            const cdx = putterCamX - green.position.x;
+            const cdz = putterCamZ - greenCenterZ;
+            const cDist = Math.hypot(cdx, cdz) || 1;
+            const cAng = Math.atan2(-cdz, cdx);
+            const islandR = window.getGreenRadiusAtAngle(cAng, window.activeGreenRadius || 17.0, window.activeGreenShape || 'wavy') + 0.65;
+            if (cDist > islandR) {
+                putterCamX = green.position.x + (cdx / cDist) * islandR;
+                putterCamZ = greenCenterZ + (cdz / cDist) * islandR;
+            }
+        }
+        const putterCamGroundY = physics.getGroundHeight(putterCamX, putterCamZ); // Samples hill contours under the camera
         const putterCamY = Math.max(stableBallY + rigidCamHeight, putterCamGroundY + rigidCamHeight); // Keeps view cleanly elevated over the green edge
 
         cameraTargetPos.set(putterCamX, putterCamY, putterCamZ);

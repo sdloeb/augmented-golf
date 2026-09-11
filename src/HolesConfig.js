@@ -514,28 +514,26 @@ export const HOLES_CONFIG = {
             // 1. Left Dune Waste / Blowout at 245 yds (z = -78)
             { type: 'sand', x: -22.0, z: -78.0, radius: 6.5, depth: 1.1 },
 
-            // 2. Main Center-Right Split Hazard at 325 yds (z = -102 to -118)
-            {
-                type: 'sand',
-                shape: 'snake',
-                radius: 5.0,
-                depth: 1.8,
-                path: [
-                    { x: 8.0, z: -102.0 },
-                    { x: 18.0, z: -115.0 }
-                ]
-            },
-            {
-                type: 'sand',
-                shape: 'snake',
-                radius: 4.8,
-                depth: 1.8,
-                path: [
-                    { x: 15.0, z: -111.0 },
-                    { x: 9.0, z: -117.0 }
-                ]
-            },
-            { type: 'sand', x: 10.0, z: -118.0, radius: 4.8, depth: 1.7 },
+           // 2. Main Center-Right Waste (one polygon — no grass collars through the middle)
+{
+    type: 'sand',
+    shape: 'polygon',
+    depth: 1.2,
+    points: [
+        { x: 9.0, z: -98.0 },
+        { x: 13.0, z: -96.5 },
+        { x: 18.0, z: -98.0 },
+        { x: 23.0, z: -106.0 },
+        { x: 28.0, z: -112.0 },
+        { x: 28.5, z: -118.0 },
+        { x: 23.0, z: -123.0 },
+        { x: 17.0, z: -124.0 },
+        { x: 11.0, z: -123.0 },
+        { x: 9.5, z: -119.0 },
+        { x: 8.5, z: -112.0 },
+        { x: 8.0, z: -104.0 }
+    ]
+},
 
             // 3. Left Layup Pot / Blowout at 430 yds (z = -145)
             { type: 'sand', x: -25.0, z: -145.0, radius: 7.2, depth: 1.8 },
