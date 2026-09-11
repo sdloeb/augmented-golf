@@ -790,12 +790,13 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-    const yards = gameDistance * 2.76923;
-// Feet only for short putts on the green. Fringe and long on-green lags stay on course yards
-// so a 43-yard chip doesn't become "24 feet" after landing on the collar.
-if (ballDist < activeR) {
-        const preciseFeet = gameDistance * 1.75;
-    if (preciseFeet < 1) {
+const yards = gameDistance * 2.76923;
+const preciseFeet = gameDistance * 1.75;
+// Same leftover = same unit on the green, fringe, and just off it.
+// On-green putts stay in putting feet. Off-green stays in feet inside
+// ~47 course yards (30 putting-feet) so a collar chip does not jump 43 yd → 24 ft.
+if (ballDist < activeR || preciseFeet < 30) {
+if (preciseFeet < 1) {
         const inches = Math.max(1, Math.round(preciseFeet * 12));
         distanceText.innerText = inches;
         unitText.innerText = inches === 1 ? "inch" : "inches";
@@ -3018,8 +3019,8 @@ if (insideSandZone || minDistOutsideBunker < 2.2) {
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
                         (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-                    if (insideSandZone || minDistOutsideBunker < 1.6) {
-    calculatedHeight = hiddenFairwayH;
+                  if (insideSandZone || (currentHoleNumber === 7 && minDistOutsideBunker < 1.6)) {
+ calculatedHeight = hiddenFairwayH;
 } else if (isOutsideFairwayBounds) {
     calculatedHeight = hiddenFairwayH;
 } else if (distToGreenCenter < fringeR) {
