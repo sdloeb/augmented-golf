@@ -348,12 +348,12 @@ export class PhysicsEngine {
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
             let cliffEdgeLimit;
 
-           cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
+            cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
 
-          // Apply the drop-off to sea level only where the wall / ocean actually start
-if (x > cliffEdgeLimit && z <= -78.0) {
-    return 0.001;
-}
+            // Apply the drop-off to sea level only where the wall / ocean actually start
+            if (x > cliffEdgeLimit && z <= -78.0) {
+                return 0.001;
+            }
 
 
             // Smooth out the left rough boundary map lines to prevent clipping gaps
@@ -621,6 +621,15 @@ if (x > cliffEdgeLimit && z <= -78.0) {
             const roll2 = Math.cos(x * 0.07 + z * 0.025) * 1.2;         // Diagonal rolling crests across width
             const roll3 = Math.sin(x * 0.12 + z * 0.06) * 0.5;          // Secondary terrain undulations
             height = roll1 + roll2 + roll3;
+
+            // Left bank by the green: drop it so it doesn't pile onto the already-high left green slope
+            if (z < -128) {
+                const nearGreen = THREE.MathUtils.clamp((-128 - z) / 40.0, 0, 1);
+                const leftT = THREE.MathUtils.clamp((-x) / 9.0, 0, 1);
+                const smoothNear = nearGreen * nearGreen * (3 - 2 * nearGreen);
+                const smoothLeft = leftT * leftT * (3 - 2 * leftT);
+                height -= smoothNear * smoothLeft * 0.60;
+            }
 
             this.hasBigFeature = false; // Prevents random extreme cliffs/canyons
         }

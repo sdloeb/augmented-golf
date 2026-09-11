@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 5; //1st hole start
+let currentHoleNumber = 7; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -4848,15 +4848,27 @@ function animate() {
             const camZ = ball.position.z - aimDirZ * camDist;
             const camGroundY = physics.getGroundHeight(camX, camZ);
 
-            let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
-            let activeLookUp = 3.0;
-            if (isSand) {
-                camY = stableBallHeight + camHeight;
-                activeLookUp = 0.4;
-            }
+           let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
+let activeLookUp = 3.0;
+if (isSand) {
+    camY = stableBallHeight + camHeight;
+    activeLookUp = 0.4;
+}
 
-            cameraTargetPos.set(camX, camY, camZ);
-            cameraLookAt.set(lookTargetX, lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0), lookTargetZ);
+// If the camera is perched on a hill behind the ball, look down enough
+// that the ball stays in frame (Hole 6 rolls were throwing it under the lens).
+const extraLift = Math.max(0, camY - (stableBallHeight + camHeight));
+const keepBall = THREE.MathUtils.clamp(extraLift / 1.4, 0, 1);
+const keptLookX = THREE.MathUtils.lerp(lookTargetX, ball.position.x + aimDirX * 1.4, keepBall);
+const keptLookZ = THREE.MathUtils.lerp(lookTargetZ, ball.position.z + aimDirZ * 1.4, keepBall);
+const keptLookY = THREE.MathUtils.lerp(
+    lookTargetY + activeLookUp + (onGreen ? 0.35 : 0.0),
+    stableBallHeight + extraLift * 0.2,
+    keepBall
+);
+
+cameraTargetPos.set(camX, camY, camZ);
+cameraLookAt.set(keptLookX, keptLookY, keptLookZ);
         }
     }
 
