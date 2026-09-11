@@ -2963,12 +2963,12 @@ function resetEntireGame(advanceHole = false) {
                         }
                     }
 
-                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
-                    if (insideSandZone || minDistOutsideBunker < 0.9) {
-                        const tCollar = Math.max(0, Math.min(1, (0.9 - minDistOutsideBunker) / 0.9));
-                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
-                        calculatedHeight -= smoothTCollar * 0.75;
-                    }
+                  // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+if (insideSandZone || minDistOutsideBunker < 2.2) {
+    const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
+    const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
+    calculatedHeight -= smoothTCollar * 1.35;
+}
                 }
 
 
@@ -3012,9 +3012,11 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
                         (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-                    if (isOutsideFairwayBounds) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else if (distToGreenCenter < fringeR) {
+                    if (insideSandZone || minDistOutsideBunker < 1.6) {
+    calculatedHeight = hiddenFairwayH;
+} else if (isOutsideFairwayBounds) {
+    calculatedHeight = hiddenFairwayH;
+} else if (distToGreenCenter < fringeR) {
                         // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
