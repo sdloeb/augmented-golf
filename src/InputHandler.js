@@ -1,15 +1,16 @@
 const CLUBS = [
-    { name: 'Driver', maxYards: 325, isGreen: false, loft: 0.040 },
-    { name: '3 Wood', maxYards: 250, isGreen: false, loft: 0.043 },
-    { name: '5 Wood', maxYards: 225, isGreen: false, loft: 0.046 },
-    { name: 'Hybrid', maxYards: 200, isGreen: false, loft: 0.049 },
+    { name: 'Driver', maxYards: 310, isGreen: false, loft: 0.040 },
+    { name: '3 Wood', maxYards: 270, isGreen: false, loft: 0.043 },
+    { name: '5 Wood', maxYards: 230, isGreen: false, loft: 0.046 },
+    { name: 'Hybrid', maxYards: 205, isGreen: false, loft: 0.049 },
     { name: '5 Iron', maxYards: 190, isGreen: false, loft: 0.051 },
-    { name: '6 Iron', maxYards: 180, isGreen: false, loft: 0.053 },
-    { name: '7 Iron', maxYards: 170, isGreen: false, loft: 0.055 },
-    { name: '8 Iron', maxYards: 160, isGreen: false, loft: 0.057 },
-    { name: '9 Iron', maxYards: 150, isGreen: false, loft: 0.059 },
-    { name: 'PW Iron', maxYards: 140, isGreen: false, loft: 0.061 },
-    { name: 'SW Iron', maxYards: 120, isGreen: false, loft: 0.063 },
+    { name: '6 Iron', maxYards: 175, isGreen: false, loft: 0.053 },
+    { name: '7 Iron', maxYards: 165, isGreen: false, loft: 0.055 },
+    { name: '8 Iron', maxYards: 150, isGreen: false, loft: 0.057 },
+    { name: '9 Iron', maxYards: 140, isGreen: false, loft: 0.059 },
+    { name: 'PW Iron', maxYards: 125, isGreen: false, loft: 0.061 },
+    { name: 'GW Iron', maxYards: 110, isGreen: false, loft: 0.062 },
+    { name: 'SW Iron', maxYards: 95, isGreen: false, loft: 0.063 },
     { name: 'Putter', maxYards: 50, isGreen: true, loft: 0.000 }
 ];
 
@@ -58,17 +59,18 @@ export class InputHandler {
         if (window.isBumpOn) return 6;
         const currentYards = this.getDistance ? this.getDistance() : 0;
         const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false; // Add this line
-        if (currentYards >= 250) return isOnTee ? 0 : 1;
-        if (currentYards >= 225) return 1;  // 3 Wood
-        if (currentYards >= 200) return 2;  // 5 Wood
-        if (currentYards >= 190) return 3;  // Hybrid
-        if (currentYards >= 180) return 4;  // 5 Iron
-        if (currentYards >= 170) return 5;  // 6 Iron
-        if (currentYards >= 160) return 6;  // 7 Iron
-        if (currentYards >= 150) return 7;  // 8 Iron
-        if (currentYards >= 140) return 8;  // 9 Iron
-        if (currentYards >= 130) return 9;  // PW Iron
-        return 10;                          // SW Iron
+        if (currentYards >= 270) return isOnTee ? 0 : 1;
+        if (currentYards >= 230) return 1; // 3 Wood
+        if (currentYards >= 205) return 2; // 5 Wood
+        if (currentYards >= 190) return 3; // Hybrid
+        if (currentYards >= 175) return 4; // 5 Iron
+        if (currentYards >= 165) return 5; // 6 Iron
+        if (currentYards >= 150) return 6; // 7 Iron
+        if (currentYards >= 140) return 7; // 8 Iron
+        if (currentYards >= 125) return 8; // 9 Iron
+        if (currentYards >= 110) return 9; // PW Iron
+        if (currentYards >= 100) return 10; // GW Iron
+        return 11; // SW Iron
     }
 
     getClubInfo() {
@@ -615,6 +617,9 @@ export class InputHandler {
             }
             else if (club.name === 'PW Iron') {
                 finalPower *= 1.55; // Adjust to tune Pitching Wedge distance separately
+            }
+            else if (club.name === 'GW Iron') {
+                finalPower *= 1.59; // Adjust to tune Gap Wedge distance separately
             }
             else if (club.name === 'SW Iron') {
                 finalPower *= 1.64; // Adjust to tune Sand Wedge distance separately

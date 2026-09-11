@@ -209,7 +209,7 @@ export class TutorialManager {
             window.placeTutorialBall(-9.0, -135.0);
         }
         if ((step.action === 'showRough' || step.action === 'showSand') && window.inputHandler) {
-            window.inputHandler.chosenClubIndex = 10; // SW Iron
+            window.inputHandler.chosenClubIndex = 11; // SW Iron
             if (window.updateDistanceDisplay) window.updateDistanceDisplay();
         }
         if (step.action === 'showBump') {
@@ -240,7 +240,7 @@ export class TutorialManager {
             if (window.setTutorialBump) window.setTutorialBump(false);
             if (window.placeTutorialBall) window.placeTutorialBall('puttLie');
             if (window.inputHandler) {
-                window.inputHandler.chosenClubIndex = 11; // Putter
+                window.inputHandler.chosenClubIndex = 12; // Putter
                 window.inputHandler.aimAngleOffset = 0;
                 if (window.updateDistanceDisplay) window.updateDistanceDisplay();
             }
