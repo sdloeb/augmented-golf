@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 7; //1st hole start
+let currentHoleNumber = 5; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -793,8 +793,8 @@ function updateDistanceDisplay() {
     const yards = gameDistance * 2.76923;
 // Feet only for short putts on the green. Fringe and long on-green lags stay on course yards
 // so a 43-yard chip doesn't become "24 feet" after landing on the collar.
-if (ballDist < activeR && yards < 12) {
-    const preciseFeet = gameDistance * 1.75;
+if (ballDist < activeR) {
+        const preciseFeet = gameDistance * 1.75;
     if (preciseFeet < 1) {
         const inches = Math.max(1, Math.round(preciseFeet * 12));
         distanceText.innerText = inches;
@@ -6067,7 +6067,7 @@ function init() {
     greenFringe.position.set(0, 0.018, -55); // Add this line
     scene.add(greenFringe); // Add this line
 
-    const pinGeo = new THREE.CylinderGeometry(0.045, 0.045, 2.0, 8);
+    const pinGeo = new THREE.CylinderGeometry(0.022, 0.022, 2.0, 8);
     const pinMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     pin = new THREE.Mesh(pinGeo, pinMat);
     pin.position.set(0, 1.0, -55);
