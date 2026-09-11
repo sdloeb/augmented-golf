@@ -790,22 +790,23 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-        if (ballDist < activeR || isOnFringe) {
-            const preciseFeet = gameDistance * 1.75;
-            if (preciseFeet < 1) {
-                const inches = Math.max(1, Math.round(preciseFeet * 12));
-                distanceText.innerText = inches;
-                unitText.innerText = inches === 1 ? "inch" : "inches";
-            } else {
-                distanceText.innerText = Math.round(preciseFeet);
-                unitText.innerText = "feet";
-            }
-        } else {
-            // Fairway, rough, and deep approach shots accurately maintain the global course yardage scale
-            const yards = Math.round(gameDistance * 2.76923);
-            distanceText.innerText = yards;
-            unitText.innerText = "yards";
-        }
+    const yards = gameDistance * 2.76923;
+// Feet only for short putts on the green. Fringe and long on-green lags stay on course yards
+// so a 43-yard chip doesn't become "24 feet" after landing on the collar.
+if (ballDist < activeR && yards < 12) {
+    const preciseFeet = gameDistance * 1.75;
+    if (preciseFeet < 1) {
+        const inches = Math.max(1, Math.round(preciseFeet * 12));
+        distanceText.innerText = inches;
+        unitText.innerText = inches === 1 ? "inch" : "inches";
+    } else {
+        distanceText.innerText = Math.round(preciseFeet);
+        unitText.innerText = "feet";
+    }
+} else {
+    distanceText.innerText = Math.round(yards);
+    unitText.innerText = "yards";
+}
 
         // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
         if (pin && flag && physics) {
