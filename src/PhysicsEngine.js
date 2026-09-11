@@ -863,8 +863,7 @@ export class PhysicsEngine {
         } else {
             // Calculates low-piercing woods vs high-popping wedges
             // Add this line: Bump & Run flattens the launch so the shot flies low and lands short instead of popping up
-            const effectiveLoft = this.hasBump ? Math.max(0.022, loft * 0.55) : loft;
-            this.velocity.y = power * effectiveLoft;
+            const effectiveLoft = this.hasBump ? Math.max(0.016, loft * 0.40) : loft; this.velocity.y = power * effectiveLoft;
 
             const horizontalAdjustment = 1.0 / (effectiveLoft * 18.0);
             this.velocity.x *= horizontalAdjustment;
@@ -1200,10 +1199,11 @@ export class PhysicsEngine {
                 let rollingFriction = currentFriction;
 
                 // If a chip shot is purely rolling on the ground, let it trickle out naturally at low speeds instead of sticking like velcro
-                if (!isAirborne && !this.isPutting && rollingFriction < 0.96 && this.velocity.length() < 0.15) {
-                    let tTrickle = Math.min(1.0, Math.max(0.0, (0.15 - this.velocity.length()) / 0.12));
-                    rollingFriction = THREE.MathUtils.lerp(currentFriction, 0.965, tTrickle);
-                }
+              if (!isAirborne && !this.isPutting && rollingFriction < 0.96 && this.velocity.length() < 0.15) {
+    let tTrickle = Math.min(1.0, Math.max(0.0, (0.15 - this.velocity.length()) / 0.12));
+    const trickleTop = this.hasBump ? 0.982 : 0.965;
+    rollingFriction = THREE.MathUtils.lerp(currentFriction, trickleTop, tTrickle);
+}
 
                 this.velocity.x *= rollingFriction;
                 this.velocity.z *= rollingFriction;
@@ -1483,10 +1483,14 @@ export class PhysicsEngine {
                 }
 
                 if (onGreen && !this.isPutting && !inSand && this.bounceCount === 1) {
-                    const speedT = THREE.MathUtils.clamp((landingSpeed - 0.06) / 0.40, 0, 1);
-                    const chipKeep = 0.70;
-                    const fullKeep = currentBounceForwardLoss * 0.82;
-                    adaptiveForwardLoss = THREE.MathUtils.lerp(chipKeep, fullKeep, speedT);
+                    if (this.hasBump) {
+                        adaptiveForwardLoss = Math.max(adaptiveForwardLoss, 0.92);
+                    } else {
+                        const speedT = THREE.MathUtils.clamp((landingSpeed - 0.06) / 0.40, 0, 1);
+                        const chipKeep = 0.70;
+                        const fullKeep = currentBounceForwardLoss * 0.82;
+                        adaptiveForwardLoss = THREE.MathUtils.lerp(chipKeep, fullKeep, speedT);
+                    }
                 }
 
                 this.velocity.x *= adaptiveForwardLoss;
@@ -1531,8 +1535,7 @@ export class PhysicsEngine {
                     // so it releases and rolls out along the ground like a real bump-and-run chip
                     const incomingBumpSpeed = Math.hypot(this.velocity.x / adaptiveForwardLoss, this.velocity.z / adaptiveForwardLoss);
                     const bumpSpeedFactor = Math.min(1.0, Math.max(0.0, incomingBumpSpeed / 0.01));
-                    const bumpMultiplier = THREE.MathUtils.lerp(1.0, 1.3, bumpSpeedFactor);
-                    this.velocity.x *= bumpMultiplier;
+                    const bumpMultiplier = THREE.MathUtils.lerp(1.22, 1.38, bumpSpeedFactor); this.velocity.x *= bumpMultiplier;
                     this.velocity.z *= bumpMultiplier;
                 }
             } else {

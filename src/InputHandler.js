@@ -87,13 +87,20 @@ export class InputHandler {
         if (window.isBumpOn && club && !club.isGreen) {
             return {
                 name: club.name,
-                maxYards: club.maxYards * 0.25,
+                maxYards: this.getBumpMaxYards(),
                 isGreen: club.isGreen,
                 loft: club.loft
             };
         }
         return club;
     }
+
+    getBumpMaxYards() {
+        const yards = this.getDistance ? this.getDistance() : 25;
+        // Full swipe is ~1.65x the pin so a half-swing is "to the hole", not a 15% tap
+        return Math.max(14, Math.min(42, yards * 1.65));
+    }
+
 
     getPutterMaxFeet() {
         if (!this.getDistance) return 60;
@@ -341,6 +348,12 @@ export class InputHandler {
                 const maxFeet = this.getPutterMaxFeet();
                 const feet = Math.round(pullRatio * maxFeet);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+            } else if (window.isBumpOn && (this.getDistance ? this.getDistance() : 30) < 25) {
+                const feet = Math.round(pullRatio * club.maxYards * 3);
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+            } else if (window.isBumpOn && (this.getDistance ? this.getDistance() : 30) < 25) {
+                const feet = Math.round(pullRatio * club.maxYards * 3);
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
                 this.gaugeLabel.innerText = `${club.name}: ${yards} yds`;
@@ -452,6 +465,9 @@ export class InputHandler {
             if (club.isGreen) {
                 const maxFeet = this.getPutterMaxFeet();
                 const feet = Math.round(pullRatio * maxFeet);
+                this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
+            } else if (window.isBumpOn && (this.getDistance ? this.getDistance() : 30) < 25) {
+                const feet = Math.round(pullRatio * club.maxYards * 3);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else {
                 const yards = Math.round(pullRatio * club.maxYards);
@@ -565,6 +581,9 @@ export class InputHandler {
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
+            if (window.isBumpOn) {
+                finalPower *= 1.65;
+            }
             const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
             if (club.name === 'Driver') {

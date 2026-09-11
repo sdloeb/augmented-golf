@@ -1043,8 +1043,13 @@ function updateDistanceDisplay() {
             const maxFt = input.getPutterMaxFeet();
             yardsSpan.innerText = `(${maxFt} ft)`;
         } else {
-            yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards * (isBumpOn ? 0.25 : 1))} yds)`;
-        }
+if (isBumpOn) {
+    const maxYds = input.getBumpMaxYards();
+    const distYds = input.getDistance ? input.getDistance() : maxYds;
+    yardsSpan.innerText = distYds < 25 ? `(${Math.round(maxYds * 3)} ft)` : `(${Math.round(maxYds)} yds)`;
+} else {
+    yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards)} yds)`;
+}        }
 
         // Append text elements into our new vertical sub-layout frame
         clubLabelWrapper.appendChild(nameSpan);
