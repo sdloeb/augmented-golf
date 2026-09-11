@@ -795,7 +795,7 @@ const preciseFeet = gameDistance * 1.75;
 // Same leftover = same unit on the green, fringe, and just off it.
 // On-green putts stay in putting feet. Off-green stays in feet inside
 // ~47 course yards (30 putting-feet) so a collar chip does not jump 43 yd → 24 ft.
-if (ballDist < activeR || preciseFeet < 30) {
+if (ballDist < activeR) {
 if (preciseFeet < 1) {
         const inches = Math.max(1, Math.round(preciseFeet * 12));
         distanceText.innerText = inches;
