@@ -104,11 +104,11 @@ export const HOLES_CONFIG = {
         customTrees: [
             // --- LEFT SIDE (Outside Left Bunkers) ---
 
-         { x: -32, z: 10 }, { x: -52, z: -5 }, { x: -47, z: -13 }, { x: -56, z: -20 }, { x: -72, z: -35 }, { x: -65, z: -43 }, { x: -60, z: -50 }, { x: -67, z: -57 }, { x: -68, z: -65 }, { x: -60, z: -72 }, { x: -45, z: -80 }, { x: -51, z: -87 }, { x: -32, z: -95 }, { x: -40, z: -102 }, { x: -34, z: -110 }, { x: -40, z: -125 }, { x: -55, z: -140 },
+            { x: -32, z: 10 }, { x: -52, z: -5 }, { x: -47, z: -13 }, { x: -56, z: -20 }, { x: -72, z: -35 }, { x: -65, z: -43 }, { x: -60, z: -50 }, { x: -67, z: -57 }, { x: -68, z: -65 }, { x: -60, z: -72 }, { x: -45, z: -80 }, { x: -51, z: -87 }, { x: -32, z: -95 }, { x: -40, z: -102 }, { x: -34, z: -110 }, { x: -40, z: -125 }, { x: -55, z: -140 },
 
             // --- RIGHT SIDE (Far Right Hillside) ---
 
-            { x: 10, z: -100 },{ x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
+            { x: 10, z: -95, scale: 2.50 }, { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
 
             // --- BACK OF GREEN ---
             { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
@@ -554,7 +554,7 @@ export const HOLES_CONFIG = {
         // Treeless open links dunes (No trees on fairway)
         customTrees: [],
 
-customOOB: {
+        customOOB: {
             type: 'rectangle',
             minX: -65,
             maxX: 65,
@@ -564,7 +564,7 @@ customOOB: {
             stakesPerRow: 4
         }
     },
-  8: { // Pine Valley Hole #2 - 428-Yard Championship Par 4
+    8: { // Pine Valley Hole #2 - 428-Yard Championship Par 4
         par: 4,
         fairwayWidth: 13.0,
         greenRadius: 8.5,
@@ -594,7 +594,7 @@ customOOB: {
         },
 
         // EXACT YARDAGE WAYPOINTS (Tee: z=10, Fairway: z=-51.4 to -89.3, Steps to -131.3, Green: z=-144.5)
-   waypoints: [
+        waypoints: [
             new THREE.Vector3(0, 0, 10),       // 1. Perched Tee Box (0 yds)
             new THREE.Vector3(0, 0, -51.4),    // 2. Fairway Start (170 yds)
             new THREE.Vector3(0, 0, -70.0),    // 3. Fairway Landing Target (222 yds)
@@ -604,7 +604,7 @@ customOOB: {
 
         // CALIBRATED HAZARDS: Forced Carry, Flanks, 4-Tier Staircase & Greenside
         hazards: [
-          // --- 1. PINE VALLEY NATIVE WASTE AREA & CHANNELS (70 to 160 yds / z = -18.0 to -48.0) ---
+            // --- 1. PINE VALLEY NATIVE WASTE AREA & CHANNELS (70 to 160 yds / z = -18.0 to -48.0) ---
             // Left Major Waste Wash
             { type: 'sand', shape: 'snake', path: [{ x: -18.0, z: -19.0 }, { x: -14.0, z: -28.0 }, { x: -18.0, z: -38.0 }, { x: -12.0, z: -47.0 }], radius: 4.5, depth: 0.50 },
 
@@ -638,7 +638,7 @@ customOOB: {
             { type: 'sand', x: 20.5, z: -78.0, radius: 5.8, depth: 0.50 },
             { type: 'sand', x: 19.2, z: -84.0, radius: 3.8, depth: 0.50 },
 
-           // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 40-yd flat fairways) ---
+            // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 40-yd flat fairways) ---
             // Tier 1: Bunker 1 (z = -92.0) -> Flat Fairway 1 (z = -94.5 to -108.9, 40 yds)
             { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -92.0 }, { x: 0.0, z: -92.0 }, { x: 13.0, z: -92.0 }], radius: 2.0, depth: 0.45 },
 
@@ -662,7 +662,7 @@ customOOB: {
 
         // DENSE SURROUNDING PINE FOREST
         customTrees: [
-           // Left Tree Line
+            // Left Tree Line
             { x: -26, z: 20 }, { x: -26, z: 0 }, { x: -28, z: -20 }, { x: -30, z: -40 },
             { x: -28, z: -60 }, { x: -26, z: -80 }, { x: -28, z: -100 }, { x: -30, z: -120 },
             { x: -30, z: -145 }, { x: -32, z: -170 }, { x: -26, z: -186 }, { x: -18, z: -191 },
@@ -672,7 +672,7 @@ customOOB: {
             { x: 30, z: -60 }, { x: 28, z: -80 }, { x: 30, z: -100 }, { x: 30, z: -120 },
             { x: 30, z: -145 }, { x: 28, z: -170 }, { x: 24, z: -186 }, { x: 16, z: -191 },
 
-           // Back of Green Canopy Frame
+            // Back of Green Canopy Frame
             { x: -10, z: -186 }, { x: -2, z: -189 }, { x: 6, z: -189 }, { x: 12, z: -186 },
 
             // --- NATIVE SCRUB BUSHES & GRASS ISLAND VEGETATION ---
@@ -704,7 +704,7 @@ customOOB: {
             type: 'rectangle',
             minX: -46,
             maxX: 46,
-           minZ: -201,
+            minZ: -201,
             maxZ: 30,
             stakesPerSide: 12,
             stakesPerRow: 4
@@ -770,7 +770,7 @@ customOOB: {
             // --- LEFT TREE WALL (Inner row creating narrow chute) ---
             { x: -14, z: 20 }, { x: -14, z: 10 }, { x: -15, z: 0 }, { x: -15, z: -10 },
             { x: -16, z: -20 }, { x: -17, z: -30 }, { x: -18, z: -40 }, { x: -19, z: -50 },
-            
+
 
             // --- LEFT TREE WALL (Outer row for dense forest depth) ---
             { x: -22, z: 18 }, { x: -24, z: 8 }, { x: -25, z: -2 }, { x: -26, z: -12 },
@@ -787,7 +787,7 @@ customOOB: {
             { x: 28, z: -22 }, { x: 29, z: -32 }, { x: 30, z: -42 }, { x: 31, z: -52 },
             { x: 32, z: -62 }, { x: 30, z: -72 }, { x: 28, z: -82 },
 
-           
+
 
             // --- BACK OF GREEN DROP-OFF CANOPY FRAME ---
             { x: -14, z: -86 }, { x: -7, z: -89 }, { x: 0, z: -90 }, { x: 7, z: -89 }, { x: 14, z: -86 }

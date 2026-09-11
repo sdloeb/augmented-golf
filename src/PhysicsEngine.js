@@ -348,27 +348,12 @@ export class PhysicsEngine {
             // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
             let cliffEdgeLimit;
 
-            if (z < -115) {
-                // LOCK: Provide a wide shelf for bunkers by locking the edge to 20.0
-                cliffEdgeLimit = 20.0;
-            } else {
-                // STANDARD: Follow the path center with standard padding
-                let pathCenter = 0;
-                if (z >= -125) {
-                    let t = (10 - z) / 135;
-                    pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
-                } else {
-                    let t = (-125 - z) / 55;
-                    t = Math.min(1.0, t);
-                    pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates drop-off coordinates symmetrically
-                }
-                cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
-            }
+           cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
 
-            // Apply the drop-off to sea level
-            if (x > cliffEdgeLimit && z <= -51.75) {
-                return 0.001;
-            }
+          // Apply the drop-off to sea level only where the wall / ocean actually start
+if (x > cliffEdgeLimit && z <= -78.0) {
+    return 0.001;
+}
 
 
             // Smooth out the left rough boundary map lines to prevent clipping gaps
@@ -738,10 +723,7 @@ export class PhysicsEngine {
                         pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
                     }
 
-                    // Modify these lines to blend the edge limit smoothly:
-                    let cliffPadding = 15.5;
-                    if (z < -115) { cliffPadding = THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 20.0))); }
-                    const cliffEdgeLimit = pathCenter + cliffPadding;
+                    const cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
 
                     if (x > cliffEdgeLimit && x <= water.position.x + water.userData.w / 2 &&
                         z >= water.position.z - water.userData.l / 2 && z <= water.position.z + water.userData.l / 2) {

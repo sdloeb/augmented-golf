@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -688,14 +688,21 @@ let flagHideTimeout = null;
 const GREEN_RADIUS = 12.0;
 
 window.getHole3CliffPadding = function (z) {
-    // Upper hole / hill: keep the original shelf
-    if (z < -115) {
-        return THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - z) / 20.0)));
+    let pathCenter = 0;
+    if (z >= -125) {
+        pathCenter = THREE.MathUtils.lerp(0, -14.0, (10 - z) / 135);
+    } else {
+        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, Math.min(1.0, (-125 - z) / 55));
     }
-    // Lower fairway: pull inland, then swing back out at the hill (boomerang)
-    const inward = 9.0;
-    const t = THREE.MathUtils.clamp((-100 - z) / 15.0, 0, 1);
-    return THREE.MathUtils.lerp(inward, 15.5, t);
+
+    // Absolute grass/water X. Hill / plateau / green stay on the wide shelf.
+    let edgeX = 20.0;
+    if (z >= -115) {
+        const inland = pathCenter + 13.5; // 2 units left of the old 15.5 line (~5.5 yd)
+        const t = THREE.MathUtils.clamp((-100 - z) / 15.0, 0, 1);
+        edgeX = THREE.MathUtils.lerp(inland, 20.0, t);
+    }
+    return edgeX - pathCenter;
 };
 
 // --- UTILITY FUNCTIONS ---
@@ -2239,7 +2246,7 @@ function resetEntireGame(advanceHole = false) {
                     }
 
                     // ADJUST THESE NUMBERS: leftExtension widens the lower wall, topExtension widens the high plateau wall
-                    const leftExtension = 1.2;
+                    const leftExtension = 2.4;
                     const topExtension = 2.0; // Increase this number to push the top cliff wall even further left into the grass
 
                     // DYNAMIC BULKHEAD PROFILE: Width and position parameters scale together to keep the ocean side flush
@@ -2263,8 +2270,9 @@ function resetEntireGame(advanceHole = false) {
                     const wallH = 50.0;
                     const wallGeo = new THREE.BoxGeometry(rockWidth, wallH, organicThickness);
                     const cliffWall = new THREE.Mesh(wallGeo, wallMat);
-                    cliffWall.rotation.z = -0.03 + Math.sin(currentZ * 2.0) * 0.02 * ruggedIntensity;
-                    cliffWall.rotation.y = Math.cos(currentZ * 1.1) * 0.02 * ruggedIntensity;
+                    const isLowerShore = currentZ >= -115;
+                    cliffWall.rotation.z = isLowerShore ? 0 : (-0.03 + Math.sin(currentZ * 2.0) * 0.02 * ruggedIntensity);
+                    cliffWall.rotation.y = isLowerShore ? 0 : (Math.cos(currentZ * 1.1) * 0.02 * ruggedIntensity);
                     const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset - shiftLeft;
                     cliffWall.position.set(
                         positionX,
@@ -2649,22 +2657,25 @@ function resetEntireGame(advanceHole = false) {
                 }
 
                 if (water.userData && water.userData.isRectangular) {
-                    let pathCenter = 0;
-                    if (worldZ >= -125) {
-                        let t = (10 - worldZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t);
-                    } else {
-                        let t = (-125 - worldZ) / 55;
-                        t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
-                    }
-                    const cliffEdgeLimit = pathCenter + window.getHole3CliffPadding(worldZ);
-                    const distCliff = Math.abs(worldX - cliffEdgeLimit);
-                    if (distCliff < shortestDistToWaterEdge) shortestDistToWaterEdge = distCliff;
+                    const oceanMinZ = water.position.z - water.userData.l / 2;
+                    const oceanMaxZ = water.position.z + water.userData.l / 2;
+                    if (worldZ >= oceanMinZ && worldZ <= oceanMaxZ) {
+                        let pathCenter = 0;
+                        if (worldZ >= -125) {
+                            let t = (10 - worldZ) / 135;
+                            pathCenter = THREE.MathUtils.lerp(0, -14.0, t);
+                        } else {
+                            let t = (-125 - worldZ) / 55;
+                            t = Math.min(1.0, t);
+                            pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);
+                        }
+                        const cliffEdgeLimit = pathCenter + window.getHole3CliffPadding(worldZ);
+                        const distCliff = Math.abs(worldX - cliffEdgeLimit);
+                        if (distCliff < shortestDistToWaterEdge) shortestDistToWaterEdge = distCliff;
 
-                    if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2 &&
-                        worldZ >= water.position.z - water.userData.l / 2 && worldZ <= water.position.z + water.userData.l / 2) {
-                        insideWaterZone = true;
+                        if (worldX > cliffEdgeLimit && worldX <= water.position.x + water.userData.w / 2) {
+                            insideWaterZone = true;
+                        }
                     }
                 } else if (water.userData && water.userData.isPond) {
                     const dxP = Math.abs(worldX - water.position.x) - (water.userData.w / 2);
@@ -3534,8 +3545,7 @@ function resetEntireGame(advanceHole = false) {
                             t = Math.min(1.0, t);                                 // Add this line
                             pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t);    // Add this line
                         }                                                         // Add this line
-                        let cliffPadding = sampleZ < -115 ? THREE.MathUtils.lerp(15.5, 10.5, Math.max(0, Math.min(1, (-115 - sampleZ) / 20.0))) : 15.5; // Add this line
-                        const cliffEdgeLimit = pathCenter + cliffPadding;         // Add this line
+                        const cliffEdgeLimit = pathCenter + window.getHole3CliffPadding(sampleZ);
                         return sampleX > (cliffEdgeLimit - 1.5);                  // Add this line
                     }                                                             // Add this line
                     let dxW = sampleX - waterMesh.position.x;
