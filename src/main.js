@@ -790,24 +790,21 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-const yards = gameDistance * 2.76923;
-const preciseFeet = gameDistance * 1.75;
-// Same leftover = same unit on the green, fringe, and just off it.
-// On-green putts stay in putting feet. Off-green stays in feet inside
-// ~47 course yards (30 putting-feet) so a collar chip does not jump 43 yd → 24 ft.
-if (ballDist < activeR) {
-if (preciseFeet < 1) {
-        const inches = Math.max(1, Math.round(preciseFeet * 12));
-        distanceText.innerText = inches;
-        unitText.innerText = inches === 1 ? "inch" : "inches";
-    } else {
-        distanceText.innerText = Math.round(preciseFeet);
-        unitText.innerText = "feet";
-    }
-} else {
-    distanceText.innerText = Math.round(yards);
-    unitText.innerText = "yards";
-}
+        const yards = gameDistance * 2.76923;
+        const preciseFeet = yards * 3;
+        if (ballDist < activeR) {
+            if (preciseFeet < 1) {
+                const inches = Math.max(1, Math.round(preciseFeet * 12));
+                distanceText.innerText = inches;
+                unitText.innerText = inches === 1 ? "inch" : "inches";
+            } else {
+                distanceText.innerText = Math.round(preciseFeet);
+                unitText.innerText = "feet";
+            }
+        } else {
+            distanceText.innerText = Math.round(yards);
+            unitText.innerText = "yards";
+        }
 
         // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
         if (pin && flag && physics) {
@@ -1042,16 +1039,17 @@ if (preciseFeet < 1) {
         yardsSpan.style.fontWeight = 'bold';
         yardsSpan.style.marginTop = '2px';
         if (clubList[currentIdx].name === 'Putter') {
-            const maxFt = input.getPutterMaxFeet();
+            const maxFt = Math.round(input.getPutterMaxFeet() * ((2.76923 * 3) / 1.75));
             yardsSpan.innerText = `(${maxFt} ft)`;
         } else {
-if (isBumpOn) {
-    const maxYds = input.getBumpMaxYards();
-    const distYds = input.getDistance ? input.getDistance() : maxYds;
-    yardsSpan.innerText = distYds < 25 ? `(${Math.round(maxYds * 3)} ft)` : `(${Math.round(maxYds)} yds)`;
-} else {
-    yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards)} yds)`;
-}        }
+            if (isBumpOn) {
+                const maxYds = input.getBumpMaxYards();
+                const distYds = input.getDistance ? input.getDistance() : maxYds;
+                yardsSpan.innerText = distYds < 25 ? `(${Math.round(maxYds * 3)} ft)` : `(${Math.round(maxYds)} yds)`;
+            } else {
+                yardsSpan.innerText = `(${Math.round(clubList[currentIdx].maxYards)} yds)`;
+            }
+        }
 
         // Append text elements into our new vertical sub-layout frame
         clubLabelWrapper.appendChild(nameSpan);
@@ -2970,12 +2968,12 @@ function resetEntireGame(advanceHole = false) {
                         }
                     }
 
-                  // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
-if (insideSandZone || minDistOutsideBunker < 2.2) {
-    const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
-    const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
-    calculatedHeight -= smoothTCollar * 1.35;
-}
+                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+                    if (insideSandZone || minDistOutsideBunker < 2.2) {
+                        const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
+                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
+                        calculatedHeight -= smoothTCollar * 1.35;
+                    }
                 }
 
 
@@ -3019,11 +3017,11 @@ if (insideSandZone || minDistOutsideBunker < 2.2) {
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
                         (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-                  if (insideSandZone || (currentHoleNumber === 7 && minDistOutsideBunker < 1.6)) {
- calculatedHeight = hiddenFairwayH;
-} else if (isOutsideFairwayBounds) {
-    calculatedHeight = hiddenFairwayH;
-} else if (distToGreenCenter < fringeR) {
+                    if (insideSandZone || (currentHoleNumber === 7 && minDistOutsideBunker < 1.6)) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else if (isOutsideFairwayBounds) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else if (distToGreenCenter < fringeR) {
                         // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
