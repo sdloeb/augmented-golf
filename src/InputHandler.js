@@ -347,7 +347,7 @@ export class InputHandler {
 
             if (club.isGreen) {
                 const maxFeet = this.getPutterMaxFeet();
-                const feet = Math.round(pullRatio * maxFeet * ((2.76923 * 3) / 1.75));
+                const feet = Math.round(pullRatio * maxFeet);
                 this.gaugeLabel.innerText = `${club.name}: ${feet} ft`;
             } else if (window.isBumpOn && (this.getDistance ? this.getDistance() : 30) < 25) {
                 const feet = Math.round(pullRatio * club.maxYards * 3);

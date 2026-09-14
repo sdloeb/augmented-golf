@@ -792,6 +792,7 @@ function updateDistanceDisplay() {
 
         const yards = gameDistance * 2.76923;
         const preciseFeet = gameDistance * 1.75;
+     
         if (ballDist < activeR) {
             if (preciseFeet < 1) {
                 const inches = Math.max(1, Math.round(preciseFeet * 12));
@@ -1039,8 +1040,8 @@ function updateDistanceDisplay() {
         yardsSpan.style.fontWeight = 'bold';
         yardsSpan.style.marginTop = '2px';
         if (clubList[currentIdx].name === 'Putter') {
-const maxFt = input.getPutterMaxFeet();            
-yardsSpan.innerText = `(${maxFt} ft)`;
+            const maxFt = input.getPutterMaxFeet();
+            yardsSpan.innerText = `(${maxFt} ft)`;
         } else {
             if (isBumpOn) {
                 const maxYds = input.getBumpMaxYards();
