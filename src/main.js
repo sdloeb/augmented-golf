@@ -792,7 +792,7 @@ function updateDistanceDisplay() {
 
         const yards = gameDistance * 2.76923;
         const preciseFeet = gameDistance * 1.75;
-     
+
         if (ballDist < activeR) {
             if (preciseFeet < 1) {
                 const inches = Math.max(1, Math.round(preciseFeet * 12));
@@ -2567,8 +2567,7 @@ function resetEntireGame(advanceHole = false) {
                 calculatedHeight += 0.025;
             } else if (targetMesh === greenFringe) {
                 // Taper fringe collar smoothly from green inner edge (+0.019) down to fairway/rough outer edge (+0.012)
-                const innerEdgeR = window.getGreenRadiusAtAngle(Math.atan2(-localY, localX), window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                const localDist = Math.hypot(localX, localY);
+                const innerEdgeR = window.getGreenRadiusAtAngle(Math.atan2(localY, localX), window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle'); const localDist = Math.hypot(localX, localY);
                 const tFringe = THREE.MathUtils.clamp((localDist - innerEdgeR) / 1.0, 0, 1);
                 const smoothFringe = THREE.MathUtils.smoothstep(tFringe, 0, 1);
                 calculatedHeight += THREE.MathUtils.lerp(0.019, 0.012, smoothFringe);
@@ -2581,8 +2580,7 @@ function resetEntireGame(advanceHole = false) {
             // --- REALISTIC TURF SHADE CONTRAST GENERATOR ---
             let baseR = 0.066, baseG = 0.666, baseB = 0.266; // Standard Green (0x11aa44)
             if (targetMesh === greenFringe) {
-                const innerEdgeR = window.getGreenRadiusAtAngle(Math.atan2(-localY, localX), window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                const localDist = Math.hypot(localX, localY);
+                const innerEdgeR = window.getGreenRadiusAtAngle(Math.atan2(localY, localX), window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle'); const localDist = Math.hypot(localX, localY);
                 const tFringe = THREE.MathUtils.clamp((localDist - innerEdgeR) / 1.0, 0, 1);
                 // Blend two-tone collar from bright green inner seam to crisp dark green outer collar
                 baseR = THREE.MathUtils.lerp(0.080, 0.105, tFringe);
@@ -2886,14 +2884,14 @@ function resetEntireGame(advanceHole = false) {
                 if (currentHoleNumber !== 3) {
                     const apronStart = -activeRadius - 12.0;
                     const apronEnd = -activeRadius;
-                    if (approachDot > apronStart && approachDot <= apronEnd) {
-                        let tApron = (approachDot - apronStart) / 12.0;
-                        const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
-                        const targetApronWidth = Math.max(physics.fairwayWidth, activeRadius + 1.0);
-                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, smoothApron);
-                    } else if (approachDot > apronEnd) {
-                        fW = Math.max(physics.fairwayWidth, activeRadius + 1.0);
-                    }
+                if (approachDot > apronStart && approachDot <= apronEnd) {
+let tApron = (approachDot - apronStart) / 12.0;
+const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
+const targetApronWidth = activeRadius + 1.0;
+fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, smoothApron);
+} else if (approachDot > apronEnd) {
+fW = 0;
+}
                 }
 
                 const fWEdge = fW + 3.5;
@@ -3027,9 +3025,10 @@ function resetEntireGame(advanceHole = false) {
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
+                    } else if (pastFairwayDist > 0) {
+                        // Sides and back of the green: no fairway halo past the fringe
+                        calculatedHeight = hiddenFairwayH;
                     } else {
-                        // Smooth taper using the same fairwayExcess value the rough floor already blends with,
-                        // so the fairway's edge (sides AND past the green) lines up with the rough with no seam
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 3.5, 0, 1);
                         const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                         calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
