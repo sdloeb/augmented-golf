@@ -746,7 +746,7 @@ function checkIsBallOnGreenOrFringe() {
     const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
     const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-       return (ballDist < activeR) || isOnFringe || isPuttingClub;
+    return (ballDist < activeR) || isOnFringe || isPuttingClub;
 }
 
 function getChipAdjustedYards(gameDistance, ballDist, activeR) {
@@ -798,11 +798,11 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-      const yards = getChipAdjustedYards(gameDistance, ballDist, activeR);
-const preciseFeet = gameDistance * 1.75;
+        const yards = getChipAdjustedYards(gameDistance, ballDist, activeR);
+        const preciseFeet = gameDistance * 1.75;
 
-if (ballDist < activeR) {
-    if (preciseFeet < 1) {
+        if (ballDist < activeR) {
+            if (preciseFeet < 1) {
                 const inches = Math.max(1, Math.round(preciseFeet * 12));
                 distanceText.innerText = inches;
                 unitText.innerText = inches === 1 ? "inch" : "inches";
@@ -2892,14 +2892,14 @@ function resetEntireGame(advanceHole = false) {
                 if (currentHoleNumber !== 3) {
                     const apronStart = -activeRadius - 12.0;
                     const apronEnd = -activeRadius;
-                if (approachDot > apronStart && approachDot <= apronEnd) {
-let tApron = (approachDot - apronStart) / 12.0;
-const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
-const targetApronWidth = activeRadius + 1.0;
-fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, smoothApron);
-} else if (approachDot > apronEnd) {
-fW = 0;
-}
+                    if (approachDot > apronStart && approachDot <= apronEnd) {
+                        let tApron = (approachDot - apronStart) / 12.0;
+                        const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
+                        const targetApronWidth = activeRadius + 1.0;
+                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, smoothApron);
+                    } else if (approachDot > apronEnd) {
+                        fW = 0;
+                    }
                 }
 
                 const fWEdge = fW + 3.5;
@@ -4516,8 +4516,16 @@ function animate() {
             const slopeShift = THREE.MathUtils.clamp(-slopeEffect * 0.4, -ballRadius * 0.7, ballRadius * 0.7);
             const effectiveRim = cupRimRadius + slopeShift;
 
+            // Dying putt overlapping the cup: fall in. Do not bounce off the rim like a wall.
+            if (trueWorldSpeed <= 0.045 && distanceToHole <= cupRimRadius + ballRadius * 0.4) {
+                isSinking = true;
+                ball.userData.isLipRiding = false;
+                physics.velocity.x *= 0.2;
+                physics.velocity.z *= 0.2;
+                if (sounds) sounds.play('sink');
+            }
             // 1. If ball already deflected, lipped out, or bounced off the pin, let it roll out
-            if (ball.userData.hasLipDeflected || ball.userData.hasHitPin) {
+            else if (ball.userData.hasLipDeflected || ball.userData.hasHitPin) {
                 // In deflection exit path
             }
             // 2. Continuing an active Lip-Ride around the rim
@@ -4572,14 +4580,20 @@ function animate() {
                     physics.velocity.x = (tanX * 0.94 + hDirX * 0.10) * rawSpeed * 0.992;
                     physics.velocity.z = (tanZ * 0.94 + hDirZ * 0.10) * rawSpeed * 0.992;
 
-                    // Exits and whips away after curling around the outer lip
-                    if (ball.userData.lipAngleTraveled > 1.2 || trueWorldSpeed < 0.015) {
-                        physics.velocity.x = (tanX * 0.70 + hDirX * 0.85) * rawSpeed * 0.95;
-                        physics.velocity.z = (tanZ * 0.70 + hDirZ * 0.85) * rawSpeed * 0.95;
-                        ball.userData.isLipRiding = false;
-                        ball.userData.hasLipDeflected = true;
-                        if (sounds) sounds.play('putt');
-                    }
+                // Slow balls on the outer rim fall in. Only a ball that still has speed can lip out.
+if (trueWorldSpeed < 0.025) {
+    isSinking = true;
+    ball.userData.isLipRiding = false;
+    physics.velocity.x *= 0.2;
+    physics.velocity.z *= 0.2;
+    if (sounds) sounds.play('sink');
+} else if (ball.userData.lipAngleTraveled > 1.2) {
+    physics.velocity.x = (tanX * 0.70 + hDirX * 0.85) * rawSpeed * 0.95;
+    physics.velocity.z = (tanZ * 0.70 + hDirZ * 0.85) * rawSpeed * 0.95;
+    ball.userData.isLipRiding = false;
+    ball.userData.hasLipDeflected = true;
+    if (sounds) sounds.play('putt');
+}
                 }
             }
             // 3. New Entry into Cup Zone
@@ -4605,7 +4619,7 @@ function animate() {
                     }
                 }
                 // B. Center Channel Entry (Direct path towards cup center)
-                else if (crossTrack <= 0.028 && distanceToHole <= 0.075) {
+                else if (crossTrack <= 0.050 && distanceToHole <= cupRimRadius) {
                     if (trueWorldSpeed <= 0.120) {
                         isSinking = true;
                         ball.userData.isLipRiding = false;
@@ -4869,7 +4883,7 @@ function animate() {
         // MODIFIED: Corrected the Z-axis component typo from (dxHole * dzHole) to (dzHole * dzHole)
         const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
         // LINE ABOVE:
-const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
+        const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
         // ADJUSTED: Lift camera height and pitch in sand traps so view clears the bunker lip cleanly
         const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 3.8 : 4.8));
         const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.4 : 1.8));
@@ -6338,15 +6352,15 @@ function init() {
         // Add this third callback function here to return current distance in yards
 
         const dx = ball.position.x - holePosition.x;
-const dz = ball.position.z - holePosition.z;
-const gameDistance = Math.sqrt(dx * dx + dz * dz);
-const gx = ball.position.x - (green ? green.position.x : 0);
-const gz = ball.position.z - greenCenterZ;
-const ballDist = Math.hypot(gx, gz);
-const ang = Math.atan2(-gz, gx);
-const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-if (ballDist < activeR) return gameDistance * 2.76923;
-return getChipAdjustedYards(gameDistance, ballDist, activeR);
+        const dz = ball.position.z - holePosition.z;
+        const gameDistance = Math.sqrt(dx * dx + dz * dz);
+        const gx = ball.position.x - (green ? green.position.x : 0);
+        const gz = ball.position.z - greenCenterZ;
+        const ballDist = Math.hypot(gx, gz);
+        const ang = Math.atan2(-gz, gx);
+        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+        if (ballDist < activeR) return gameDistance * 2.76923;
+        return getChipAdjustedYards(gameDistance, ballDist, activeR);
     }); // Add the bracket closure adjustments on this line
 
     input.ballRef = ball;
