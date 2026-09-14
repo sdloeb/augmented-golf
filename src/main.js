@@ -746,7 +746,15 @@ function checkIsBallOnGreenOrFringe() {
     const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
     const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-    return (ballDist < activeR) || isOnFringe || isPuttingClub;
+       return (ballDist < activeR) || isOnFringe || isPuttingClub;
+}
+
+function getChipAdjustedYards(gameDistance, ballDist, activeR) {
+    const courseYards = gameDistance * 2.76923;
+    const puttAsYards = (gameDistance * 1.75) / 3;
+    const outsideUnits = Math.max(0, ballDist - activeR);
+    const t = THREE.MathUtils.smoothstep(outsideUnits, 0, 8);
+    return THREE.MathUtils.lerp(puttAsYards, courseYards, t);
 }
 
 
@@ -790,11 +798,11 @@ function updateDistanceDisplay() {
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-        const yards = gameDistance * 2.76923;
-        const preciseFeet = gameDistance * 1.75;
+      const yards = getChipAdjustedYards(gameDistance, ballDist, activeR);
+const preciseFeet = gameDistance * 1.75;
 
-        if (ballDist < activeR) {
-            if (preciseFeet < 1) {
+if (ballDist < activeR) {
+    if (preciseFeet < 1) {
                 const inches = Math.max(1, Math.round(preciseFeet * 12));
                 distanceText.innerText = inches;
                 unitText.innerText = inches === 1 ? "inch" : "inches";
@@ -4861,8 +4869,7 @@ function animate() {
         // MODIFIED: Corrected the Z-axis component typo from (dxHole * dzHole) to (dzHole * dzHole)
         const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
         // LINE ABOVE:
-        const isChippingClose = !onGreen && holeDistYards < 25.0;
-
+const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
         // ADJUSTED: Lift camera height and pitch in sand traps so view clears the bunker lip cleanly
         const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 3.8 : 4.8));
         const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.4 : 1.8));
@@ -6331,8 +6338,15 @@ function init() {
         // Add this third callback function here to return current distance in yards
 
         const dx = ball.position.x - holePosition.x;
-        const dz = ball.position.z - holePosition.z;
-        return Math.sqrt(dx * dx + dz * dz) * 2.76923;
+const dz = ball.position.z - holePosition.z;
+const gameDistance = Math.sqrt(dx * dx + dz * dz);
+const gx = ball.position.x - (green ? green.position.x : 0);
+const gz = ball.position.z - greenCenterZ;
+const ballDist = Math.hypot(gx, gz);
+const ang = Math.atan2(-gz, gx);
+const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+if (ballDist < activeR) return gameDistance * 2.76923;
+return getChipAdjustedYards(gameDistance, ballDist, activeR);
     }); // Add the bracket closure adjustments on this line
 
     input.ballRef = ball;
