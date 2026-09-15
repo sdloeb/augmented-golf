@@ -1102,12 +1102,8 @@ export class PhysicsEngine {
         } else if (this.isBallInSandCollar && this.isBallInSandCollar(0.7)) {
             const ballRadius = 0.25 * this.ball.scale.x;
             groundY = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.035 + ballRadius - (ballRadius * 0.15);
-        } else if (this.currentSurface === 'Rough') {
-            // FIXED: Standardized the height modifier against a stable radius fraction to keep the ball height perfectly even across all rough variations
-            groundY -= 0.065 * (this.ball.scale.x / 0.51);
-            // Nestles the ball down into your new organic fine grass blade strokes
-        }
 
+        }
         // Add this block here: Ground-snapping stickiness now runs safely with the finalized groundY plane
         if (this.ball.position.y > groundY && this.ball.position.y <= groundY + 0.4 && this.velocity.y <= 0.01) {
             this.ball.position.y = groundY;
@@ -1199,11 +1195,11 @@ export class PhysicsEngine {
                 let rollingFriction = currentFriction;
 
                 // If a chip shot is purely rolling on the ground, let it trickle out naturally at low speeds instead of sticking like velcro
-              if (!isAirborne && !this.isPutting && rollingFriction < 0.96 && this.velocity.length() < 0.15) {
-    let tTrickle = Math.min(1.0, Math.max(0.0, (0.15 - this.velocity.length()) / 0.12));
-    const trickleTop = this.hasBump ? 0.982 : 0.965;
-    rollingFriction = THREE.MathUtils.lerp(currentFriction, trickleTop, tTrickle);
-}
+                if (!isAirborne && !this.isPutting && rollingFriction < 0.96 && this.velocity.length() < 0.15) {
+                    let tTrickle = Math.min(1.0, Math.max(0.0, (0.15 - this.velocity.length()) / 0.12));
+                    const trickleTop = this.hasBump ? 0.982 : 0.965;
+                    rollingFriction = THREE.MathUtils.lerp(currentFriction, trickleTop, tTrickle);
+                }
 
                 this.velocity.x *= rollingFriction;
                 this.velocity.z *= rollingFriction;

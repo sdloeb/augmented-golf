@@ -2938,23 +2938,7 @@ function resetEntireGame(advanceHole = false) {
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
 
-                // Add smooth 3D micro-spikes to rough geometry vertices, dampening smoothly to zero near bunker and water edges
-                if (fairwayExcess >= 3.5 && !insideWaterZone && !insideSandZone && distToGreenCenter > fringeOuterR) {
-                    let grassJitter = Math.sin(worldX * 3.5) * Math.cos(worldZ * 3.5) * 0.18 + Math.cos(worldX * 7.0) * 0.08;
-
-                    // Smoothstep Hermite dampener near bunker edges (fades in only outside the 0.7-unit collar)
-                    if (minDistOutsideBunker < 2.5) {
-                        const tBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
-                        grassJitter *= THREE.MathUtils.smoothstep(tBunker, 0, 1);
-                    }
-                    // Smoothstep Hermite dampener near water edges (3.0 unit safety transition buffer)
-                    if (shortestDistToWaterEdge < 3.0) {
-                        const tWater = THREE.MathUtils.clamp(shortestDistToWaterEdge / 3.0, 0, 1);
-                        grassJitter *= THREE.MathUtils.smoothstep(tWater, 0, 1);
-                    }
-
-                    floorHeight += Math.max(0, grassJitter);
-                }
+            // Render the rough floor geometry
 
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
@@ -4409,7 +4393,7 @@ function animate() {
             if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
                 obRestY = terrainH + 0.02 + ballRadius - 0.025;
             } else if (physics.currentSurface === 'Rough') {
-                obRestY -= 0.065 * (ball.scale.x / 0.51);
+                obRestY += 0.3;
             }
             ball.position.y = obRestY;
             ball.visible = true;
@@ -4462,7 +4446,7 @@ function animate() {
                 if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
                     waterRestY = terrainH + 0.02 + ballRadius - 0.025;
                 } else if (physics.currentSurface === 'Rough') {
-                    waterRestY -= 0.065 * (ball.scale.x / 0.51);
+                    waterRestY += 0.3;
                 }
                 ball.position.y = waterRestY;
                 ball.visible = true;
@@ -5422,8 +5406,7 @@ function animate() {
 
             visualFloorHeight += roughLift * 0.3;
 
-            // Now apply the 50% sinking depth cleanly against the true visual surface line
-            surfaceHeight = visualFloorHeight + ballRadius - (ballRadius * 0.50);
+            surfaceHeight = visualFloorHeight + ballRadius;
         }
 
         ball.position.y = surfaceHeight;
@@ -6176,8 +6159,8 @@ function init() {
     input = new InputHandler((power, angle, spin, loft) => {
         const dxStart = ball.position.x - holePosition.x;
         const dzStart = ball.position.z - holePosition.z;
-       const startFeetToHole = Math.round(getPuttingLeftoverFeet(Math.sqrt(dxStart * dxStart + dzStart * dzStart)));
-window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
+        const startFeetToHole = Math.round(getPuttingLeftoverFeet(Math.sqrt(dxStart * dxStart + dzStart * dzStart)));
+        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
         if (flagHideTimeout) {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
@@ -6510,8 +6493,7 @@ window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
             restY = terrainH + 0.02 + ballRadius - 0.025;
             physics.currentSurface = 'Sand Trap';
         } else {
-            restY -= 0.065 * (ball.scale.x / 0.51);
-            physics.currentSurface = 'Rough';
+            restY += 0.3;
         }
 
         if (surface === 'Fairway' && physics.isBallInSand && physics.isBallInSand()) {
