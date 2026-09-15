@@ -2904,7 +2904,8 @@ function resetEntireGame(advanceHole = false) {
                     if (approachDot > 0) {
                         fW = 0;
                     } else if (approachDot > apronEnd) {
-                        fW = physics.fairwayWidth;
+                        const tApron = THREE.MathUtils.clamp((approachDot - apronEnd) / Math.max(0.001, -apronEnd), 0, 1);
+                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, 0, tApron);
                     }
                 }
 
@@ -2990,7 +2991,7 @@ function resetEntireGame(advanceHole = false) {
                     } else if (distToGreenCenter < fringeR) {
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
                         const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        calculatedHeight = THREE.MathUtils.lerp(floorHeight, floorHeight - 0.04, smoothTuck);
+                        calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothTuck);
                     } else if (approachDot > 0) {
                         calculatedHeight = hiddenFairwayH;
                     } else {
