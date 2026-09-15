@@ -752,8 +752,11 @@ function checkIsBallOnGreenOrFringe() {
 function getChipAdjustedYards(gameDistance, ballDist, activeR) {
     const courseYards = gameDistance * 2.76923;
     const puttAsYards = (gameDistance * 1.75) / 3;
-    const outsideUnits = Math.max(0, ballDist - activeR);
-    const t = THREE.MathUtils.smoothstep(outsideUnits, 0, 8);
+    const preciseFeet = gameDistance * 1.75;
+    // Putting leftover stays putting leftover, even in the fringe/fairway.
+    // Only blend up to course yards once leftover is a real approach, not
+    // just because the ball crossed off the green.
+    const t = THREE.MathUtils.smoothstep(preciseFeet, 25, 55);
     return THREE.MathUtils.lerp(puttAsYards, courseYards, t);
 }
 
