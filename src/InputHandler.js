@@ -98,9 +98,7 @@ export class InputHandler {
     }
 
     getBumpMaxYards() {
-        const yards = this.getDistance ? this.getDistance() : 25;
-        // Full swipe is ~1.65x the pin so a half-swing is "to the hole", not a 15% tap
-        return Math.max(14, Math.min(42, yards * 1.65));
+        return 25;
     }
 
 
@@ -582,50 +580,52 @@ export class InputHandler {
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
-            if (window.isBumpOn) {
-                finalPower *= 1.65;
-            }
-            const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
+          if (window.isBumpOn) {
+    finalPower *= 1.65;
+}
+                const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
-            if (club.name === 'Driver') {
-                finalPower *= isOnTee ? 1.02 : 0.90;
-            }
-            else if (club.name === '3 Wood') {
-                finalPower *= 1.13;
-            }
-            else if (club.name === '5 Wood') {
-                finalPower *= 1.17;
-            }
-            else if (club.name === 'Hybrid') {
-                finalPower *= 1.27; // Adjust to tune Hybrid distance separately
-            }
-            else if (club.name === '5 Iron') {
-                finalPower *= 1.31; // Adjust to tune 5 Iron distance separately
-            }
-            else if (club.name === '6 Iron') {
-                finalPower *= 1.35; // Adjust to tune 6 Iron distance separately
-            }
-            else if (club.name === '7 Iron') {
-                finalPower *= 1.40; // Adjust to tune 7 Iron distance separately
-            }
-            else if (club.name === '8 Iron') {
-                finalPower *= 1.45; // Adjust to tune 8 Iron distance separately
-            }
-            else if (club.name === '9 Iron') {
-                finalPower *= 1.50; // Adjust to tune 9 Iron distance separately
-            }
-            else if (club.name === 'PW Iron') {
-                finalPower *= 1.55; // Adjust to tune Pitching Wedge distance separately
-            }
-            else if (club.name === 'GW Iron') {
-                finalPower *= 1.59; // Adjust to tune Gap Wedge distance separately
-            }
-            else if (club.name === 'SW Iron') {
-                finalPower *= 1.64; // Adjust to tune Sand Wedge distance separately
-            }
-            else {
-                finalPower *= 1.0; // Safe catch-all fallback
-            }
+
+                if (club.name === 'Driver') {
+                    finalPower *= isOnTee ? 1.02 : 0.90;
+                }
+                else if (club.name === '3 Wood') {
+                    finalPower *= 1.13;
+                }
+                else if (club.name === '5 Wood') {
+                    finalPower *= 1.17;
+                }
+                else if (club.name === 'Hybrid') {
+                    finalPower *= 1.27; // Adjust to tune Hybrid distance separately
+                }
+                else if (club.name === '5 Iron') {
+                    finalPower *= 1.31; // Adjust to tune 5 Iron distance separately
+                }
+                else if (club.name === '6 Iron') {
+                    finalPower *= 1.35; // Adjust to tune 6 Iron distance separately
+                }
+                else if (club.name === '7 Iron') {
+                    finalPower *= 1.40; // Adjust to tune 7 Iron distance separately
+                }
+                else if (club.name === '8 Iron') {
+                    finalPower *= 1.45; // Adjust to tune 8 Iron distance separately
+                }
+                else if (club.name === '9 Iron') {
+                    finalPower *= 1.50; // Adjust to tune 9 Iron distance separately
+                }
+                else if (club.name === 'PW Iron') {
+                    finalPower *= 1.55; // Adjust to tune Pitching Wedge distance separately
+                }
+                else if (club.name === 'GW Iron') {
+                    finalPower *= 1.59; // Adjust to tune Gap Wedge distance separately
+                }
+                else if (club.name === 'SW Iron') {
+                    finalPower *= 1.64; // Adjust to tune Sand Wedge distance separately
+                }
+                else {
+                    finalPower *= 1.0; // Safe catch-all fallback
+                }
+            
 
 
 

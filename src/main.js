@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 2   ; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3006,6 +3006,12 @@ if (insideSandZone) {
     calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, calculatedHeight, tSand);
 }
 
+if ((insideSandZone || minDistOutsideBunker < 2.2) && calculatedHeight <= hiddenFairwayH + 0.02) {
+    const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
+    const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
+    calculatedHeight -= smoothTCollar * 1.35;
+}
+
 
                 }
 
@@ -4184,8 +4190,12 @@ function animate() {
         const allowedClub = activeClub && activeClub.name.includes('Iron');
         const inBunker = physics && physics.isBallInSand();
         const inRough = physics && physics.currentSurface === 'Rough';
-        // Add this line: Within 30 yards, this button becomes a Bump & Run toggle instead of Backspin
-        const isChipRange = input.getDistance ? input.getDistance() <= 30 : false;
+  // Within 20 yards, this button becomes a Bump & Run toggle instead of Backspin
+const isChipRange = input.getDistance ? input.getDistance() <= 20 : false;
+if (!isChipRange && isBumpOn) {
+    isBumpOn = false;
+    window.isBumpOn = false;
+}
         backspinBtn.dataset.mode = isChipRange ? 'bump' : 'backspin'; // Add this line
 
         // Hide backspin button if in the sand trap or rough
@@ -6062,7 +6072,7 @@ const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.
         const dxStart = ball.position.x - holePosition.x;
         const dzStart = ball.position.z - holePosition.z;
         const startFeetToHole = Math.round(getPuttingLeftoverFeet(Math.sqrt(dxStart * dxStart + dzStart * dzStart)));
-        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
+        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20.9;
         if (flagHideTimeout) {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
