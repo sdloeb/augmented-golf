@@ -828,8 +828,9 @@ function updateDistanceDisplay() {
 
         // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
         if (pin && flag && physics) {
-            const feetToHole = Math.round(getPuttingLeftoverFeet(gameDistance)); const isOnGreen = ballDist < activeR || isPuttingClub;
-            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 16);
+            const feetToHole = Math.round(getPuttingLeftoverFeet(gameDistance));
+            const isOnGreen = ballDist < activeR || isPuttingClub;
+            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 20);
             if (shouldHide) {
                 if (!flagHideTimeout && pin.visible) {
                     // Delay = 600ms camera pan + 1000ms (1 second after camera view is set)
@@ -6175,8 +6176,8 @@ function init() {
     input = new InputHandler((power, angle, spin, loft) => {
         const dxStart = ball.position.x - holePosition.x;
         const dzStart = ball.position.z - holePosition.z;
-        const startFeetToHole = Math.round(Math.sqrt(dxStart * dxStart + dzStart * dzStart) * 1.75);
-        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 16;
+       const startFeetToHole = Math.round(getPuttingLeftoverFeet(Math.sqrt(dxStart * dxStart + dzStart * dzStart)));
+window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20;
         if (flagHideTimeout) {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
