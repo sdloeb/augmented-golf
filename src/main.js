@@ -2926,14 +2926,18 @@ function resetEntireGame(advanceHole = false) {
                 // Render the rough floor geometry
 
                 // Render the rough floor geometry
-                if (targetMesh === floor) {
-                   calculatedHeight = floorHeight;
+if (targetMesh === floor) {
+    calculatedHeight = floorHeight;
 
-if (currentHoleNumber === 5 && distToGreenCenter < fringeOuterR + 1.5) {
-    calculatedHeight -= 1.5;
-}
+    if (currentHoleNumber === 5 && distToGreenCenter < fringeOuterR + 1.5) {
+        calculatedHeight -= 1.5;
+    } else if (distToGreenCenter < fringeOuterR) {
+        const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / 1.0, 0, 1);
+        const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
+        calculatedHeight -= smoothUnder * 0.18;
+    }
 
-                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
                     if (insideSandZone || minDistOutsideBunker < 2.2) {
                         const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
                         const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
