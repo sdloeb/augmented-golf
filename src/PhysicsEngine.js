@@ -810,7 +810,7 @@ export class PhysicsEngine {
                     const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
 
                     const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    const transitionMargin = (this.currentHoleNumber === 8 ? 0.0 : 2.2);
+                    const transitionMargin = 0.0;
                     const sandRadius = baseRadius + transitionMargin;
 
                     if (distToSand < sandRadius) {

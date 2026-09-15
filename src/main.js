@@ -2939,10 +2939,10 @@ function resetEntireGame(advanceHole = false) {
                     }
 
                     // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
-                    if (insideSandZone || minDistOutsideBunker < 2.2) {
-                        const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
-                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
-                        calculatedHeight -= smoothTCollar * 1.35;
+                    if (insideSandZone) {
+                        const tIn = Math.max(0, Math.min(1, -minDistOutsideBunker / 1.5));
+                        const smoothIn = tIn * tIn * (3 - 2 * tIn);
+                        calculatedHeight -= smoothIn * 1.35;
                     }
                 }
 
@@ -3002,15 +3002,6 @@ function resetEntireGame(advanceHole = false) {
 
                     if (insideSandZone) {
                         calculatedHeight = hiddenFairwayH;
-                    } else if (minDistOutsideBunker < 2.2) {
-                        const tSand = THREE.MathUtils.smoothstep(minDistOutsideBunker / 2.2, 0, 1);
-                        calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, calculatedHeight, tSand);
-                    }
-
-                    if ((insideSandZone || minDistOutsideBunker < 2.2) && calculatedHeight <= hiddenFairwayH + 0.02) {
-                        const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
-                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
-                        calculatedHeight -= smoothTCollar * 1.35;
                     }
 
 
