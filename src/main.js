@@ -2938,28 +2938,13 @@ function resetEntireGame(advanceHole = false) {
                     floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
                 }
 
-            // Render the rough floor geometry
+                // Render the rough floor geometry
 
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
-                    calculatedHeight = floorHeight;
+                   calculatedHeight = floorHeight;
 
-                    // 1. HILLS: Calculate a smooth gradual step-up right where the fairway and green fringe end
-                    if (!insideSandZone && !insideWaterZone && currentHoleNumber !== 5) {
-                        const tFairway = Math.min(1, fairwayExcess / 3.5);
-                        const tGreen = Math.min(1, Math.max(0, distToGreenCenter - fringeOuterR) / 3.5);
-                        const tRough = Math.min(tFairway, tGreen);
-                        const roughLift = THREE.MathUtils.smoothstep(tRough, 0, 1);
-
-                        let liftMult = 1.0;
-                        if (minDistOutsideBunker < 2.5) {
-                            const tLiftBunker = THREE.MathUtils.clamp(Math.max(0, minDistOutsideBunker - 0.7) / 1.4, 0, 1);
-                            liftMult = THREE.MathUtils.smoothstep(tLiftBunker, 0, 1);
-                        }
-                        calculatedHeight += roughLift * liftMult * 0.3; // Smooth hill ramp matching transition width
-                    }
-
-                    // Smoothly slope terrain floor beneath green fringe to prevent sharp edge clipping
+// Smoothly slope terrain floor beneath green fringe to prevent sharp edge clipping
                     if (distToGreenCenter < fringeOuterR + 1.5) {
                         if (currentHoleNumber === 5) {
                             calculatedHeight -= 1.5; // Pull rough floor underground on Hole 5 island green so it doesn't poke out of the retaining wall
@@ -4291,6 +4276,7 @@ function animate() {
                 document.getElementById('strokeText').innerText = strokeCount;
 
                 setTimeout(() => {
+                    ball.visible = true;
                     alert("One stroke penalty! 🍃 Your ball got stuck in a bush.");
 
                     ball.position.x = physics.bushResetX;
@@ -4393,7 +4379,7 @@ function animate() {
             if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
                 obRestY = terrainH + 0.02 + ballRadius - 0.025;
             } else if (physics.currentSurface === 'Rough') {
-                obRestY += 0.3;
+               
             }
             ball.position.y = obRestY;
             ball.visible = true;
@@ -4446,7 +4432,7 @@ function animate() {
                 if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
                     waterRestY = terrainH + 0.02 + ballRadius - 0.025;
                 } else if (physics.currentSurface === 'Rough') {
-                    waterRestY += 0.3;
+                    
                 }
                 ball.position.y = waterRestY;
                 ball.visible = true;
@@ -5333,81 +5319,9 @@ function animate() {
         } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
             // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
             surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
-        } else if (physics.currentSurface === 'Rough') {
-            // Replicate the exact rough heightmap alterations to track the visual mesh topography perfectly
-            const distanceToPath = physics.getDistanceToSpline(bX, bZ);
-
-
-            const gX = bX - physics.greenCenterX;
-            const gZ = bZ - physics.greenCenterZ;
-            const distToGreenCenter = Math.sqrt(gX * gX + gZ * gZ);
-            const ballAngle = Math.atan2(-gZ, gX);
-            const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-            const fringeOuterR = activeRadius + 1.0;
-
-            const approachDot = (physics.approachDirX !== undefined) ? (gX * physics.approachDirX + gZ * physics.approachDirZ) : -999;
-            const isPastFairway = (distToGreenCenter < activeRadius) || (approachDot + (distToGreenCenter - activeRadius) * 0.5 > 0);
-
-            let activeFW = physics.fairwayWidth;
-            if (!(physics.greenCenterZ < -165 && physics.greenCenterZ > -185)) {
-                const apronStart = -activeRadius - 12.0;
-                const apronEnd = -activeRadius;
-                if (approachDot > apronStart && approachDot <= apronEnd) {
-                    let tApron = (approachDot - apronStart) / 12.0;
-                    activeFW = THREE.MathUtils.lerp(physics.fairwayWidth, Math.max(physics.fairwayWidth, activeRadius + 1.0), tApron);
-                } else if (approachDot > apronEnd) {
-                    activeFW = Math.max(physics.fairwayWidth, activeRadius + 1.0);
-                }
-            }
-            if (physics.greenCenterZ < -128 && physics.greenCenterZ > -152 && bZ < -125) {
-                let t = Math.min(1.0, Math.max(0.0, (-125 - bZ) / 14.0));
-                activeFW = THREE.MathUtils.lerp(physics.fairwayWidth, 16.0, t);
-            }
-            if (physics.greenCenterZ < -165 && physics.greenCenterZ > -185) {
-                if (bZ <= -20.0 && bZ >= -140.0) activeFW = 18.0;
-                else if (bZ < -140.0 && bZ >= -152.0) activeFW = THREE.MathUtils.lerp(18.0, 8.0, (-140.0 - bZ) / 12.0);
-            }
-
-            // Sync with PhysicsEngine exact visual boundary
-            activeFW += 0.50;
-
-            let visualFloorHeight = terrainH;
-            if (distanceToPath <= activeFW) {
-                visualFloorHeight -= 0.12;
-            } else if (distanceToPath <= activeFW + 2.26) {
-                const t = (distanceToPath - activeFW) / 3.5;
-                const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-                visualFloorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
-            }
-
-            let roughLift = 0;
-            if (isPastFairway) {
-                if (distToGreenCenter > fringeOuterR) roughLift = 1.0;
-            } else {
-                if (distanceToPath > activeFW) roughLift = 1.0;
-            }
-
-            // Check proximity to nearest sand trap edge to match the visual grass lip smooth step
-            let distToBunkerEdge = Infinity;
-            if (physics && physics.sandTraps) {
-                physics.sandTraps.forEach(sand => {
-                    if (!sand.userData.isPolygon) {
-                        const dxS = bX - sand.position.x;
-                        const dzS = bZ - sand.position.z;
-                        const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                        const d = Math.abs(Math.sqrt(dxS * dxS + dzS * dzS) - sandRadius);
-                        if (d < distToBunkerEdge) distToBunkerEdge = d;
-                    }
-                });
-            }
-            if (distToBunkerEdge < 2.0) {
-                roughLift *= (distToBunkerEdge / 2.0);
-            }
-
-            visualFloorHeight += roughLift * 0.3;
-
-            surfaceHeight = visualFloorHeight + ballRadius;
-        }
+      } else if (physics.currentSurface === 'Rough') {
+    surfaceHeight = terrainH + ballRadius;
+}
 
         ball.position.y = surfaceHeight;
     }
@@ -6493,7 +6407,7 @@ function init() {
             restY = terrainH + 0.02 + ballRadius - 0.025;
             physics.currentSurface = 'Sand Trap';
         } else {
-            restY += 0.3;
+            
         }
 
         if (surface === 'Fairway' && physics.isBallInSand && physics.isBallInSand()) {

@@ -1066,11 +1066,8 @@ export class PhysicsEngine {
                     roughLift = 1.0;
                 }
             }
-            floorHeight += roughLift * 0.3;
-
-            // D. ANTICIPATE RESTING SCALE: Use floorHeight so the rolling ball rides perfectly on top of the lifted rough
             const currentBallRadius = 0.25 * this.ball.scale.x;
-            groundY = floorHeight + currentBallRadius;
+            groundY = greenHeightOffset + currentBallRadius;
         }
 
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
@@ -1263,8 +1260,6 @@ export class PhysicsEngine {
                     this.isMoving = false;
                     this.isStuckInBush = true;
 
-                    /// Trapped inside: stop ball completely, raise penalty flag, and vanish inside the foliage
-                    this.ball.visible = false; // Change this line: Hide it directly inside the bush mass
 
                     // Calculate the safe position outside the bush to be used after the alert is dismissed
                     let angle = Math.atan2(dz, dx);
