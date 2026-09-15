@@ -2899,19 +2899,14 @@ function resetEntireGame(advanceHole = false) {
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                 const fringeOuterR = activeRadius + 1.0;
 
-                // Universal procedural apron taper logic for all standard and random holes
-                if (currentHoleNumber !== 3) {
-                    const apronStart = -activeRadius - 12.0;
-                    const apronEnd = -activeRadius;
-                    if (approachDot > apronStart && approachDot <= apronEnd) {
-                        let tApron = (approachDot - apronStart) / 12.0;
-                        const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
-                        const targetApronWidth = activeRadius + 1.0;
-                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, targetApronWidth, smoothApron);
-                    } else if (approachDot > apronEnd) {
-                        fW = 0;
-                    }
-                }
+           if (currentHoleNumber !== 3) {
+    const apronEnd = -activeRadius;
+    if (approachDot > 0) {
+        fW = 0;
+    } else if (approachDot > apronEnd) {
+        fW = physics.fairwayWidth;
+    }
+}
 
                 const fWEdge = fW + 3.5;
 
@@ -2926,17 +2921,7 @@ function resetEntireGame(advanceHole = false) {
                 const forwardExcess = (distToGreenCenter >= fringeOuterR && pastFairwayDist > 0) ? pastFairwayDist : 0;
                 const fairwayExcess = Math.max(lateralExcess, forwardExcess);
 
-                // 1. Calculate exactly where the rough floor mesh sits at this coordinate
-                let floorHeight = calculatedHeight;
-                const isHoleBeforeFairway = (currentHoleNumber === 8 && worldZ > -51.4) || (currentHoleNumber === 9 && worldZ > -45.0);
-                if (closeToWater || isHoleBeforeFairway) {
-                } else if (fairwayExcess <= 0) {
-                    floorHeight -= 0.12;
-                } else if (fairwayExcess <= 3.5) {
-                    const t = fairwayExcess / 3.5;
-                    const smoothT = THREE.MathUtils.smoothstep(t, 0, 1);
-                    floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
-                }
+         let floorHeight = calculatedHeight;
 
                 // Render the rough floor geometry
 
@@ -2944,16 +2929,9 @@ function resetEntireGame(advanceHole = false) {
                 if (targetMesh === floor) {
                    calculatedHeight = floorHeight;
 
-// Smoothly slope terrain floor beneath green fringe to prevent sharp edge clipping
-                    if (distToGreenCenter < fringeOuterR + 1.5) {
-                        if (currentHoleNumber === 5) {
-                            calculatedHeight -= 1.5; // Pull rough floor underground on Hole 5 island green so it doesn't poke out of the retaining wall
-                        } else {
-                            const tFloor = Math.max(0, Math.min(1, (fringeOuterR + 1.5 - distToGreenCenter) / 3.0));
-                            const smoothTFloor = tFloor * tFloor * (3 - 2 * tFloor);
-                            calculatedHeight -= smoothTFloor * 0.15; // Subtle 0.15 drop under fringe to prevent z-fighting without creating deep canyons
-                        }
-                    }
+if (currentHoleNumber === 5 && distToGreenCenter < fringeOuterR + 1.5) {
+    calculatedHeight -= 1.5;
+}
 
                     // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
                     if (insideSandZone || minDistOutsideBunker < 2.2) {
@@ -2994,8 +2972,7 @@ function resetEntireGame(advanceHole = false) {
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                     const fringeR = activeR + 1.0;
 
-                    // Deep hidden height for out-of-bounds or buried fairway grid points
-                    const hiddenFairwayH = floorHeight - 5.0;
+                  const hiddenFairwayH = floorHeight - 0.10;
 
                     // Boundary checks for fairway corridor
                     const isOutsideFairwayBounds = (!isCustomHole && worldZ > -8.0) ||
@@ -3004,23 +2981,26 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
                         (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-                    if (insideSandZone || (currentHoleNumber === 7 && minDistOutsideBunker < 1.6)) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else if (isOutsideFairwayBounds) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else if (distToGreenCenter < fringeR) {
-                        // Gently tuck fairway mesh slightly under the green fringe collar (-0.05) to stay clean and level
-                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
-                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, floorHeight - 0.05, smoothTuck);
-                    } else if (pastFairwayDist > 0) {
-                        // Sides and back of the green: no fairway halo past the fringe
-                        calculatedHeight = hiddenFairwayH;
-                    } else {
-                        const tEdge = THREE.MathUtils.clamp(fairwayExcess / 3.5, 0, 1);
-                        const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
-                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight - 0.03, hiddenFairwayH, smoothEdge);
-                    }
+                  if (isOutsideFairwayBounds) {
+    calculatedHeight = hiddenFairwayH;
+} else if (distToGreenCenter < fringeR) {
+    const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
+    const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+    calculatedHeight = THREE.MathUtils.lerp(floorHeight, floorHeight - 0.04, smoothTuck);
+} else if (approachDot > 0) {
+    calculatedHeight = hiddenFairwayH;
+} else {
+    const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
+    const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
+    calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
+}
+
+if (insideSandZone) {
+    calculatedHeight = hiddenFairwayH;
+} else if (minDistOutsideBunker < 2.2) {
+    const tSand = THREE.MathUtils.smoothstep(minDistOutsideBunker / 2.2, 0, 1);
+    calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, calculatedHeight, tSand);
+}
 
 
                 }
@@ -5800,41 +5780,45 @@ function init() {
     // Procedural rough grass noise texture generator
 
 
-    const rCanvas = document.createElement('canvas');
-    rCanvas.width = 128; rCanvas.height = 128; // Bumping up texture resolution for finer details
-    const rCtx = rCanvas.getContext('2d');
-    rCtx.fillStyle = '#757575'; rCtx.fillRect(0, 0, 128, 128); // Smooth midpoint gray baseline
+const rCanvas = document.createElement('canvas');
+const TILE = 256;
+rCanvas.width = TILE;
+rCanvas.height = TILE;
+const rCtx = rCanvas.getContext('2d');
+rCtx.fillStyle = '#6e746c';
+rCtx.fillRect(0, 0, TILE, TILE);
+rCtx.lineWidth = 1.15;
+rCtx.lineCap = 'round';
 
-    // Draw fine, organic overlapping grass strands instead of square blocks
-    rCtx.lineWidth = 1.2;
-    for (let i = 0; i < 1400; i++) {
-        const xStrand = Math.floor(Math.random() * 128);
-        const yStrand = Math.floor(Math.random() * 128);
-        const length = 6 + Math.floor(Math.random() * 8);
-        const lean = (Math.random() - 0.5) * 4; // Organic slight tilt left or right for realism
-
-        // Deep micro-shadow side of the grass blade
-        rCtx.strokeStyle = '#323532';
-        rCtx.beginPath();
-        rCtx.moveTo(xStrand, yStrand);
-        rCtx.lineTo(xStrand + lean, yStrand - length);
-        rCtx.stroke();
-
-        // Dynamic highlight blade face layer
-        rCtx.strokeStyle = Math.random() > 0.45 ? '#ffffff' : '#b0b5b0';
-        rCtx.beginPath();
-        rCtx.moveTo(xStrand - 0.6, yStrand);
-        rCtx.lineTo(xStrand - 0.6 + lean, yStrand - length);
-        rCtx.stroke();
+const drawWrappedStroke = (x0, y0, x1, y1, color) => {
+    rCtx.strokeStyle = color;
+    for (let ox = -TILE; ox <= TILE; ox += TILE) {
+        for (let oy = -TILE; oy <= TILE; oy += TILE) {
+            rCtx.beginPath();
+            rCtx.moveTo(x0 + ox, y0 + oy);
+            rCtx.lineTo(x1 + ox, y1 + oy);
+            rCtx.stroke();
+        }
     }
-    const roughTexture = new THREE.CanvasTexture(rCanvas);
-    roughTexture.wrapS = THREE.RepeatWrapping;
-    roughTexture.wrapT = THREE.RepeatWrapping;
+};
 
-    // FIXED: Setting repeat to 150, 400 perfectly matches the 300x800 plane aspect ratio, 
-    // ensuring tiles are perfectly square and completely eliminating the blocky stretching distortion!
-    roughTexture.repeat.set(150, 400);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.9, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.45, vertexColors: true });
+for (let i = 0; i < 4800; i++) {
+    const xStrand = Math.random() * TILE;
+    const yStrand = Math.random() * TILE;
+    const length = 5 + Math.random() * 11;
+    const lean = (Math.random() - 0.5) * 5;
+    drawWrappedStroke(xStrand, yStrand, xStrand + lean, yStrand - length, '#323532');
+    drawWrappedStroke(
+        xStrand - 0.6, yStrand, xStrand - 0.6 + lean, yStrand - length,
+        Math.random() > 0.45 ? '#c5ccc5' : '#8f978f'
+    );
+}
+const roughTexture = new THREE.CanvasTexture(rCanvas);
+roughTexture.wrapS = THREE.RepeatWrapping;
+roughTexture.wrapT = THREE.RepeatWrapping;
+roughTexture.repeat.set(150, 400);
+roughTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.92, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.04, vertexColors: true });
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
