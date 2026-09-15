@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 2   ; //1st hole start
+let currentHoleNumber = 2; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2899,14 +2899,14 @@ function resetEntireGame(advanceHole = false) {
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                 const fringeOuterR = activeRadius + 1.0;
 
-           if (currentHoleNumber !== 3) {
-    const apronEnd = -activeRadius;
-    if (approachDot > 0) {
-        fW = 0;
-    } else if (approachDot > apronEnd) {
-        fW = physics.fairwayWidth;
-    }
-}
+                if (currentHoleNumber !== 3) {
+                    const apronEnd = -activeRadius;
+                    if (approachDot > 0) {
+                        fW = 0;
+                    } else if (approachDot > apronEnd) {
+                        fW = physics.fairwayWidth;
+                    }
+                }
 
                 const fWEdge = fW + 3.5;
 
@@ -2921,23 +2921,23 @@ function resetEntireGame(advanceHole = false) {
                 const forwardExcess = (distToGreenCenter >= fringeOuterR && pastFairwayDist > 0) ? pastFairwayDist : 0;
                 const fairwayExcess = Math.max(lateralExcess, forwardExcess);
 
-         let floorHeight = calculatedHeight;
+                let floorHeight = calculatedHeight;
 
                 // Render the rough floor geometry
 
                 // Render the rough floor geometry
-if (targetMesh === floor) {
-    calculatedHeight = floorHeight;
+                if (targetMesh === floor) {
+                    calculatedHeight = floorHeight;
 
-    if (currentHoleNumber === 5 && distToGreenCenter < fringeOuterR + 1.5) {
-        calculatedHeight -= 1.5;
-    } else if (distToGreenCenter < fringeOuterR) {
-        const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / 1.0, 0, 1);
-        const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
-        calculatedHeight -= smoothUnder * 0.18;
-    }
+                    if (currentHoleNumber === 5 && distToGreenCenter < fringeOuterR + 1.5) {
+                        calculatedHeight -= 1.5;
+                    } else if (distToGreenCenter < fringeOuterR) {
+                        const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / 1.0, 0, 1);
+                        const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
+                        calculatedHeight -= smoothUnder * 0.18;
+                    }
 
-    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
+                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
                     if (insideSandZone || minDistOutsideBunker < 2.2) {
                         const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
                         const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
@@ -2976,7 +2976,7 @@ if (targetMesh === floor) {
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                     const fringeR = activeR + 1.0;
 
-                  const hiddenFairwayH = floorHeight - 0.10;
+                    const hiddenFairwayH = floorHeight - 0.10;
 
                     // Boundary checks for fairway corridor
                     const isOutsideFairwayBounds = (!isCustomHole && worldZ > -8.0) ||
@@ -2985,32 +2985,32 @@ if (targetMesh === floor) {
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
                         (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-                  if (isOutsideFairwayBounds) {
-    calculatedHeight = hiddenFairwayH;
-} else if (distToGreenCenter < fringeR) {
-    const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
-    const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-    calculatedHeight = THREE.MathUtils.lerp(floorHeight, floorHeight - 0.04, smoothTuck);
-} else if (approachDot > 0) {
-    calculatedHeight = hiddenFairwayH;
-} else {
-    const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
-    const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
-    calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
-}
+                    if (isOutsideFairwayBounds) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else if (distToGreenCenter < fringeR) {
+                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
+                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                        calculatedHeight = THREE.MathUtils.lerp(floorHeight, floorHeight - 0.04, smoothTuck);
+                    } else if (approachDot > 0) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else {
+                        const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
+                        const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
+                        calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
+                    }
 
-if (insideSandZone) {
-    calculatedHeight = hiddenFairwayH;
-} else if (minDistOutsideBunker < 2.2) {
-    const tSand = THREE.MathUtils.smoothstep(minDistOutsideBunker / 2.2, 0, 1);
-    calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, calculatedHeight, tSand);
-}
+                    if (insideSandZone) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else if (minDistOutsideBunker < 2.2) {
+                        const tSand = THREE.MathUtils.smoothstep(minDistOutsideBunker / 2.2, 0, 1);
+                        calculatedHeight = THREE.MathUtils.lerp(hiddenFairwayH, calculatedHeight, tSand);
+                    }
 
-if ((insideSandZone || minDistOutsideBunker < 2.2) && calculatedHeight <= hiddenFairwayH + 0.02) {
-    const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
-    const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
-    calculatedHeight -= smoothTCollar * 1.35;
-}
+                    if ((insideSandZone || minDistOutsideBunker < 2.2) && calculatedHeight <= hiddenFairwayH + 0.02) {
+                        const tCollar = Math.max(0, Math.min(1, (2.2 - minDistOutsideBunker) / 2.2));
+                        const smoothTCollar = tCollar * tCollar * (3 - 2 * tCollar);
+                        calculatedHeight -= smoothTCollar * 1.35;
+                    }
 
 
                 }
@@ -4190,12 +4190,12 @@ function animate() {
         const allowedClub = activeClub && activeClub.name.includes('Iron');
         const inBunker = physics && physics.isBallInSand();
         const inRough = physics && physics.currentSurface === 'Rough';
-  // Within 20 yards, this button becomes a Bump & Run toggle instead of Backspin
-const isChipRange = input.getDistance ? input.getDistance() <= 20 : false;
-if (!isChipRange && isBumpOn) {
-    isBumpOn = false;
-    window.isBumpOn = false;
-}
+        // Within 20 yards, this button becomes a Bump & Run toggle instead of Backspin
+        const isChipRange = input.getDistance ? input.getDistance() <= 20 : false;
+        if (!isChipRange && isBumpOn) {
+            isBumpOn = false;
+            window.isBumpOn = false;
+        }
         backspinBtn.dataset.mode = isChipRange ? 'bump' : 'backspin'; // Add this line
 
         // Hide backspin button if in the sand trap or rough
@@ -4373,7 +4373,7 @@ if (!isChipRange && isBumpOn) {
             if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
                 obRestY = terrainH + 0.02 + ballRadius - 0.025;
             } else if (physics.currentSurface === 'Rough') {
-               
+
             }
             ball.position.y = obRestY;
             ball.visible = true;
@@ -4426,7 +4426,7 @@ if (!isChipRange && isBumpOn) {
                 if (physics.currentSurface === 'Sand Trap' || physics.isBallInSand()) {
                     waterRestY = terrainH + 0.02 + ballRadius - 0.025;
                 } else if (physics.currentSurface === 'Rough') {
-                    
+
                 }
                 ball.position.y = waterRestY;
                 ball.visible = true;
@@ -4936,11 +4936,11 @@ if (!isChipRange && isBumpOn) {
     // === PASTE THIS REPLACEMENT CODE BLOCK ===
     // 1. DEFAULT SPEED: Set to 0.25 when stationary so the camera instantly snaps into the address 
     // position behind the ball the moment it stops, completely removing the "too far away to hit" delay lag.
-    let activeCameraSpeed = physics.isMoving ? 0.05 : 0.04;
+    let activeCameraSpeed = physics.isMoving ? 0.03 : 0.04;
 
     // FIXED: Responsive chase speed (0.035 instead of 0.005) allows camera to slow down precisely WITH the ball on bounce impact
     if (physics.isMoving && isLongShot && (performance.now() - shotStartTime > 2000) && !isOverheadActive) {
-        activeCameraSpeed = 0.035;
+        activeCameraSpeed = 0.02;
     }
 
 
@@ -5218,7 +5218,7 @@ if (!isChipRange && isBumpOn) {
         // FIXED: Dropped from a rigid 1.0 to a smooth fluid interpolation tracking system. 
         // Set to 0.04 when moving so the ball can roll away from the camera naturally down the line.
         // Set to 0.08 when stationary so the camera glides gracefully into position at address.
-        activeCameraSpeed = (physics.isMoving || isSinking) ? ((physics.isPutting || isSinking) ? 0.015 : 0.08) : 0.08;
+        activeCameraSpeed = (physics.isMoving || isSinking) ? ((physics.isPutting || isSinking) ? 0.015 : 0.035) : 0.08;
     } else {
         // Restore standard non-putting field of view dynamically
         const defaultFov = window.innerWidth / window.innerHeight < 1 ? 72 : 65;
@@ -5313,9 +5313,9 @@ if (!isChipRange && isBumpOn) {
         } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
             // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
             surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
-      } else if (physics.currentSurface === 'Rough') {
-    surfaceHeight = terrainH + ballRadius;
-}
+        } else if (physics.currentSurface === 'Rough') {
+            surfaceHeight = terrainH + ballRadius;
+        }
 
         ball.position.y = surfaceHeight;
     }
@@ -5794,45 +5794,45 @@ function init() {
     // Procedural rough grass noise texture generator
 
 
-const rCanvas = document.createElement('canvas');
-const TILE = 256;
-rCanvas.width = TILE;
-rCanvas.height = TILE;
-const rCtx = rCanvas.getContext('2d');
-rCtx.fillStyle = '#6e746c';
-rCtx.fillRect(0, 0, TILE, TILE);
-rCtx.lineWidth = 1.15;
-rCtx.lineCap = 'round';
+    const rCanvas = document.createElement('canvas');
+    const TILE = 256;
+    rCanvas.width = TILE;
+    rCanvas.height = TILE;
+    const rCtx = rCanvas.getContext('2d');
+    rCtx.fillStyle = '#6e746c';
+    rCtx.fillRect(0, 0, TILE, TILE);
+    rCtx.lineWidth = 1.15;
+    rCtx.lineCap = 'round';
 
-const drawWrappedStroke = (x0, y0, x1, y1, color) => {
-    rCtx.strokeStyle = color;
-    for (let ox = -TILE; ox <= TILE; ox += TILE) {
-        for (let oy = -TILE; oy <= TILE; oy += TILE) {
-            rCtx.beginPath();
-            rCtx.moveTo(x0 + ox, y0 + oy);
-            rCtx.lineTo(x1 + ox, y1 + oy);
-            rCtx.stroke();
+    const drawWrappedStroke = (x0, y0, x1, y1, color) => {
+        rCtx.strokeStyle = color;
+        for (let ox = -TILE; ox <= TILE; ox += TILE) {
+            for (let oy = -TILE; oy <= TILE; oy += TILE) {
+                rCtx.beginPath();
+                rCtx.moveTo(x0 + ox, y0 + oy);
+                rCtx.lineTo(x1 + ox, y1 + oy);
+                rCtx.stroke();
+            }
         }
-    }
-};
+    };
 
-for (let i = 0; i < 4800; i++) {
-    const xStrand = Math.random() * TILE;
-    const yStrand = Math.random() * TILE;
-    const length = 5 + Math.random() * 11;
-    const lean = (Math.random() - 0.5) * 5;
-    drawWrappedStroke(xStrand, yStrand, xStrand + lean, yStrand - length, '#323532');
-    drawWrappedStroke(
-        xStrand - 0.6, yStrand, xStrand - 0.6 + lean, yStrand - length,
-        Math.random() > 0.45 ? '#c5ccc5' : '#8f978f'
-    );
-}
-const roughTexture = new THREE.CanvasTexture(rCanvas);
-roughTexture.wrapS = THREE.RepeatWrapping;
-roughTexture.wrapT = THREE.RepeatWrapping;
-roughTexture.repeat.set(150, 400);
-roughTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.92, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.04, vertexColors: true });
+    for (let i = 0; i < 4800; i++) {
+        const xStrand = Math.random() * TILE;
+        const yStrand = Math.random() * TILE;
+        const length = 5 + Math.random() * 11;
+        const lean = (Math.random() - 0.5) * 5;
+        drawWrappedStroke(xStrand, yStrand, xStrand + lean, yStrand - length, '#323532');
+        drawWrappedStroke(
+            xStrand - 0.6, yStrand, xStrand - 0.6 + lean, yStrand - length,
+            Math.random() > 0.45 ? '#c5ccc5' : '#8f978f'
+        );
+    }
+    const roughTexture = new THREE.CanvasTexture(rCanvas);
+    roughTexture.wrapS = THREE.RepeatWrapping;
+    roughTexture.wrapT = THREE.RepeatWrapping;
+    roughTexture.repeat.set(150, 400);
+    roughTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.92, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.04, vertexColors: true });
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
@@ -6405,7 +6405,7 @@ const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.
             restY = terrainH + 0.02 + ballRadius - 0.025;
             physics.currentSurface = 'Sand Trap';
         } else {
-            
+
         }
 
         if (surface === 'Fairway' && physics.isBallInSand && physics.isBallInSand()) {
