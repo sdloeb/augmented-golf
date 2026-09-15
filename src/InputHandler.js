@@ -107,8 +107,9 @@ export class InputHandler {
     getPutterMaxFeet() {
         if (!this.getDistance) return 60;
         const rawUnits = this.getDistance() / 2.76923;
-        // MODIFIED: Swapped 3.0 for 1.75 to perfectly match the HUD green display engine
-        const distanceInFeet = rawUnits * 1.75;
+        const distanceInFeet = (typeof window.getPuttingLeftoverFeet === 'function')
+            ? window.getPuttingLeftoverFeet(rawUnits)
+            : rawUnits * (40 / 21);
         if (distanceInFeet <= 4) return 10;
         if (distanceInFeet <= 10) return 20;
         if (distanceInFeet <= 20) return 30;

@@ -749,6 +749,14 @@ function checkIsBallOnGreenOrFringe() {
     return (ballDist < activeR) || isOnFringe || isPuttingClub;
 }
 
+
+
+function getPuttingLeftoverFeet(gameDistance) {
+    const hole1EndToEndUnits = 10.5 * 2;
+    const feetPerUnit = 40 / hole1EndToEndUnits;
+    return gameDistance * feetPerUnit;
+}
+window.getPuttingLeftoverFeet = getPuttingLeftoverFeet;
 function getChipAdjustedYards(gameDistance, ballDist, activeR) {
     const courseYards = gameDistance * 2.76923;
     const puttAsYards = (gameDistance * 1.75) / 3;
@@ -802,7 +810,7 @@ function updateDistanceDisplay() {
         const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
         const yards = getChipAdjustedYards(gameDistance, ballDist, activeR);
-        const preciseFeet = gameDistance * 1.75;
+        const preciseFeet = getPuttingLeftoverFeet(gameDistance);
 
         if (ballDist < activeR) {
             if (preciseFeet < 1) {
@@ -820,8 +828,7 @@ function updateDistanceDisplay() {
 
         // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
         if (pin && flag && physics) {
-            const feetToHole = Math.round(gameDistance * 1.75);
-            const isOnGreen = ballDist < activeR || isPuttingClub;
+            const feetToHole = Math.round(getPuttingLeftoverFeet(gameDistance)); const isOnGreen = ballDist < activeR || isPuttingClub;
             const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 16);
             if (shouldHide) {
                 if (!flagHideTimeout && pin.visible) {
@@ -4583,20 +4590,20 @@ function animate() {
                     physics.velocity.x = (tanX * 0.94 + hDirX * 0.10) * rawSpeed * 0.992;
                     physics.velocity.z = (tanZ * 0.94 + hDirZ * 0.10) * rawSpeed * 0.992;
 
-                // Slow balls on the outer rim fall in. Only a ball that still has speed can lip out.
-if (trueWorldSpeed < 0.025) {
-    isSinking = true;
-    ball.userData.isLipRiding = false;
-    physics.velocity.x *= 0.2;
-    physics.velocity.z *= 0.2;
-    if (sounds) sounds.play('sink');
-} else if (ball.userData.lipAngleTraveled > 1.2) {
-    physics.velocity.x = (tanX * 0.70 + hDirX * 0.85) * rawSpeed * 0.95;
-    physics.velocity.z = (tanZ * 0.70 + hDirZ * 0.85) * rawSpeed * 0.95;
-    ball.userData.isLipRiding = false;
-    ball.userData.hasLipDeflected = true;
-    if (sounds) sounds.play('putt');
-}
+                    // Slow balls on the outer rim fall in. Only a ball that still has speed can lip out.
+                    if (trueWorldSpeed < 0.025) {
+                        isSinking = true;
+                        ball.userData.isLipRiding = false;
+                        physics.velocity.x *= 0.2;
+                        physics.velocity.z *= 0.2;
+                        if (sounds) sounds.play('sink');
+                    } else if (ball.userData.lipAngleTraveled > 1.2) {
+                        physics.velocity.x = (tanX * 0.70 + hDirX * 0.85) * rawSpeed * 0.95;
+                        physics.velocity.z = (tanZ * 0.70 + hDirZ * 0.85) * rawSpeed * 0.95;
+                        ball.userData.isLipRiding = false;
+                        ball.userData.hasLipDeflected = true;
+                        if (sounds) sounds.play('putt');
+                    }
                 }
             }
             // 3. New Entry into Cup Zone
