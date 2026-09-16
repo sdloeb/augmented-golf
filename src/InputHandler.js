@@ -1,3 +1,4 @@
+import { COURSE_YARDS_PER_UNIT, unitsToPuttFeet, leftoverFeetToCup, putterGaugeMaxFeet, getGreenTouch } from './PuttingSystem.js';
 const CLUBS = [
     { name: 'Driver', maxYards: 310, isGreen: false, loft: 0.040 },
     { name: '3 Wood', maxYards: 270, isGreen: false, loft: 0.043 },
@@ -103,19 +104,18 @@ export class InputHandler {
 
 
     getPutterMaxFeet() {
+        if (this.ballRef && this.holePositionRef) {
+            return putterGaugeMaxFeet(leftoverFeetToCup(
+                this.ballRef.position.x,
+                this.ballRef.position.z,
+                this.holePositionRef.x,
+                this.holePositionRef.z
+            ));
+        }
         if (!this.getDistance) return 60;
-        const rawUnits = this.getDistance() / 2.76923;
-        const distanceInFeet = (typeof window.getPuttingLeftoverFeet === 'function')
-            ? window.getPuttingLeftoverFeet(rawUnits)
-            : rawUnits * (40 / 21);
-        if (distanceInFeet <= 4) return 10;
-        if (distanceInFeet <= 10) return 20;
-        if (distanceInFeet <= 20) return 30;
-        if (distanceInFeet <= 30) return 40;
-        if (distanceInFeet <= 45) return 60;
-        if (distanceInFeet <= 65) return 90;
-        if (distanceInFeet <= 95) return 120;
-        return 150;
+        const rawUnits = this.getDistance() / COURSE_YARDS_PER_UNIT;
+        const distanceInFeet = unitsToPuttFeet(rawUnits);
+        return putterGaugeMaxFeet(distanceInFeet);
     }
 
     updateGaugeClub() {
@@ -580,52 +580,52 @@ export class InputHandler {
         if (!club.isGreen) {
             // Scales the velocity vector cleanly against original baseline engine limits
             finalPower *= (club.maxYards / 200);
-          if (window.isBumpOn) {
-    finalPower *= 1.65;
-}
-                const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
+            if (window.isBumpOn) {
+                finalPower *= 1.65;
+            }
+            const isOnTee = this.teeBoxRef ? this.teeBoxRef.visible : false;
 
 
-                if (club.name === 'Driver') {
-                    finalPower *= isOnTee ? 1.02 : 0.90;
-                }
-                else if (club.name === '3 Wood') {
-                    finalPower *= 1.13;
-                }
-                else if (club.name === '5 Wood') {
-                    finalPower *= 1.17;
-                }
-                else if (club.name === 'Hybrid') {
-                    finalPower *= 1.27; // Adjust to tune Hybrid distance separately
-                }
-                else if (club.name === '5 Iron') {
-                    finalPower *= 1.31; // Adjust to tune 5 Iron distance separately
-                }
-                else if (club.name === '6 Iron') {
-                    finalPower *= 1.35; // Adjust to tune 6 Iron distance separately
-                }
-                else if (club.name === '7 Iron') {
-                    finalPower *= 1.40; // Adjust to tune 7 Iron distance separately
-                }
-                else if (club.name === '8 Iron') {
-                    finalPower *= 1.45; // Adjust to tune 8 Iron distance separately
-                }
-                else if (club.name === '9 Iron') {
-                    finalPower *= 1.50; // Adjust to tune 9 Iron distance separately
-                }
-                else if (club.name === 'PW Iron') {
-                    finalPower *= 1.55; // Adjust to tune Pitching Wedge distance separately
-                }
-                else if (club.name === 'GW Iron') {
-                    finalPower *= 1.59; // Adjust to tune Gap Wedge distance separately
-                }
-                else if (club.name === 'SW Iron') {
-                    finalPower *= 1.64; // Adjust to tune Sand Wedge distance separately
-                }
-                else {
-                    finalPower *= 1.0; // Safe catch-all fallback
-                }
-            
+            if (club.name === 'Driver') {
+                finalPower *= isOnTee ? 1.02 : 0.90;
+            }
+            else if (club.name === '3 Wood') {
+                finalPower *= 1.13;
+            }
+            else if (club.name === '5 Wood') {
+                finalPower *= 1.17;
+            }
+            else if (club.name === 'Hybrid') {
+                finalPower *= 1.27; // Adjust to tune Hybrid distance separately
+            }
+            else if (club.name === '5 Iron') {
+                finalPower *= 1.31; // Adjust to tune 5 Iron distance separately
+            }
+            else if (club.name === '6 Iron') {
+                finalPower *= 1.35; // Adjust to tune 6 Iron distance separately
+            }
+            else if (club.name === '7 Iron') {
+                finalPower *= 1.40; // Adjust to tune 7 Iron distance separately
+            }
+            else if (club.name === '8 Iron') {
+                finalPower *= 1.45; // Adjust to tune 8 Iron distance separately
+            }
+            else if (club.name === '9 Iron') {
+                finalPower *= 1.50; // Adjust to tune 9 Iron distance separately
+            }
+            else if (club.name === 'PW Iron') {
+                finalPower *= 1.55; // Adjust to tune Pitching Wedge distance separately
+            }
+            else if (club.name === 'GW Iron') {
+                finalPower *= 1.59; // Adjust to tune Gap Wedge distance separately
+            }
+            else if (club.name === 'SW Iron') {
+                finalPower *= 1.64; // Adjust to tune Sand Wedge distance separately
+            }
+            else {
+                finalPower *= 1.0; // Safe catch-all fallback
+            }
+
 
 
 
@@ -667,13 +667,12 @@ export class InputHandler {
                 const onGreen = this.checkIsOnGreen ? this.checkIsOnGreen() : false;
 
                 // Realism addition: Calculate if the ball is sitting on the clean green fringe collar
-                const gX = this.ballRef.position.x - (window.physicsEngine ? window.physicsEngine.greenCenterX : 0); // Add this line
-                const gZ = this.ballRef.position.z - (window.physicsEngine ? window.physicsEngine.greenCenterZ : -55); // Add this line
-                const distToGreenCenter = Math.hypot(gX, gZ); // Add this line
-
-                // MODIFIED: Swapped hardcoded values out for true dynamic hole blueprint calculations
-                const activeR = window.activeGreenRadius || 12.0;
-                const isOnFringe = distToGreenCenter >= activeR && distToGreenCenter <= (activeR + 1.0);
+                const isOnFringe = getGreenTouch(
+                    this.ballRef.position.x,
+                    this.ballRef.position.z,
+                    window.physicsEngine ? window.physicsEngine.greenCenterX : 0,
+                    window.physicsEngine ? window.physicsEngine.greenCenterZ : -55
+                ).onFringe;
 
                 // 3. Apply Penalties
                 if (inSand) {

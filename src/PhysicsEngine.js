@@ -13,7 +13,7 @@ import {
     lakeRadiusAtAngle,
     SAND_COLLAR_WIDTH
 } from './HazardFactory.js';
-
+import { FRINGE_WIDTH_UNITS } from './PuttingSystem.js';
 export class PhysicsEngine {
     constructor(ballMesh) {
         this.ball = ballMesh;
@@ -532,10 +532,10 @@ export class PhysicsEngine {
             if (approachDot > apronStart && approachDot <= apronEnd) {
                 let tApron = (approachDot - apronStart) / 12.0;
                 const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
-                const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + 1.0);
+                const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + FRINGE_WIDTH_UNITS);
                 activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, smoothApron);
             } else if (approachDot > apronEnd) {
-                activeFW = Math.max(this.fairwayWidth, activeRadius + 1.0);
+                activeFW = Math.max(this.fairwayWidth, activeRadius + FRINGE_WIDTH_UNITS);
             }
         }
         if (this.greenCenterZ < -128 && this.greenCenterZ > -152 && this.ball.position.z < -125) {
@@ -591,7 +591,7 @@ export class PhysicsEngine {
                 }
             }
         }
-        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
+        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + FRINGE_WIDTH_UNITS)) {
             this.currentSurface = 'Fringe';
             currentFriction = 0.94;
             currentBounceHeight = 0.28;
@@ -622,7 +622,7 @@ export class PhysicsEngine {
 
             // Sync with the exact visual boundary parameters from main.js
             const fWEdge = activeFW + 2.26;
-            const fringeOuterR = activeRadius + 1.0;
+            const fringeOuterR = activeRadius + FRINGE_WIDTH_UNITS;
 
             let floorHeight = greenHeightOffset;
 
@@ -653,7 +653,7 @@ export class PhysicsEngine {
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
         if (this.isPutting) {
             // Allow putting state to remain active across both the putting surface and fringe collar complex
-            if (distToGreenCenter > activeRadius + 1.0) {
+            if (distToGreenCenter > activeRadius + FRINGE_WIDTH_UNITS) {
                 // Terminate putting status instantly if it completely leaves the green complex
                 this.isPutting = false;
             } else {
@@ -1000,7 +1000,7 @@ export class PhysicsEngine {
                         const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
 
                         // Only trigger water hit if the ball is outside the green and fringe collar
-                        if (distFromGreen >= activeRadius + 1.0) {
+                        if (distFromGreen >= activeRadius + FRINGE_WIDTH_UNITS) {
                             this.hitWater = true;
                             this.velocity.set(0, 0, 0);
                             this.isMoving = false;
@@ -1019,7 +1019,7 @@ export class PhysicsEngine {
                         this.sounds.play('sand'); // Preserved: Sand path remains clean
                     } else if (onGreen) {
                         this.sounds.play('green'); // Triggers on green grass bounce
-                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
+                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + FRINGE_WIDTH_UNITS)) {
                         this.sounds.play('fairway'); // Modified: Fringe plays crisp fairway turf sound
                     } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                         this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {
@@ -1071,7 +1071,7 @@ export class PhysicsEngine {
                         let surfaceFactor = 0.0;
                         if (onGreen) {
                             surfaceFactor = 1.0;
-                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
+                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + FRINGE_WIDTH_UNITS)) {
                             surfaceFactor = 0.75; // Modified: Fringe gets a crisp 75% backspin check-up grab!
                         } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                             this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {

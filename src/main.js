@@ -29,6 +29,22 @@ import {
     waterPhysics,
     lakeRadiusAtAngle
 } from './HazardFactory.js';
+import {
+    FRINGE_WIDTH_UNITS,
+    PUTT_FEET_PER_UNIT,
+    FLAG_HIDE_FEET,
+    PIN_INSET_UNITS,
+    CUP_RIM_RADIUS,
+    CUP_RIM_INNER,
+    unitsToPuttFeet,
+    unitsToCourseYards,
+    chipAdjustedYards,
+    getGreenTouch,
+    fringeOuterRadius,
+    formatLeftoverDisplay,
+    shouldHideFlag,
+    isPuttingLie
+} from './PuttingSystem.js';
 
 // Floor/fairway vertex spacing is unchanged
 // outer skirt is trimmed: old mesh was 300×800 with 300×600 segments.
@@ -758,38 +774,24 @@ function getPuttingAddressBallScale() {
 }
 
 
+function ballGreenTouch() {
+    return getGreenTouch(ball.position.x, ball.position.z, green ? green.position.x : 0, greenCenterZ);
+}
+
 function checkIsBallOnGreenOrFringe() {
     if (!ball) return false;
-    const greenCheckX = ball.position.x - (green ? green.position.x : 0);
-    const greenCheckZ = ball.position.z - greenCenterZ;
-    const ballDist = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
-    const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
-    const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-
+    const touch = ballGreenTouch();
     const currentActiveClub = input ? input.getClubInfo() : null;
     const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
-    const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
-
-    return (ballDist < activeR) || isOnFringe || isPuttingClub;
+    return touch.onGreen || touch.onFringe || isPuttingClub;
 }
-
-
 
 function getPuttingLeftoverFeet(gameDistance) {
-    const hole1EndToEndUnits = 10.5 * 2;
-    const feetPerUnit = 40 / hole1EndToEndUnits;
-    return gameDistance * feetPerUnit;
+    return unitsToPuttFeet(gameDistance);
 }
 window.getPuttingLeftoverFeet = getPuttingLeftoverFeet;
-function getChipAdjustedYards(gameDistance, ballDist, activeR) {
-    const courseYards = gameDistance * 2.76923;
-    const puttAsYards = (gameDistance * 1.75) / 3;
-    const preciseFeet = gameDistance * 1.75;
-    // Putting leftover stays putting leftover, even in the fringe/fairway.
-    // Only blend up to course yards once leftover is a real approach, not
-    // just because the ball crossed off the green.
-    const t = THREE.MathUtils.smoothstep(preciseFeet, 25, 55);
-    return THREE.MathUtils.lerp(puttAsYards, courseYards, t);
+function getChipAdjustedYards(gameDistance) {
+    return chipAdjustedYards(gameDistance);
 }
 
 
@@ -822,39 +824,25 @@ function updateDistanceDisplay() {
     }
 
     if (distanceText && unitText) {
-        // FIXED: Check if the ball is on the green surface container footprint using true shape-aware boundary angles
-        const greenCheckX = ball.position.x - (green ? green.position.x : 0);
-        const greenCheckZ = ball.position.z - greenCenterZ;
-        const ballDist = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
-        const ballAngle = Math.atan2(-greenCheckZ, greenCheckX);
-        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-
+        const touch = ballGreenTouch();
         const currentActiveClub = input ? input.getClubInfo() : null;
         const isPuttingClub = currentActiveClub && currentActiveClub.name === 'Putter';
-        const isOnFringe = ballDist >= activeR && ballDist <= (activeR + 1.0);
 
-        const yards = getChipAdjustedYards(gameDistance, ballDist, activeR);
+        const yards = getChipAdjustedYards(gameDistance);
         const preciseFeet = getPuttingLeftoverFeet(gameDistance);
 
-        if (ballDist < activeR) {
-            if (preciseFeet < 1) {
-                const inches = Math.max(1, Math.round(preciseFeet * 12));
-                distanceText.innerText = inches;
-                unitText.innerText = inches === 1 ? "inch" : "inches";
-            } else {
-                distanceText.innerText = Math.round(preciseFeet);
-                unitText.innerText = "feet";
-            }
+        if (touch.onGreen) {
+            const leftover = formatLeftoverDisplay(preciseFeet);
+            distanceText.innerText = leftover.value;
+            unitText.innerText = leftover.unit;
         } else {
             distanceText.innerText = Math.round(yards);
             unitText.innerText = "yards";
         }
 
-        // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 feet on green
+        // Auto-hide flag and pole 1 second after the next shot camera view is set when within 20 leftover feet on green
         if (pin && flag && physics) {
-            const feetToHole = Math.round(getPuttingLeftoverFeet(gameDistance));
-            const isOnGreen = ballDist < activeR || isPuttingClub;
-            const shouldHide = physics.isMoving ? window.wasFlagHiddenOnShot : (isOnGreen && feetToHole <= 20);
+            const shouldHide = shouldHideFlag(touch.onGreen || isPuttingClub, preciseFeet, physics.isMoving, window.wasFlagHiddenOnShot);
             if (shouldHide) {
                 if (!flagHideTimeout && pin.visible) {
                     // Delay = 600ms camera pan + 1000ms (1 second after camera view is set)
@@ -986,14 +974,8 @@ function updateDistanceDisplay() {
     if (container && input) {
         container.innerHTML = ''; // Wipe out old button listings
 
-        // FIXED: Check distance to the green's center instead of the hole cup
-        const greenCheckX = ball.position.x - (green ? green.position.x : 0);
-        const greenCheckZ = ball.position.z - greenCenterZ;
-        const checkAngle = Math.atan2(-greenCheckZ, greenCheckX);
-        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        const distToGreen = Math.sqrt(greenCheckX * greenCheckX + greenCheckZ * greenCheckZ);
-        const isOnGreen = distToGreen < activeR;
-        const isOnFringe = distToGreen >= activeR && distToGreen <= (activeR + 1.0); // Tracks the fringe boundary line
+        const touch = ballGreenTouch();
+        const isOnGreen = touch.onGreen;
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
             return;
@@ -1319,26 +1301,26 @@ function generateHazards() {
         );
         if (waterAttempts > 50) continue;
 
-      
 
-    let currentWaterGroundY = physics.getGroundHeight(x, z);
 
-    if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
-        currentWaterGroundY += 0.035;
+        let currentWaterGroundY = physics.getGroundHeight(x, z);
+
+        if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
+            currentWaterGroundY += 0.035;
+        }
+
+        addBuiltHazards(scene, buildLake({
+            type: 'lake',
+            x,
+            z,
+            radius: r,
+            shoreStyle: 'simple',
+            basinWall: true
+        }, {
+            getGroundHeight: () => currentWaterGroundY
+        }), sandTraps, waterHazards, waterShores);
+
     }
-
-    addBuiltHazards(scene, buildLake({
-        type: 'lake',
-        x,
-        z,
-        radius: r,
-        shoreStyle: 'simple',
-        basinWall: true
-    }, {
-        getGroundHeight: () => currentWaterGroundY
-    }), sandTraps, waterHazards, waterShores);
-
-}
 
     for (let i = 0; i < numSand; i++) {
         let x, z, r = 4.5 + Math.random() * 2.5;
@@ -1649,8 +1631,7 @@ function resetEntireGame(advanceHole = false) {
     greenCenterZ = greenEndpoint.z;
 
     // Calculate a randomized pin location bounded perfectly inside the green's true shape
-    const minDistanceToFringe = 5.0 / 2.76923; // 15 feet = 5 yards converted precisely to game units
-    let pinX = greenCenterX;
+    const minDistanceToFringe = PIN_INSET_UNITS;
     let pinZ = greenCenterZ;
 
     // Safety loop to ensure complex warped green profiles (like kidney or wavy shapes) strictly adhere to bounds
@@ -1757,12 +1738,12 @@ function resetEntireGame(advanceHole = false) {
         clearHazardMeshes();
 
         // Loop through and build your manual custom hazards list
-    holeConfig.hazards.forEach(hz => {
-    addBuiltHazards(scene, buildHazard(hz, {
-        getGroundHeight: (hx, hzZ) => physics.getGroundHeight(hx, hzZ)
-    }), sandTraps, waterHazards, waterShores);
+        holeConfig.hazards.forEach(hz => {
+            addBuiltHazards(scene, buildHazard(hz, {
+                getGroundHeight: (hx, hzZ) => physics.getGroundHeight(hx, hzZ)
+            }), sandTraps, waterHazards, waterShores);
 
-    if (hz.type === 'ocean') {
+            if (hz.type === 'ocean') {
 
 
 
@@ -1899,8 +1880,7 @@ function resetEntireGame(advanceHole = false) {
     if (currentHoleConfig && currentHoleConfig.water && currentHoleConfig.water.islandBulkhead) {
         const wallSegments = 64;
         const baseRadius = (currentHoleConfig && currentHoleConfig.greenRadius) ? currentHoleConfig.greenRadius : 17.0;
-        const outerWallRadius = baseRadius + 1.0; // Positioned flush along the outer fringe collar edge
-
+        const outerWallRadius = baseRadius + FRINGE_WIDTH_UNITS; // flush with the outer fringe collar edge
         // Create procedural dark wood timber texture
         const woodCanvas = document.createElement('canvas');
         woodCanvas.width = 128; woodCanvas.height = 128;
@@ -2400,8 +2380,7 @@ function resetEntireGame(advanceHole = false) {
 
             // Fetch dynamic green boundary metrics for this explicit slice angle
             const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-            const fringeOuterR = activeR + 1.0;
-
+            const fringeOuterR = fringeOuterRadius(activeR);
             // Soft gradient ramp around the green replaces the harsh cliff cutoff to avoid mesh jaggedness
             if (distToGreen < activeR) {
                 calculatedHeight -= 0.0;
@@ -2423,8 +2402,7 @@ function resetEntireGame(advanceHole = false) {
                 const approachDot = (physics.approachDirX !== undefined) ? (relX * physics.approachDirX + relZ * physics.approachDirZ) : -999;
 
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                const fringeOuterR = activeRadius + 1.0;
-
+                const fringeOuterR = fringeOuterRadius(activeRadius);
                 if (!skipApronTaper(currentHoleConfig && currentHoleConfig.fairwayMask)) {
                     const apronEnd = -activeRadius;
                     if (approachDot > 0) {
@@ -2460,8 +2438,7 @@ function resetEntireGame(advanceHole = false) {
                     if (islandSink && distToGreenCenter < fringeOuterR + islandSink) {
                         calculatedHeight -= islandSink;
                     } else if (distToGreenCenter < fringeOuterR) {
-                        const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / 1.0, 0, 1);
-                        const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
+                        const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / FRINGE_WIDTH_UNITS, 0, 1);
                         calculatedHeight -= smoothUnder * 0.18;
                     }
 
@@ -2503,8 +2480,7 @@ function resetEntireGame(advanceHole = false) {
                     }
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
-                    const fringeR = activeR + 1.0;
-
+                    const fringeR = fringeOuterRadius(activeR);
                     const hiddenFairwayH = floorHeight - 0.10;
 
                     // Boundary checks for fairway corridor
@@ -2518,8 +2494,7 @@ function resetEntireGame(advanceHole = false) {
                         // Approach fairway stays at full height until the fringe, then
                         // tucks under the green. Outside the mown corridor, stay buried
                         // so the 1-unit grid cannot form a jagged fairway ring in the rough.
-                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 1.0));
-                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
                         const buriedH = floorHeight - 0.45;
                         const meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
                         const corridorExcess = Math.max(0, distanceToPath - fW);
@@ -3825,28 +3800,28 @@ function animate() {
     if (physics) {
         // If the current hole has a custom rectangle boundary configured, check against those exact box walls
 
-      if (currentHoleConfig && currentHoleConfig.customOOB) {
-    const oob = currentHoleConfig.customOOB;
-    if (oob.type === 'rectangle' || oob.type === 'l_shape' || oob.type === 'stepped') {
-        if (isPointInCustomOOB(oob, ball.position.x, ball.position.z)) {
+        if (currentHoleConfig && currentHoleConfig.customOOB) {
+            const oob = currentHoleConfig.customOOB;
+            if (oob.type === 'rectangle' || oob.type === 'l_shape' || oob.type === 'stepped') {
+                if (isPointInCustomOOB(oob, ball.position.x, ball.position.z)) {
+                    isOutOfBounds = true;
+                }
+            }
+        }
+
+        if (!isOutOfBounds && !(currentHoleConfig && currentHoleConfig.customOOB &&
+            (currentHoleConfig.customOOB.type === 'rectangle' ||
+                currentHoleConfig.customOOB.type === 'l_shape' ||
+                currentHoleConfig.customOOB.type === 'stepped')) && physics.isMoving) {
+            const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
+            if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
+                isOutOfBounds = true;
+            }
+        }
+
+        if (!isOutOfBounds && physics.isMoving && isCliffOB(currentHoleConfig && currentHoleConfig.customOOB, currentHoleConfig && currentHoleConfig.water, ball.position.x, ball.position.z)) {
             isOutOfBounds = true;
         }
-    }
-}
-
-if (!isOutOfBounds && !(currentHoleConfig && currentHoleConfig.customOOB &&
-    (currentHoleConfig.customOOB.type === 'rectangle' ||
-        currentHoleConfig.customOOB.type === 'l_shape' ||
-        currentHoleConfig.customOOB.type === 'stepped')) && physics.isMoving) {
-    const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
-    if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
-        isOutOfBounds = true;
-    }
-}
-
-if (!isOutOfBounds && physics.isMoving && isCliffOB(currentHoleConfig && currentHoleConfig.customOOB, currentHoleConfig && currentHoleConfig.water, ball.position.x, ball.position.z)) {
-    isOutOfBounds = true;
-}
     }
 
     if (!isSinking && isOutOfBounds && !isOutOfBoundsResetting) {
@@ -3967,8 +3942,7 @@ if (!isOutOfBounds && physics.isMoving && isCliffOB(currentHoleConfig && current
         const distanceToHole = Math.sqrt(dx * dx + dz * dz);
 
         const ballRadius = 0.25 * (ball ? ball.scale.x : 0.51);
-        const cupRimRadius = 0.115;
-        const pinRadius = 0.025;
+        const cupRimRadius = CUP_RIM_RADIUS;
         const maxInfluenceRadius = cupRimRadius + ballRadius + 0.005;
 
         const groundHeight = physics.getGroundHeight(ball.position.x, ball.position.z);
@@ -4697,7 +4671,8 @@ if (!isOutOfBounds && physics.isMoving && isCliffOB(currentHoleConfig && current
 
         let putterCamX = camBaseX - dirX * rigidCamDist;
         let putterCamZ = camBaseZ - dirZ * rigidCamDist;
-if (currentHoleConfig && currentHoleConfig.water && currentHoleConfig.water.keepPutterCameraOnIsland && green) {            const cdx = putterCamX - green.position.x;
+        if (currentHoleConfig && currentHoleConfig.water && currentHoleConfig.water.keepPutterCameraOnIsland && green) {
+            const cdx = putterCamX - green.position.x;
             const cdz = putterCamZ - greenCenterZ;
             const cDist = Math.hypot(cdx, cdz) || 1;
             const cAng = Math.atan2(-cdz, cdx);
@@ -5487,7 +5462,7 @@ function init() {
     greenGrid.position.set(0, 0.021, -55);
     scene.add(greenGrid);
 
-    const fringeGeo = new THREE.RingGeometry(GREEN_RADIUS, GREEN_RADIUS + 1.0, 64, 16); // Add this line: 2-unit wide ring collar around edge
+    const fringeGeo = new THREE.RingGeometry(GREEN_RADIUS, GREEN_RADIUS + FRINGE_WIDTH_UNITS, 64, 16);
     fringeGeo.userData.origXY = [];
     for (let i = 0; i < fringeGeo.attributes.position.count; i++) {
         fringeGeo.userData.origXY.push({ x: fringeGeo.attributes.position.getX(i), y: fringeGeo.attributes.position.getY(i) });
@@ -5517,7 +5492,7 @@ function init() {
 
     holeCup = new THREE.Group();
 
-    const whiteRimGeo = new THREE.RingGeometry(0.095, 0.115, 32);
+    const whiteRimGeo = new THREE.RingGeometry(CUP_RIM_INNER, CUP_RIM_RADIUS, 32);
     const whiteRimMat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -5583,7 +5558,7 @@ function init() {
         const dxStart = ball.position.x - holePosition.x;
         const dzStart = ball.position.z - holePosition.z;
         const startFeetToHole = Math.round(getPuttingLeftoverFeet(Math.sqrt(dxStart * dxStart + dzStart * dzStart)));
-        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= 20.9;
+        window.wasFlagHiddenOnShot = (pin && !pin.visible) || startFeetToHole <= FLAG_HIDE_FEET;
         if (flagHideTimeout) {
             clearTimeout(flagHideTimeout);
             flagHideTimeout = null;
@@ -5637,13 +5612,9 @@ function init() {
         right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
         // FIXED: Measures from the green's center using shape-aware angles to scale accurately
-        const gX = ball.position.x - (green ? green.position.x : 0);
-        const gZ = ball.position.z - greenCenterZ;
-        const checkAngle = Math.atan2(-gZ, gX);
-        const trueGreenR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        const distToGreenCenter = Math.sqrt(gX * gX + gZ * gZ);
-        const isOnGreen = distToGreenCenter < trueGreenR;
-        const isOnFringe = distToGreenCenter >= trueGreenR && distToGreenCenter <= (trueGreenR + 1.0);
+        const touch = ballGreenTouch();
+        const isOnGreen = touch.onGreen;
+        const isOnFringe = touch.onFringe;
         // NEW: Spawn a 3D turf divot patch when hitting from the fairway or rough (exempt green and fringe)
         if (!isOnGreen && !isOnFringe && !launchedFromSand && !isOffTee) {
             const divotGeo = new THREE.CircleGeometry(0.15, 8);
@@ -5672,7 +5643,7 @@ function init() {
         let finalPower = power;
         const club = input.getClubInfo();
 
-        if (isOnGreen || club.name === 'Putter') {
+        if (isPuttingLie(isOnGreen, club.name)) {
             // Calibrated down from 2.10 to 1.30 so visual target distances align 1-to-1 with ball rollouts
             finalPower *= 2.55;
 
@@ -5683,8 +5654,7 @@ function init() {
             }
         }
 
-        const isPuttingStroke = isOnGreen || club.name === 'Putter'; // Add this line: Safe check preventing division by zero
-
+        const isPuttingStroke = isPuttingLie(isOnGreen, club.name);
         physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
 
         // FIXED: Dynamically differentiate swing audios. Tee box launches play swing.wav,
@@ -5759,25 +5729,17 @@ function init() {
         document.getElementById('strokeText').innerText = strokeCount;
         updateDistanceDisplay();
     }, () => {
-        // FIXED: Tracks the green boundaries accurately from the true center point during click-drags using shape-aware angles
-        const gX = ball.position.x - (green ? green.position.x : 0);
-        const gZ = ball.position.z - greenCenterZ;
-        const checkAngle = Math.atan2(-gZ, gX);
-        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(checkAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        return Math.sqrt(gX * gX + gZ * gZ) < activeR;
+        const touch = ballGreenTouch();
+        return touch.onGreen;
     }, () => {
         // Add this third callback function here to return current distance in yards
 
         const dx = ball.position.x - holePosition.x;
         const dz = ball.position.z - holePosition.z;
         const gameDistance = Math.sqrt(dx * dx + dz * dz);
-        const gx = ball.position.x - (green ? green.position.x : 0);
-        const gz = ball.position.z - greenCenterZ;
-        const ballDist = Math.hypot(gx, gz);
-        const ang = Math.atan2(-gz, gx);
-        const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ang, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
-        if (ballDist < activeR) return gameDistance * 2.76923;
-        return getChipAdjustedYards(gameDistance, ballDist, activeR);
+        const touch = ballGreenTouch();
+        if (touch.onGreen) return unitsToCourseYards(gameDistance);
+        return getChipAdjustedYards(gameDistance);
     }); // Add the bracket closure adjustments on this line
 
     input.ballRef = ball;
@@ -5856,8 +5818,7 @@ function init() {
             const gz = (typeof greenCenterZ === 'number') ? greenCenterZ : -150.5;
             const hx = holePosition.x;
             const hz = holePosition.z;
-            const dist = (10 + Math.random() * 10) / 1.75;
-
+            const dist = (10 + Math.random() * 10) / PUTT_FEET_PER_UNIT;
             const onPuttingSurface = (px, pz) => {
                 const dx = px - gx;
                 const dz = pz - gz;
@@ -6264,17 +6225,12 @@ function updateGreenGrid() {
     const gX = green.position.x;
     const gZ = greenCenterZ;
 
-    // RESTORED: These two lines are required so the distance formulas below know where the ball is!
-    const dxB = ball.position.x - gX;
-    const dzB = ball.position.z - gZ;
-
-    const gridBallDist = Math.sqrt(dxB * dxB + dzB * dzB);
-    const gridBallAngle = Math.atan2(-dzB, dxB);
-    const activeR = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(gridBallAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : 12.0;
+    const touch = ballGreenTouch();
+    const activeR = touch.activeR;
 
     const activeClub = input ? input.getClubInfo() : null;
     const isPutter = activeClub && activeClub.name === 'Putter';
-    const isBallOnGreenOrFringe = gridBallDist < (activeR + 1.0);
+    const isBallOnGreenOrFringe = touch.onGreen || touch.onFringe;
     const isAirborne = ball.position.y > physics.getGroundHeight(ball.position.x, ball.position.z) + 0.4;
     // Automatically activates aiming dots if the putter is selected, matching normal green behavior
     const isAiming = input && input.isAimMode;
