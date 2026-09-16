@@ -103,7 +103,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 2; //1st hole start
+let currentHoleNumber = 10; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2284,74 +2284,104 @@ function resetEntireGame(advanceHole = false) {
                 }
                 const cliffTexture = new THREE.CanvasTexture(cliffCanvas);
                 cliffTexture.wrapS = THREE.RepeatWrapping; cliffTexture.wrapT = THREE.RepeatWrapping;
-                cliffTexture.repeat.set(1, 3.5); // Loops the layers naturally down the 50-unit height wall
-                const wallMat = new THREE.MeshStandardMaterial({ map: cliffTexture, bumpMap: cliffTexture, bumpScale: 0.14, roughness: 0.95 });
-                const sliceLength = 0.4;
+                cliffTexture.repeat.set(1, 1);
+                const wallMat = new THREE.MeshStandardMaterial({
+                    map: cliffTexture,
+                    bumpMap: cliffTexture,
+                    bumpScale: 0.14,
+                    roughness: 0.95,
+                    side: THREE.DoubleSide
+                });
+
+                // One continuous ribbon instead of stacked boxes so the ocean edge stays a smooth curve
                 const startZ = -78.0;
                 const endZ = -215.0;
+                const sampleStep = 0.35;
+                const wallH = 50.0;
+                const uvTile = 7.0;
+                const stations = [];
 
-                for (let currentZ = startZ; currentZ >= endZ; currentZ -= sliceLength) {
-                    let pathCenter = 0; // Keep this single declaration line!
-
+                const sampleCliffStation = (currentZ) => {
+                    let pathCenter = 0;
                     if (currentZ >= -125) {
-                        let t = (10 - currentZ) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Aligns visual cliff walls with the leftward fairway curve
+                        pathCenter = THREE.MathUtils.lerp(0, -14.0, (10 - currentZ) / 135);
                     } else {
-                        let t = (-125 - currentZ) / 55;
-                        t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Starts from -14.0 and sweeps back towards the right green
+                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, Math.min(1.0, (-125 - currentZ) / 55));
                     }
 
-                    // FIXED: Ensure there is NO "let pathCenter = 0;" here anymore!
-                    const cliffPadding = window.getHole3CliffPadding(currentZ);
-                    const cliffEdgeLimit = pathCenter + cliffPadding;
+                    const cliffEdgeLimit = pathCenter + window.getHole3CliffPadding(currentZ);
                     const trueCrestHeight = physics.getCourseHeight(cliffEdgeLimit - 0.55, currentZ);
 
-                    // FIXED: Seamlessly taper down rock ruggedness and rotations on the flat fairway section so it functions as a smooth retaining curb
                     let ruggedIntensity = 1.0;
                     if (currentZ >= -125) {
-                        ruggedIntensity = 0.0; // Perfectly smooth and flush alongside the low fairway turf
+                        ruggedIntensity = 0.0;
                     } else if (currentZ > -135) {
-                        ruggedIntensity = (-125 - currentZ) / 10.0; // Gracefully blends rock fracturing back in as it climbs up the hill crest
+                        ruggedIntensity = (-125 - currentZ) / 10.0;
                     }
 
-                    // ADJUST THESE NUMBERS: leftExtension widens the lower wall, topExtension widens the high plateau wall
                     const leftExtension = 2.4;
-                    const topExtension = 2.0; // Increase this number to push the top cliff wall even further left into the grass
-
-                    // DYNAMIC BULKHEAD PROFILE: Width and position parameters scale together to keep the ocean side flush
+                    const topExtension = 2.0;
                     let baseWidth = currentZ >= -140.0 ? (1.1 + leftExtension) : (5.0 + topExtension);
-                    let yOffset = currentZ >= -140.0 ? -24.80 : -25.15;
                     let shiftLeft = currentZ >= -140.0 ? leftExtension : topExtension;
-
-                    // Smoothly blend the wall parameters over the hill climb (-140.0 down to -152.0)
                     if (currentZ < -140.0 && currentZ > -152.0) {
-                        let tBlend = (-140.0 - currentZ) / 12.0;
+                        const tBlend = (-140.0 - currentZ) / 12.0;
                         baseWidth = THREE.MathUtils.lerp(1.1 + leftExtension, 5.0 + topExtension, tBlend);
-                        yOffset = THREE.MathUtils.lerp(-24.80, -25.15, tBlend);
                         shiftLeft = THREE.MathUtils.lerp(leftExtension, topExtension, tBlend);
                     }
 
                     const rockWidth = baseWidth + (Math.sin(currentZ * 1.5) * 0.3 * ruggedIntensity);
                     const ruggedOffset = Math.cos(currentZ * 2.5) * 0.12 * ruggedIntensity;
+                    const innerX = cliffEdgeLimit + ruggedOffset - shiftLeft;
+                    const outerX = innerX + rockWidth;
+                    return { z: currentZ, innerX, outerX, topY: trueCrestHeight + 0.10 };
+                };
 
-                    // Adds a micro-noise jitter to thickness to eliminate machine-smooth flat faces
-                    const organicThickness = sliceLength + 0.22;
-                    const wallH = 50.0;
-                    const wallGeo = new THREE.BoxGeometry(rockWidth, wallH, organicThickness);
-                    const cliffWall = new THREE.Mesh(wallGeo, wallMat);
-                    const isLowerShore = currentZ >= -115;
-                    cliffWall.rotation.z = isLowerShore ? 0 : (-0.03 + Math.sin(currentZ * 2.0) * 0.02 * ruggedIntensity);
-                    cliffWall.rotation.y = isLowerShore ? 0 : (Math.cos(currentZ * 1.1) * 0.02 * ruggedIntensity);
-                    const positionX = cliffEdgeLimit + (rockWidth / 2) + ruggedOffset - shiftLeft;
-                    cliffWall.position.set(
-                        positionX,
-                        trueCrestHeight + 0.10 - wallH / 2,
-                        currentZ - sliceLength / 2
-                    );
-                    scene.add(cliffWall);
-                    waterShores.push(cliffWall);
+                for (let currentZ = startZ; currentZ >= endZ; currentZ -= sampleStep) {
+                    stations.push(sampleCliffStation(currentZ));
                 }
+                if (Math.abs(stations[stations.length - 1].z - endZ) > 0.001) {
+                    stations.push(sampleCliffStation(endZ));
+                }
+
+                const pos = [];
+                const uvs = [];
+                const indices = [];
+                let distAlong = 0;
+                for (let i = 0; i < stations.length; i++) {
+                    const s = stations[i];
+                    if (i > 0) {
+                        const p = stations[i - 1];
+                        distAlong += Math.hypot(s.outerX - p.outerX, s.z - p.z);
+                    }
+                    const u = distAlong / uvTile;
+                    const bottomY = s.topY - wallH;
+                    pos.push(s.outerX, s.topY, s.z);
+                    pos.push(s.outerX, bottomY, s.z);
+                    pos.push(s.innerX, s.topY, s.z);
+                    pos.push(s.innerX, bottomY, s.z);
+                    pos.push(s.innerX, s.topY, s.z);
+                    pos.push(s.outerX, s.topY, s.z);
+                    uvs.push(u, 0, u, 3.5, u, 0, u, 3.5, u, 0, u, 1);
+                    if (i < stations.length - 1) {
+                        const a = i * 6;
+                        const b = (i + 1) * 6;
+                        indices.push(a, a + 1, b + 1, a, b + 1, b);
+                        indices.push(a + 2, b + 2, b + 3, a + 2, b + 3, a + 3);
+                        indices.push(a + 4, a + 5, b + 5, a + 4, b + 5, b + 4);
+                    }
+                }
+                const last = (stations.length - 1) * 6;
+                indices.push(0, 2, 3, 0, 3, 1);
+                indices.push(last, last + 1, last + 3, last, last + 3, last + 2);
+
+                const wallGeo = new THREE.BufferGeometry();
+                wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                wallGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                wallGeo.setIndex(indices);
+                wallGeo.computeVertexNormals();
+                const cliffWall = new THREE.Mesh(wallGeo, wallMat);
+                scene.add(cliffWall);
+                waterShores.push(cliffWall);
             }
         });
 
@@ -2986,16 +3016,24 @@ function resetEntireGame(advanceHole = false) {
                         (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
                         (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
                         (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
-                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0);
-                    if (isOutsideFairwayBounds) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else if (distToGreenCenter < fringeR) {
-                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 2.0));
-                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothTuck);
-                    } else if (approachDot > 0) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else {
+                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0) ||
+                        (isCustomHole && currentHoleNumber === 10 && (worldZ > -12.0 || worldZ < -152.0 || worldX > 24.0 || worldX < -90.0)); if (isOutsideFairwayBounds) {
+                            calculatedHeight = hiddenFairwayH;
+                        } else if (distToGreenCenter < fringeR) {
+                            // Approach fairway stays at full height until the fringe, then
+                            // tucks under the green. Outside the mown corridor, stay buried
+                            // so the 1-unit grid cannot form a jagged fairway ring in the rough.
+                            const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 1.0));
+                            const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                            const buriedH = floorHeight - 0.45;
+                            const meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
+                            const corridorExcess = Math.max(0, distanceToPath - fW);
+                            const tOut = THREE.MathUtils.clamp(corridorExcess / 1.0, 0, 1);
+                            const smoothOut = tOut * tOut * (3 - 2 * tOut);
+                            calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
+                        } else if (approachDot > 0) {
+                            calculatedHeight = hiddenFairwayH;
+                        } else {
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
                         const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                         calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);

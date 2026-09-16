@@ -800,5 +800,137 @@ export const HOLES_CONFIG = {
             stakesPerSide: 10,
             stakesPerRow: 4
         }
+    },
+
+    10: { // 475-yard par 4, slight dogleg left at 10 o'clock
+        par: 4,
+        fairwayWidth: 14.5,
+        greenRadius: 11.5,
+        greenShape: 'wavy', // non-circle: kidney / oval / wavy are the shaped greens
+        horizonTheme: 'forest',
+        theme: 'forest',
+        treeScale: 3.6,
+        treeHeightScale: 1.55,
+
+        // Three distinct putting shelves along the approach (front low, middle, back high)
+        slopeProfile: {
+            backLeft: { rx: -0.012, rz: -0.018 },
+            backRight: { rx: 0.012, rz: -0.018 },
+            midLeft: { rx: -0.008, rz: -0.010 },
+            midRight: { rx: 0.008, rz: -0.010 },
+            frontLeft: { rx: -0.006, rz: -0.022 },
+            frontRight: { rx: 0.010, rz: -0.022 },
+
+            features: [
+                // Front shelf (lowest) — local coords: +Z is toward the original tee,
+                // approach is 10 o'clock so shelves sit along that diagonal.
+                { type: 'mound', x: 3.90, z: 2.25, radius: 5.4, height: 0.04 },
+                { type: 'bowl', x: 3.70, z: 2.15, radius: 3.1, depth: 0.06 },
+                // Middle shelf
+                { type: 'mound', x: 0.0, z: 0.0, radius: 5.2, height: 0.20 },
+                { type: 'bowl', x: 0.15, z: -0.20, radius: 3.0, depth: 0.07 },
+                // Back shelf (highest), holding shots above the lake
+                { type: 'mound', x: -3.90, z: -2.25, radius: 5.6, height: 0.42 },
+                { type: 'bowl', x: -3.70, z: -2.15, radius: 3.1, depth: 0.08 },
+                // Lips between the three quadrants, perpendicular to the 10 o'clock approach
+                { type: 'ridge', p1: { x: 6.67, z: -6.54 }, p2: { x: -2.34, z: 9.04 }, width: 2.4, height: 0.18 },
+                { type: 'ridge', p1: { x: 2.34, z: -9.04 }, p2: { x: -6.67, z: 6.54 }, width: 2.4, height: 0.20 }
+            ]
+        },
+
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),            // Tee
+            new THREE.Vector3(0, 0, -44.0),         // Keep the first 300 yards straight
+            new THREE.Vector3(0, 0, -98.33),        // Dogleg starts 300 yards from the tee
+            new THREE.Vector3(-54.73, 0, -129.93)   // Green center: 175 yards at 10 o'clock (475 total)
+        ],
+
+        hazards: [
+            // Large kidney bunker in the fairway, 250 yards from the tee
+            {
+                type: 'sand',
+                shape: 'polygon',
+                depth: 1.20,
+                points: [
+                    { x: -8.2, z: -71.6 },
+                    { x: -3.4, z: -69.8 },
+                    { x: 2.2, z: -70.8 },
+                    { x: 7.0, z: -74.2 },
+                    { x: 4.8, z: -78.0 },
+                    { x: 7.4, z: -82.2 },
+                    { x: 6.4, z: -86.8 },
+                    { x: 1.4, z: -89.6 },
+                    { x: -4.2, z: -89.4 },
+                    { x: -8.0, z: -86.6 },
+                    { x: -9.2, z: -81.6 },
+                           { x: -8.8, z: -75.8 }
+    ]
+},
+// Matching kidney bunker in the fairway, 100 yards from the green
+{
+    type: 'sand',
+    shape: 'polygon',
+    depth: 1.20,
+    points: [
+     { x: -17.6, z: -113.2 },
+{ x: -18.1, z: -110.7 },
+{ x: -19.9, z: -108.5 },
+{ x: -22.6, z: -107.3 },
+{ x: -23.7, z: -109.2 },
+{ x: -26.1, z: -109.1 },
+{ x: -27.9, z: -110.7 },
+{ x: -27.8, z: -113.6 },
+{ x: -26.3, z: -116.0 },
+{ x: -24.2, z: -116.9 },
+{ x: -21.7, z: -116.2 },
+{ x: -19.3, z: -114.5 }
+    ]
+},
+// Lake tight against the back of the green
+            {
+                type: 'lake',
+                x: -70.0,
+                z: -145.16,
+                radiusX: 15.0,
+                radiusZ: 10.0
+            }
+        ],
+
+        customTrees: [
+            // Left wall starts well past the tee so the hole is visible, then blocks the cut
+            { x: -24.0, z: -18.0 }, { x: -32.0, z: -20.0 }, { x: -24.0, z: -26.0 }, { x: -32.0, z: -28.0 },
+            { x: -40.0, z: -30.0 }, { x: -24.0, z: -34.0 }, { x: -32.0, z: -36.0 }, { x: -24.0, z: -42.0 },
+            { x: -32.0, z: -44.0 }, { x: -40.0, z: -46.0 }, { x: -24.0, z: -50.0 }, { x: -32.0, z: -52.0 },
+            { x: -24.0, z: -58.0 }, { x: -32.0, z: -60.0 }, { x: -40.0, z: -62.0 }, { x: -24.0, z: -66.0 },
+            { x: -32.0, z: -68.0 }, { x: -24.0, z: -74.0 }, { x: -32.0, z: -76.0 }, { x: -40.0, z: -78.0 },
+            { x: -24.0, z: -82.0 }, { x: -32.0, z: -84.0 }, { x: -24.0, z: -90.0 }, { x: -32.0, z: -92.0 },
+            { x: -40.0, z: -94.0 }, { x: -24.0, z: -98.0 }, { x: -32.0, z: -100.0 }, { x: -40.0, z: -104.0 },
+            // Interior forest in the dogleg (kept off the second fairway and green)
+            { x: -32.0, z: -62.0 }, { x: -40.0, z: -61.0 }, { x: -48.0, z: -62.0 }, { x: -56.0, z: -61.0 },
+            { x: -64.0, z: -62.0 }, { x: -72.0, z: -61.0 }, { x: -32.0, z: -70.0 }, { x: -40.0, z: -69.0 },
+            { x: -48.0, z: -70.0 }, { x: -56.0, z: -69.0 }, { x: -64.0, z: -70.0 }, { x: -72.0, z: -69.0 },
+            { x: -40.0, z: -78.0 }, { x: -48.0, z: -77.0 }, { x: -56.0, z: -78.0 }, { x: -64.0, z: -77.0 },
+            { x: -72.0, z: -78.0 }, { x: -48.0, z: -86.0 }, { x: -56.0, z: -85.0 }, { x: -64.0, z: -86.0 },
+            { x: -72.0, z: -85.0 }, { x: -48.0, z: -94.0 }, { x: -56.0, z: -93.0 }, { x: -64.0, z: -94.0 },
+            { x: -72.0, z: -93.0 }, { x: -56.0, z: -102.0 }, { x: -64.0, z: -101.0 }, { x: -72.0, z: -102.0 },
+            { x: -60.0, z: -110.0 }, { x: -68.0, z: -111.0 }, { x: -76.0, z: -110.0 }, { x: -66.0, z: -118.0 },
+            { x: -74.0, z: -119.0 },
+            // Right-side frame, starting past the tee
+            { x: 26.0, z: -20.0 }, { x: 33.0, z: -24.0 }, { x: 26.0, z: -32.0 }, { x: 33.0, z: -36.0 },
+            { x: 26.0, z: -44.0 }, { x: 33.0, z: -48.0 }, { x: 26.0, z: -56.0 }, { x: 33.0, z: -60.0 },
+            { x: 26.0, z: -68.0 }, { x: 33.0, z: -72.0 }, { x: 26.0, z: -80.0 }, { x: 33.0, z: -84.0 },
+            { x: 26.0, z: -92.0 }, { x: 33.0, z: -96.0 }, { x: 22.0, z: -112.0 }, { x: 14.0, z: -124.0 },
+            { x: 4.0, z: -136.0 }, { x: -10.0, z: -148.0 }
+        ],
+
+        customOOB: {
+            type: 'rectangle',
+            minX: -96,
+            maxX: 42,
+            minZ: -168,
+            maxZ: 28,
+            stakesPerSide: 12,
+            stakesPerRow: 4
+        }
     }
 };
