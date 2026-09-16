@@ -976,6 +976,7 @@ function updateDistanceDisplay() {
 
         const touch = ballGreenTouch();
         const isOnGreen = touch.onGreen;
+        const isOnFringe = touch.onFringe;
         // On the putting green, lock to the putter with no extra layout elements
         if (isOnGreen) {
             return;
@@ -1632,6 +1633,7 @@ function resetEntireGame(advanceHole = false) {
 
     // Calculate a randomized pin location bounded perfectly inside the green's true shape
     const minDistanceToFringe = PIN_INSET_UNITS;
+    let pinX = greenCenterX;
     let pinZ = greenCenterZ;
 
     // Safety loop to ensure complex warped green profiles (like kidney or wavy shapes) strictly adhere to bounds
@@ -2439,6 +2441,7 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight -= islandSink;
                     } else if (distToGreenCenter < fringeOuterR) {
                         const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / FRINGE_WIDTH_UNITS, 0, 1);
+                        const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
                         calculatedHeight -= smoothUnder * 0.18;
                     }
 
@@ -2495,6 +2498,7 @@ function resetEntireGame(advanceHole = false) {
                         // tucks under the green. Outside the mown corridor, stay buried
                         // so the 1-unit grid cannot form a jagged fairway ring in the rough.
                         const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
+                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
                         const buriedH = floorHeight - 0.45;
                         const meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
                         const corridorExcess = Math.max(0, distanceToPath - fW);
