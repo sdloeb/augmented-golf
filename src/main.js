@@ -155,7 +155,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 2 //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2493,6 +2493,7 @@ function resetEntireGame(advanceHole = false) {
                         worldZ,
                         isCustomHole
                     ); if (isOutsideFairwayBounds) {
+                        calculatedHeight = hiddenFairwayH;
                     } else if (distToGreenCenter < fringeR) {
                         // Approach fairway stays at full height until the fringe, then
                         // tucks under the green. Outside the mown corridor, stay buried
