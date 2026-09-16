@@ -7,6 +7,19 @@ import { HOLES_CONFIG } from './HolesConfig.js';
 import { WildlifeManager } from './WildlifeManager.js';
 import { disposeObject3D, disposeMeshList } from './Resources.js';
 import { buildHeightField, sampleHeightField } from './HeightField.js';
+import {
+    isFairwayHidden,
+    fairwayWidthAt,
+    skipApronTaper,
+    sandFloorLip,
+    buryFairwayInSand,
+    islandGreenSink,
+    getWaterCliff,
+    getCliffPadding,
+    isPointInCustomOOB,
+    isCliffOB,
+    skipOOBStakeAt
+} from './HoleLayout.js';
 
 // Floor/fairway vertex spacing is unchanged (1.0 × 1.333). Only the unused
 // outer skirt is trimmed: old mesh was 300×800 with 300×600 segments.
@@ -702,21 +715,9 @@ let flagHideTimeout = null;
 const GREEN_RADIUS = 12.0;
 
 window.getHole3CliffPadding = function (z) {
-    let pathCenter = 0;
-    if (z >= -125) {
-        pathCenter = THREE.MathUtils.lerp(0, -14.0, (10 - z) / 135);
-    } else {
-        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, Math.min(1.0, (-125 - z) / 55));
-    }
-
-    // Absolute grass/water X. Hill / plateau / green stay on the wide shelf.
-    let edgeX = 20.0;
-    if (z >= -115) {
-        const inland = pathCenter + 13.5; // 2 units left of the old 15.5 line (~5.5 yd)
-        const t = THREE.MathUtils.clamp((-100 - z) / 15.0, 0, 1);
-        edgeX = THREE.MathUtils.lerp(inland, 20.0, t);
-    }
-    return edgeX - pathCenter;
+    const cliff = getWaterCliff(currentHoleConfig);
+    if (!cliff) return 15.5;
+    return getCliffPadding(z, cliff);
 };
 
 // --- UTILITY FUNCTIONS ---
@@ -2104,7 +2105,7 @@ function resetEntireGame(advanceHole = false) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
         physics.setGreenContours(generatedSlopeProfile, greenCenterX, greenCenterZ, generatedWidth);
         physics.currentHoleNumber = currentHoleNumber;
-        // Add these lines: Calculates and stores the normalized final approach direction vector
+        physics.holeConfig = holeConfig;        // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
         const appZ = greenEndpoint.z - prevEndpoint.z;
@@ -2922,20 +2923,8 @@ function resetEntireGame(advanceHole = false) {
             if (!insideWaterZone) {
                 // If vertex falls out in deep background rough, bypass spline lookup entirely to preserve CPU threads
                 const distanceToPath = isNearFairwayCorridor ? physics.getDistanceToSpline(worldX, worldZ) : 999;
-                let fW = physics.fairwayWidth;
+                let fW = fairwayWidthAt(currentHoleConfig && currentHoleConfig.fairwayMask, worldZ, physics.fairwayWidth);
 
-                if (currentHoleNumber === 3) {
-                    if (worldZ <= -20.0 && worldZ >= -140.0) {
-                        fW = 18.0; // Keeps the fairway wide across both the driving area and the hill climb
-                    } else if (worldZ < -140.0 && worldZ >= -152.0) {
-                        // Smoothly taper the fairway width down from 18.0 to 8.0 using Hermite interpolation
-                        let tTaper = (-140.0 - worldZ) / 12.0;
-                        const smoothTaper = THREE.MathUtils.smoothstep(tTaper, 0, 1);
-                        fW = THREE.MathUtils.lerp(18.0, 8.0, smoothTaper);
-                    } else if (worldZ < -152.0) {
-                        fW = 8.0; // Clean tight approach into the green entrance
-                    }
-                }
 
                 const relX = worldX - (green ? green.position.x : 0);
                 const relZ = worldZ - greenCenterZ;
@@ -2946,7 +2935,7 @@ function resetEntireGame(advanceHole = false) {
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                 const fringeOuterR = activeRadius + 1.0;
 
-                if (currentHoleNumber !== 3) {
+                if (!skipApronTaper(currentHoleConfig && currentHoleConfig.fairwayMask)) {
                     const apronEnd = -activeRadius;
                     if (approachDot > 0) {
                         fW = 0;
@@ -2971,14 +2960,15 @@ function resetEntireGame(advanceHole = false) {
 
                 let floorHeight = calculatedHeight;
 
-                // Render the rough floor geometry
+
 
                 // Render the rough floor geometry
                 if (targetMesh === floor) {
                     calculatedHeight = floorHeight;
 
-                    if (currentHoleNumber === 5 && distToGreenCenter < fringeOuterR + 1.5) {
-                        calculatedHeight -= 1.5;
+                    const islandSink = islandGreenSink(currentHoleConfig && currentHoleConfig.fairwayMask);
+                    if (islandSink && distToGreenCenter < fringeOuterR + islandSink) {
+                        calculatedHeight -= islandSink;
                     } else if (distToGreenCenter < fringeOuterR) {
                         const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / 1.0, 0, 1);
                         const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
@@ -2987,7 +2977,7 @@ function resetEntireGame(advanceHole = false) {
 
                     // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
                     if (insideSandZone) {
-                        const lip = currentHoleNumber === 8 ? 1.5 : 0.25;
+                        const lip = sandFloorLip(currentHoleConfig && currentHoleConfig.fairwayMask);
                         const tIn = Math.max(0, Math.min(1, -minDistOutsideBunker / lip));
                         const smoothIn = tIn * tIn * (3 - 2 * tIn);
                         calculatedHeight -= smoothIn * 1.35;
@@ -3057,7 +3047,9 @@ function resetEntireGame(advanceHole = false) {
                     }
 
                     if (insideSandZone) {
-                        calculatedHeight = currentHoleNumber === 8 ? hiddenFairwayH : floorHeight - 1.45;
+                        calculatedHeight = buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask)
+                            ? hiddenFairwayH
+                            : floorHeight - 1.45;
                     }
 
 
