@@ -130,7 +130,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 10; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2406,7 +2406,7 @@ function resetEntireGame(advanceHole = false) {
     } // This bracket cleanly closes the outer "else" statement of the hazard checker
 
     // --- HOLE 5 ISLAND GREEN WOODEN BULKHEAD RETAINING WALL ---
-    if (currentHoleNumber === 5) {
+    if (currentHoleConfig && currentHoleConfig.water && currentHoleConfig.water.islandBulkhead) {
         const wallSegments = 64;
         const baseRadius = (currentHoleConfig && currentHoleConfig.greenRadius) ? currentHoleConfig.greenRadius : 17.0;
         const outerWallRadius = baseRadius + 1.0; // Positioned flush along the outer fringe collar edge
@@ -3018,29 +3018,27 @@ function resetEntireGame(advanceHole = false) {
                     const hiddenFairwayH = floorHeight - 0.10;
 
                     // Boundary checks for fairway corridor
-                    const isOutsideFairwayBounds = (!isCustomHole && worldZ > -8.0) ||
-                        (isCustomHole && currentHoleNumber === 2 && worldZ > -60) ||
-                        (isCustomHole && currentHoleNumber === 3 && (worldZ > -20.0 || (worldZ <= -115 && worldZ >= -132) || worldZ < -192.0)) ||
-                        (isCustomHole && currentHoleNumber === 5 && worldZ < -5.0) ||
-                        (isCustomHole && currentHoleNumber === 8 && (worldZ > -51.4 || (worldZ < -89.5 && worldZ > -94.5) || (worldZ < -108.9 && worldZ > -113.9) || (worldZ < -128.3 && worldZ > -133.3) || worldZ < -147.7)) ||
-                        (isCustomHole && currentHoleNumber === 9 && worldZ > -45.0) ||
-                        (isCustomHole && currentHoleNumber === 10 && (worldZ > -12.0 || worldZ < -152.0 || worldX > 24.0 || worldX < -90.0)); if (isOutsideFairwayBounds) {
-                            calculatedHeight = hiddenFairwayH;
-                        } else if (distToGreenCenter < fringeR) {
-                            // Approach fairway stays at full height until the fringe, then
-                            // tucks under the green. Outside the mown corridor, stay buried
-                            // so the 1-unit grid cannot form a jagged fairway ring in the rough.
-                            const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 1.0));
-                            const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                            const buriedH = floorHeight - 0.45;
-                            const meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
-                            const corridorExcess = Math.max(0, distanceToPath - fW);
-                            const tOut = THREE.MathUtils.clamp(corridorExcess / 1.0, 0, 1);
-                            const smoothOut = tOut * tOut * (3 - 2 * tOut);
-                            calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
-                        } else if (approachDot > 0) {
-                            calculatedHeight = hiddenFairwayH;
-                        } else {
+                    const isOutsideFairwayBounds = isFairwayHidden(
+                        currentHoleConfig && currentHoleConfig.fairwayMask,
+                        worldX,
+                        worldZ,
+                        isCustomHole
+                    ); if (isOutsideFairwayBounds) {
+                    } else if (distToGreenCenter < fringeR) {
+                        // Approach fairway stays at full height until the fringe, then
+                        // tucks under the green. Outside the mown corridor, stay buried
+                        // so the 1-unit grid cannot form a jagged fairway ring in the rough.
+                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / 1.0));
+                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                        const buriedH = floorHeight - 0.45;
+                        const meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
+                        const corridorExcess = Math.max(0, distanceToPath - fW);
+                        const tOut = THREE.MathUtils.clamp(corridorExcess / 1.0, 0, 1);
+                        const smoothOut = tOut * tOut * (3 - 2 * tOut);
+                        calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
+                    } else if (approachDot > 0) {
+                        calculatedHeight = hiddenFairwayH;
+                    } else {
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
                         const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                         calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
@@ -3943,8 +3941,7 @@ function resetEntireGame(advanceHole = false) {
 
         // Reusable internal function to spawn an OOB stake snapped flush to terrain curves
         const spawnOOBStake = (x, z) => {
-            if (currentHoleNumber === 3 && x > 20.0) return; // Clears all stakes from the right-side cliff and ocean
-
+            if (skipOOBStakeAt(currentHoleConfig && currentHoleConfig.customOOB, x)) return;
             const y = physics.getGroundHeight(x, z);
             const stake = new THREE.Mesh(stakeGeo, stakeMat);
             stake.position.set(x, y + 0.4, z);
@@ -4338,48 +4335,28 @@ function animate() {
     if (physics) {
         // If the current hole has a custom rectangle boundary configured, check against those exact box walls
 
-        if (currentHoleConfig && currentHoleConfig.customOOB) {
-            const oob = currentHoleConfig.customOOB;
-            if (oob.type === 'rectangle') {
-                if (ball.position.x < oob.minX || ball.position.x > oob.maxX ||
-                    ball.position.z > oob.maxZ || ball.position.z < oob.minZ) {
-                    isOutOfBounds = true;
-                }
-            } else if (oob.type === 'l_shape') {
-                const inLeg1 = (ball.position.x >= oob.leg1.minX && ball.position.x <= oob.leg1.maxX &&
-                    ball.position.z >= oob.leg1.minZ && ball.position.z <= oob.leg1.maxZ);
-                const inLeg2 = (ball.position.x >= oob.leg2.minX && ball.position.x <= oob.leg2.maxX &&
-                    ball.position.z >= oob.leg2.minZ && ball.position.z <= oob.leg2.maxZ);
-                if (!inLeg1 && !inLeg2) {
-                    isOutOfBounds = true;
-                }
-            } else if (oob.type === 'stepped') {
-                const activeMinX = ball.position.z < oob.splitZ ? oob.wideMinX : oob.narrowMinX;
-                const activeMaxX = ball.position.z < oob.splitZ ? oob.wideMaxX : oob.narrowMaxX;
-                if (ball.position.x < activeMinX || ball.position.x > activeMaxX ||
-                    ball.position.z > oob.maxZ || ball.position.z < oob.minZ) {
-                    isOutOfBounds = true;
-                }
-            }
+      if (currentHoleConfig && currentHoleConfig.customOOB) {
+    const oob = currentHoleConfig.customOOB;
+    if (oob.type === 'rectangle' || oob.type === 'l_shape' || oob.type === 'stepped') {
+        if (isPointInCustomOOB(oob, ball.position.x, ball.position.z)) {
+            isOutOfBounds = true;
         }
+    }
+}
 
-        // Otherwise, fallback safely to standard track spline distance bounds for other holes
-        else if (physics.isMoving) { // FIXED: Only run expensive multi-point spline lookups while the ball is actually moving
-            const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
-            if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
-                isOutOfBounds = true;
-            }
+if (!isOutOfBounds && !(currentHoleConfig && currentHoleConfig.customOOB &&
+    (currentHoleConfig.customOOB.type === 'rectangle' ||
+        currentHoleConfig.customOOB.type === 'l_shape' ||
+        currentHoleConfig.customOOB.type === 'stepped')) && physics.isMoving) {
+    const distanceToPath = physics.getDistanceToSpline(ball.position.x, ball.position.z);
+    if (distanceToPath > 70.0 || ball.position.z > 25.0 || ball.position.z < holePosition.z - 45.0) {
+        isOutOfBounds = true;
+    }
+}
 
-            // Hole 3 Cliff Wall OB Rule: If the ball rolls past the grass edge onto the rocks, consider it OB
-            if (currentHoleNumber === 3 && ball.position.z <= -130.0) {
-                let bZ = ball.position.z;
-                let pathCenter = bZ >= -125 ? THREE.MathUtils.lerp(0, -14.0, (10 - bZ) / 135) : THREE.MathUtils.lerp(-14.0, 14.0, Math.min(1.0, (-125 - bZ) / 55));
-                let cliffEdgeLimit = bZ < -115 ? 20.0 : (pathCenter + window.getHole3CliffPadding(bZ));
-                if (ball.position.x > cliffEdgeLimit) {
-                    isOutOfBounds = true;
-                }
-            }
-        }
+if (!isOutOfBounds && physics.isMoving && isCliffOB(currentHoleConfig && currentHoleConfig.customOOB, currentHoleConfig && currentHoleConfig.water, ball.position.x, ball.position.z)) {
+    isOutOfBounds = true;
+}
     }
 
     if (!isSinking && isOutOfBounds && !isOutOfBoundsResetting) {
@@ -5230,8 +5207,7 @@ function animate() {
 
         let putterCamX = camBaseX - dirX * rigidCamDist;
         let putterCamZ = camBaseZ - dirZ * rigidCamDist;
-        if (currentHoleNumber === 5 && green) {
-            const cdx = putterCamX - green.position.x;
+if (currentHoleConfig && currentHoleConfig.water && currentHoleConfig.water.keepPutterCameraOnIsland && green) {            const cdx = putterCamX - green.position.x;
             const cdz = putterCamZ - greenCenterZ;
             const cDist = Math.hypot(cdx, cdz) || 1;
             const cAng = Math.atan2(-cdz, cdx);

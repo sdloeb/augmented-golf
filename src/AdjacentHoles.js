@@ -350,22 +350,23 @@ export function generateAdjacentHoles(scene, sceneryObjects, physics, currentHol
             }
         }
 
-        if (hNum === 3) {
-            return {
-                getLeftOB: (z) => {
-                    if (z >= -65) return -70.0;
-                    if (z >= -125) {
-                        const t = (-65 - z) / 60.0;
-                        return -70.0 - 14.0 * t;
-                    }
-                    const t = (-125 - z) / 55.0;
-                    return -84.0 + 11.0 * t;
-                },
-                getRightOB: () => 20.0,
-                frontOB: gz - 35.0,
-                backOB: 35.0
-            };
-        }
+     const neighbor = config && config.water && config.water.neighborOOB;
+if (neighbor) {
+    return {
+        getLeftOB: (z) => {
+            if (z >= neighbor.leftHighZ) return neighbor.leftHighX;
+            if (z >= neighbor.leftMidZ) {
+                const t = (neighbor.leftHighZ - z) / neighbor.leftMidSpan;
+                return neighbor.leftHighX + (neighbor.leftMidX - neighbor.leftHighX) * t;
+            }
+            const t = (neighbor.leftMidZ - z) / neighbor.leftEndSpan;
+            return neighbor.leftMidX + neighbor.leftEndDelta * t;
+        },
+        getRightOB: () => neighbor.rightX,
+        frontOB: gz - neighbor.frontPad,
+        backOB: neighbor.backZ
+    };
+}
 
         return {
             getLeftOB: () => -70.0,
