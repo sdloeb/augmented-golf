@@ -5,6 +5,16 @@ import { TutorialManager } from './TutorialManager.js';
 import { generateAdjacentHoles } from './AdjacentHoles.js';
 import { HOLES_CONFIG } from './HolesConfig.js';
 import { WildlifeManager } from './WildlifeManager.js';
+import { disposeObject3D, disposeMeshList } from './Resources.js';
+import { buildHeightField, sampleHeightField } from './HeightField.js';
+
+// Floor/fairway vertex spacing is unchanged (1.0 × 1.333). Only the unused
+// outer skirt is trimmed: old mesh was 300×800 with 300×600 segments.
+const COURSE_TERRAIN_WIDTH = 280;
+const COURSE_TERRAIN_LENGTH = 520;
+const COURSE_TERRAIN_W_SEGS = 280;
+const COURSE_TERRAIN_L_SEGS = 390;
+const COURSE_HEIGHT_CELL = 1.0;
 
 
 
@@ -29,12 +39,13 @@ window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
 
 // NEW: Global 3D Particle System for Sand Spray Animations
 let sandParticles = [];
+let sandGrainGeo = null;
 // NEW: High-Velocity 3D Particle System for Deep Pot Bunker Eruptions
 window.triggerSandSpray = function (x, y, z, count = 30, force = 1.0) { // Increased default particle density
+    if (!sandGrainGeo) sandGrainGeo = new THREE.BoxGeometry(0.07, 0.07, 0.07);
     for (let i = 0; i < count; i++) {
-        const pGeo = new THREE.BoxGeometry(0.07, 0.07, 0.07); // Slightly more visible grain sizes
         const pMat = new THREE.MeshBasicMaterial({ color: 0xe3d1b1, transparent: true, opacity: 0.95 });
-        const pMesh = new THREE.Mesh(pGeo, pMat);
+        const pMesh = new THREE.Mesh(sandGrainGeo, pMat);
 
         pMesh.position.set(x + (Math.random() - 0.5) * 0.2, y + 0.05, z + (Math.random() - 0.5) * 0.2);
         scene.add(pMesh);
@@ -96,6 +107,9 @@ let isBumpOn = false; // Add this line: Tracks the Bump & Run toggle for short c
 window.isBumpOn = false;
 let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
+let rainDropGeo = null;
+let rainDropMat = null;
+let courseHeightField = null;
 let currentHoleYards = 0;
 let sandTraps = [];
 let waterHazards = [];
@@ -103,7 +117,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 10; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1545,20 +1559,32 @@ function createCartPath(pathPoints, width = 2.2) {
     sceneryObjects.push(pathMesh);
 }
 
-function generateHazards() {
-    sandTraps.forEach(mesh => scene.remove(mesh));
-    waterHazards.forEach(mesh => scene.remove(mesh));
-    waterShores.forEach(mesh => scene.remove(mesh));
-    sandTraps.length = 0;
-    waterHazards.length = 0;
-    waterShores.length = 0;
-
-    // NEW: Clear physics engine hazard arrays immediately so that getGroundHeight queries 
-    // inside this generation loop reflect clean terrain without old hole artifacts.
+function clearHazardMeshes() {
+    disposeMeshList(scene, sandTraps);
+    disposeMeshList(scene, waterHazards);
+    disposeMeshList(scene, waterShores);
     if (physics) {
         physics.sandTraps = [];
         physics.waterHazards = [];
     }
+}
+
+function clearTransientEffects() {
+    disposeMeshList(scene, divotObjects);
+    if (rainParticles) {
+        rainParticles.forEach(p => scene.remove(p));
+        rainParticles.length = 0;
+    }
+    for (let i = 0; i < sandParticles.length; i++) {
+        const p = sandParticles[i];
+        scene.remove(p.mesh);
+        if (p.mesh.material) p.mesh.material.dispose();
+    }
+    sandParticles.length = 0;
+}
+
+function generateHazards() {
+    clearHazardMeshes();
 
     const numWater = 1 + Math.floor(Math.random() * 2);
     const numSand = Math.floor(Math.random() * 4);  // 0 to 3
@@ -1787,16 +1813,8 @@ function resetEntireGame(advanceHole = false) {
         currentHoleNumber++;
     }
 
-    // Clear old divots so they don't carry over into the next hole or reset
-    if (divotObjects) {
-        divotObjects.forEach(d => scene.remove(d));
-        divotObjects = [];
-    }
-
-    if (rainParticles) {
-        rainParticles.forEach(p => scene.remove(p));
-        rainParticles = [];
-    }
+    // Clear old divots, rain drops, and leftover sand spray so they don't leak GPU memory into the next hole
+    clearTransientEffects();
 
     isRaining = Math.random() < 0.05; // 25% chance of rain on any given hole
     if (isRaining) {
@@ -2100,13 +2118,8 @@ function resetEntireGame(advanceHole = false) {
     if (!holeConfig || !holeConfig.hazards) {
         generateHazards();
     } else {
-        // Clear old visual components from the previous hole
-        sandTraps.forEach(mesh => scene.remove(mesh));
-        waterHazards.forEach(mesh => scene.remove(mesh));
-        waterShores.forEach(mesh => scene.remove(mesh));
-        sandTraps.length = 0;
-        waterHazards.length = 0;
-        waterShores.length = 0;
+        // Clear old visual components from the previous hole (geometry + materials)
+        clearHazardMeshes();
 
         // Loop through and build your manual custom hazards list
         holeConfig.hazards.forEach(hz => {
@@ -2738,8 +2751,12 @@ function resetEntireGame(advanceHole = false) {
             // Rapid early-exit boundary check: if vertex is far out in background rough, skip complex math
             const isNearFairwayCorridor = (worldX >= wpMinX && worldX <= wpMaxX && worldZ >= wpMinZ && worldZ <= wpMaxZ);
 
-            // Gather the pre-calculated, unified terrain height from the physics engine
-            let calculatedHeight = physics.getGroundHeight(worldX, worldZ);
+            // Floor/fairway share a 1-unit height cache. Sand and shore meshes stay on live samples
+            // so bunker bowls and lake rims keep their denser authored vertex look.
+            const useHeightCache = courseHeightField && (targetMesh === floor || targetMesh === fairway);
+            let calculatedHeight = useHeightCache
+                ? sampleHeightField(courseHeightField, worldX, worldZ)
+                : physics.getGroundHeight(worldX, worldZ);
 
             let insideWaterZone = false;
             let closeToWater = false; // Tracks vertices near the lake terrace
@@ -3114,9 +3131,8 @@ function resetEntireGame(advanceHole = false) {
         targetMesh.geometry.computeVertexNormals();
     };
 
-    // Run deforming treatments over both the putting grass surface and its alignment grid layer mesh
+    // Run deforming treatments over the putting surface. greenGrid stays hidden — skip its ~2k height samples.
     deformVisualGreenMesh(green);
-    deformVisualGreenMesh(greenGrid);
     deformVisualGreenMesh(greenFringe);
 
 
@@ -3202,18 +3218,7 @@ function resetEntireGame(advanceHole = false) {
     // Properly release GPU memory for all scenery, trees, and buildings
     sceneryObjects.forEach(obj => {
         scene.remove(obj);
-        obj.traverse(child => {
-            if (child.isMesh) {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(m => m.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
-            }
-        });
+        disposeObject3D(obj);
     });
     sceneryObjects = [];
 
@@ -4195,6 +4200,17 @@ function resetEntireGame(advanceHole = false) {
 
     generateNewWind();
     updateDistanceDisplay();
+
+    courseHeightField = buildHeightField(
+        (x, z) => physics.getGroundHeight(x, z),
+        {
+            minX: -COURSE_TERRAIN_WIDTH * 0.5,
+            maxX: COURSE_TERRAIN_WIDTH * 0.5,
+            minZ: -COURSE_TERRAIN_LENGTH * 0.5,
+            maxZ: COURSE_TERRAIN_LENGTH * 0.5,
+            cellSize: COURSE_HEIGHT_CELL
+        }
+    );
 
     deformCourseMesh(floor, false);
     deformCourseMesh(fairway, true);
@@ -5592,10 +5608,10 @@ function animate() {
 
     // Add this block: Procedural 3D Rain Generation and Particle Recycling Simulation
     if (isRaining && rainParticles.length < 120 && scene) {
-        const rGeo = new THREE.BoxGeometry(0.015, 0.4, 0.015);
-        const rMat = new THREE.MeshBasicMaterial({ color: 0x8cc4f4, transparent: true, opacity: 0.35 });
+        if (!rainDropGeo) rainDropGeo = new THREE.BoxGeometry(0.015, 0.4, 0.015);
+        if (!rainDropMat) rainDropMat = new THREE.MeshBasicMaterial({ color: 0x8cc4f4, transparent: true, opacity: 0.35 });
         for (let i = 0; i < 3; i++) {
-            const rMesh = new THREE.Mesh(rGeo, rMat);
+            const rMesh = new THREE.Mesh(rainDropGeo, rainDropMat);
             rMesh.position.set(
                 ball.position.x + (Math.random() - 0.5) * 55,
                 ball.position.y + 10 + Math.random() * 8,
@@ -5640,7 +5656,6 @@ function animate() {
         // 5. Memory Cleanup: Wipe out expired particle arrays from the active 3D scene
         if (p.life <= 0) {
             scene.remove(p.mesh);
-            p.mesh.geometry.dispose();
             if (p.mesh.material) p.mesh.material.dispose();
             sandParticles.splice(i, 1);
         }
@@ -5820,8 +5835,12 @@ function init() {
 
 
     // 5. Add Virtual Golf Green Floor (Optimized grid segments to prevent mobile browser crash overhead)
-    const floorGeo = new THREE.PlaneGeometry(300, 800, 300, 600);
-
+    const floorGeo = new THREE.PlaneGeometry(
+        COURSE_TERRAIN_WIDTH,
+        COURSE_TERRAIN_LENGTH,
+        COURSE_TERRAIN_W_SEGS,
+        COURSE_TERRAIN_L_SEGS
+    );
     // Procedural rough grass noise texture generator
 
 
@@ -5861,16 +5880,19 @@ function init() {
     const roughTexture = new THREE.CanvasTexture(rCanvas);
     roughTexture.wrapS = THREE.RepeatWrapping;
     roughTexture.wrapT = THREE.RepeatWrapping;
-    roughTexture.repeat.set(150, 400);
-    roughTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    roughTexture.repeat.set(COURSE_TERRAIN_WIDTH / 2, COURSE_TERRAIN_LENGTH / 2); roughTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e5631, roughness: 0.92, emissive: 0x163016, map: roughTexture, bumpMap: roughTexture, bumpScale: 0.04, vertexColors: true });
     floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
     // Balanced geometric limits ensuring smooth organic curved shapes while minimizing performance weight
-    const fairwayGeo = new THREE.PlaneGeometry(300, 800, 300, 600);
-
+    const fairwayGeo = new THREE.PlaneGeometry(
+        COURSE_TERRAIN_WIDTH,
+        COURSE_TERRAIN_LENGTH,
+        COURSE_TERRAIN_W_SEGS,
+        COURSE_TERRAIN_L_SEGS
+    );
     const fCanvas = document.createElement('canvas');
     fCanvas.width = 128; fCanvas.height = 4;
     const fCtx = fCanvas.getContext('2d');

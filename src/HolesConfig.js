@@ -889,8 +889,8 @@ export const HOLES_CONFIG = {
 // Lake tight against the back of the green
             {
                 type: 'lake',
-                x: -70.0,
-                z: -145.16,
+                x: -40.0,
+                z: -155.16,
                 radiusX: 15.0,
                 radiusZ: 10.0
             }
