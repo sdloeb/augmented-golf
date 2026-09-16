@@ -7,6 +7,12 @@ import {
     getCliffPathCenter,
     getCliffEdgeX
 } from './HoleLayout.js';
+import {
+    sandPhysics,
+    waterPhysics,
+    lakeRadiusAtAngle,
+    SAND_COLLAR_WIDTH
+} from './HazardFactory.js';
 
 export class PhysicsEngine {
     constructor(ballMesh) {
@@ -46,34 +52,8 @@ export class PhysicsEngine {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
 
         for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isCollar) continue;
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                let inside = false;
-                let minEdgeDistSq = Infinity;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                    if (intersect) inside = !inside;
-
-                    const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.0001;
-                    let t = ((this.ball.position.x - xi) * (xj - xi) + (this.ball.position.z - zi) * (zj - zi)) / l2;
-                    t = Math.max(0, Math.min(1, t));
-                    const projX = xi + t * (xj - xi);
-                    const projZ = zi + t * (zj - zi);
-                    const distSq = (this.ball.position.x - projX) ** 2 + (this.ball.position.z - projZ) ** 2;
-                    if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
-                }
-                // 1.2 units edge margin ensures sloped bunker walls are fully recognized
-                if (inside) return true;
-            } else {
-                const dx = this.ball.position.x - sand.position.x;
-                const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                if (dx * dx + dz * dz < sandRadius * sandRadius) return true;
-            }
+            const hit = sandPhysics(sand, this.ball.position.x, this.ball.position.z);
+            if (hit && hit.inside) return true;
         }
         return false;
     }
@@ -82,32 +62,14 @@ export class PhysicsEngine {
     getBallSandDepth() {
         if (!this.sandTraps || this.sandTraps.length === 0) return 0.8;
         for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isCollar) continue;
-            let inside = false;
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                    if (intersect) inside = !inside;
-                }
-            } else {
-                const dx = this.ball.position.x - sand.position.x;
-                const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                inside = (dx * dx + dz * dz) < sandRadius * sandRadius;
-            }
-            if (inside) {
-                return (sand.userData && sand.userData.depth) ? sand.userData.depth : 0.8;
-            }
+            const hit = sandPhysics(sand, this.ball.position.x, this.ball.position.z);
+            if (hit && hit.inside) return hit.depth;
         }
         return 0.8;
     }
 
 
-    isBallInSandCollar(collarWidth = 0.7) {
+    isBallInSandCollar(collarWidth = SAND_COLLAR_WIDTH) {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
         if (this.isBallInSand()) return false;
 
@@ -115,34 +77,16 @@ export class PhysicsEngine {
         const bz = this.ball.position.z;
 
         for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isCollar) continue;
-
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                let minDistSq = Infinity;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const l2 = (xi - xj) ** 2 + (zi - zj) ** 2 || 0.0001;
-                    let t = ((bx - xi) * (xj - xi) + (bz - zi) * (zj - zi)) / l2;
-                    t = Math.max(0, Math.min(1, t));
-                    const projX = xi + t * (xj - xi);
-                    const projZ = zi + t * (zj - zi);
-                    const distSq = (bx - projX) ** 2 + (bz - projZ) ** 2;
-                    if (distSq < minDistSq) minDistSq = distSq;
-                }
-                if (Math.sqrt(minDistSq) <= collarWidth) return true;
-            } else {
-                const dx = bx - sand.position.x;
-                const dz = bz - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                const dist = Math.hypot(dx, dz);
-                if (dist <= sandRadius + collarWidth) return true;
+            const hit = sandPhysics(sand, bx, bz);
+            if (!hit) continue;
+            if (hit.kind === 'polygon') {
+                if (hit.edgeDist <= collarWidth) return true;
+            } else if (hit.dist <= hit.radius + collarWidth) {
+                return true;
             }
         }
         return false;
     }
-
     // NEW: Receives the shuffled configurations from the map setup
     setGreenContours(profileOrBack, midOrCenterX, frontOrCenterZ, centerXOrWidth, centerZ, randomWidth) {
         if (profileOrBack && typeof profileOrBack === 'object' && ('backLeft' in profileOrBack || 'features' in profileOrBack || 'back' in profileOrBack || 'rx' in profileOrBack)) {
@@ -403,12 +347,9 @@ export class PhysicsEngine {
                 } else {
                     const dxW = x - water.position.x;
                     const dzW = z - water.position.z;
-                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-
-                    const rx = water.userData.radiusX || water.userData.radius || 5;
-                    const rz = water.userData.radiusZ || water.userData.radius || 5;
-                    const wAngle = Math.atan2(dzW, dxW);
-                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+                    const hit = waterPhysics(water, x, z);
+                    const distToWater = hit ? hit.dist : Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = hit ? hit.radius : lakeRadiusAtAngle(water.userData, dxW, dzW);
 
                     const centerLakeHeight = water.position.y - 0.01;
 
@@ -434,46 +375,23 @@ export class PhysicsEngine {
         if (this.sandTraps && this.sandTraps.length > 0) {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
-                if (sand.userData && sand.userData.isCollar) return;
+                const hit = sandPhysics(sand, x, z);
+                if (!hit) return;
                 let drop = 0;
-                // Restores full natural bunker depth
-                const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.8;
+                const sandDepth = hit.depth;
 
-                if (sand.userData && sand.userData.isPolygon) {
-                    const points = sand.userData.points;
-                    let inside = false;
-                    let minEdgeDistSq = Infinity;
-                    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                        const xi = points[i].x, zi = points[i].z;
-                        const xj = points[j].x, zj = points[j].z;
-                        const intersect = ((zi > z) !== (zj > z))
-                            && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
-                        if (intersect) inside = !inside;
-
-                        const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.0001;
-                        let t = ((x - xi) * (xj - xi) + (z - zi) * (zj - zi)) / l2;
-                        t = Math.max(0, Math.min(1, t));
-                        const projX = xi + t * (xj - xi);
-                        const projZ = zi + t * (zj - zi);
-                        const distSq = (x - projX) ** 2 + (z - projZ) ** 2;
-                        if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
-                    }
-                    const edgeDist = Math.sqrt(minEdgeDistSq);
-                    if (inside) {
-                        if (edgeDist < 1.5) {
-                            drop = sandDepth * (edgeDist / 1.5);
+                if (hit.kind === 'polygon') {
+                    if (hit.inside) {
+                        if (hit.edgeDist < 1.5) {
+                            drop = sandDepth * (hit.edgeDist / 1.5);
                         } else {
                             drop = sandDepth;
                         }
                     }
                 } else {
-                    const dxS = x - sand.position.x;
-                    const dzS = z - sand.position.z;
-                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-
-                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    const transitionMargin = 0.0;
-                    const sandRadius = baseRadius + transitionMargin;
+                    const distToSand = hit.dist;
+                    const baseRadius = hit.radius;
+                    const sandRadius = baseRadius;
 
                     if (distToSand < sandRadius) {
                         const flatRadius = Math.max(0.5, baseRadius * 0.30);
@@ -1069,12 +987,9 @@ export class PhysicsEngine {
                 } else {
                     const dxW = this.ball.position.x - water.position.x;
                     const dzW = this.ball.position.z - water.position.z;
-                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-
-                    const rx = water.userData.radiusX || water.userData.radius || 5;
-                    const rz = water.userData.radiusZ || water.userData.radius || 5;
-                    const wAngle = Math.atan2(dzW, dxW);
-                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+                    const hit = waterPhysics(water, this.ball.position.x, this.ball.position.z);
+                    const distToWater = hit ? hit.dist : Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = hit ? hit.radius : lakeRadiusAtAngle(water.userData, dxW, dzW);
 
                     if (distToWater < lakeRadius) {
                         // Check if the ball landed safely on the island green or fringe collar

@@ -20,8 +20,17 @@ import {
     isCliffOB,
     skipOOBStakeAt
 } from './HoleLayout.js';
+import {
+    buildHazard,
+    buildSnakeSand,
+    buildLake,
+    addBuiltHazards,
+    sandPhysics,
+    waterPhysics,
+    lakeRadiusAtAngle
+} from './HazardFactory.js';
 
-// Floor/fairway vertex spacing is unchanged (1.0 × 1.333). Only the unused
+// Floor/fairway vertex spacing is unchanged
 // outer skirt is trimmed: old mesh was 300×800 with 300×600 segments.
 const COURSE_TERRAIN_WIDTH = 280;
 const COURSE_TERRAIN_LENGTH = 520;
@@ -1149,338 +1158,10 @@ function generateNewWind() {
     );
 }
 
-/**
- * Helper to generate a snaking bunker by placing circles along a path
- * @param {Array} path - Array of {x, z} points
- * @param {number} spacing - Distance between circles (smaller = smoother, higher count)
- * @param {number} radius - Radius of each circle
- * @param {number} depth - Depth of the bunker
- */
 function createSnakingBunker(path, spacing, radius, depth) {
-    const sampled = [];
-    for (let i = 0; i < path.length - 1; i++) {
-        const p1 = path[i];
-        const p2 = path[i + 1];
-        const dx = p2.x - p1.x;
-        const dz = p2.z - p1.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        const steps = Math.max(1, Math.floor(dist / spacing));
-
-        for (let s = 0; s <= steps; s++) {
-            if (s === steps && i < path.length - 2) continue;
-            const t = s / steps;
-            const x = p1.x + dx * t;
-            const z = p1.z + dz * t;
-            sampled.push({ x, z });
-            addSandTrap(x, z, radius, depth, false);
-        }
-    }
-
-    const N = sampled.length;
-    if (N < 2) return;
-
-    const perps = [];
-    for (let i = 0; i < N; i++) {
-        const prev = sampled[Math.max(0, i - 1)];
-        const next = sampled[Math.min(N - 1, i + 1)];
-        const dirX = next.x - prev.x;
-        const dirZ = next.z - prev.z;
-        const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1.0;
-        perps.push({ x: -dirZ / len, z: dirX / len });
-    }
-
-    const collarWidth = 0.7;
-    const rIn = radius - 0.05;
-    const rOut = radius + collarWidth;
-    const pairs = [];
-
-    // Left side from start to end
-    for (let i = 0; i < N; i++) {
-        const p = sampled[i];
-        const perp = perps[i];
-        pairs.push({
-            inX: p.x + perp.x * rIn, inZ: p.z + perp.z * rIn,
-            outX: p.x + perp.x * rOut, outZ: p.z + perp.z * rOut
-        });
-    }
-
-    // End cap
-    const pEnd = sampled[N - 1];
-    const pEndPrev = sampled[Math.max(0, N - 2)];
-    const tanEndAngle = Math.atan2(pEnd.z - pEndPrev.z, pEnd.x - pEndPrev.x);
-    const capSteps = 8;
-    for (let c = 1; c < capSteps; c++) {
-        const angle = tanEndAngle + (Math.PI / 2) - (c / capSteps) * Math.PI;
-        const dx = Math.cos(angle);
-        const dz = Math.sin(angle);
-        pairs.push({
-            inX: pEnd.x + dx * rIn, inZ: pEnd.z + dz * rIn,
-            outX: pEnd.x + dx * rOut, outZ: pEnd.z + dz * rOut
-        });
-    }
-
-    // Right side from end back to start
-    for (let i = N - 1; i >= 0; i--) {
-        const p = sampled[i];
-        const perp = perps[i];
-        pairs.push({
-            inX: p.x - perp.x * rIn, inZ: p.z - perp.z * rIn,
-            outX: p.x - perp.x * rOut, outZ: p.z - perp.z * rOut
-        });
-    }
-
-    // Start cap
-    const pStart = sampled[0];
-    const pStartNext = sampled[Math.min(N - 1, 1)];
-    const tanStartAngle = Math.atan2(pStartNext.z - pStart.z, pStartNext.x - pStart.x);
-    for (let c = 1; c < capSteps; c++) {
-        const angle = tanStartAngle - (Math.PI / 2) - (c / capSteps) * Math.PI;
-        const dx = Math.cos(angle);
-        const dz = Math.sin(angle);
-        pairs.push({
-            inX: pStart.x + dx * rIn, inZ: pStart.z + dz * rIn,
-            outX: pStart.x + dx * rOut, outZ: pStart.z + dz * rOut
-        });
-    }
-
-    const positions = [];
-    const indices = [];
-    const numPairs = pairs.length;
-    for (let i = 0; i < numPairs; i++) {
-        const pair = pairs[i];
-        positions.push(pair.inX, -pair.inZ, 0);
-        positions.push(pair.outX, -pair.outZ, 0);
-
-        const nextI = (i + 1) % numPairs;
-        const iIn = i * 2;
-        const iOut = i * 2 + 1;
-        const nextIn = nextI * 2;
-        const nextOut = nextI * 2 + 1;
-
-        indices.push(iIn, nextIn, iOut);
-        indices.push(iOut, nextIn, nextOut);
-    }
-
-    const collarGeo = new THREE.BufferGeometry();
-    collarGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    collarGeo.setIndex(indices);
-    collarGeo.computeVertexNormals();
-
-    const collarMesh = new THREE.Mesh(
-        collarGeo,
-        new THREE.MeshStandardMaterial({
-            color: 0x1e5631,
-            roughness: 0.9,
-            side: THREE.DoubleSide,
-            polygonOffset: true,
-            polygonOffsetFactor: -2,
-            polygonOffsetUnits: -5
-        })
-    );
-    collarMesh.rotation.x = -Math.PI / 2;
-    collarMesh.position.set(0, 0, 0);
-    collarMesh.userData = { isCollar: true, radius: radius + collarWidth };
-    scene.add(collarMesh);
-    sandTraps.push(collarMesh);
+    addBuiltHazards(scene, buildSnakeSand({ path, spacing, radius, depth }), sandTraps, waterHazards, waterShores);
 }
 
-
-
-function addPolygonSandTrap(points, depth) {
-    // Round the authored corners so the bunker reads as one smooth waste area
-    let pts = points.map(p => ({ x: p.x, z: p.z }));
-    for (let pass = 0; pass < 3; pass++) {
-        const next = [];
-        for (let i = 0; i < pts.length; i++) {
-            const a = pts[i];
-            const b = pts[(i + 1) % pts.length];
-            next.push({ x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 });
-            next.push({ x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 });
-        }
-        pts = next;
-    }
-
-    const pointInPoly = (x, z) => {
-        let inside = false;
-        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-            const xi = pts[i].x, zi = pts[i].z;
-            const xj = pts[j].x, zj = pts[j].z;
-            if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) inside = !inside;
-        }
-        return inside;
-    };
-
-    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-    pts.forEach(p => {
-        if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
-        if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
-    });
-    const pad = 0.35;
-    const w = (maxX - minX) + pad * 2;
-    const l = (maxZ - minZ) + pad * 2;
-    const cx = (minX + maxX) / 2;
-    const cz = (minZ + maxZ) / 2;
-    const geometry = new THREE.PlaneGeometry(w, l, Math.max(24, Math.ceil(w * 2.8)), Math.max(24, Math.ceil(l * 2.8)));
-    const pos = geometry.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-        const wx = pos.getX(i) + cx;
-        const wz = -pos.getY(i) + cz;
-        if (pointInPoly(wx, wz)) continue;
-        // Walk back toward the center until we sit on the smoothed edge (no folded corners)
-        let lo = 0, hi = 1;
-        for (let k = 0; k < 14; k++) {
-            const m = (lo + hi) * 0.5;
-            const tx = cx + (wx - cx) * m;
-            const tz = cz + (wz - cz) * m;
-            if (pointInPoly(tx, tz)) lo = m; else hi = m;
-        }
-        pos.setX(i, (wx - cx) * lo);
-        pos.setY(i, -((wz - cz) * lo));
-    }
-    geometry.computeVertexNormals();
-
-    const material = new THREE.MeshStandardMaterial({
-        color: 0xd9c59e,
-        roughness: 0.95,
-        metalness: 0.0,
-        side: THREE.DoubleSide,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -4
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(cx, 0, cz);
-    mesh.userData = { points: pts, depth: depth, isPolygon: true };
-    scene.add(mesh);
-    sandTraps.push(mesh);
-
-    const N = pts.length;
-    if (N >= 3) {
-        let area = 0;
-        for (let i = 0; i < N; i++) {
-            const j = (i + 1) % N;
-            area += pts[i].x * pts[j].z - pts[j].x * pts[i].z;
-        }
-        const isCCW = area > 0;
-
-        const outNormals = [];
-        for (let i = 0; i < N; i++) {
-            const prevPt = pts[(i - 1 + N) % N];
-            const currPt = pts[i];
-            const nextPt = pts[(i + 1) % N];
-
-            let e1x = currPt.x - prevPt.x, e1z = currPt.z - prevPt.z;
-            let e2x = nextPt.x - currPt.x, e2z = nextPt.z - currPt.z;
-            const l1 = Math.sqrt(e1x * e1x + e1z * e1z) || 1.0;
-            const l2 = Math.sqrt(e2x * e2x + e2z * e2z) || 1.0;
-            e1x /= l1; e1z /= l1;
-            e2x /= l2; e2z /= l2;
-
-            let n1x = isCCW ? e1z : -e1z;
-            let n1z = isCCW ? -e1x : e1x;
-            let n2x = isCCW ? e2z : -e2z;
-            let n2z = isCCW ? -e2x : e2x;
-
-            let nAvgX = n1x + n2x, nAvgZ = n1z + n2z;
-            const lAvg = Math.sqrt(nAvgX * nAvgX + nAvgZ * nAvgZ) || 1.0;
-            nAvgX /= lAvg; nAvgZ /= lAvg;
-
-            const dot = n1x * nAvgX + n1z * nAvgZ;
-            const miter = 1.0 / Math.max(0.5, dot);
-            outNormals.push({ x: nAvgX * miter, z: nAvgZ * miter });
-        }
-
-        const collarWidth = 0.7;
-        const positions = [];
-        const indices = [];
-        for (let i = 0; i < N; i++) {
-            const p = pts[i];
-            const n = outNormals[i];
-            const inX = p.x - n.x * 0.08;
-            const inZ = p.z - n.z * 0.08;
-            const outX = p.x + n.x * collarWidth;
-            const outZ = p.z + n.z * collarWidth;
-
-            positions.push(inX, -inZ, 0);
-            positions.push(outX, -outZ, 0);
-
-            const nextI = (i + 1) % N;
-            const iIn = i * 2;
-            const iOut = i * 2 + 1;
-            const nextIn = nextI * 2;
-            const nextOut = nextI * 2 + 1;
-
-            indices.push(iIn, nextIn, iOut);
-            indices.push(iOut, nextIn, nextOut);
-        }
-
-        const collarGeo = new THREE.BufferGeometry();
-        collarGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        collarGeo.setIndex(indices);
-        collarGeo.computeVertexNormals();
-
-        const collarMesh = new THREE.Mesh(
-            collarGeo,
-            new THREE.MeshStandardMaterial({
-                color: 0x1e5631,
-                roughness: 0.9,
-                side: THREE.DoubleSide,
-                polygonOffset: true,
-                polygonOffsetFactor: -2,
-                polygonOffsetUnits: -5
-            })
-        );
-        collarMesh.rotation.x = -Math.PI / 2;
-        collarMesh.position.set(0, 0, 0);
-        collarMesh.userData = { isCollar: true };
-        scene.add(collarMesh);
-        sandTraps.push(collarMesh);
-    }
-}
-
-function addSandTrap(x, z, r, depth, withCollar = true) {
-    const sandMesh = new THREE.Mesh(
-        new THREE.RingGeometry(0, r, 64, 6), // 64 segments for smoothness
-        new THREE.MeshStandardMaterial({
-            color: 0xd9c59e,
-            roughness: 0.95,
-            metalness: 0.0,
-            flatShading: false,    // This smooths the lighting
-            polygonOffset: true,
-            polygonOffsetFactor: -1,
-            polygonOffsetUnits: -4
-        })
-    );
-    sandMesh.rotation.x = -Math.PI / 2;
-    sandMesh.position.set(x, 0, z); // Set to 0 so vertex deformation handles elevation cleanly
-    sandMesh.userData = { radius: r, depth: depth };
-    scene.add(sandMesh);
-    sandTraps.push(sandMesh);
-
-    if (withCollar) {
-        // Smooth 64-segment rough collar ring around circular bunkers
-        const collarWidth = 0.7;
-        const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
-        const collarMesh = new THREE.Mesh(
-            collarGeo,
-            new THREE.MeshStandardMaterial({
-                color: 0x1e5631,
-                roughness: 0.9,
-                side: THREE.DoubleSide,
-                polygonOffset: true,
-                polygonOffsetFactor: -2,
-                polygonOffsetUnits: -5
-            })
-        );
-        collarMesh.rotation.x = -Math.PI / 2;
-        collarMesh.position.set(x, 0, z);
-        collarMesh.userData = { isCollar: true, radius: r + collarWidth };
-        scene.add(collarMesh);
-        sandTraps.push(collarMesh);
-    }
-}
 
 function createCartPath(pathPoints, width = 2.2) {
     if (!pathPoints || pathPoints.length < 2) return;
@@ -1638,73 +1319,26 @@ function generateHazards() {
         );
         if (waterAttempts > 50) continue;
 
-        let currentWaterGroundY = physics.getGroundHeight(x, z);
+      
 
-        if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
-            currentWaterGroundY += 0.035;
-        }
+    let currentWaterGroundY = physics.getGroundHeight(x, z);
 
-        const waterGeo = new THREE.PlaneGeometry(r * 2, r * 2, 24, 24);
-        const waterGeoPos = waterGeo.attributes.position;
-        for (let j = 0; j < waterGeoPos.count; j++) {
-            let pX = waterGeoPos.getX(j);
-            let pY = waterGeoPos.getY(j);
-            let pDist = Math.sqrt(pX * pX + pY * pY);
-            if (pDist > r) {
-                waterGeoPos.setX(j, (pX / pDist) * r);
-                waterGeoPos.setY(j, (pY / pDist) * r);
-            }
-        }
-        waterGeo.computeVertexNormals();
-
-        const waterMesh = new THREE.Mesh(
-            waterGeo, // Update this line: Swapped from CircleGeometry to our custom grid geometry
-            new THREE.MeshPhongMaterial({
-                color: 0x0000ff,                         // Update this line: Vibrant deep lake blue
-                specular: 0xffffff,                     // Add this line: Gives it crisp white sun-glint highlights
-                shininess: 150,                         // Add this line: Increases gloss factor for high contrast
-                flatShading: false,                      // Keep this line
-                polygonOffset: true,                    // Keep this line
-                polygonOffsetFactor: -1,                // Keep this line
-                polygonOffsetUnits: -4                  // Keep this line
-            })
-        );
-        waterMesh.rotation.x = -Math.PI / 2;
-        waterMesh.position.set(x, currentWaterGroundY + 0.01 - 1.5, z);
-        waterMesh.userData = { radius: r };
-        scene.add(waterMesh);
-        waterHazards.push(waterMesh);
-
-        const shoreMesh = new THREE.Mesh(
-            new THREE.RingGeometry(r - 0.05, r + 0.6, 64),
-            new THREE.MeshStandardMaterial({
-                color: 0x655545,
-                roughness: 0.95,
-                metalness: 0.1
-            })
-        );
-        shoreMesh.rotation.x = -Math.PI / 2;
-        shoreMesh.position.set(x, currentWaterGroundY + 0.015 - 1.5, z);
-        scene.add(shoreMesh);
-        waterShores.push(shoreMesh);
-        // Create a vertical dirt/rock cylinder wall that extends down into the dug trench to hide the map void
-        const wallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.58, 50.0, 64, 1, true); // Add this line
-        const wallMesh = new THREE.Mesh( // Add this line
-            wallGeo, // Add this line
-            new THREE.MeshStandardMaterial({ // Add this line
-                color: 0x655545, // Add this line
-                roughness: 0.95,
-                metalness: 0.1,
-                side: THREE.DoubleSide
-            })
-        );
-
-        // FIXED: Shifted down to match the new 0.015 shore reference line perfectly
-        wallMesh.position.set(x, currentWaterGroundY + 0.015 - 25.0 - 1.5, z);
-        scene.add(wallMesh);
-        waterShores.push(wallMesh);
-
+    if (z >= targetGreenZ && z <= 8 && Math.abs(x) <= 9.0) {
+        currentWaterGroundY += 0.035;
     }
+
+    addBuiltHazards(scene, buildLake({
+        type: 'lake',
+        x,
+        z,
+        radius: r,
+        shoreStyle: 'simple',
+        basinWall: true
+    }, {
+        getGroundHeight: () => currentWaterGroundY
+    }), sandTraps, waterHazards, waterShores);
+
+}
 
     for (let i = 0; i < numSand; i++) {
         let x, z, r = 4.5 + Math.random() * 2.5;
@@ -2123,156 +1757,12 @@ function resetEntireGame(advanceHole = false) {
         clearHazardMeshes();
 
         // Loop through and build your manual custom hazards list
-        holeConfig.hazards.forEach(hz => {
-            const x = hz.x;
-            const z = hz.z;
-            const r = hz.radius || 5.0;
+    holeConfig.hazards.forEach(hz => {
+    addBuiltHazards(scene, buildHazard(hz, {
+        getGroundHeight: (hx, hzZ) => physics.getGroundHeight(hx, hzZ)
+    }), sandTraps, waterHazards, waterShores);
 
-            if (hz.type === 'sand') {
-                let sandDepth = hz.depth || 0.6;              // Modify this line: Change const to let
-
-                // Route to snaking generator if path coordinates are active
-                if (hz.shape === 'snake' || hz.shapeType === 'snake') {
-                    createSnakingBunker(hz.path || [{ x: hz.x, z: hz.z }, { x: hz.x + 4, z: hz.z + 10 }], 0.8, r, sandDepth);
-                    return;
-                }
-
-                // Route to polygon generator if configuration matches
-                if (hz.shape === 'polygon' || hz.shapeType === 'polygon') {
-                    addPolygonSandTrap(hz.points, sandDepth);
-                } else {
-                    // Preserves original circle geometry setup unmodified
-                    const sandMesh = new THREE.Mesh(
-                        new THREE.RingGeometry(0, r, 64, 6),
-                        new THREE.MeshStandardMaterial({
-                            color: 0xd9c59e,
-                            roughness: 0.95,
-                            metalness: 0.0,
-                            polygonOffset: true,
-                            polygonOffsetFactor: -1,
-                            polygonOffsetUnits: -4
-                        })
-                    );
-                    sandMesh.rotation.x = -Math.PI / 2;
-
-                    sandMesh.position.set(x, 0, z);
-                    sandMesh.userData = { radius: r, depth: sandDepth };
-                    scene.add(sandMesh);
-                    sandTraps.push(sandMesh);
-
-                    // Smooth 64-segment rough collar ring around circular bunkers
-                    const collarWidth = 0.7;
-                    const collarGeo = new THREE.RingGeometry(r - 0.05, r + collarWidth, 64, 4);
-                    const collarMesh = new THREE.Mesh(
-                        collarGeo,
-                        new THREE.MeshStandardMaterial({
-                            color: 0x1e5631,
-                            roughness: 0.9,
-                            side: THREE.DoubleSide,
-                            polygonOffset: true,
-                            polygonOffsetFactor: -2,
-                            polygonOffsetUnits: -5
-                        })
-                    );
-                    collarMesh.rotation.x = -Math.PI / 2;
-                    collarMesh.position.set(x, 0, z);
-                    collarMesh.userData = { isCollar: true, radius: r + collarWidth };
-                    scene.add(collarMesh);
-                    sandTraps.push(collarMesh);
-                }
-            }
-            else if (hz.type === 'lake') {
-                const rx = hz.radiusX || hz.radius || 15;
-                const rz = hz.radiusZ || hz.radius || 15;
-                const waterGeo = new THREE.PlaneGeometry(rx * 2, rz * 2, 24, 24);
-                const waterGeoPos = waterGeo.attributes.position;
-                for (let j = 0; j < waterGeoPos.count; j++) {
-                    let pX = waterGeoPos.getX(j);
-                    let pY = waterGeoPos.getY(j);
-                    let normDist = (pX / rx) * (pX / rx) + (pY / rz) * (pY / rz);
-                    if (normDist > 1) {
-                        let angle = Math.atan2(pY, pX);
-                        waterGeoPos.setX(j, Math.cos(angle) * rx);
-                        waterGeoPos.setY(j, Math.sin(angle) * rz);
-                    }
-                }
-                waterGeo.computeVertexNormals();
-
-                const waterMesh = new THREE.Mesh(
-                    waterGeo,
-                    new THREE.MeshPhongMaterial({
-                        color: 0x0000ff,
-                        specular: 0xffffff,
-                        shininess: 150,
-                        flatShading: false,
-                        polygonOffset: true,
-                        polygonOffsetFactor: -1,
-                        polygonOffsetUnits: -4
-                    })
-                );
-                const lakeGroundY = physics.getGroundHeight(hz.x, hz.z);
-                waterMesh.rotation.x = -Math.PI / 2;
-                waterMesh.position.set(hz.x, lakeGroundY + 0.01 - 1.5, hz.z);
-                waterMesh.userData = { radiusX: rx, radiusZ: rz };
-                scene.add(waterMesh);
-                waterHazards.push(waterMesh);
-
-                const shoreWidth = 1.5;
-                const shoreMesh = new THREE.Mesh(
-                    new THREE.RingGeometry(rx - 0.05, rx + shoreWidth, 80, 2),
-                    new THREE.MeshStandardMaterial({
-                        color: 0xffffff,
-                        roughness: 0.98,
-                        metalness: 0.05,
-                        vertexColors: THREE.VertexColors
-                    })
-                );
-                const shorePos = shoreMesh.geometry.attributes.position;
-                const shoreColors = new Float32Array(shorePos.count * 3);
-                for (let j = 0; j < shorePos.count; j++) {
-                    const pX = shorePos.getX(j);
-                    const pY = shorePos.getY(j);
-                    const angle = Math.atan2(pY, pX);
-                    const rNow = Math.hypot(pX, pY);
-                    const t = (rNow - (rx - 0.05)) / shoreWidth;
-                    const wobble = (t > 0.35)
-                        ? (Math.sin(angle * 5.0) * 0.22 + Math.sin(angle * 11.0) * 0.10) * t
-                        : 0;
-                    const curRx = (rx - 0.05) + (shoreWidth + wobble) * t;
-                    const curRz = (rz - 0.05) + (shoreWidth + wobble) * t;
-                    shorePos.setX(j, Math.cos(angle) * curRx);
-                    shorePos.setY(j, Math.sin(angle) * curRz);
-
-                    const wetR = 0.20, wetG = 0.16, wetB = 0.12;
-                    const dryR = 0.58, dryG = 0.48, dryB = 0.34;
-                    shoreColors[j * 3] = wetR + (dryR - wetR) * t;
-                    shoreColors[j * 3 + 1] = wetG + (dryG - wetG) * t;
-                    shoreColors[j * 3 + 2] = wetB + (dryB - wetB) * t;
-                }
-                shoreMesh.geometry.setAttribute('color', new THREE.BufferAttribute(shoreColors, 3));
-                shoreMesh.geometry.computeVertexNormals();
-                shoreMesh.rotation.x = -Math.PI / 2;
-                shoreMesh.position.set(hz.x, lakeGroundY + 0.015 - 1.5, hz.z);
-                scene.add(shoreMesh);
-                waterShores.push(shoreMesh);
-            }
-            else if (hz.type === 'ocean') {
-                const oceanGeo = new THREE.PlaneGeometry(hz.width, hz.length, 30, 60);
-                const oceanMesh = new THREE.Mesh(
-                    oceanGeo,
-                    new THREE.MeshPhongMaterial({
-                        color: 0x0000ff,
-                        specular: 0xffffff,
-                        shininess: 150,
-                        side: THREE.DoubleSide
-                    })
-                );
-                oceanMesh.rotation.x = -Math.PI / 2;
-                // Positioned flush at sea-level surface line
-                oceanMesh.position.set(hz.x, 0.05, hz.z);
-                oceanMesh.userData = { isRectangular: true, w: hz.width, l: hz.length };
-                scene.add(oceanMesh);
-                waterHazards.push(oceanMesh);
+    if (hz.type === 'ocean') {
 
 
 
