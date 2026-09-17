@@ -1386,6 +1386,28 @@ body.storm-mode #cloudSkyLayer {
     opacity: 0.75;
 }
 
+body.snow-mode {
+    background: linear-gradient(rgba(210, 225, 240, 0.22), rgba(210, 225, 240, 0.22)), url('clouds.png') no-repeat center center;
+    background-size: cover;
+}
+
+body.snow-mode #cloudSkyLayer {
+    filter: brightness(1.25) saturate(0.5);
+    mix-blend-mode: screen;
+    opacity: 0.55;
+}
+
+body.snow-mode {
+    background: linear-gradient(rgba(210, 225, 240, 0.22), rgba(210, 225, 240, 0.22)), url('clouds.png') no-repeat center center;
+    background-size: cover;
+}
+
+body.snow-mode #cloudSkyLayer {
+    filter: brightness(1.25) saturate(0.5);
+    mix-blend-mode: screen;
+    opacity: 0.55;
+}
+
 
 /* ==========================================================================
    PENALTY NOTICE (non-blocking replacement for alert())

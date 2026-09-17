@@ -142,6 +142,7 @@ let slopeX = 0, slopeZ = 0, greenGrid, gridTexture, gridCanvas, greenCenterZ;
 let visualGuideBeads = [];
 let completedHoles = [];
 let isRaining = false;
+let isSnowing = false;
 let isOutOfBoundsResetting = false;
 let isBackspinOn = false;
 let isBumpOn = false; // Add this line: Tracks the Bump & Run toggle for short chip shots
@@ -150,6 +151,9 @@ let cloudOffsetX = 0, cloudOffsetY = 0;
 let rainParticles = [];
 let rainDropGeo = null;
 let rainDropMat = null;
+let snowParticles = [];
+let snowFlakeGeo = null;
+let snowFlakeMat = null;
 let courseHeightField = null;
 let currentHoleYards = 0;
 let sandTraps = [];
@@ -1240,11 +1244,32 @@ function clearHazardMeshes() {
     }
 }
 
+function applyHoleWeatherAudio() {
+    if (!sounds) return;
+    sounds.stopAmbient('birds');
+    sounds.stopAmbient('rain');
+    if (isRaining) sounds.playAmbient('rain');
+    else if (!isSnowing) sounds.playAmbient('birds');
+}
+
+function applyHoleWeather() {
+    const roll = Math.random();
+    isRaining = roll < 0.05;
+    isSnowing = !isRaining && roll < 0.10;
+    document.body.classList.toggle('storm-mode', isRaining);
+    document.body.classList.toggle('snow-mode', isSnowing);
+    applyHoleWeatherAudio();
+}
+
 function clearTransientEffects() {
     disposeMeshList(scene, divotObjects);
     if (rainParticles) {
         rainParticles.forEach(p => scene.remove(p));
         rainParticles.length = 0;
+    }
+    if (snowParticles) {
+        snowParticles.forEach(p => scene.remove(p));
+        snowParticles.length = 0;
     }
     for (let i = 0; i < sandParticles.length; i++) {
         const p = sandParticles[i];
@@ -1440,21 +1465,7 @@ function resetEntireGame(advanceHole = false) {
     // Clear old divots, rain drops, and leftover sand spray so they don't leak GPU memory into the next hole
     clearTransientEffects();
 
-    isRaining = Math.random() < 0.05; // 25% chance of rain on any given hole
-    if (isRaining) {
-        document.body.classList.add('storm-mode');
-    } else {
-        document.body.classList.remove('storm-mode');
-    }
-    if (sounds) {
-        if (isRaining) {
-            sounds.stopAmbient('birds');
-            sounds.playAmbient('rain');
-        } else {
-            sounds.stopAmbient('rain');
-            sounds.playAmbient('birds');
-        }
-    }
+    applyHoleWeather();
 
     strokeCount = 0;
     document.getElementById('strokeText').innerText = strokeCount;
@@ -3654,16 +3665,16 @@ function resetEntireGame(advanceHole = false) {
     // Spawn 3D neighboring fairways, greens, pins, and bunkers
     generateAdjacentHoles(scene, sceneryObjects, physics, currentHoleConfig, holePosition, greenCenterZ);
 
-   generateNewWind();
-updateDistanceDisplay();
+    generateNewWind();
+    updateDistanceDisplay();
 
-if (sandClipUniforms) {
-   writeSandClipUniforms(sandClipUniforms, sandTraps, currentHoleConfig && currentHoleConfig.hazards);
-sandClipFloorOn.value = 1;
-sandClipFairwayOn.value = 1;
-}
+    if (sandClipUniforms) {
+        writeSandClipUniforms(sandClipUniforms, sandTraps, currentHoleConfig && currentHoleConfig.hazards);
+        sandClipFloorOn.value = 1;
+        sandClipFairwayOn.value = 1;
+    }
 
-courseHeightField = buildHeightField(
+    courseHeightField = buildHeightField(
         (x, z) => physics.getGroundHeight(x, z, false, true),
         {
             minX: -COURSE_TERRAIN_WIDTH * 0.5,
@@ -5045,7 +5056,7 @@ function animate() {
         flag.geometry.computeVertexNormals(); // Add this line: Recalculates lighting highlights over the ripples
     } // Add this line
 
-    if (wildlife) wildlife.update(currentTime, isRaining);
+    if (wildlife) wildlife.update(currentTime, isRaining || isSnowing);
 
     // Add this block: Procedural 3D Rain Generation and Particle Recycling Simulation
     if (isRaining && rainParticles.length < 120 && scene) {
@@ -5071,6 +5082,48 @@ function animate() {
             p.position.y = ball.position.y + 11 + Math.random() * 5;
             p.position.x = ball.position.x + (Math.random() - 0.5) * 55;
             p.position.z = ball.position.z + (Math.random() - 0.5) * 55;
+        }
+    }
+
+    if (isSnowing && snowParticles.length < 220 && scene) {
+        if (!snowFlakeGeo) snowFlakeGeo = new THREE.PlaneGeometry(0.05, 0.05);
+        if (!snowFlakeMat) snowFlakeMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.9,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        for (let i = 0; i < 8; i++) {
+            const flake = new THREE.Mesh(snowFlakeGeo, snowFlakeMat);
+            flake.position.set(
+                ball.position.x + (Math.random() - 0.5) * 60,
+                ball.position.y + 8 + Math.random() * 10,
+                ball.position.z + (Math.random() - 0.5) * 60
+            );
+            flake.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            flake.userData.fall = 0.045 + Math.random() * 0.04;
+            flake.userData.wobble = Math.random() * Math.PI * 2;
+            scene.add(flake);
+            snowParticles.push(flake);
+        }
+    }
+    const snowDrift = currentWindSpeed * 0.0035;
+    const snowDriftX = Math.sin(currentWindAngle) * snowDrift;
+    const snowDriftZ = -Math.cos(currentWindAngle) * snowDrift;
+    for (let i = snowParticles.length - 1; i >= 0; i--) {
+        const p = snowParticles[i];
+        p.userData.wobble += 0.045;
+        p.position.y -= p.userData.fall || 0.06;
+        p.position.x += snowDriftX + Math.sin(p.userData.wobble) * 0.028;
+        p.position.z += snowDriftZ + Math.cos(p.userData.wobble * 0.7) * 0.022;
+        p.rotation.x += 0.02;
+        p.rotation.z += 0.03;
+        const currentFloor = physics ? physics.getGroundHeight(p.position.x, p.position.z) : 0;
+        if (p.position.y < currentFloor) {
+            p.position.y = ball.position.y + 10 + Math.random() * 6;
+            p.position.x = ball.position.x + (Math.random() - 0.5) * 60;
+            p.position.z = ball.position.z + (Math.random() - 0.5) * 60;
         }
     }
 
@@ -5345,12 +5398,12 @@ function init() {
 
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture, vertexColors: true });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
-fairway.rotation.x = -Math.PI / 2;
-fairway.position.set(0, 0.011, 0);
-scene.add(fairway);
-sandClipUniforms = createSandClipUniforms();
-attachSandClip(floor.material, sandClipUniforms, sandClipFloorOn);
-attachSandClip(fairway.material, sandClipUniforms, sandClipFairwayOn);
+    fairway.rotation.x = -Math.PI / 2;
+    fairway.position.set(0, 0.011, 0);
+    scene.add(fairway);
+    sandClipUniforms = createSandClipUniforms();
+    attachSandClip(floor.material, sandClipUniforms, sandClipFloorOn);
+    attachSandClip(fairway.material, sandClipUniforms, sandClipFairwayOn);
     // 6. Add Golf Ball Mesh
     const ballGeo = new THREE.SphereGeometry(0.25, 32, 32);
 
@@ -6150,13 +6203,7 @@ attachSandClip(fairway.material, sandClipUniforms, sandClipFairwayOn);
     }, false);
 
     // FIXED: Kick off your background ambient loop sequence when the game sets up
-    if (sounds) {
-        if (isRaining) {
-            sounds.playAmbient('rain'); // Update this line
-        } else {
-            sounds.playAmbient('birds'); // Update this line
-        }
-    }
+    applyHoleWeatherAudio();
 
     animate();
 }
