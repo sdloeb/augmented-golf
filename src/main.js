@@ -1255,7 +1255,7 @@ function applyHoleWeatherAudio() {
 function applyHoleWeather() {
     const roll = Math.random();
     isRaining = roll < 0.05;
-    isSnowing = !isRaining && roll < 0.10;
+    isSnowing = !isRaining && roll < 0.90;
     document.body.classList.toggle('storm-mode', isRaining);
     document.body.classList.toggle('snow-mode', isSnowing);
     applyHoleWeatherAudio();
@@ -5085,8 +5085,8 @@ function animate() {
         }
     }
 
-    if (isSnowing && snowParticles.length < 220 && scene) {
-        if (!snowFlakeGeo) snowFlakeGeo = new THREE.PlaneGeometry(0.05, 0.05);
+    if (isSnowing && snowParticles.length < 420 && scene) {
+        if (!snowFlakeGeo) snowFlakeGeo = new THREE.PlaneGeometry(0.04, 0.04);
         if (!snowFlakeMat) snowFlakeMat = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             transparent: true,
@@ -5094,7 +5094,7 @@ function animate() {
             side: THREE.DoubleSide,
             depthWrite: false
         });
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 16; i++) {
             const flake = new THREE.Mesh(snowFlakeGeo, snowFlakeMat);
             flake.position.set(
                 ball.position.x + (Math.random() - 0.5) * 60,
@@ -5102,7 +5102,7 @@ function animate() {
                 ball.position.z + (Math.random() - 0.5) * 60
             );
             flake.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-            flake.userData.fall = 0.045 + Math.random() * 0.04;
+            flake.userData.fall = 0.025 + Math.random() * 0.03;
             flake.userData.wobble = Math.random() * Math.PI * 2;
             scene.add(flake);
             snowParticles.push(flake);
