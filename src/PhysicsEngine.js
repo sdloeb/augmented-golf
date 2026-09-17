@@ -303,8 +303,7 @@ export class PhysicsEngine {
     }
 
     // FIXED UNIFIED HEIGHTMAP: Carves out smooth, deep 3D valleys for hazards cleanly in a single pass
-    getGroundHeight(x, z, forCollision = false) { // Modify this line: added forCollision so ball landing can use the shallow water surface instead of the deep buried lake bed
-        const gX = x - this.greenCenterX;
+    getGroundHeight(x, z, forCollision = false, skipSand = false) { // Modify this line: added forCollision so ball landing can use the shallow water surface instead of the deep buried lake bed        const gX = x - this.greenCenterX;
         const gZ = z - this.greenCenterZ;
         const distFromGreen = Math.sqrt(gX * gX + gZ * gZ);
         const angle = Math.atan2(-gZ, gX);
@@ -372,7 +371,7 @@ export class PhysicsEngine {
         }
 
         // 2. Apply sand trap 3D parabolic depressions to carve smooth, seamless craters into the heightmap
-        if (this.sandTraps && this.sandTraps.length > 0) {
+        if (!skipSand && this.sandTraps && this.sandTraps.length > 0) {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
                 const hit = sandPhysics(sand, x, z);

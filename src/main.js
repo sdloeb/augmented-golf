@@ -27,7 +27,8 @@ import {
     addBuiltHazards,
     sandPhysics,
     waterPhysics,
-    lakeRadiusAtAngle
+    lakeRadiusAtAngle,
+    SAND_COLLAR_WIDTH
 } from './HazardFactory.js';
 import {
     FRINGE_WIDTH_UNITS,
@@ -53,7 +54,8 @@ const COURSE_TERRAIN_LENGTH = 520;
 const COURSE_TERRAIN_W_SEGS = 280;
 const COURSE_TERRAIN_L_SEGS = 390;
 const COURSE_HEIGHT_CELL = 1.0;
-
+const COURSE_HEIGHT_CELL_Z = COURSE_TERRAIN_LENGTH / COURSE_TERRAIN_L_SEGS;
+const SAND_BURY_INSIDE = SAND_COLLAR_WIDTH - Math.max(COURSE_HEIGHT_CELL, COURSE_HEIGHT_CELL_Z);
 
 
 window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
@@ -2445,10 +2447,12 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight -= smoothUnder * 0.18;
                     }
 
-                    // 3. SAND & COLLAR PROTECTION: Submerge the rough floor mesh beneath sand traps and their collar rings so floor vertices never poke through
-                    if (insideSandZone) {
+                    // Only bury grass well inside the sand. Collar is 0.7 and the
+                    // floor grid is 1.0 x 1.333, so dropping a vertex under the ring
+                    // still slopes the next triangle out past the ring.
+                    if (minDistOutsideBunker < SAND_BURY_INSIDE) {
                         const lip = sandFloorLip(currentHoleConfig && currentHoleConfig.fairwayMask);
-                        const tIn = Math.max(0, Math.min(1, -minDistOutsideBunker / lip));
+                        const tIn = Math.max(0, Math.min(1, (SAND_BURY_INSIDE - minDistOutsideBunker) / Math.max(0.15, lip)));
                         const smoothIn = tIn * tIn * (3 - 2 * tIn);
                         calculatedHeight -= smoothIn * 1.35;
                     }
@@ -2514,10 +2518,13 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
                     }
 
-                    if (insideSandZone) {
-                        calculatedHeight = buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask)
-                            ? hiddenFairwayH
-                            : floorHeight - 1.45;
+                    if (buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask)) {
+                        if (insideSandZone) calculatedHeight = hiddenFairwayH;
+                    } else if (minDistOutsideBunker < SAND_BURY_INSIDE) {
+                        const lip = sandFloorLip(currentHoleConfig && currentHoleConfig.fairwayMask);
+                        const tIn = Math.max(0, Math.min(1, (SAND_BURY_INSIDE - minDistOutsideBunker) / Math.max(0.15, lip)));
+                        const smoothIn = tIn * tIn * (3 - 2 * tIn);
+                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight, floorHeight - 1.45, smoothIn);
                     }
 
 
@@ -3661,7 +3668,7 @@ function resetEntireGame(advanceHole = false) {
     updateDistanceDisplay();
 
     courseHeightField = buildHeightField(
-        (x, z) => physics.getGroundHeight(x, z),
+        (x, z) => physics.getGroundHeight(x, z, false, true),
         {
             minX: -COURSE_TERRAIN_WIDTH * 0.5,
             maxX: COURSE_TERRAIN_WIDTH * 0.5,
