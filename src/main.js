@@ -28,7 +28,10 @@ import {
     sandPhysics,
     waterPhysics,
     lakeRadiusAtAngle,
-    SAND_COLLAR_WIDTH
+    SAND_COLLAR_WIDTH,
+    createSandClipUniforms,
+    writeSandClipUniforms,
+    attachSandClip
 } from './HazardFactory.js';
 import {
     FRINGE_WIDTH_UNITS,
@@ -54,8 +57,6 @@ const COURSE_TERRAIN_LENGTH = 520;
 const COURSE_TERRAIN_W_SEGS = 280;
 const COURSE_TERRAIN_L_SEGS = 390;
 const COURSE_HEIGHT_CELL = 1.0;
-const COURSE_HEIGHT_CELL_Z = COURSE_TERRAIN_LENGTH / COURSE_TERRAIN_L_SEGS;
-const SAND_BURY_INSIDE = SAND_COLLAR_WIDTH - Math.max(COURSE_HEIGHT_CELL, COURSE_HEIGHT_CELL_Z);
 
 
 window.getGreenRadiusAtAngle = function (angle, baseRadius, shapeType) {
@@ -152,12 +153,15 @@ let rainDropMat = null;
 let courseHeightField = null;
 let currentHoleYards = 0;
 let sandTraps = [];
+let sandClipUniforms = null;
+const sandClipFloorOn = { value: 1 };
+const sandClipFairwayOn = { value: 1 };
 let waterHazards = [];
 let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 8; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -2447,15 +2451,6 @@ function resetEntireGame(advanceHole = false) {
                         calculatedHeight -= smoothUnder * 0.18;
                     }
 
-                    // Only bury grass well inside the sand. Collar is 0.7 and the
-                    // floor grid is 1.0 x 1.333, so dropping a vertex under the ring
-                    // still slopes the next triangle out past the ring.
-                    if (minDistOutsideBunker < SAND_BURY_INSIDE) {
-                        const lip = sandFloorLip(currentHoleConfig && currentHoleConfig.fairwayMask);
-                        const tIn = Math.max(0, Math.min(1, (SAND_BURY_INSIDE - minDistOutsideBunker) / Math.max(0.15, lip)));
-                        const smoothIn = tIn * tIn * (3 - 2 * tIn);
-                        calculatedHeight -= smoothIn * 1.35;
-                    }
                 }
 
 
@@ -2520,11 +2515,6 @@ function resetEntireGame(advanceHole = false) {
 
                     if (buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask)) {
                         if (insideSandZone) calculatedHeight = hiddenFairwayH;
-                    } else if (minDistOutsideBunker < SAND_BURY_INSIDE) {
-                        const lip = sandFloorLip(currentHoleConfig && currentHoleConfig.fairwayMask);
-                        const tIn = Math.max(0, Math.min(1, (SAND_BURY_INSIDE - minDistOutsideBunker) / Math.max(0.15, lip)));
-                        const smoothIn = tIn * tIn * (3 - 2 * tIn);
-                        calculatedHeight = THREE.MathUtils.lerp(calculatedHeight, floorHeight - 1.45, smoothIn);
                     }
 
 
@@ -3664,10 +3654,16 @@ function resetEntireGame(advanceHole = false) {
     // Spawn 3D neighboring fairways, greens, pins, and bunkers
     generateAdjacentHoles(scene, sceneryObjects, physics, currentHoleConfig, holePosition, greenCenterZ);
 
-    generateNewWind();
-    updateDistanceDisplay();
+   generateNewWind();
+updateDistanceDisplay();
 
-    courseHeightField = buildHeightField(
+if (sandClipUniforms) {
+    writeSandClipUniforms(sandClipUniforms, sandTraps);
+    sandClipFloorOn.value = 1;
+    sandClipFairwayOn.value = buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask) ? 0 : 1;
+}
+
+courseHeightField = buildHeightField(
         (x, z) => physics.getGroundHeight(x, z, false, true),
         {
             minX: -COURSE_TERRAIN_WIDTH * 0.5,
@@ -5349,10 +5345,12 @@ function init() {
 
     const fairwayMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.7, map: fairwayTexture, vertexColors: true });
     fairway = new THREE.Mesh(fairwayGeo, fairwayMat);
-    fairway.rotation.x = -Math.PI / 2;
-    fairway.position.set(0, 0.011, 0);
-    scene.add(fairway);
-
+fairway.rotation.x = -Math.PI / 2;
+fairway.position.set(0, 0.011, 0);
+scene.add(fairway);
+sandClipUniforms = createSandClipUniforms();
+attachSandClip(floor.material, sandClipUniforms, sandClipFloorOn);
+attachSandClip(fairway.material, sandClipUniforms, sandClipFairwayOn);
     // 6. Add Golf Ball Mesh
     const ballGeo = new THREE.SphereGeometry(0.25, 32, 32);
 

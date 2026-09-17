@@ -645,3 +645,138 @@ export function addBuiltHazards(scene, built, sandTraps, waterHazards, waterShor
         waterShores.push(built.shores[i]);
     }
 }
+
+export const SAND_CLIP_MAX_CIRCLES = 64;
+export const SAND_CLIP_MAX_POLY_PTS = 256;
+export const SAND_CLIP_MAX_POLYS = 8;
+
+export function packSandClips(sandTraps) {
+    const circles = [];
+    const polyPts = [];
+    const polys = [];
+    if (!sandTraps) return { circles, polyPts, polys };
+    for (let i = 0; i < sandTraps.length; i++) {
+        const sand = sandTraps[i];
+        if (!sand || (sand.userData && sand.userData.isCollar)) continue;
+        const ud = sand.userData || {};
+        if (ud.isPolygon && ud.points && ud.points.length >= 3) {
+            if (polys.length >= SAND_CLIP_MAX_POLYS) continue;
+            if (polyPts.length + ud.points.length > SAND_CLIP_MAX_POLY_PTS) continue;
+            polys.push({ start: polyPts.length, count: ud.points.length });
+            for (let p = 0; p < ud.points.length; p++) {
+                polyPts.push({ x: ud.points[p].x, z: ud.points[p].z });
+            }
+        } else if (ud.radius) {
+            if (circles.length >= SAND_CLIP_MAX_CIRCLES) continue;
+            circles.push({
+                x: sand.position.x,
+                z: sand.position.z,
+                radius: ud.radius
+            });
+        }
+    }
+    return { circles, polyPts, polys };
+}
+
+export function createSandClipUniforms() {
+    const circles = [];
+    for (let i = 0; i < SAND_CLIP_MAX_CIRCLES; i++) circles.push(new THREE.Vector4());
+    const polyPts = [];
+    for (let i = 0; i < SAND_CLIP_MAX_POLY_PTS; i++) polyPts.push(new THREE.Vector2());
+    const polyMeta = [];
+    for (let i = 0; i < SAND_CLIP_MAX_POLYS; i++) polyMeta.push(new THREE.Vector4());
+    return {
+        uSandClipCount: { value: 0 },
+        uSandCircles: { value: circles },
+        uSandPolyCount: { value: 0 },
+        uSandPolyPts: { value: polyPts },
+        uSandPolyMeta: { value: polyMeta }
+    };
+}
+
+export function writeSandClipUniforms(uniforms, sandTraps) {
+    if (!uniforms) return;
+    const packed = packSandClips(sandTraps);
+    uniforms.uSandClipCount.value = packed.circles.length;
+    for (let i = 0; i < SAND_CLIP_MAX_CIRCLES; i++) {
+        const c = packed.circles[i];
+        if (c) uniforms.uSandCircles.value[i].set(c.x, c.z, c.radius, 0);
+        else uniforms.uSandCircles.value[i].set(0, 0, 0, 0);
+    }
+    uniforms.uSandPolyCount.value = packed.polys.length;
+    for (let i = 0; i < SAND_CLIP_MAX_POLY_PTS; i++) {
+        const p = packed.polyPts[i];
+        if (p) uniforms.uSandPolyPts.value[i].set(p.x, p.z);
+        else uniforms.uSandPolyPts.value[i].set(0, 0);
+    }
+    for (let i = 0; i < SAND_CLIP_MAX_POLYS; i++) {
+        const p = packed.polys[i];
+        if (p) uniforms.uSandPolyMeta.value[i].set(p.start, p.count, 0, 0);
+        else uniforms.uSandPolyMeta.value[i].set(0, 0, 0, 0);
+    }
+}
+
+export function attachSandClip(material, sharedUniforms, enabledRef) {
+    if (!material || !sharedUniforms || !enabledRef) return;
+    material.customProgramCacheKey = function () { return 'sand-clip-v1'; };
+    material.onBeforeCompile = function (shader) {
+        shader.uniforms.uSandClipCount = sharedUniforms.uSandClipCount;
+        shader.uniforms.uSandCircles = sharedUniforms.uSandCircles;
+        shader.uniforms.uSandPolyCount = sharedUniforms.uSandPolyCount;
+        shader.uniforms.uSandPolyPts = sharedUniforms.uSandPolyPts;
+        shader.uniforms.uSandPolyMeta = sharedUniforms.uSandPolyMeta;
+        shader.uniforms.uSandClipOn = enabledRef;
+        shader.vertexShader = shader.vertexShader.replace(
+            '#include <common>',
+            '#include <common>\nvarying vec3 vSandWorldPos;'
+        );
+        shader.vertexShader = shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\nvSandWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;'
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <common>',
+            [
+                '#include <common>',
+                'uniform float uSandClipOn;',
+                'uniform float uSandClipCount;',
+                'uniform vec4 uSandCircles[' + SAND_CLIP_MAX_CIRCLES + '];',
+                'uniform float uSandPolyCount;',
+                'uniform vec2 uSandPolyPts[' + SAND_CLIP_MAX_POLY_PTS + '];',
+                'uniform vec4 uSandPolyMeta[' + SAND_CLIP_MAX_POLYS + '];',
+                'varying vec3 vSandWorldPos;'
+            ].join('\n')
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+            'void main() {',
+            [
+                'void main() {',
+                '  if (uSandClipOn > 0.5) {',
+                '    vec2 sp = vSandWorldPos.xz;',
+                '    for (int i = 0; i < ' + SAND_CLIP_MAX_CIRCLES + '; i++) {',
+                '      if (i >= int(uSandClipCount)) break;',
+                '      vec2 d = sp - uSandCircles[i].xy;',
+                '      float r = uSandCircles[i].z;',
+                '      if (dot(d, d) < r * r) discard;',
+                '    }',
+                '    for (int p = 0; p < ' + SAND_CLIP_MAX_POLYS + '; p++) {',
+                '      if (p >= int(uSandPolyCount)) break;',
+                '      int start = int(uSandPolyMeta[p].x);',
+                '      int count = int(uSandPolyMeta[p].y);',
+                '      bool inside = false;',
+                '      for (int i = 0; i < 128; i++) {',
+                '        if (i >= count) break;',
+                '        int i2 = i + 1;',
+                '        if (i2 >= count) i2 = 0;',
+                '        vec2 a = uSandPolyPts[start + i];',
+                '        vec2 b = uSandPolyPts[start + i2];',
+                '        if (((a.y > sp.y) != (b.y > sp.y)) && (sp.x < (b.x - a.x) * (sp.y - a.y) / ((b.y - a.y) + 0.0000001) + a.x)) inside = !inside;',
+                '      }',
+                '      if (inside) discard;',
+                '    }',
+                '  }'
+            ].join('\n')
+        );
+    };
+    material.needsUpdate = true;
+}
