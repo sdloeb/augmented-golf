@@ -838,8 +838,7 @@ export const HOLES_CONFIG = {
                 { gte: -128.3, lte: -113.9 },
                 { gte: -147.7, lte: -133.3 }
             ],
-            sandLip: 1.5,
-            buryFairwayInSand: true
+            sandLip: 1.5
         },
         terrain: {
             skipTeeFade: true,

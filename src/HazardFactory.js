@@ -346,10 +346,23 @@ function buildSnakeCollar(sampled, radius) {
     return collarMesh;
 }
 
+export function snakeCapsulesFromPath(path, radius) {
+    const caps = [];
+    if (!path || path.length < 2) return caps;
+    const r = radius || 5;
+    for (let i = 0; i < path.length - 1; i++) {
+        const a = path[i];
+        const b = path[i + 1];
+        caps.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z, radius: r });
+    }
+    return caps;
+}
+
 export function buildSnakeSand(spec) {
     const built = emptyBuilt();
     const spacing = spec.spacing !== undefined ? spec.spacing : SNAKE_SPACING;
     const sampled = sampleSnakePath(spec.path, spacing);
+    const capsules = snakeCapsulesFromPath(spec.path, spec.radius);
     for (let i = 0; i < sampled.length; i++) {
         const piece = buildCircleSand({
             x: sampled[i].x,
@@ -358,10 +371,16 @@ export function buildSnakeSand(spec) {
             depth: spec.depth,
             withCollar: false
         });
-        built.sands.push(piece.sands[0]);
+        const mesh = piece.sands[0];
+        mesh.userData.kind = 'sand_snake_piece';
+        if (i === 0 && capsules.length) mesh.userData.snakeCapsules = capsules;
+        built.sands.push(mesh);
     }
     const collar = buildSnakeCollar(sampled, spec.radius);
-    if (collar) built.collars.push(collar);
+    if (collar) {
+        if (capsules.length) collar.userData.snakeCapsules = capsules;
+        built.collars.push(collar);
+    }
     return built;
 }
 
@@ -647,40 +666,80 @@ export function addBuiltHazards(scene, built, sandTraps, waterHazards, waterShor
 }
 
 export const SAND_CLIP_MAX_CIRCLES = 64;
+export const SAND_CLIP_MAX_CAPS = 32;
 export const SAND_CLIP_MAX_POLY_PTS = 256;
 export const SAND_CLIP_MAX_POLYS = 8;
 
-export function packSandClips(sandTraps) {
+function pushCapsule(capsules, cap) {
+    if (!cap || capsules.length >= SAND_CLIP_MAX_CAPS) return;
+    capsules.push(cap);
+}
+
+function pushCircle(circles, circle) {
+    if (!circle || circles.length >= SAND_CLIP_MAX_CIRCLES) return;
+    circles.push(circle);
+}
+
+export function packSandClips(sandTraps, hazards) {
     const circles = [];
+    const capsules = [];
     const polyPts = [];
     const polys = [];
-    if (!sandTraps) return { circles, polyPts, polys };
-    for (let i = 0; i < sandTraps.length; i++) {
-        const sand = sandTraps[i];
-        if (!sand || (sand.userData && sand.userData.isCollar)) continue;
-        const ud = sand.userData || {};
-        if (ud.isPolygon && ud.points && ud.points.length >= 3) {
-            if (polys.length >= SAND_CLIP_MAX_POLYS) continue;
-            if (polyPts.length + ud.points.length > SAND_CLIP_MAX_POLY_PTS) continue;
-            polys.push({ start: polyPts.length, count: ud.points.length });
-            for (let p = 0; p < ud.points.length; p++) {
-                polyPts.push({ x: ud.points[p].x, z: ud.points[p].z });
+
+    if (hazards) {
+        for (let i = 0; i < hazards.length; i++) {
+            const hz = hazards[i];
+            if (!hz || hz.type !== 'sand') continue;
+            if (hz.shape === 'snake' || hz.shapeType === 'snake') {
+                const caps = snakeCapsulesFromPath(hz.path, hz.radius);
+                for (let c = 0; c < caps.length; c++) pushCapsule(capsules, caps[c]);
             }
-        } else if (ud.radius) {
-            if (circles.length >= SAND_CLIP_MAX_CIRCLES) continue;
-            circles.push({
-                x: sand.position.x,
-                z: sand.position.z,
-                radius: ud.radius
-            });
         }
     }
-    return { circles, polyPts, polys };
+
+    if (!capsules.length && sandTraps) {
+        for (let i = 0; i < sandTraps.length; i++) {
+            const ud = sandTraps[i] && sandTraps[i].userData;
+            if (!ud || !ud.snakeCapsules) continue;
+            for (let c = 0; c < ud.snakeCapsules.length; c++) {
+                pushCapsule(capsules, ud.snakeCapsules[c]);
+            }
+        }
+    }
+
+    const skipSnakePieces = capsules.length > 0;
+    if (sandTraps) {
+        for (let i = 0; i < sandTraps.length; i++) {
+            const sand = sandTraps[i];
+            if (!sand || (sand.userData && sand.userData.isCollar)) continue;
+            const ud = sand.userData || {};
+            if (skipSnakePieces && ud.kind === 'sand_snake_piece') continue;
+            if (ud.isPolygon && ud.points && ud.points.length >= 3) {
+                if (polys.length >= SAND_CLIP_MAX_POLYS) continue;
+                if (polyPts.length + ud.points.length > SAND_CLIP_MAX_POLY_PTS) continue;
+                polys.push({ start: polyPts.length, count: ud.points.length });
+                for (let p = 0; p < ud.points.length; p++) {
+                    polyPts.push({ x: ud.points[p].x, z: ud.points[p].z });
+                }
+            } else if (ud.radius) {
+                pushCircle(circles, {
+                    x: sand.position.x,
+                    z: sand.position.z,
+                    radius: ud.radius
+                });
+            }
+        }
+    }
+    return { circles, capsules, polyPts, polys };
 }
 
 export function createSandClipUniforms() {
     const circles = [];
     for (let i = 0; i < SAND_CLIP_MAX_CIRCLES; i++) circles.push(new THREE.Vector4());
+    const capAB = [];
+    for (let i = 0; i < SAND_CLIP_MAX_CAPS; i++) capAB.push(new THREE.Vector4());
+    const capR = [];
+    for (let i = 0; i < SAND_CLIP_MAX_CAPS; i++) capR.push(new THREE.Vector4());
     const polyPts = [];
     for (let i = 0; i < SAND_CLIP_MAX_POLY_PTS; i++) polyPts.push(new THREE.Vector2());
     const polyMeta = [];
@@ -688,20 +747,34 @@ export function createSandClipUniforms() {
     return {
         uSandClipCount: { value: 0 },
         uSandCircles: { value: circles },
+        uSandCapCount: { value: 0 },
+        uSandCapAB: { value: capAB },
+        uSandCapR: { value: capR },
         uSandPolyCount: { value: 0 },
         uSandPolyPts: { value: polyPts },
         uSandPolyMeta: { value: polyMeta }
     };
 }
 
-export function writeSandClipUniforms(uniforms, sandTraps) {
+export function writeSandClipUniforms(uniforms, sandTraps, hazards) {
     if (!uniforms) return;
-    const packed = packSandClips(sandTraps);
+    const packed = packSandClips(sandTraps, hazards);
     uniforms.uSandClipCount.value = packed.circles.length;
     for (let i = 0; i < SAND_CLIP_MAX_CIRCLES; i++) {
         const c = packed.circles[i];
         if (c) uniforms.uSandCircles.value[i].set(c.x, c.z, c.radius, 0);
         else uniforms.uSandCircles.value[i].set(0, 0, 0, 0);
+    }
+    uniforms.uSandCapCount.value = packed.capsules.length;
+    for (let i = 0; i < SAND_CLIP_MAX_CAPS; i++) {
+        const c = packed.capsules[i];
+        if (c) {
+            uniforms.uSandCapAB.value[i].set(c.ax, c.az, c.bx, c.bz);
+            uniforms.uSandCapR.value[i].set(c.radius, 0, 0, 0);
+        } else {
+            uniforms.uSandCapAB.value[i].set(0, 0, 0, 0);
+            uniforms.uSandCapR.value[i].set(0, 0, 0, 0);
+        }
     }
     uniforms.uSandPolyCount.value = packed.polys.length;
     for (let i = 0; i < SAND_CLIP_MAX_POLY_PTS; i++) {
@@ -718,10 +791,13 @@ export function writeSandClipUniforms(uniforms, sandTraps) {
 
 export function attachSandClip(material, sharedUniforms, enabledRef) {
     if (!material || !sharedUniforms || !enabledRef) return;
-    material.customProgramCacheKey = function () { return 'sand-clip-v1'; };
+    material.customProgramCacheKey = function () { return 'sand-clip-v2'; };
     material.onBeforeCompile = function (shader) {
         shader.uniforms.uSandClipCount = sharedUniforms.uSandClipCount;
         shader.uniforms.uSandCircles = sharedUniforms.uSandCircles;
+        shader.uniforms.uSandCapCount = sharedUniforms.uSandCapCount;
+        shader.uniforms.uSandCapAB = sharedUniforms.uSandCapAB;
+        shader.uniforms.uSandCapR = sharedUniforms.uSandCapR;
         shader.uniforms.uSandPolyCount = sharedUniforms.uSandPolyCount;
         shader.uniforms.uSandPolyPts = sharedUniforms.uSandPolyPts;
         shader.uniforms.uSandPolyMeta = sharedUniforms.uSandPolyMeta;
@@ -741,6 +817,9 @@ export function attachSandClip(material, sharedUniforms, enabledRef) {
                 'uniform float uSandClipOn;',
                 'uniform float uSandClipCount;',
                 'uniform vec4 uSandCircles[' + SAND_CLIP_MAX_CIRCLES + '];',
+                'uniform float uSandCapCount;',
+                'uniform vec4 uSandCapAB[' + SAND_CLIP_MAX_CAPS + '];',
+                'uniform vec4 uSandCapR[' + SAND_CLIP_MAX_CAPS + '];',
                 'uniform float uSandPolyCount;',
                 'uniform vec2 uSandPolyPts[' + SAND_CLIP_MAX_POLY_PTS + '];',
                 'uniform vec4 uSandPolyMeta[' + SAND_CLIP_MAX_POLYS + '];',
@@ -758,6 +837,17 @@ export function attachSandClip(material, sharedUniforms, enabledRef) {
                 '      vec2 d = sp - uSandCircles[i].xy;',
                 '      float r = uSandCircles[i].z;',
                 '      if (dot(d, d) < r * r) discard;',
+                '    }',
+                '    for (int i = 0; i < ' + SAND_CLIP_MAX_CAPS + '; i++) {',
+                '      if (i >= int(uSandCapCount)) break;',
+                '      vec2 a = uSandCapAB[i].xy;',
+                '      vec2 b = uSandCapAB[i].zw;',
+                '      float cr = uSandCapR[i].x;',
+                '      vec2 pa = sp - a;',
+                '      vec2 ba = b - a;',
+                '      float h = clamp(dot(pa, ba) / (dot(ba, ba) + 0.0000001), 0.0, 1.0);',
+                '      vec2 closest = pa - ba * h;',
+                '      if (dot(closest, closest) < cr * cr) discard;',
                 '    }',
                 '    for (int p = 0; p < ' + SAND_CLIP_MAX_POLYS + '; p++) {',
                 '      if (p >= int(uSandPolyCount)) break;',

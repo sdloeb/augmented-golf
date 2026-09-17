@@ -161,7 +161,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 8; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -3658,9 +3658,9 @@ function resetEntireGame(advanceHole = false) {
 updateDistanceDisplay();
 
 if (sandClipUniforms) {
-    writeSandClipUniforms(sandClipUniforms, sandTraps);
-    sandClipFloorOn.value = 1;
-    sandClipFairwayOn.value = buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask) ? 0 : 1;
+   writeSandClipUniforms(sandClipUniforms, sandTraps, currentHoleConfig && currentHoleConfig.hazards);
+sandClipFloorOn.value = 1;
+sandClipFairwayOn.value = 1;
 }
 
 courseHeightField = buildHeightField(
