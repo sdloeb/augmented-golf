@@ -55,6 +55,24 @@ export const HOLES_CONFIG = {
             maxZ: 35,
             stakesPerSide: 8,
             stakesPerRow: 5
+        },
+        fairwayMask: {
+            physicsAllow: [{ lte: 15 }]
+        },
+        terrain: {
+            skipTeeFade: true,
+            bands: [
+                { gt: 5, height: 5.5 },
+                { gte: -25, highZ: 5, lowZ: -25, highH: 5.5, lowH: 0 },
+                { height: 0 }
+            ],
+            features: [{ type: 'waves', amp1: 0.05, amp2: 0.02, fx1: 0.06, fz1: 0.04, fx2: 0.12, fz2: 0.08 }],
+            xFade: { radius: 70, falloff: 10 },
+            greenRipples: { f1: 0.55, amp1: 0.04, f2: 1.10, amp2: 0.015 },
+            greenComplex: {
+                berm: { relZMin: -40, relZMax: -13, absX: 32, zCenter: -24, zRadius: 11, xRadius: 30, height: 3.2 },
+                platform: { extraRadius: 4.5, height: 0.70 }
+            }
         }
     },
     2: { // 327 Yard Downhill Drive + 87 Yard Approach Dogleg Right
@@ -112,7 +130,24 @@ export const HOLES_CONFIG = {
 
             // --- BACK OF GREEN ---
             { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
-        ]
+        ],
+        fairwayMask: {
+            hideIf: [{ gt: -60 }],
+            physicsAllow: [{ lte: -60 }]
+        },
+        terrain: {
+            skipTeeFade: true,
+            bands: [
+                { gt: 5, height: 37.5 },
+                { gte: -60, highZ: 5, lowZ: -60, highH: 37.5, lowH: 0 },
+                { height: 0 }
+            ],
+            features: [
+                { type: 'saddle', zMin: -15, zMax: 6, xRadius: 16, zCenter: 4, zRadius: 12, depth: 6.5 },
+                { type: 'rightHill', zMax: 15, zMin: -118, fadeZ: -100, slope: 0.25 }
+            ],
+            xFade: { radius: 60, falloff: 10, positiveOnly: true }
+        }
     },
 
     3: { // Pebble Beach Hole 6 Replica - Chasm Cliff Par 5
@@ -213,8 +248,64 @@ export const HOLES_CONFIG = {
             { x: -32, z: -165 },
             { x: -22, z: -182 },
             { x: -16, z: -192 }
-        ]
+        ],
+        fairwayMask: {
+            hideIf: [
+                { gt: -20 },
+                { gte: -132, lte: -115 },
+                { lt: -192 }
+            ],
+            physicsAllow: [
+                { gt: -115, lte: -20 },
+                { gte: -180, lte: -132 }
+            ],
+            skipApronTaper: true,
+            widthBands: [
+                { gte: -140, lte: -20, width: 18 },
+                { gte: -152, lt: -140, from: 18, to: 8, fromZ: -140, toZ: -152 },
+                { lt: -152, width: 8 }
+            ]
+        },
+        terrain: {
+            style: 'cliffShelf',
+            lowHeight: 0.3,
+            plateau: 8.5,
+            climb: { startZ: -115, endZ: -136.5, rise: 8.2 },
+            cliff: {
+                teeZ: 10, elbowZ: -125, firstSpan: 135, endSpan: 55,
+                startX: 0, elbowX: -14, endX: 14,
+                dropZ: -78, plateauX: 20, inlandOffset: 13.5,
+                blendStartZ: -100, blendSpan: 15, blendUntilZ: -115
+            },
+            xFade: { radius: 80, falloff: 15 }
+        },
+        water: {
+            cliff: {
+                teeZ: 10, elbowZ: -125, firstSpan: 135, endSpan: 55,
+                startX: 0, elbowX: -14, endX: 14,
+                dropZ: -78, plateauX: 20, inlandOffset: 13.5,
+                blendStartZ: -100, blendSpan: 15, blendUntilZ: -115,
+                obZAtOrBelow: -130, obPlateauZ: -115
+            },
+            neighborOOB: {
+                rightX: 20,
+                backZ: 35,
+                frontPad: 35,
+                leftHighZ: -65,
+                leftHighX: -70,
+                leftMidZ: -125,
+                leftMidX: -84,
+                leftMidSpan: 60,
+                leftEndSpan: 55,
+                leftEndDelta: 11
+            }
+        },
+        customOOB: {
+            type: 'spline',
+            skipStakesXGreater: 20
+        }
     },
+
     4: { // Sharp 90-Degree Dogleg Right Hole
         par: 4,
         treeScale: 5.5, // Adjust this number to change tree height for Hole 4
@@ -298,7 +389,8 @@ export const HOLES_CONFIG = {
             type: 'l_shape',
             leg1: { minX: -44, maxX: 60, minZ: -145, maxZ: 30 },
             leg2: { minX: -44, maxX: 115, minZ: -145, maxZ: -30 }
-        }
+        },
+        terrain: { style: 'flat' }
     },
     5: { // 185-Yard Par 3 Island Green
         par: 3,
@@ -372,7 +464,14 @@ export const HOLES_CONFIG = {
             maxZ: 30,
             stakesPerSide: 6,
             stakesPerRow: 3
-        }
+        },
+        fairwayMask: {
+            hideIf: [{ lt: -5 }],
+            physicsAllow: [{ lte: 15 }],
+            islandGreenSink: 1.5
+        },
+        terrain: { style: 'flat' },
+        water: { islandBulkhead: true, keepPutterCameraOnIsland: true }
     },
     6: { // Oakmont Country Club #18 - 496-Yard Championship Par 4
         par: 4,
@@ -471,6 +570,10 @@ export const HOLES_CONFIG = {
             maxZ: 30,
             stakesPerSide: 10,
             stakesPerRow: 4
+        },
+        terrain: {
+            style: 'oakmont',
+            leftBank: { startZ: -128, spanZ: 40, spanX: 9.0, drop: 0.60 }
         }
     },
     7: { // Ballyneal Hole #8 Replica - 515-Yard Championship Par 5 Dunes
@@ -514,26 +617,26 @@ export const HOLES_CONFIG = {
             // 1. Left Dune Waste / Blowout at 245 yds (z = -78)
             { type: 'sand', x: -22.0, z: -78.0, radius: 6.5, depth: 1.1 },
 
-           // 2. Main Center-Right Waste (one polygon — no grass collars through the middle)
-{
-    type: 'sand',
-    shape: 'polygon',
-    depth: 1.2,
-    points: [
-        { x: 7.0, z: -98.0 },
-        { x: 11.0, z: -96.5 },
-        { x: 16.0, z: -98.0 },
-        { x: 21.0, z: -106.0 },
-        { x: 26.0, z: -112.0 },
-        { x: 26.5, z: -118.0 },
-        { x: 21.0, z: -123.0 },
-        { x: 15.0, z: -124.0 },
-        { x: 9.0, z: -123.0 },
-        { x: 7.5, z: -119.0 },
-        { x: 6.5, z: -112.0 },
-        { x: 6.0, z: -104.0 }
-    ]
-},
+            // 2. Main Center-Right Waste (one polygon — no grass collars through the middle)
+            {
+                type: 'sand',
+                shape: 'polygon',
+                depth: 1.2,
+                points: [
+                    { x: 7.0, z: -98.0 },
+                    { x: 11.0, z: -96.5 },
+                    { x: 16.0, z: -98.0 },
+                    { x: 21.0, z: -106.0 },
+                    { x: 26.0, z: -112.0 },
+                    { x: 26.5, z: -118.0 },
+                    { x: 21.0, z: -123.0 },
+                    { x: 15.0, z: -124.0 },
+                    { x: 9.0, z: -123.0 },
+                    { x: 7.5, z: -119.0 },
+                    { x: 6.5, z: -112.0 },
+                    { x: 6.0, z: -104.0 }
+                ]
+            },
 
             // 3. Left Layup Pot / Blowout at 430 yds (z = -145)
             { type: 'sand', x: -25.0, z: -145.0, radius: 7.2, depth: 1.8 },
@@ -560,6 +663,20 @@ export const HOLES_CONFIG = {
             maxZ: 30,
             stakesPerSide: 11,
             stakesPerRow: 4
+        },
+        terrain: {
+            skipTeeFade: true,
+            bands: [
+                { gt: 5, height: 4.5 },
+                { gte: -25, highZ: 5, lowZ: -25, highH: 4.5, lowH: 0 },
+                { height: 0 }
+            ],
+            features: [
+                { type: 'dunes', edgeScale: 0.85, width: 55, height: 13 },
+                { type: 'bump', x: 9.0, z: -110.0, zMin: -135, zMax: -85, zRadius: 25, xRadius: 12, height: 1.0, requireX: 'positive' },
+                { type: 'moguls', amp1: 0.25, amp2: 0.15 }
+            ],
+            xFade: { radius: 90, falloff: 10 }
         }
     },
     8: { // Pine Valley Hole #2 - 428-Yard Championship Par 4
@@ -706,6 +823,42 @@ export const HOLES_CONFIG = {
             maxZ: 30,
             stakesPerSide: 12,
             stakesPerRow: 4
+        },
+        fairwayMask: {
+            hideIf: [
+                { gt: -51.4 },
+                { gt: -94.5, lt: -89.5 },
+                { gt: -113.9, lt: -108.9 },
+                { gt: -133.3, lt: -128.3 },
+                { lt: -147.7 }
+            ],
+            physicsAllow: [
+                { gte: -89.5, lte: -51.4 },
+                { gte: -108.9, lte: -94.5 },
+                { gte: -128.3, lte: -113.9 },
+                { gte: -147.7, lte: -133.3 }
+            ],
+            sandLip: 1.5,
+            buryFairwayInSand: true
+        },
+        terrain: {
+            skipTeeFade: true,
+            bands: [
+                { gt: 5, height: 3.5 },
+                { gte: -16, highZ: 5, lowZ: -16, highH: 3.5, lowH: 0 },
+                { gt: -89.5, height: 0 },
+                { gte: -94.5, highZ: -89.5, lowZ: -94.5, highH: 0, lowH: 2.125 },
+                { gt: -108.9, height: 2.125 },
+                { gte: -113.9, highZ: -108.9, lowZ: -113.9, highH: 2.125, lowH: 4.25 },
+                { gt: -128.3, height: 4.25 },
+                { gte: -133.3, highZ: -128.3, lowZ: -133.3, highH: 4.25, lowH: 6.375 },
+                { gt: -147.7, height: 6.375 },
+                { gte: -152.7, highZ: -147.7, lowZ: -152.7, highH: 6.375, lowH: 8.5 },
+                { gte: -161.7, height: 8.5 },
+                { highZ: -161.7, lowZ: -196.7, highH: 8.5, lowH: 0 }
+            ],
+            features: [{ type: 'sideRise', edge: 13.0, width: 35.0, height: 4.5 }],
+            xFade: { radius: 75, falloff: 10 }
         }
     },
     9: { // 220-Yard Elevated Downhill Par 3 (Tree Chute to Valley Green)
@@ -799,6 +952,23 @@ export const HOLES_CONFIG = {
             maxZ: 30,
             stakesPerSide: 10,
             stakesPerRow: 4
+        },
+        fairwayMask: {
+            hideIf: [{ gt: -45 }],
+            physicsAllow: [{ gte: -78, lte: -45 }]
+        },
+        terrain: {
+            skipTeeFade: true,
+            bands: [
+                { gt: 5, height: 14.0 },
+                { gte: -12, highZ: 5, lowZ: -12, highH: 14.0, lowH: 0 },
+                { gt: -58, height: 0 },
+                { gte: -65, highZ: -58, lowZ: -65, highH: 0, lowH: 1.0 },
+                { gte: -76, height: 1.0 },
+                { highZ: -76, lowZ: -95, highH: 1.0, lowH: -2.5 }
+            ],
+            features: [{ type: 'sideRise', edge: 13.0, width: 25.0, height: 7.5 }],
+            xFade: { radius: 65, falloff: 10 }
         }
     },
 
@@ -863,30 +1033,30 @@ export const HOLES_CONFIG = {
                     { x: -4.2, z: -89.4 },
                     { x: -8.0, z: -86.6 },
                     { x: -9.2, z: -81.6 },
-                           { x: -8.8, z: -75.8 }
-    ]
-},
-// Matching kidney bunker in the fairway, 100 yards from the green
-{
-    type: 'sand',
-    shape: 'polygon',
-    depth: 1.20,
-    points: [
-     { x: -17.6, z: -113.2 },
-{ x: -18.1, z: -110.7 },
-{ x: -19.9, z: -108.5 },
-{ x: -22.6, z: -107.3 },
-{ x: -23.7, z: -109.2 },
-{ x: -26.1, z: -109.1 },
-{ x: -27.9, z: -110.7 },
-{ x: -27.8, z: -113.6 },
-{ x: -26.3, z: -116.0 },
-{ x: -24.2, z: -116.9 },
-{ x: -21.7, z: -116.2 },
-{ x: -19.3, z: -114.5 }
-    ]
-},
-// Lake tight against the back of the green
+                    { x: -8.8, z: -75.8 }
+                ]
+            },
+            // Matching kidney bunker in the fairway, 100 yards from the green
+            {
+                type: 'sand',
+                shape: 'polygon',
+                depth: 1.20,
+                points: [
+                    { x: -17.6, z: -113.2 },
+                    { x: -18.1, z: -110.7 },
+                    { x: -19.9, z: -108.5 },
+                    { x: -22.6, z: -107.3 },
+                    { x: -23.7, z: -109.2 },
+                    { x: -26.1, z: -109.1 },
+                    { x: -27.9, z: -110.7 },
+                    { x: -27.8, z: -113.6 },
+                    { x: -26.3, z: -116.0 },
+                    { x: -24.2, z: -116.9 },
+                    { x: -21.7, z: -116.2 },
+                    { x: -19.3, z: -114.5 }
+                ]
+            },
+            // Lake tight against the back of the green
             {
                 type: 'lake',
                 x: -40.0,
@@ -931,6 +1101,16 @@ export const HOLES_CONFIG = {
             maxZ: 28,
             stakesPerSide: 12,
             stakesPerRow: 4
-        }
+        },
+        fairwayMask: {
+            hideIf: [
+                { gt: -12 },
+                { lt: -152 },
+                { gtX: 24 },
+                { ltX: -90 }
+            ],
+            physicsAllow: [{ lte: 15 }]
+        },
+        terrain: { style: 'rolling' }
     }
 };

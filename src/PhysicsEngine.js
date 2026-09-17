@@ -1,3 +1,19 @@
+import {
+    evaluateCourseHeight,
+    applyGreenComplex,
+    greenRippleHeight,
+    isWithinFairwayZ,
+    getWaterCliff,
+    getCliffPathCenter,
+    getCliffEdgeX
+} from './HoleLayout.js';
+import {
+    sandPhysics,
+    waterPhysics,
+    lakeRadiusAtAngle,
+    SAND_COLLAR_WIDTH
+} from './HazardFactory.js';
+import { FRINGE_WIDTH_UNITS } from './PuttingSystem.js';
 export class PhysicsEngine {
     constructor(ballMesh) {
         this.ball = ballMesh;
@@ -36,34 +52,8 @@ export class PhysicsEngine {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
 
         for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isCollar) continue;
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                let inside = false;
-                let minEdgeDistSq = Infinity;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                    if (intersect) inside = !inside;
-
-                    const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.0001;
-                    let t = ((this.ball.position.x - xi) * (xj - xi) + (this.ball.position.z - zi) * (zj - zi)) / l2;
-                    t = Math.max(0, Math.min(1, t));
-                    const projX = xi + t * (xj - xi);
-                    const projZ = zi + t * (zj - zi);
-                    const distSq = (this.ball.position.x - projX) ** 2 + (this.ball.position.z - projZ) ** 2;
-                    if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
-                }
-                // 1.2 units edge margin ensures sloped bunker walls are fully recognized
-                if (inside) return true;
-            } else {
-                const dx = this.ball.position.x - sand.position.x;
-                const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                if (dx * dx + dz * dz < sandRadius * sandRadius) return true;
-            }
+            const hit = sandPhysics(sand, this.ball.position.x, this.ball.position.z);
+            if (hit && hit.inside) return true;
         }
         return false;
     }
@@ -72,32 +62,14 @@ export class PhysicsEngine {
     getBallSandDepth() {
         if (!this.sandTraps || this.sandTraps.length === 0) return 0.8;
         for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isCollar) continue;
-            let inside = false;
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const intersect = ((zi > this.ball.position.z) !== (zj > this.ball.position.z))
-                        && (this.ball.position.x < (xj - xi) * (this.ball.position.z - zi) / (zj - zi) + xi);
-                    if (intersect) inside = !inside;
-                }
-            } else {
-                const dx = this.ball.position.x - sand.position.x;
-                const dz = this.ball.position.z - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                inside = (dx * dx + dz * dz) < sandRadius * sandRadius;
-            }
-            if (inside) {
-                return (sand.userData && sand.userData.depth) ? sand.userData.depth : 0.8;
-            }
+            const hit = sandPhysics(sand, this.ball.position.x, this.ball.position.z);
+            if (hit && hit.inside) return hit.depth;
         }
         return 0.8;
     }
 
 
-    isBallInSandCollar(collarWidth = 0.7) {
+    isBallInSandCollar(collarWidth = SAND_COLLAR_WIDTH) {
         if (!this.sandTraps || this.sandTraps.length === 0) return false;
         if (this.isBallInSand()) return false;
 
@@ -105,34 +77,16 @@ export class PhysicsEngine {
         const bz = this.ball.position.z;
 
         for (let sand of this.sandTraps) {
-            if (sand.userData && sand.userData.isCollar) continue;
-
-            if (sand.userData && sand.userData.isPolygon) {
-                const points = sand.userData.points;
-                let minDistSq = Infinity;
-                for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                    const xi = points[i].x, zi = points[i].z;
-                    const xj = points[j].x, zj = points[j].z;
-                    const l2 = (xi - xj) ** 2 + (zi - zj) ** 2 || 0.0001;
-                    let t = ((bx - xi) * (xj - xi) + (bz - zi) * (zj - zi)) / l2;
-                    t = Math.max(0, Math.min(1, t));
-                    const projX = xi + t * (xj - xi);
-                    const projZ = zi + t * (zj - zi);
-                    const distSq = (bx - projX) ** 2 + (bz - projZ) ** 2;
-                    if (distSq < minDistSq) minDistSq = distSq;
-                }
-                if (Math.sqrt(minDistSq) <= collarWidth) return true;
-            } else {
-                const dx = bx - sand.position.x;
-                const dz = bz - sand.position.z;
-                const sandRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                const dist = Math.hypot(dx, dz);
-                if (dist <= sandRadius + collarWidth) return true;
+            const hit = sandPhysics(sand, bx, bz);
+            if (!hit) continue;
+            if (hit.kind === 'polygon') {
+                if (hit.edgeDist <= collarWidth) return true;
+            } else if (hit.dist <= hit.radius + collarWidth) {
+                return true;
             }
         }
         return false;
     }
-
     // NEW: Receives the shuffled configurations from the map setup
     setGreenContours(profileOrBack, midOrCenterX, frontOrCenterZ, centerXOrWidth, centerZ, randomWidth) {
         if (profileOrBack && typeof profileOrBack === 'object' && ('backLeft' in profileOrBack || 'features' in profileOrBack || 'back' in profileOrBack || 'rx' in profileOrBack)) {
@@ -278,11 +232,7 @@ export class PhysicsEngine {
         // 4. Circular plateau mound foundation (+0.20 units at center)
         const basePlateau = 0.20 * (1.0 - (distanceSq / (activeRadius * activeRadius)));
 
-        let ripples = 0;
-        if (this.currentHoleNumber === 1) {
-            ripples = Math.sin(dx * 0.55) * Math.cos(dz * 0.55) * 0.04 +
-                Math.cos(dx * 1.10) * Math.sin(dz * 1.10) * 0.015;
-        }
+        let ripples = greenRippleHeight(this.holeConfig && this.holeConfig.terrain, dx, dz);
 
         const combinedHeight = basePlateau + rawSlopeHeight + featureHeight + ripples;
 
@@ -319,340 +269,27 @@ export class PhysicsEngine {
 
 
     getCourseHeight(x, z) {
-        if (this.currentHoleNumber === 3) {
-            let baseHeight = 0.3; // Default lower fairway height
+        const terrain = this.holeConfig && this.holeConfig.terrain;
+        const fromConfig = evaluateCourseHeight(terrain, x, z, this);
+        if (fromConfig !== null) return fromConfig;
 
-            // Hill starts at -115 and completes its full climb over 21.5 units to finish at -136.5 (~120 yards out)
-            if (z <= -115 && z >= -136.5) {
-                let t = (-115 - z) / 21.5;
-                let smoothSlope = t * t * (3 - 2 * t);
-                baseHeight = 0.3 + (smoothSlope * 8.2);
-            } else if (z < -136.5) {
-                baseHeight = 8.5; // Flat plateau from 120 yards out all the way to the putting green
-            } else {
-                baseHeight = 0.3;  // Lift initial fairway above water level
-            }
-
-
-            // 2. Track the dynamic center line path to build the right-side cliff face line
-            let pathCenter = 0;
-            if (z >= -125) {
-                let t = (10 - z) / 135;
-                pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Recalculates course altitude lines relative to left fairway extension
-            } else {
-                let t = (-125 - z) / 55;
-                t = Math.min(1.0, t);
-                pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Recalculates course altitude lines relative to left fairway extension
-            }
-
-            // 3. Carve the sudden vertical cliff drop-off on the right side (Positive X)
-            let cliffEdgeLimit;
-
-            cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
-
-            // Apply the drop-off to sea level only where the wall / ocean actually start
-            if (x > cliffEdgeLimit && z <= -78.0) {
-                return 0.001;
-            }
-
-
-            // Smooth out the left rough boundary map lines to prevent clipping gaps
-            let leftSideFade = Math.min(1, Math.max(0, (80 - Math.abs(x)) / 15));
-            return Math.max(0.001, baseHeight * leftSideFade);
-        }
-        /* End of added block */
-
-        const dxTee = x - 0; // This line should naturally sit directly below the block
+        const dxTee = x - 0;
         const dzTee = z - 10;
         const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
-        let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10)); // Keeps Tee Box flat
+        let teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10));
 
-        // --- CUSTOM HOLE 1 ELEVATED TEE BOX ---
-        if (this.currentHoleNumber === 1) {
-            let baseHeight = 0.0;
-
-            // 1. Perched Tee Box (+4.5 units = ~15 ft elevation)
-            if (z > 5) {
-                baseHeight = 5.5;
-            } else if (z >= -25) {
-                // Smooth slope down into the fairway from z = 5 to z = -25
-                let t = (5 - z) / 30.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 5.5 * (1.0 - smoothT);
-            } else {
-                baseHeight = 0.0; // Flat fairway leading to the water hazard at z = -82.5
-            }
-
-            // Subtle micro-undulations along the fairway
-            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
-            const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
-            baseHeight += (flatWave1 * 0.05 + flatWave2 * 0.02);
-
-            let xFade = Math.min(1, Math.max(0, (70 - Math.abs(x)) / 10));
-            return Math.max(0.001, baseHeight * xFade);
-        }
-
-
-        // --- CUSTOM HOLE 2 RUNOUT AND HIGHER BUMPY ROUGH ---
-        if (this.currentHoleNumber === 2) {
-            let baseHeight = 0.0;
-
-
-            // 1. Tee starts at the peak elevation. Fairway goes down a hill for 100+ yards with organic transitions and a sightline window
-            if (z > 5) {
-                baseHeight = 37.5;
-            } else if (z >= -60) {
-                let t = (5 - z) / 65;
-                let smoothT = t * t * (3 - 2 * t); // Smoothstep rounding formula to eliminate the sharp geometric ridge lines
-                baseHeight = THREE.MathUtils.lerp(37.5, 0.0, smoothT);
-            } else {
-                baseHeight = 0.0;
-            }
-
-            // CREATE A SADDLE: Smoothly dips the center line (x = 0) right at the hill crest to frame the fairway view
-            if (z > -15 && z < 6) {
-                let xDist = Math.abs(x);
-                if (xDist < 16) {
-                    let saddleFactor = 1.0 - (xDist / 16);
-                    saddleFactor = saddleFactor * saddleFactor * (3 - 2 * saddleFactor); // Smooth bell distribution for the valley dip
-
-                    let zDist = Math.abs(z - 4);
-                    let zFade = Math.max(0, 1.0 - (zDist / 12)); // Limits the scoop to the edge of the ridge line
-
-                    // Lowers the ridge center by ~6.5 units, giving you a beautiful "U-shaped" window to aim through
-                    baseHeight -= 6.5 * saddleFactor * zFade;
-                }
-            }
-
-
-            // 2. Right side is a smooth rising hill that goes up to the right side of the screen
-            if (x > this.fairwayWidth && z < 15 && z > -118) { // Update this line
-                let hillIncline = (x - this.fairwayWidth) * 0.25; // Add this line: Continuous upward slope going right
-                if (z < -100) {
-                    let fade = (z - (-118)) / (-100 - (-118)); // Smoothly interpolates from 1.0 down to 0.0
-                    hillIncline *= Math.max(0, Math.min(1, fade));
-                }
-                baseHeight += hillIncline; // Add this line
-            } // Update this line
-
-            let xFade = Math.min(1, Math.max(0, (60 - Math.abs(x)) / 10)); // Modify this line: Expand left rough boundary to eliminate the steep cliff edge
-            if (x > 0) xFade = Math.min(1, Math.max(0, (60 - x) / 10)); // Keep this line
-            // Removed teeFade so your custom 4.5 baseline peak elevation stays locked at the tee box
-            return Math.max(0.001, baseHeight * xFade);
-
-        }
-
-        // --- BALLYNEAL HOLE 7 ROLLING SAND DUNING & HILLS ---
-        if (this.currentHoleNumber === 7) {
-            let baseHeight = 0.0;
-
-            // 1. Perched Tee Box (+4.5 units = +15 ft)
-            if (z > 5) {
-                baseHeight = 4.5;
-            } else if (z >= -25) {
-                let t = (5 - z) / 30;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = THREE.MathUtils.lerp(4.5, 0.0, smoothT);
-            }
-
-            // 2. Smooth rolling sand dunes framing Left and Right rough boundaries
-            let distFromCenter = Math.abs(x);
-            let fairwayEdge = (this.fairwayWidth || 15.0) * 0.85; // Starts rising gently outside fairway
-            if (distFromCenter > fairwayEdge) {
-                let tDune = Math.min(1.0, (distFromCenter - fairwayEdge) / 55.0);
-                let smoothDune = tDune * tDune * (3 - 2 * tDune);
-                let duneWave = Math.sin(z * 0.06 + x * 0.05) * 1.2 + Math.cos(z * 0.09) * 0.8;
-                baseHeight += (smoothDune * 13.0) + (Math.max(0, duneWave) * smoothDune);
-            }
-
-            // 3. Smooth, gentle natural rise at the 325-yd right split hazard (z = -85 to -135)
-            if (z <= -85 && z >= -135 && x > 0) {
-                let zDist = Math.abs(z - (-110.0));
-                let zFactor = Math.max(0.0, 1.0 - (zDist / 25.0));
-                let smoothZ = zFactor * zFactor * (3 - 2 * zFactor);
-
-                let xDist = Math.abs(x - 9.0);
-                let xFactor = Math.max(0.0, 1.0 - (xDist / 12.0));
-                let smoothX = xFactor * xFactor * (3 - 2 * xFactor);
-
-                baseHeight += 1.0 * smoothZ * smoothX; // Gentle 3 ft roll instead of steep mound
-            }
-
-            // 4. Natural undulating fairway moguls (subtle links ripples)
-            let fairwayMoguls = Math.sin(x * 0.15) * Math.cos(z * 0.10) * 0.25 + Math.cos(x * 0.22 + z * 0.16) * 0.15;
-            baseHeight += fairwayMoguls;
-
-            let xFade = Math.min(1, Math.max(0, (90 - Math.abs(x)) / 10));
-            return Math.max(0.001, baseHeight * xFade);
-        }
-
-
-
-        if (this.currentHoleNumber === 8) {
-            let baseHeight = 0.0;
-
-            // 1. Perched Tee Box (0 to 72 yds / z = 10 to -16)
-            if (z > 5) {
-                baseHeight = 3.5;
-            } else if (z >= -16) {
-                let t = (5 - z) / 21.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 3.5 * (1.0 - smoothT);
-            }
-            // 2. Valley & Fairway 1 Landing Zone (72 to 275 yds / z = -16 to -89.5) -> flat at 0.0
-            else if (z > -89.5) {
-                baseHeight = 0.0;
-            }
-            // Step 1: Rise over Bunker 1 (z = -89.5 to -94.5) -> 0.0 to 2.125
-            else if (z >= -94.5) {
-                let t = (-89.5 - z) / 5.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 2.125 * smoothT;
-            }
-            // Step 1 Flat Fairway 1 (z = -94.5 to -108.9, 40 yds) -> 100% FLAT at 2.125
-            else if (z > -108.9) {
-                baseHeight = 2.125;
-            }
-            // Step 2: Rise over Bunker 2 (z = -108.9 to -113.9) -> 2.125 to 4.25
-            else if (z >= -113.9) {
-                let t = (-108.9 - z) / 5.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 2.125 + 2.125 * smoothT;
-            }
-            // Step 2 Flat Fairway 2 (z = -113.9 to -128.3, 40 yds) -> 100% FLAT at 4.25
-            else if (z > -128.3) {
-                baseHeight = 4.25;
-            }
-            // Step 3: Rise over Bunker 3 (z = -128.3 to -133.3) -> 4.25 to 6.375
-            else if (z >= -133.3) {
-                let t = (-128.3 - z) / 5.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 4.25 + 2.125 * smoothT;
-            }
-            // Step 3 Flat Fairway 3 (z = -133.3 to -147.7, 40 yds) -> 100% FLAT at 6.375
-            else if (z > -147.7) {
-                baseHeight = 6.375;
-            }
-            // Step 4: Rise over Bunker 4 (z = -147.7 to -152.7) -> 6.375 to 8.5
-            else if (z >= -152.7) {
-                let t = (-147.7 - z) / 5.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 6.375 + 2.125 * smoothT;
-            }
-            // Green Plateau (z = -152.7 to -170.7, Green center at z = -161.2) -> flat at 8.5
-            else if (z >= -161.7) {
-                baseHeight = 8.5;
-            }
-            // Smooth Downslope behind green (z = -170.7 to -198.7) -> rolls gradually down to 0.0
-            else {
-                let t = Math.min(1.0, (-161.7 - z) / 35.0);
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 8.5 * (1.0 - smoothT);
-            }
-
-            // Side hills framing the rough corridor
-            let distFromCenter = Math.abs(x);
-            let fairwayEdge = 13.0;
-            if (distFromCenter > fairwayEdge) {
-                let tSide = Math.min(1.0, (distFromCenter - fairwayEdge) / 35.0);
-                let smoothSide = tSide * tSide * (3 - 2 * tSide);
-                baseHeight += smoothSide * 4.5;
-            }
-
-            let xFade = Math.min(1, Math.max(0, (75 - Math.abs(x)) / 10));
-            return Math.max(0.001, baseHeight * xFade);
-        }
-
-        if (this.currentHoleNumber === 9) {
-            let baseHeight = 0.0;
-
-            // 1. High Perched Tee Box (+14 units elevation)
-            if (z > 5) {
-                baseHeight = 14.0;
-            }
-            // 2. Steep Drop-Off in front of Tee down to valley floor (z = 5 to -12)
-            else if (z >= -12) {
-                let t = (5 - z) / 17.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 14.0 * (1.0 - smoothT);
-            }
-            // 3. Valley Floor (z = -12 to -58) -> flat at 0.0
-            else if (z > -58) {
-                baseHeight = 0.0;
-            }
-            // 4. Gentle Rise onto Green Complex (z = -58 to -65) -> rises from 0.0 to 1.0
-            else if (z >= -65) {
-                let t = (-58 - z) / 7.0;
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 1.0 * smoothT;
-            }
-            // 5. Green Plateau (z = -65 to -76, Green Center at z = -69.45) -> flat at 1.0
-            else if (z >= -76) {
-                baseHeight = 1.0;
-            }
-            // 6. Drop-Off behind Green (z = -76 to -95) -> rolls down 3.5 units
-            else {
-                let t = Math.min(1.0, (-76 - z) / 19.0);
-                let smoothT = t * t * (3 - 2 * t);
-                baseHeight = 1.0 - (3.5 * smoothT);
-            }
-
-            // Side hills framing the chute on Left and Right
-            let distFromCenter = Math.abs(x);
-            let chuteEdge = 13.0;
-            if (distFromCenter > chuteEdge) {
-                let tSide = Math.min(1.0, (distFromCenter - chuteEdge) / 25.0);
-                let smoothSide = tSide * tSide * (3 - 2 * tSide);
-                baseHeight += smoothSide * 7.5;
-            }
-
-            let xFade = Math.min(1, Math.max(0, (65 - Math.abs(x)) / 10));
-            return Math.max(0.001, baseHeight * xFade);
-        }
-
-        // Base undulating small mounds and dips (mostly flat, natural ripples)
         const wave1 = Math.sin(x * 0.05 + (this.courseSeedX1 || 0)) * Math.cos(z * 0.03 + (this.courseSeedZ1 || 0));
         const wave2 = Math.cos(x * 0.10 + (this.courseSeedX2 || 0)) * Math.sin(z * 0.06 + (this.courseSeedZ2 || 0));
         let height = (wave1 * 1.8 + wave2 * 0.9);
-        // Intercept Hole 1 and Hole 4 to clear out random mountains and set subtle, fixed fairway ripples
-        if (this.currentHoleNumber === 6) {
-            // Pronounced, fixed rolling hills across the Oakmont fairway
-            const roll1 = Math.sin(z * 0.035) * 1.8;                    // Long swells down the fairway
-            const roll2 = Math.cos(x * 0.07 + z * 0.025) * 1.2;         // Diagonal rolling crests across width
-            const roll3 = Math.sin(x * 0.12 + z * 0.06) * 0.5;          // Secondary terrain undulations
-            height = roll1 + roll2 + roll3;
 
-            // Left bank by the green: drop it so it doesn't pile onto the already-high left green slope
-            if (z < -128) {
-                const nearGreen = THREE.MathUtils.clamp((-128 - z) / 40.0, 0, 1);
-                const leftT = THREE.MathUtils.clamp((-x) / 9.0, 0, 1);
-                const smoothNear = nearGreen * nearGreen * (3 - 2 * nearGreen);
-                const smoothLeft = leftT * leftT * (3 - 2 * leftT);
-                height -= smoothNear * smoothLeft * 0.60;
-            }
-
-            this.hasBigFeature = false; // Prevents random extreme cliffs/canyons
-        }
-        else if (this.currentHoleNumber === 1 || this.currentHoleNumber === 4 || this.currentHoleNumber === 5 || this.currentHoleNumber === 7 || this.currentHoleNumber === 8 || this.currentHoleNumber === 9) {
-            const flatWave1 = Math.sin(x * 0.06) * Math.cos(z * 0.04);
-            const flatWave2 = Math.cos(x * 0.12) * Math.sin(z * 0.08);
-
-            // Reduced multipliers for an ultra-flat fairway with clear line-of-sight
-            height = (flatWave1 * 0.05 + flatWave2 * 0.02);
-
-            this.hasBigFeature = false; // Disables big random mountain features
-        }
-
-        // Occasional larger feature (big hill or drop-off)
         if (this.hasBigFeature) {
             const dxBig = x - this.bigFeatureX;
             const dzBig = z - this.bigFeatureZ;
             const distBigSq = dxBig * dxBig + dzBig * dzBig;
-            const bigInfluence = Math.exp(-distBigSq / 2500); // Spread across the course width
-            height += (this.bigFeatureScale || 0) * 1.8 * bigInfluence; // Change this line
+            const bigInfluence = Math.exp(-distBigSq / 2500);
+            height += (this.bigFeatureScale || 0) * 1.8 * bigInfluence;
         }
 
-        // FIXED: Dynamically expand course width masking limits so wide 90-degree dogleg layouts (Holes 4 and 5) don't fall off into a flat zero-height void
         let maxLayoutWidth = 30;
         if (this.fairwayPoints && this.fairwayPoints.length > 0) {
             this.fairwayPoints.forEach(p => {
@@ -661,9 +298,8 @@ export class PhysicsEngine {
             });
         }
         const dynamicBoundary = maxLayoutWidth + (this.fairwayWidth || 9.0) + 12.0;
-
         let xFade = Math.min(1, Math.max(0, (dynamicBoundary - Math.abs(x)) / 10));
-        return Math.max(0.001, height * teeFade * xFade); // Change this line
+        return Math.max(0.001, height * teeFade * xFade);
     }
 
     // FIXED UNIFIED HEIGHTMAP: Carves out smooth, deep 3D valleys for hazards cleanly in a single pass
@@ -677,31 +313,10 @@ export class PhysicsEngine {
         // MODIFIED: Base height is always the course elevation. If inside the green radius, we seamlessly stack the green contours on top.
         // This completely eliminates the pedestal drop-off and seals the giant canyon hole behind the green.
         let baseHeight = this.getCourseHeight(x, z);
-
-        // NEW: Sculpt a raised step-up plateau specifically around Hole 1's green complex
-        if (this.currentHoleNumber === 1) {
-            // Sculpt an elevated earth berm / backstop mound behind the green
-            const relX = x - this.greenCenterX;
-            const relZ = z - this.greenCenterZ;
-            if (relZ < -13.0 && relZ > -40.0 && Math.abs(relX) < 32.0) {
-                const zCenter = -24.0;
-                const zRadius = 11.0;
-                const xRadius = 30.0;
-                const dzBerm = Math.abs(relZ - zCenter);
-                const dxBerm = Math.abs(relX);
-                if (dzBerm < zRadius && dxBerm < xRadius) {
-                    const factorZ = (1.0 + Math.cos((dzBerm / zRadius) * Math.PI)) * 0.5;
-                    const factorX = (1.0 + Math.cos((dxBerm / xRadius) * Math.PI)) * 0.5;
-                    baseHeight += 3.2 * factorZ * factorX;
-                }
-            }
-            const platformRadius = activeRadius + 4.5; // Starts rising 4.5 units before the green rim
-            if (distFromGreen < platformRadius) {
-                const tPlateau = Math.min(1.0, (platformRadius - distFromGreen) / 4.5);
-                const smoothPlateau = tPlateau * tPlateau * (3 - 2 * tPlateau);
-                baseHeight += smoothPlateau * 0.70; // Seamlessly raises the entire green 0.70 units high
-            }
-        }
+        baseHeight = applyGreenComplex(
+            this.holeConfig && this.holeConfig.terrain,
+            x, z, baseHeight, this.greenCenterX, this.greenCenterZ, activeRadius
+        );
 
         // Smoothly blend green elevation and contours outward past the fringe onto the apron mound (3.0 units wide)
         const outerApronRadius = activeRadius + 3.0;
@@ -722,17 +337,8 @@ export class PhysicsEngine {
             this.waterHazards.forEach(water => {
                 // MODIFIED: Constrained the rectangular ocean check to only apply to coordinates past our curved cliff face line
                 if (water.userData && water.userData.isRectangular) {
-                    let pathCenter = 0;
-                    if (z >= -125) {
-                        let t = (10 - z) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
-                    } else {
-                        let t = (-125 - z) / 55;
-                        t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Matches heightmap terrain calculations to new path bounds
-                    }
-
-                    const cliffEdgeLimit = pathCenter + (window.getHole3CliffPadding ? window.getHole3CliffPadding(z) : 15.5);
+                    const cliff = getWaterCliff(this.holeConfig);
+                    const cliffEdgeLimit = cliff ? getCliffEdgeX(z, cliff) : (getCliffPathCenter(z, null) + 15.5);
 
                     if (x > cliffEdgeLimit && x <= water.position.x + water.userData.w / 2 &&
                         z >= water.position.z - water.userData.l / 2 && z <= water.position.z + water.userData.l / 2) {
@@ -741,12 +347,9 @@ export class PhysicsEngine {
                 } else {
                     const dxW = x - water.position.x;
                     const dzW = z - water.position.z;
-                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-
-                    const rx = water.userData.radiusX || water.userData.radius || 5;
-                    const rz = water.userData.radiusZ || water.userData.radius || 5;
-                    const wAngle = Math.atan2(dzW, dxW);
-                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+                    const hit = waterPhysics(water, x, z);
+                    const distToWater = hit ? hit.dist : Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = hit ? hit.radius : lakeRadiusAtAngle(water.userData, dxW, dzW);
 
                     const centerLakeHeight = water.position.y - 0.01;
 
@@ -772,46 +375,23 @@ export class PhysicsEngine {
         if (this.sandTraps && this.sandTraps.length > 0) {
             let maxSandDrop = 0;
             this.sandTraps.forEach(sand => {
-                if (sand.userData && sand.userData.isCollar) return;
+                const hit = sandPhysics(sand, x, z);
+                if (!hit) return;
                 let drop = 0;
-                // Restores full natural bunker depth
-                const sandDepth = sand.userData && sand.userData.depth ? sand.userData.depth : 0.8;
+                const sandDepth = hit.depth;
 
-                if (sand.userData && sand.userData.isPolygon) {
-                    const points = sand.userData.points;
-                    let inside = false;
-                    let minEdgeDistSq = Infinity;
-                    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-                        const xi = points[i].x, zi = points[i].z;
-                        const xj = points[j].x, zj = points[j].z;
-                        const intersect = ((zi > z) !== (zj > z))
-                            && (x < (xj - xi) * (z - zi) / (zj - zi) + xi);
-                        if (intersect) inside = !inside;
-
-                        const l2 = (xi - xj) * (xi - xj) + (zi - zj) * (zi - zj) || 0.0001;
-                        let t = ((x - xi) * (xj - xi) + (z - zi) * (zj - zi)) / l2;
-                        t = Math.max(0, Math.min(1, t));
-                        const projX = xi + t * (xj - xi);
-                        const projZ = zi + t * (zj - zi);
-                        const distSq = (x - projX) ** 2 + (z - projZ) ** 2;
-                        if (distSq < minEdgeDistSq) minEdgeDistSq = distSq;
-                    }
-                    const edgeDist = Math.sqrt(minEdgeDistSq);
-                    if (inside) {
-                        if (edgeDist < 1.5) {
-                            drop = sandDepth * (edgeDist / 1.5);
+                if (hit.kind === 'polygon') {
+                    if (hit.inside) {
+                        if (hit.edgeDist < 1.5) {
+                            drop = sandDepth * (hit.edgeDist / 1.5);
                         } else {
                             drop = sandDepth;
                         }
                     }
                 } else {
-                    const dxS = x - sand.position.x;
-                    const dzS = z - sand.position.z;
-                    const distToSand = Math.sqrt(dxS * dxS + dzS * dzS);
-
-                    const baseRadius = sand.userData && sand.userData.radius ? sand.userData.radius : 5;
-                    const transitionMargin = 0.0;
-                    const sandRadius = baseRadius + transitionMargin;
+                    const distToSand = hit.dist;
+                    const baseRadius = hit.radius;
+                    const sandRadius = baseRadius;
 
                     if (distToSand < sandRadius) {
                         const flatRadius = Math.max(0.5, baseRadius * 0.30);
@@ -952,10 +532,10 @@ export class PhysicsEngine {
             if (approachDot > apronStart && approachDot <= apronEnd) {
                 let tApron = (approachDot - apronStart) / 12.0;
                 const smoothApron = THREE.MathUtils.smoothstep(tApron, 0, 1);
-                const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + 1.0);
+                const targetApronWidth = Math.max(this.fairwayWidth, activeRadius + FRINGE_WIDTH_UNITS);
                 activeFW = THREE.MathUtils.lerp(this.fairwayWidth, targetApronWidth, smoothApron);
             } else if (approachDot > apronEnd) {
-                activeFW = Math.max(this.fairwayWidth, activeRadius + 1.0);
+                activeFW = Math.max(this.fairwayWidth, activeRadius + FRINGE_WIDTH_UNITS);
             }
         }
         if (this.greenCenterZ < -128 && this.greenCenterZ > -152 && this.ball.position.z < -125) {
@@ -1011,7 +591,7 @@ export class PhysicsEngine {
                 }
             }
         }
-        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
+        else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + FRINGE_WIDTH_UNITS)) {
             this.currentSurface = 'Fringe';
             currentFriction = 0.94;
             currentBounceHeight = 0.28;
@@ -1042,7 +622,7 @@ export class PhysicsEngine {
 
             // Sync with the exact visual boundary parameters from main.js
             const fWEdge = activeFW + 2.26;
-            const fringeOuterR = activeRadius + 1.0;
+            const fringeOuterR = activeRadius + FRINGE_WIDTH_UNITS;
 
             let floorHeight = greenHeightOffset;
 
@@ -1073,7 +653,7 @@ export class PhysicsEngine {
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
         if (this.isPutting) {
             // Allow putting state to remain active across both the putting surface and fringe collar complex
-            if (distToGreenCenter > activeRadius + 1.0) {
+            if (distToGreenCenter > activeRadius + FRINGE_WIDTH_UNITS) {
                 // Terminate putting status instantly if it completely leaves the green complex
                 this.isPutting = false;
             } else {
@@ -1392,18 +972,9 @@ export class PhysicsEngine {
             for (let water of this.waterHazards) {
                 // MODIFIED: Check if this is the rectangular ocean box to register a cliffside splash penalty
                 if (water.userData && water.userData.isRectangular) {
-                    let pathCenter = 0;
-                    if (this.ball.position.z >= -125) {
-                        let t = (10 - this.ball.position.z) / 135;
-                        pathCenter = THREE.MathUtils.lerp(0, -14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
-                    } else {
-                        let t = (-125 - this.ball.position.z) / 55;
-                        t = Math.min(1.0, t);
-                        pathCenter = THREE.MathUtils.lerp(-14.0, 14.0, t); // CHANGED: Syncs the active physical splash/rebound zone limits
-                    }
-                    const cliffEdgeLimit = pathCenter + ((typeof window !== 'undefined' && window.getHole3CliffPadding)
-                        ? window.getHole3CliffPadding(this.ball.position.z)
-                        : (this.ball.position.z <= -125 ? 10.5 : 15.5));                    // End of added lines
+                    const cliff = getWaterCliff(this.holeConfig);
+                    const bz = this.ball.position.z;
+                    const cliffEdgeLimit = cliff ? getCliffEdgeX(bz, cliff) : (getCliffPathCenter(bz, null) + 15.5);
 
                     if (this.ball.position.x >= cliffEdgeLimit && this.ball.position.x <= water.position.x + water.userData.w / 2 &&
                         this.ball.position.z >= water.position.z - water.userData.l / 2 && this.ball.position.z <= water.position.z + water.userData.l / 2) {
@@ -1416,12 +987,9 @@ export class PhysicsEngine {
                 } else {
                     const dxW = this.ball.position.x - water.position.x;
                     const dzW = this.ball.position.z - water.position.z;
-                    const distToWater = Math.sqrt(dxW * dxW + dzW * dzW);
-
-                    const rx = water.userData.radiusX || water.userData.radius || 5;
-                    const rz = water.userData.radiusZ || water.userData.radius || 5;
-                    const wAngle = Math.atan2(dzW, dxW);
-                    const lakeRadius = (rx * rz) / Math.sqrt((rz * Math.cos(wAngle)) ** 2 + (rx * Math.sin(wAngle)) ** 2);
+                    const hit = waterPhysics(water, this.ball.position.x, this.ball.position.z);
+                    const distToWater = hit ? hit.dist : Math.sqrt(dxW * dxW + dzW * dzW);
+                    const lakeRadius = hit ? hit.radius : lakeRadiusAtAngle(water.userData, dxW, dzW);
 
                     if (distToWater < lakeRadius) {
                         // Check if the ball landed safely on the island green or fringe collar
@@ -1432,7 +1000,7 @@ export class PhysicsEngine {
                         const activeRadius = window.getGreenRadiusAtAngle ? window.getGreenRadiusAtAngle(ballAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle') : (window.activeGreenRadius || 12.0);
 
                         // Only trigger water hit if the ball is outside the green and fringe collar
-                        if (distFromGreen >= activeRadius + 1.0) {
+                        if (distFromGreen >= activeRadius + FRINGE_WIDTH_UNITS) {
                             this.hitWater = true;
                             this.velocity.set(0, 0, 0);
                             this.isMoving = false;
@@ -1451,7 +1019,7 @@ export class PhysicsEngine {
                         this.sounds.play('sand'); // Preserved: Sand path remains clean
                     } else if (onGreen) {
                         this.sounds.play('green'); // Triggers on green grass bounce
-                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
+                    } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + FRINGE_WIDTH_UNITS)) {
                         this.sounds.play('fairway'); // Modified: Fringe plays crisp fairway turf sound
                     } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                         this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {
@@ -1503,7 +1071,7 @@ export class PhysicsEngine {
                         let surfaceFactor = 0.0;
                         if (onGreen) {
                             surfaceFactor = 1.0;
-                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + 1.0)) {
+                        } else if (distToGreenCenter >= activeRadius && distToGreenCenter <= (activeRadius + FRINGE_WIDTH_UNITS)) {
                             surfaceFactor = 0.75; // Modified: Fringe gets a crisp 75% backspin check-up grab!
                         } else if (this.getDistanceToSpline(this.ball.position.x, this.ball.position.z) <= activeFW && !isPastFairway && !isOnGreenSidesOrBack &&
                             this.isWithinFairwayLongitudinalBounds(this.ball.position.z)) {
