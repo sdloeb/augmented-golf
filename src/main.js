@@ -2440,7 +2440,7 @@ function resetEntireGame(advanceHole = false) {
                 // Smoothly transition fairway cut only once past the green's equator
                 // Widen the allowed corridor near water hazards so the fairway reaches the shoreline
                 // instead of tapering off early and leaving a jagged gap between fairway and water
-                const waterWidening = Math.max(0, 10.0 - shortestDistToWaterEdge);
+                const waterWidening = 0;
                 const lateralExcess = Math.max(0, distanceToPath - fW - waterWidening);
                 const forwardExcess = (distToGreenCenter >= fringeOuterR && pastFairwayDist > 0) ? pastFairwayDist : 0;
                 const fairwayExcess = Math.max(lateralExcess, forwardExcess);
