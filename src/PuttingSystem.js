@@ -1,12 +1,12 @@
 /** One leftover-feet putting scale. Fringe, cup, and pin numbers are named, not retuned. */
 
 export const COURSE_YARDS_PER_UNIT = 2.76923;
-// Hole 1 green radius 10.5; leftover is 40 ft center-to-edge, so 40 / (10.5 * 2).
-export const PUTT_FEET_PER_UNIT = 40 / 21;
+// Hole 1 green radius 10.5; leftover is 50 ft end-to-end, so 50 / (10.5 * 2).
+export const PUTT_FEET_PER_UNIT = 50 / 21;
 export const FRINGE_WIDTH_UNITS = 1.0;
 export const FLAG_HIDE_FEET = 20;
-export const CHIP_BLEND_START_FEET = 25;
-export const CHIP_BLEND_END_FEET = 55;
+export const CHIP_BLEND_START_FEET = 31;
+export const CHIP_BLEND_END_FEET = 69;
 // Keep this number. Old comment said 15 ft; leftover scale is closer to ~3.4 ft.
 export const PIN_INSET_UNITS = 5.0 / 2.76923;
 export const CUP_RIM_RADIUS = 0.115;

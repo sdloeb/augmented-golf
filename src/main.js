@@ -4336,6 +4336,12 @@ function animate() {
         // Detect if screen width is mobile or portrait orientation at top of block
         const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
 
+        const isSand = physics && physics.isBallInSand();
+        const dxHole = holePosition.x - ball.position.x;
+        const dzHole = holePosition.z - ball.position.z;
+        const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
+        const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
+
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
             ballTargetScale = isMobile ? 0.35 : 0.35; // Change first number for mobile, second for desktop
@@ -4345,23 +4351,15 @@ function animate() {
             } else {
                 ballTargetScale = isMobile ? 0.16 : 0.14;
             }
+        } else if (isChippingClose && !isSand) {
+            ballTargetScale = isMobile ? 0.18 : 0.16;
         } else {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
 
-        const isSand = physics && physics.isBallInSand();
-
-        // NEW: Calculate true distance to the hole pin to detect short chip-shot scenarios
-        const dxHole = holePosition.x - ball.position.x;
-        const dzHole = holePosition.z - ball.position.z;
-        // MODIFIED: Corrected the Z-axis component typo from (dxHole * dzHole) to (dzHole * dzHole)
-        const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-        // LINE ABOVE:
-        const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
-        // ADJUSTED: Lift camera height and pitch in sand traps so view clears the bunker lip cleanly
-        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 3.8 : 4.8));
-        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.4 : 1.8));
-        const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 8.0 : 11.0));
+        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 2.6 : 4.8));
+        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.05 : 1.8));
+        const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 6.2 : 11.0));
         if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
@@ -4396,7 +4394,7 @@ function animate() {
             const camGroundY = physics.getGroundHeight(camX, camZ);
 
             let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
-            let activeLookUp = 3.0;
+            let activeLookUp = isChippingClose ? 0.35 : 3.0;
             if (isSand) {
                 camY = stableBallHeight + camHeight;
                 activeLookUp = 0.4;
