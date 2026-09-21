@@ -11,6 +11,7 @@ import {
     isFairwayHidden,
     fairwayWidthAt,
     skipApronTaper,
+    meetGreen,
     sandFloorLip,
     buryFairwayInSand,
     islandGreenSink,
@@ -2422,15 +2423,17 @@ function resetEntireGame(advanceHole = false) {
 
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                 const fringeOuterR = fringeOuterRadius(activeRadius);
-                if (!skipApronTaper(currentHoleConfig && currentHoleConfig.fairwayMask)) {
-                    const apronEnd = -activeRadius;
-                    if (approachDot > 0) {
-                        fW = 0;
-                    } else if (approachDot > apronEnd) {
-                        const tApron = THREE.MathUtils.clamp((approachDot - apronEnd) / Math.max(0.001, -apronEnd), 0, 1);
-                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, 0, tApron);
-                    }
-                }
+            const apronMask = currentHoleConfig && currentHoleConfig.fairwayMask;
+const keepFullWidth = !apronMask || (apronMask.meetGreen !== false && !apronMask.islandGreenSink);
+if (!keepFullWidth && !skipApronTaper(apronMask)) {
+    const apronEnd = -activeRadius;
+    if (approachDot > 0) {
+        fW = 0;
+    } else if (approachDot > apronEnd) {
+        const tApron = THREE.MathUtils.clamp((approachDot - apronEnd) / Math.max(0.001, -apronEnd), 0, 1);
+        fW = THREE.MathUtils.lerp(physics.fairwayWidth, 0, tApron);
+    }
+}
 
                 const fWEdge = fW + 3.5;
 
@@ -2504,19 +2507,26 @@ function resetEntireGame(advanceHole = false) {
                         isCustomHole
                     ); if (isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
-                    } else if (distToGreenCenter < fringeR) {
-                        // Approach fairway stays at full height until the fringe, then
-                        // tucks under the green. Outside the mown corridor, stay buried
-                        // so the 1-unit grid cannot form a jagged fairway ring in the rough.
-                        const tTuck = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
-                        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                        const buriedH = floorHeight - 0.45;
-                        const meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
-                        const corridorExcess = Math.max(0, distanceToPath - fW);
-                        const tOut = THREE.MathUtils.clamp(corridorExcess / 1.0, 0, 1);
-                        const smoothOut = tOut * tOut * (3 - 2 * tOut);
-                        calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
-                    } else if (approachDot > 0) {
+                } else if (distToGreenCenter < fringeR) {
+    const mask = currentHoleConfig && currentHoleConfig.fairwayMask;
+    const meetsGreen = !mask || (mask.meetGreen !== false && !mask.islandGreenSink);
+    const buriedH = floorHeight - 0.45;
+    let meetH = floorHeight;
+    const tTuckFringe = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
+    const smoothFringeTuck = tTuckFringe * tTuckFringe * (3 - 2 * tTuckFringe);
+    if (distToGreenCenter < activeR) {
+        const tTuck = Math.max(0, Math.min(1, (activeR - distToGreenCenter) / 1.0));
+        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+        meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
+    } else if (!meetsGreen || approachDot > 0) {
+        meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothFringeTuck);
+    }
+    const corridorExcess = Math.max(0, distanceToPath - fW);
+    const edgeSoft = meetsGreen ? 2.5 : 1.0;
+    const tOut = THREE.MathUtils.clamp(corridorExcess / edgeSoft, 0, 1);
+    const smoothOut = tOut * tOut * (3 - 2 * tOut);
+    calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
+} else if (approachDot > 0) {
                         calculatedHeight = hiddenFairwayH;
                     } else {
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);

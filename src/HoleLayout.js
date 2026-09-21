@@ -74,6 +74,13 @@ export function skipApronTaper(mask) {
     return !!(mask && mask.skipApronTaper);
 }
 
+export function meetGreen(mask) {
+    if (!mask) return true;
+    if (mask.meetGreen === false) return false;
+    if (mask.islandGreenSink) return false;
+    return true;
+}
+
 export function sandFloorLip(mask) {
     return (mask && mask.sandLip !== undefined) ? mask.sandLip : 0.25;
 }
