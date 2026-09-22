@@ -166,7 +166,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 3; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1885,9 +1885,39 @@ function resetEntireGame(advanceHole = false) {
                 wallGeo.setIndex(indices);
                 wallGeo.computeVertexNormals();
                 const cliffWall = new THREE.Mesh(wallGeo, wallMat);
-                scene.add(cliffWall);
-                waterShores.push(cliffWall);
-            }
+    scene.add(cliffWall);
+    waterShores.push(cliffWall);
+
+    const rockMatA = new THREE.MeshStandardMaterial({ color: 0x6a6458, roughness: 0.97, flatShading: true });
+    const rockMatB = new THREE.MeshStandardMaterial({ color: 0x4a453c, roughness: 0.98, flatShading: true });
+    const rockGeos = [
+        new THREE.DodecahedronGeometry(0.62, 0),
+        new THREE.IcosahedronGeometry(0.52, 0),
+        new THREE.DodecahedronGeometry(0.44, 0)
+    ];
+    const rockStep = 1.05;
+    for (let currentZ = startZ; currentZ >= endZ; currentZ -= rockStep) {
+        const s = sampleCliffStation(currentZ);
+        for (let r = 0; r < 5; r++) {
+            const rock = new THREE.Mesh(rockGeos[r % 3], (r + Math.floor(Math.abs(currentZ))) % 2 ? rockMatB : rockMatA);
+            const row = r < 3 ? 0 : 1;
+            const col = r % 3;
+            const out = 0.25 + col * 0.55 + row * 0.85;
+            const down = row * 1.15 + col * 0.18;
+            const along = (col - 1) * 0.32;
+            rock.position.set(
+                s.innerX + out + Math.sin(currentZ * 2.1 + r) * 0.16,
+                s.topY - down + 0.22,
+                s.z + along + Math.cos(currentZ * 1.6 + r) * 0.12
+            );
+            const sc = 0.72 + ((r * 17 + Math.abs(Math.sin(currentZ * 0.37) * 10)) % 7) * 0.08;
+            rock.scale.set(sc * (0.9 + (r % 3) * 0.08), sc * (0.62 + (r % 2) * 0.18), sc * (0.95 + (col % 2) * 0.08));
+            rock.rotation.set(currentZ * 0.41 + r * 0.7, currentZ * 0.22 + r, currentZ * 0.33 + r * 1.1);
+            scene.add(rock);
+            waterShores.push(rock);
+        }
+    }
+}
         });
 
         if (physics) {
