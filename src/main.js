@@ -4350,7 +4350,9 @@ function animate() {
         const dxHole = holePosition.x - ball.position.x;
         const dzHole = holePosition.z - ball.position.z;
         const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-        const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
+const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
+const holeHudYards = getChipAdjustedYards(Math.sqrt(dxHole * dxHole + dzHole * dzHole));
+const closeToClub = !onGreen && holeHudYards <= 25;
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
@@ -4367,8 +4369,7 @@ function animate() {
             ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
 
-        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (isChippingClose ? 2.6 : 4.8));
-        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.05 : 1.8));
+const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (closeToClub ? 1.6 : (isChippingClose ? 2.6 : 4.8)));        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.05 : 1.8));
         const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 6.2 : 11.0));
         if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
@@ -4404,7 +4405,7 @@ function animate() {
             const camGroundY = physics.getGroundHeight(camX, camZ);
 
             let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
-            let activeLookUp = isChippingClose ? 0.35 : 3.0;
+let activeLookUp = isChippingClose ? -0.40 : 3.0;
             if (isSand) {
                 camY = stableBallHeight + camHeight;
                 activeLookUp = 0.4;
