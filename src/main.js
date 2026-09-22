@@ -1256,7 +1256,7 @@ function applyHoleWeatherAudio() {
 function applyHoleWeather() {
     const roll = Math.random();
     isRaining = roll < 0.05;
-    isSnowing = !isRaining && roll < 0.90;
+    isSnowing = !isRaining && roll < 0.05;
     document.body.classList.toggle('storm-mode', isRaining);
     document.body.classList.toggle('snow-mode', isSnowing);
     applyHoleWeatherAudio();
@@ -5094,7 +5094,7 @@ let activeLookUp = isChippingClose ? -0.40 : 3.0;
         }
     }
 
-    if (isSnowing && snowParticles.length < 420 && scene) {
+    if (isSnowing && snowParticles.length < 620 && scene) {
         if (!snowFlakeGeo) snowFlakeGeo = new THREE.PlaneGeometry(0.04, 0.04);
         if (!snowFlakeMat) snowFlakeMat = new THREE.MeshBasicMaterial({
             color: 0xffffff,
