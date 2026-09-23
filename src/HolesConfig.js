@@ -41,23 +41,23 @@ export const HOLES_CONFIG = {
                 radiusZ: 10.0   // Shortens length down the fairway
             },
             //  twin traps by green
-               { type: 'sand', x: -9, z: -135, radius: 5.8, depth: 1.35 },
-    { type: 'sand', x: 10, z: -135, radius: 5.8, depth: 1.35 }
-],
-cartPath: [
-    { x: 43, z: 22 },
-    { x: 43, z: 0 },
-    { x: 43, z: -25 },
-    { x: 43, z: -50 },
-    { x: 43, z: -75 },
-    { x: 43, z: -100 },
-    { x: 44, z: -125 },
-    { x: 44, z: -145 },
-    { x: 40, z: -162 },
-    { x: 28, z: -180 }
-],
-customOOB: {
-    type: 'stepped',
+            { type: 'sand', x: -9, z: -135, radius: 5.8, depth: 1.35 },
+            { type: 'sand', x: 10, z: -135, radius: 5.8, depth: 1.35 }
+        ],
+        cartPath: [
+            { x: 43, z: 22 },
+            { x: 43, z: 0 },
+            { x: 43, z: -25 },
+            { x: 43, z: -50 },
+            { x: 43, z: -75 },
+            { x: 43, z: -100 },
+            { x: 44, z: -125 },
+            { x: 44, z: -145 },
+            { x: 40, z: -162 },
+            { x: 28, z: -180 }
+        ],
+        customOOB: {
+            type: 'stepped',
             narrowMinX: -26,
             narrowMaxX: 26,
             splitZ: -118,
@@ -119,23 +119,23 @@ customOOB: {
             { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 1.5 },
             { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 1.6 },
             { type: 'sand', shape: 'snake', depth: 0.3, radius: 2.2, path: [{ x: 18, z: -152 }, { x: 25, z: -152 }] },
-               { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
-],
-cartPath: [
-    { x: -25, z: 18 },
-    { x: -25, z: -10 },
-    { x: -25, z: -40 },
-    { x: -25, z: -70 },
-    { x: -25, z: -95 },
-    { x: -24, z: -110 },
-    { x: -22, z: -120 },
-    { x: -19, z: -135 },
-      { x: 13, z: -165 }
-],
+            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
+        ],
+        cartPath: [
+            { x: -25, z: 18 },
+            { x: -25, z: -10 },
+            { x: -25, z: -40 },
+            { x: -25, z: -70 },
+            { x: -25, z: -95 },
+            { x: -24, z: -110 },
+            { x: -22, z: -120 },
+            { x: -19, z: -135 },
+            { x: 13, z: -165 }
+        ],
 
-customOOB: {
-    type: 'rectangle',
-    minX: -60,         // Left wall line bounding the rough
+        customOOB: {
+            type: 'rectangle',
+            minX: -60,         // Left wall line bounding the rough
             maxX: 65,          // Right wall line extended to clear the right hazards
             minZ: -185,        // Front wall line positioned safely past the green complex
             maxZ: 35,          // Back wall line behind the tee box
@@ -404,27 +404,27 @@ customOOB: {
             { x: 5, z: -140 }, { x: 10, z: -134 },
             { x: 20, z: -140 }, { x: 25, z: -134 },
             { x: 35, z: -140 }, { x: 40, z: -134 },
-              { x: 50, z: -140 }, { x: 55, z: -134 },
+            { x: 50, z: -140 }, { x: 55, z: -134 },
 
 
-],
-cartPath: [
-    { x: -48, z: 26 },
-    { x: -48, z: 5 },
-    { x: -48, z: -25 },
-    { x: -48, z: -55 },
-    { x: -48, z: -85 },
-    { x: -48, z: -115 },
-    { x: -48, z: -149 },
-    { x: -20, z: -149 },
-    { x: 10, z: -149 },
-    { x: 40, z: -149 },
-    { x: 70, z: -149 },
-    { x: 95, z: -149 },
-    { x: 110, z: -140 }
-],
-customOOB: {
-    type: 'l_shape',
+        ],
+        cartPath: [
+            { x: -48, z: 26 },
+            { x: -48, z: 5 },
+            { x: -48, z: -25 },
+            { x: -48, z: -55 },
+            { x: -48, z: -85 },
+            { x: -48, z: -115 },
+            { x: -48, z: -149 },
+            { x: -20, z: -149 },
+            { x: 10, z: -149 },
+            { x: 40, z: -149 },
+            { x: 70, z: -149 },
+            { x: 95, z: -149 },
+            { x: 110, z: -140 }
+        ],
+        customOOB: {
+            type: 'l_shape',
             leg1: { minX: -44, maxX: 60, minZ: -145, maxZ: 30 },
             leg2: { minX: -44, maxX: 115, minZ: -145, maxZ: -30 }
         },
@@ -467,7 +467,7 @@ customOOB: {
             // Left Outer Shoreline (Outside Water)
             { x: -60, z: -10, scale: 1.8 },
             { x: -62, z: -30, scale: 4.0 },
-            
+
             { x: -60, z: -70, scale: 4.2 },
             { x: -63, z: -85, scale: 1.8 },
             { x: -58, z: -100, scale: 3.8 },
@@ -493,20 +493,20 @@ customOOB: {
             { x: -20, z: 12, scale: 1.7 },
             { x: 20, z: 12, scale: 1.8 },
             { x: 32, z: 5, scale: 4.0 }
-],
-cartPath: [
-    { x: -22, z: 20 },
-    { x: -26, z: 5 },
-    { x: -38, z: -8 },
-    { x: -50, z: -22 },
-    { x: -56, z: -38 },
-    { x: -57, z: -48 },
-    { x: -60, z: -54 },
-    
-],
-customOOB: {
-    type: 'rectangle',
-    minX: -50,
+        ],
+        cartPath: [
+            { x: -22, z: 20 },
+            { x: -26, z: 5 },
+            { x: -38, z: -8 },
+            { x: -50, z: -22 },
+            { x: -56, z: -38 },
+            { x: -57, z: -48 },
+            { x: -60, z: -54 },
+
+        ],
+        customOOB: {
+            type: 'rectangle',
+            minX: -50,
             maxX: 50,
             minZ: -105,
             maxZ: 30,
@@ -607,27 +607,27 @@ customOOB: {
             // Right Tree Line
             { x: 32, z: 20 }, { x: 32, z: 0 }, { x: 32, z: -20 }, { x: 36, z: -40 },
             { x: 38, z: -60 }, { x: 36, z: -80 }, { x: 34, z: -100 }, { x: 30, z: -120 },
-             { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
-],
+            { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
+        ],
 
-cartPath: [
-    { x: -40, z: 22 },
-    { x: -40, z: 0 },
-    { x: -40, z: -20 },
-    { x: -38, z: -40 },
-    { x: -36, z: -60 },
-    { x: -38, z: -80 },
-    { x: -40, z: -100 },
-    { x: -44, z: -120 },
-    { x: -44, z: -140 },
-    { x: -40, z: -160 },
-    { x: -38, z: -180 },
-    { x: -36, z: -192 }
-],
+        cartPath: [
+            { x: -40, z: 22 },
+            { x: -40, z: 0 },
+            { x: -40, z: -20 },
+            { x: -38, z: -40 },
+            { x: -36, z: -60 },
+            { x: -38, z: -80 },
+            { x: -40, z: -100 },
+            { x: -44, z: -120 },
+            { x: -44, z: -140 },
+            { x: -40, z: -160 },
+            { x: -38, z: -180 },
+            { x: -36, z: -192 }
+        ],
 
-customOOB: {
-    type: 'rectangle',
-    minX: -55,
+        customOOB: {
+            type: 'rectangle',
+            minX: -55,
             maxX: 55,
             minZ: -198,
             maxZ: 30,
@@ -716,23 +716,23 @@ customOOB: {
         ],
 
         // Treeless open links dunes (No trees on fairway)
-      customTrees: [],
+        customTrees: [],
 
-cartPath: [
-    { x: -56, z: 26 },
-    { x: -56, z: 5 },
-    { x: -56, z: -25 },
-    { x: -56, z: -55 },
-    { x: -56, z: -85 },
-    { x: -56, z: -115 },
-    { x: -56, z: -145 },
-    { x: -56, z: -175 },
-    { x: -56, z: -200 }
-],
+        cartPath: [
+            { x: -56, z: 26 },
+            { x: -56, z: 5 },
+            { x: -56, z: -25 },
+            { x: -56, z: -55 },
+            { x: -56, z: -85 },
+            { x: -56, z: -115 },
+            { x: -56, z: -145 },
+            { x: -56, z: -175 },
+            { x: -56, z: -200 }
+        ],
 
-customOOB: {
-    type: 'rectangle',
-    minX: -65,
+        customOOB: {
+            type: 'rectangle',
+            minX: -65,
             maxX: 65,
             minZ: -205,
             maxZ: 30,
@@ -788,7 +788,7 @@ customOOB: {
             new THREE.Vector3(0, 0, 10),       // 1. Perched Tee Box (0 yds)
             new THREE.Vector3(0, 0, -51.4),    // 2. Fairway Start (170 yds)
             new THREE.Vector3(0, 0, -70.0),    // 3. Fairway Landing Target (222 yds)
-            new THREE.Vector3(0, 0, -89.5),    // 4. Base of Hill / 275-yd Fairway 1 End
+            new THREE.Vector3(0, 0, -82.3),    // 4. Base of Hill / 275-yd Fairway 1 End
             new THREE.Vector3(0, 0, -161.2)    // 5. Elevated Green Center (474 yds total)
         ],
 
@@ -816,22 +816,11 @@ customOOB: {
             { type: 'sand', x: -5.0, z: -40.0, radius: 3.5, depth: 0.40 },
             { type: 'sand', x: 6.0, z: -40.0, radius: 3.5, depth: 0.40 },
 
-            // --- 2. ISLAND FAIRWAY SIDE BUNKERS (170 to 260 yds / z = -51.4 to -84.0) ---
-            // Left Scalloped Fingers
-            { type: 'sand', x: -16.3, z: -58.0, radius: 2.5, depth: 0.55 },
-            { type: 'sand', x: -18.5, z: -68.0, radius: 3.8, depth: 0.55 },
-            { type: 'sand', x: -20.0, z: -78.0, radius: 5.8, depth: 0.55 },
-            { type: 'sand', x: -19.2, z: -84.0, radius: 4.2, depth: 0.55 },
-            // Right Side Waste Bunkers
-            { type: 'sand', x: 19.6, z: -60.0, radius: 5.0, depth: 0.50 },
-            { type: 'sand', x: 19.5, z: -70.0, radius: 4.2, depth: 0.50 },
-            { type: 'sand', x: 20.5, z: -78.0, radius: 5.8, depth: 0.50 },
-            { type: 'sand', x: 19.2, z: -84.0, radius: 3.8, depth: 0.50 },
+
 
             // --- 3. STEPPED UPHILL BLOWOUT STAIRS (Separated by 40-yd flat fairways) ---
             // Tier 1: Bunker 1 (z = -92.0) -> Flat Fairway 1 (z = -94.5 to -108.9, 40 yds)
-            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -92.0 }, { x: 0.0, z: -92.0 }, { x: 13.0, z: -92.0 }], radius: 2.0, depth: 0.45 },
-
+            { type: 'sand', shape: 'snake', path: [{ x: -13.0, z: -84.8 }, { x: 0.0, z: -84.8 }, { x: 13.0, z: -84.8 }], radius: 2.0, depth: 0.45 },
 
             // Tier 2: Bunker 2 (z = -111.4) -> Flat Fairway 2 (z = -113.9 to -128.3, 40 yds)
             { type: 'sand', shape: 'snake', path: [{ x: -12.0, z: -111.4 }, { x: 0.0, z: -111.4 }, { x: 12.0, z: -111.4 }], radius: 2.0, depth: 0.45 },
@@ -886,25 +875,25 @@ customOOB: {
             { x: 21.5, z: -44.0, type: 'bush', radius: 1.6 },
 
             // Front of Tee Scrub:
-           { x: -6.0, z: -14.0, type: 'bush', radius: 1.2 },
-    { x: 5.0, z: -14.0, type: 'bush', radius: 1.3 }
-],
+            { x: -6.0, z: -14.0, type: 'bush', radius: 1.2 },
+            { x: 5.0, z: -14.0, type: 'bush', radius: 1.3 }
+        ],
 
-cartPath: [
-    { x: 40, z: 26 },
-    { x: 40, z: 5 },
-    { x: 40, z: -25 },
-    { x: 40, z: -55 },
-    { x: 40, z: -85 },
-    { x: 40, z: -115 },
-    { x: 40, z: -145 },
-    { x: 40, z: -175 },
-    { x: 37, z: -195 }
-],
+        cartPath: [
+            { x: 40, z: 26 },
+            { x: 40, z: 5 },
+            { x: 40, z: -25 },
+            { x: 40, z: -55 },
+            { x: 40, z: -85 },
+            { x: 40, z: -115 },
+            { x: 40, z: -145 },
+            { x: 40, z: -175 },
+            { x: 37, z: -195 }
+        ],
 
-customOOB: {
-    type: 'rectangle',
-    minX: -46,
+        customOOB: {
+            type: 'rectangle',
+            minX: -46,
             maxX: 46,
             minZ: -201,
             maxZ: 30,
@@ -914,14 +903,14 @@ customOOB: {
         fairwayMask: {
             hideIf: [
                 { gt: -51.4 },
-                { gt: -94.5, lt: -89.5 },
+                { gt: -87.3, lt: -82.3 },
                 { gt: -113.9, lt: -108.9 },
                 { gt: -133.3, lt: -128.3 },
                 { lt: -147.7 }
             ],
             physicsAllow: [
-                { gte: -89.5, lte: -51.4 },
-                { gte: -108.9, lte: -94.5 },
+                { gte: -82.3, lte: -51.4 },
+                { gte: -108.9, lte: -87.3 },
                 { gte: -128.3, lte: -113.9 },
                 { gte: -147.7, lte: -133.3 }
             ],
@@ -932,8 +921,8 @@ customOOB: {
             bands: [
                 { gt: 5, height: 3.5 },
                 { gte: -16, highZ: 5, lowZ: -16, highH: 3.5, lowH: 0 },
-                { gt: -89.5, height: 0 },
-                { gte: -94.5, highZ: -89.5, lowZ: -94.5, highH: 0, lowH: 2.125 },
+                { gt: -82.3, height: 0 },
+                { gte: -87.3, highZ: -82.3, lowZ: -87.3, highH: 0, lowH: 2.125 },
                 { gt: -108.9, height: 2.125 },
                 { gte: -113.9, highZ: -108.9, lowZ: -113.9, highH: 2.125, lowH: 4.25 },
                 { gt: -128.3, height: 4.25 },
@@ -954,8 +943,8 @@ customOOB: {
         greenShape: 'oval',
         horizonTheme: 'forest',
         theme: 'forest',
-        treeScale: 4.8,
-        treeHeightScale: 1.6,
+        treeScale: 3.2,
+        treeHeightScale: 3.6,
 
         // Back-to-Front Slope with Soft Center Collection Bowl
         slopeProfile: {
@@ -986,13 +975,13 @@ customOOB: {
             {
                 type: 'sand',
                 shape: 'snake',
-                radius: 3.8,
-                depth: 1.1,
-                path: [
-                    { x: 9.0, z: -58.0 },
-                    { x: 14.5, z: -60.5 },
-                    { x: 18.0, z: -66.0 }
-                ]
+              radius: 2.25,
+depth: 1.1,
+path: [
+    { x: 7.0, z: -56.0 },
+    { x: 12.5, z: -58.5 },
+    { x: 16.0, z: -64.0 }
+]
             },
 
             // 2. Left-Side Greenside Bunker
@@ -1017,7 +1006,7 @@ customOOB: {
             // --- RIGHT TREE WALL (Inner row creating narrow chute) ---
             { x: 14, z: 20 }, { x: 14, z: 10 }, { x: 15, z: 0 }, { x: 15, z: -10 },
             { x: 16, z: -20 }, { x: 17, z: -30 }, { x: 18, z: -40 }, { x: 19, z: -50 },
-            { x: 20, z: -60 }, { x: 21, z: -70 }, { x: 20, z: -80 },
+            { x: 21, z: -70 }, { x: 20, z: -80 },
 
             // --- RIGHT TREE WALL (Outer row for dense forest depth) ---
             { x: 22, z: 18 }, { x: 24, z: 8 }, { x: 25, z: -2 }, { x: 26, z: -12 },
@@ -1028,6 +1017,18 @@ customOOB: {
 
             // --- BACK OF GREEN DROP-OFF CANOPY FRAME ---
             { x: -14, z: -86 }, { x: -7, z: -89 }, { x: 0, z: -90 }, { x: 7, z: -89 }, { x: 14, z: -86 }
+        ],
+
+        cartPath: [
+            { x: 40, z: 26 },
+            { x: 40, z: 5 },
+            { x: 40, z: -25 },
+            { x: 40, z: -55 },
+            { x: 40, z: -85 },
+            { x: 40, z: -115 },
+            { x: 40, z: -145 },
+            { x: 40, z: -175 },
+            { x: 37, z: -195 }
         ],
 
         customOOB: {

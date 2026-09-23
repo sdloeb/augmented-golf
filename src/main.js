@@ -166,7 +166,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 8; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -4435,7 +4435,16 @@ const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (closeToClub ? 1.6 : (isChipping
             const camGroundY = physics.getGroundHeight(camX, camZ);
 
             let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
-let activeLookUp = isChippingClose ? -0.40 : 3.0;
+for (let t = 0.25; t <= 0.80; t += 0.15) {
+    const sx = camX + (ball.position.x - camX) * t;
+    const sz = camZ + (ball.position.z - camZ) * t;
+    const lineY = camY + (stableBallHeight - camY) * t;
+    const gY = physics.getGroundHeight(sx, sz);
+    if (gY + 0.45 > lineY) {
+        camY += (gY + 0.45 - lineY);
+    }
+}
+let activeLookUp = isChippingClose ? -0.40 : 0.70;
             if (isSand) {
                 camY = stableBallHeight + camHeight;
                 activeLookUp = 0.4;
@@ -4851,9 +4860,9 @@ let activeLookUp = isChippingClose ? -0.40 : 3.0;
         } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
             // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
             surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
-        } else if (physics.currentSurface === 'Rough') {
-            surfaceHeight = terrainH + ballRadius;
-        }
+       } else if (physics.currentSurface === 'Rough') {
+    surfaceHeight = terrainH + (0.5 * currentScale) + 0.04;
+}
 
         ball.position.y = surfaceHeight;
     }
@@ -4875,14 +4884,13 @@ let activeLookUp = isChippingClose ? -0.40 : 3.0;
                 // === REPLACE WITH THIS EXACT BLOCK ===
                 // Add these lines: Calculates the ball's real-time 2D screen percentage height
 
-                const tempProj = new THREE.Vector3();
-                ball.getWorldPosition(tempProj);
-                tempProj.project(camera);
-                const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
-
-                // FIXED: Since the 3D ball is physically lowered into the sand, the 2D overlay tracks the new equator automatically. 
-                // Standardizing clubCushion to 4.0 across all lies prevents the double-sinking visual gap.
-                const dynamicBottom = ballBottomPercent - 2.0;
+              const tempProj = new THREE.Vector3();
+ball.getWorldPosition(tempProj);
+tempProj.project(camera);
+const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
+const ballOnScreen = tempProj.z > -1 && tempProj.z < 1 && Math.abs(tempProj.x) < 1.15;
+let dynamicBottom = ballOnScreen ? (ballBottomPercent - 2.0) : 12;
+dynamicBottom = THREE.MathUtils.clamp(dynamicBottom, 8, 36);
 
 
 

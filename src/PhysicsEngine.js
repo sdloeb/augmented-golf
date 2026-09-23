@@ -635,19 +635,19 @@ export class PhysicsEngine {
                 floorHeight -= THREE.MathUtils.lerp(0.12, 0.0, smoothT);
             }
 
-            // B. REPLICATE ROUGH LIFT: Coordinates the solid +0.3 height block seamlessly across open fields
-            let roughLift = 0;
+            // Sit the ball on the same plane as fairway address, plus a small grass cushion
+            // so bump-mapped rough does not swallow a scaled-down ball.
+            let roughSit = 0;
             if (isPastFairway) {
                 if (distToGreenCenter > fringeOuterR) {
-                    roughLift = 1.0;
+                    roughSit = 0.05;
                 }
             } else {
                 if (distanceToPath > activeFW) {
-                    roughLift = 1.0;
+                    roughSit = 0.05;
                 }
             }
-            const currentBallRadius = 0.25 * this.ball.scale.x;
-            groundY = greenHeightOffset + currentBallRadius;
+            groundY = greenHeightOffset + (0.5 * this.ball.scale.x) + roughSit;
         }
 
         // Cleaned up putting override loop so it doesn't break approach shot rollouts
