@@ -716,11 +716,23 @@ customOOB: {
         ],
 
         // Treeless open links dunes (No trees on fairway)
-        customTrees: [],
+      customTrees: [],
 
-        customOOB: {
-            type: 'rectangle',
-            minX: -65,
+cartPath: [
+    { x: -56, z: 26 },
+    { x: -56, z: 5 },
+    { x: -56, z: -25 },
+    { x: -56, z: -55 },
+    { x: -56, z: -85 },
+    { x: -56, z: -115 },
+    { x: -56, z: -145 },
+    { x: -56, z: -175 },
+    { x: -56, z: -200 }
+],
+
+customOOB: {
+    type: 'rectangle',
+    minX: -65,
             maxX: 65,
             minZ: -205,
             maxZ: 30,
@@ -874,13 +886,25 @@ customOOB: {
             { x: 21.5, z: -44.0, type: 'bush', radius: 1.6 },
 
             // Front of Tee Scrub:
-            { x: -6.0, z: -14.0, type: 'bush', radius: 1.2 },
-            { x: 5.0, z: -14.0, type: 'bush', radius: 1.3 }
-        ],
+           { x: -6.0, z: -14.0, type: 'bush', radius: 1.2 },
+    { x: 5.0, z: -14.0, type: 'bush', radius: 1.3 }
+],
 
-        customOOB: {
-            type: 'rectangle',
-            minX: -46,
+cartPath: [
+    { x: 40, z: 26 },
+    { x: 40, z: 5 },
+    { x: 40, z: -25 },
+    { x: 40, z: -55 },
+    { x: 40, z: -85 },
+    { x: 40, z: -115 },
+    { x: 40, z: -145 },
+    { x: 40, z: -175 },
+    { x: 37, z: -195 }
+],
+
+customOOB: {
+    type: 'rectangle',
+    minX: -46,
             maxX: 46,
             minZ: -201,
             maxZ: 30,
