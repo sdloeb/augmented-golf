@@ -523,8 +523,8 @@ export const HOLES_CONFIG = {
             },
 
             // 2. Left Rough 2 Bunkers (304 yd from tee / Z = -94 & -104)
-            { type: 'sand', x: -9.0, z: -94.0, radius: 4.5, depth: 1.2 },
-            { type: 'sand', x: -5.0, z: -104.0, radius: 4.8, depth: 1.2 },
+            { type: 'sand', x: -14.0, z: -94.0, radius: 4.5, depth: 1.2 },
+            { type: 'sand', x: -10.0, z: -104.0, radius: 4.8, depth: 1.2 },
 
             // 3. Right Rough 2 Bunkers (243 yd from hole / Z = -99.5 & -109.5)
             { type: 'sand', x: 16.5, z: -99.5, radius: 4.2, depth: 1.2 },
