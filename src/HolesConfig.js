@@ -467,7 +467,7 @@ customOOB: {
             // Left Outer Shoreline (Outside Water)
             { x: -60, z: -10, scale: 1.8 },
             { x: -62, z: -30, scale: 4.0 },
-            { x: -59, z: -45, scale: 1.6 },
+            
             { x: -60, z: -70, scale: 4.2 },
             { x: -63, z: -85, scale: 1.8 },
             { x: -58, z: -100, scale: 3.8 },
@@ -493,10 +493,20 @@ customOOB: {
             { x: -20, z: 12, scale: 1.7 },
             { x: 20, z: 12, scale: 1.8 },
             { x: 32, z: 5, scale: 4.0 }
-        ],
-        customOOB: {
-            type: 'rectangle',
-            minX: -50,
+],
+cartPath: [
+    { x: -22, z: 20 },
+    { x: -26, z: 5 },
+    { x: -38, z: -8 },
+    { x: -50, z: -22 },
+    { x: -56, z: -38 },
+    { x: -57, z: -48 },
+    { x: -60, z: -54 },
+    
+],
+customOOB: {
+    type: 'rectangle',
+    minX: -50,
             maxX: 50,
             minZ: -105,
             maxZ: 30,
