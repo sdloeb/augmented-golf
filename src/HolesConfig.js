@@ -41,11 +41,23 @@ export const HOLES_CONFIG = {
                 radiusZ: 10.0   // Shortens length down the fairway
             },
             //  twin traps by green
-            { type: 'sand', x: -9, z: -135, radius: 5.8, depth: 1.35 },
-            { type: 'sand', x: 10, z: -135, radius: 5.8, depth: 1.35 }
-        ],
-        customOOB: {
-            type: 'stepped',
+               { type: 'sand', x: -9, z: -135, radius: 5.8, depth: 1.35 },
+    { type: 'sand', x: 10, z: -135, radius: 5.8, depth: 1.35 }
+],
+cartPath: [
+    { x: 43, z: 22 },
+    { x: 43, z: 0 },
+    { x: 43, z: -25 },
+    { x: 43, z: -50 },
+    { x: 43, z: -75 },
+    { x: 43, z: -100 },
+    { x: 44, z: -125 },
+    { x: 44, z: -145 },
+    { x: 40, z: -162 },
+    { x: 28, z: -180 }
+],
+customOOB: {
+    type: 'stepped',
             narrowMinX: -26,
             narrowMaxX: 26,
             splitZ: -118,
@@ -107,12 +119,23 @@ export const HOLES_CONFIG = {
             { type: 'sand', x: -14.5, z: -110.0, radius: 5.2, depth: 1.5 },
             { type: 'sand', x: 26.5, z: -125.5, radius: 5.0, depth: 1.6 },
             { type: 'sand', shape: 'snake', depth: 0.3, radius: 2.2, path: [{ x: 18, z: -152 }, { x: 25, z: -152 }] },
-            { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
-        ],
+               { type: 'sand', x: 33.5, z: -146.0, radius: 4.5, depth: 1.6 }
+],
+cartPath: [
+    { x: -25, z: 18 },
+    { x: -25, z: -10 },
+    { x: -25, z: -40 },
+    { x: -25, z: -70 },
+    { x: -25, z: -95 },
+    { x: -24, z: -110 },
+    { x: -22, z: -120 },
+    { x: -19, z: -135 },
+      { x: 13, z: -165 }
+],
 
-        customOOB: {
-            type: 'rectangle',
-            minX: -60,         // Left wall line bounding the rough
+customOOB: {
+    type: 'rectangle',
+    minX: -60,         // Left wall line bounding the rough
             maxX: 65,          // Right wall line extended to clear the right hazards
             minZ: -185,        // Front wall line positioned safely past the green complex
             maxZ: 35,          // Back wall line behind the tee box
@@ -381,12 +404,27 @@ export const HOLES_CONFIG = {
             { x: 5, z: -140 }, { x: 10, z: -134 },
             { x: 20, z: -140 }, { x: 25, z: -134 },
             { x: 35, z: -140 }, { x: 40, z: -134 },
-            { x: 50, z: -140 }, { x: 55, z: -134 },
+              { x: 50, z: -140 }, { x: 55, z: -134 },
 
 
-        ],
-        customOOB: {
-            type: 'l_shape',
+],
+cartPath: [
+    { x: -48, z: 26 },
+    { x: -48, z: 5 },
+    { x: -48, z: -25 },
+    { x: -48, z: -55 },
+    { x: -48, z: -85 },
+    { x: -48, z: -115 },
+    { x: -48, z: -149 },
+    { x: -20, z: -149 },
+    { x: 10, z: -149 },
+    { x: 40, z: -149 },
+    { x: 70, z: -149 },
+    { x: 95, z: -149 },
+    { x: 110, z: -140 }
+],
+customOOB: {
+    type: 'l_shape',
             leg1: { minX: -44, maxX: 60, minZ: -145, maxZ: 30 },
             leg2: { minX: -44, maxX: 115, minZ: -145, maxZ: -30 }
         },
@@ -559,12 +597,27 @@ export const HOLES_CONFIG = {
             // Right Tree Line
             { x: 32, z: 20 }, { x: 32, z: 0 }, { x: 32, z: -20 }, { x: 36, z: -40 },
             { x: 38, z: -60 }, { x: 36, z: -80 }, { x: 34, z: -100 }, { x: 30, z: -120 },
-            { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
-        ],
+             { x: 28, z: -140 }, { x: 30, z: -160 }, { x: 30, z: -180 }
+],
 
-        customOOB: {
-            type: 'rectangle',
-            minX: -55,
+cartPath: [
+    { x: -40, z: 22 },
+    { x: -40, z: 0 },
+    { x: -40, z: -20 },
+    { x: -38, z: -40 },
+    { x: -36, z: -60 },
+    { x: -38, z: -80 },
+    { x: -40, z: -100 },
+    { x: -44, z: -120 },
+    { x: -44, z: -140 },
+    { x: -40, z: -160 },
+    { x: -38, z: -180 },
+    { x: -36, z: -192 }
+],
+
+customOOB: {
+    type: 'rectangle',
+    minX: -55,
             maxX: 55,
             minZ: -198,
             maxZ: 30,
