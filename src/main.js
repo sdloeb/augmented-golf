@@ -4537,13 +4537,9 @@ function animate() {
         } else {
             const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
 
-            const yardsToHole = holeDist * 2.76923;
-            // Base duration (1.8s) + smooth square root scaling for longer distances
-            const flightDurationSec = THREE.MathUtils.clamp(1.8 + Math.sqrt(yardsToHole) * 0.65, 2.0, 6.0);
-            if (!overheadFlightStartTime) overheadFlightStartTime = performance.now();
-            previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (flightDurationSec * 1000));
+          const yardsToHole = holeDist * 2.76923;
 
-            // Calculate the base alignment heading vector matching the player's current aim
+// Calculate the base alignment heading vector matching the player's current aim
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
             if (teeBox && teeBox.visible && currentHoleConfig) {
@@ -4591,11 +4587,14 @@ function animate() {
             const targetGroundY = physics.getGroundHeight(targetX, targetZ);
             const holeGroundY = physics.getGroundHeight(holePosition.x, holePosition.z);
 
-            // FIXED: Dynamically calculate uniform speed split ratio based on actual leg distances
-            const distLeg1 = Math.sqrt((targetX - ball.position.x) ** 2 + (targetZ - ball.position.z) ** 2);
-            const distLeg2 = Math.sqrt((holePosition.x - targetX) ** 2 + (holePosition.z - targetZ) ** 2);
-            const totalFlightDist = distLeg1 + distLeg2 || 1;
-            const splitPoint = distLeg1 / totalFlightDist;
+            // Time the flyover from the camera's actual path so doglegs are not rushed
+const camDist1 = Math.sqrt((midCamX - startCamX) ** 2 + (midCamZ - startCamZ) ** 2);
+const camDist2 = stopAtGreen ? 0 : Math.sqrt((endCamX - midCamX) ** 2 + (endCamZ - midCamZ) ** 2);
+const totalFlightDist = camDist1 + camDist2 || 1;
+const splitPoint = camDist1 / totalFlightDist;
+const flightDurationSec = THREE.MathUtils.clamp(totalFlightDist / 16.5, 2.5, 10.0);
+if (!overheadFlightStartTime) overheadFlightStartTime = performance.now();
+previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (flightDurationSec * 1000));
 
             if (stopAtGreen || previewProgress < splitPoint) {
                 // PART 1: Fly from Tee Box to your custom Aim Point
