@@ -183,6 +183,7 @@ let overheadTimeout = null;
 let isOverheadActive = false;
 let previewProgress = 0;
 let overheadPauseStartTime = 0;
+let overheadFlightStartTime = 0;
 let greenContourBoostActive = false;
 let applyGreenContourShading = null;
 
@@ -4502,8 +4503,8 @@ function animate() {
             const dirX = dxH / holeDist;
             const dirZ = dzH / holeDist;
 
-            previewProgress += 0.0025; // Slow, smooth green fly-through
-            if (previewProgress > 1) previewProgress = 1;
+            if (!overheadFlightStartTime) overheadFlightStartTime = performance.now();
+            previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / 6667);
 
             const t = previewProgress;
             const pathX = THREE.MathUtils.lerp(ball.position.x, holePosition.x, t);
@@ -4539,10 +4540,8 @@ function animate() {
             const yardsToHole = holeDist * 2.76923;
             // Base duration (1.8s) + smooth square root scaling for longer distances
             const flightDurationSec = THREE.MathUtils.clamp(1.8 + Math.sqrt(yardsToHole) * 0.65, 2.0, 6.0);
-            const flightSpeed = 1.0 / (flightDurationSec * 60);
-
-            previewProgress += flightSpeed;
-            if (previewProgress > 1) previewProgress = 1;
+            if (!overheadFlightStartTime) overheadFlightStartTime = performance.now();
+            previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (flightDurationSec * 1000));
 
             // Calculate the base alignment heading vector matching the player's current aim
             let baseTargetX = holePosition.x;
@@ -4786,8 +4785,14 @@ function animate() {
         activeCameraSpeed = 0.018; // Drastically lower interpolation speed for a luxurious tracking glide
     }
 
-    camera.position.lerp(cameraTargetPos, activeCameraSpeed); // Existing line below your new addition
-    currentLookAt.lerp(cameraLookAt, activeCameraSpeed);
+    let camStep = activeCameraSpeed;
+    if (isOverheadActive) {
+        const frames = Math.max(frameDelta, 16.67) / 16.67;
+        camStep = 1 - Math.pow(1 - activeCameraSpeed, frames);
+        if (camStep > 1) camStep = 1;
+    }
+    camera.position.lerp(cameraTargetPos, camStep); // Existing line below your new addition
+    currentLookAt.lerp(cameraLookAt, camStep);
     camera.lookAt(currentLookAt);
 
     let finalBallTargetScale = ballTargetScale;
@@ -6131,6 +6136,7 @@ function init() {
                 isOverheadActive = true;
                 previewProgress = 0;
                 overheadPauseStartTime = 0;
+                overheadFlightStartTime = performance.now();
 
                 if (checkIsBallOnGreenOrFringe()) {
                     // GREEN VIEW START: Position camera low behind the ball
@@ -6159,6 +6165,7 @@ function init() {
                 // TOGGLE OFF: Bring the camera manually back down behind the ball's current location
                 isOverheadActive = false;
                 overheadPauseStartTime = 0;
+                overheadFlightStartTime = 0;
 
                 // Check green tracking states on click release to select matching land coordinates
                 const checkOnGreen = Math.sqrt(ball.position.x * ball.position.x + (ball.position.z - greenCenterZ) * (ball.position.z - greenCenterZ)) < GREEN_RADIUS;
