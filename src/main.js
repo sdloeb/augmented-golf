@@ -166,7 +166,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 10; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -1738,9 +1738,9 @@ function resetEntireGame(advanceHole = false) {
     // Pass the full contoured landscape configurations down to the physics machine instance
     if (physics) {
         const generatedWidth = (holeConfig && holeConfig.fairwayWidth) ? holeConfig.fairwayWidth : (8.5 + Math.random() * 20);
-        physics.setGreenContours(generatedSlopeProfile, greenCenterX, greenCenterZ, generatedWidth);
         physics.currentHoleNumber = currentHoleNumber;
-        physics.holeConfig = holeConfig;        // Add these lines: Calculates and stores the normalized final approach direction vector
+        physics.holeConfig = holeConfig;
+        physics.setGreenContours(generatedSlopeProfile, greenCenterX, greenCenterZ, generatedWidth);        // Add these lines: Calculates and stores the normalized final approach direction vector
         const prevEndpoint = holeConfig.waypoints[holeConfig.waypoints.length - 2];
         const appX = greenEndpoint.x - prevEndpoint.x;
         const appZ = greenEndpoint.z - prevEndpoint.z;
@@ -1885,39 +1885,39 @@ function resetEntireGame(advanceHole = false) {
                 wallGeo.setIndex(indices);
                 wallGeo.computeVertexNormals();
                 const cliffWall = new THREE.Mesh(wallGeo, wallMat);
-    scene.add(cliffWall);
-    waterShores.push(cliffWall);
+                scene.add(cliffWall);
+                waterShores.push(cliffWall);
 
-    const rockMatA = new THREE.MeshStandardMaterial({ color: 0x6a6458, roughness: 0.97, flatShading: true });
-    const rockMatB = new THREE.MeshStandardMaterial({ color: 0x4a453c, roughness: 0.98, flatShading: true });
-    const rockGeos = [
-        new THREE.DodecahedronGeometry(0.62, 0),
-        new THREE.IcosahedronGeometry(0.52, 0),
-        new THREE.DodecahedronGeometry(0.44, 0)
-    ];
-    const rockStep = 1.05;
-    for (let currentZ = startZ; currentZ >= endZ; currentZ -= rockStep) {
-        const s = sampleCliffStation(currentZ);
-        for (let r = 0; r < 5; r++) {
-            const rock = new THREE.Mesh(rockGeos[r % 3], (r + Math.floor(Math.abs(currentZ))) % 2 ? rockMatB : rockMatA);
-            const row = r < 3 ? 0 : 1;
-            const col = r % 3;
-            const out = 0.25 + col * 0.55 + row * 0.85;
-            const down = row * 1.15 + col * 0.18;
-            const along = (col - 1) * 0.32;
-            rock.position.set(
-                s.innerX + out + Math.sin(currentZ * 2.1 + r) * 0.16,
-                s.topY - down + 0.22,
-                s.z + along + Math.cos(currentZ * 1.6 + r) * 0.12
-            );
-            const sc = 0.72 + ((r * 17 + Math.abs(Math.sin(currentZ * 0.37) * 10)) % 7) * 0.08;
-            rock.scale.set(sc * (0.9 + (r % 3) * 0.08), sc * (0.62 + (r % 2) * 0.18), sc * (0.95 + (col % 2) * 0.08));
-            rock.rotation.set(currentZ * 0.41 + r * 0.7, currentZ * 0.22 + r, currentZ * 0.33 + r * 1.1);
-            scene.add(rock);
-            waterShores.push(rock);
-        }
-    }
-}
+                const rockMatA = new THREE.MeshStandardMaterial({ color: 0x6a6458, roughness: 0.97, flatShading: true });
+                const rockMatB = new THREE.MeshStandardMaterial({ color: 0x4a453c, roughness: 0.98, flatShading: true });
+                const rockGeos = [
+                    new THREE.DodecahedronGeometry(0.62, 0),
+                    new THREE.IcosahedronGeometry(0.52, 0),
+                    new THREE.DodecahedronGeometry(0.44, 0)
+                ];
+                const rockStep = 1.05;
+                for (let currentZ = startZ; currentZ >= endZ; currentZ -= rockStep) {
+                    const s = sampleCliffStation(currentZ);
+                    for (let r = 0; r < 5; r++) {
+                        const rock = new THREE.Mesh(rockGeos[r % 3], (r + Math.floor(Math.abs(currentZ))) % 2 ? rockMatB : rockMatA);
+                        const row = r < 3 ? 0 : 1;
+                        const col = r % 3;
+                        const out = 0.25 + col * 0.55 + row * 0.85;
+                        const down = row * 1.15 + col * 0.18;
+                        const along = (col - 1) * 0.32;
+                        rock.position.set(
+                            s.innerX + out + Math.sin(currentZ * 2.1 + r) * 0.16,
+                            s.topY - down + 0.22,
+                            s.z + along + Math.cos(currentZ * 1.6 + r) * 0.12
+                        );
+                        const sc = 0.72 + ((r * 17 + Math.abs(Math.sin(currentZ * 0.37) * 10)) % 7) * 0.08;
+                        rock.scale.set(sc * (0.9 + (r % 3) * 0.08), sc * (0.62 + (r % 2) * 0.18), sc * (0.95 + (col % 2) * 0.08));
+                        rock.rotation.set(currentZ * 0.41 + r * 0.7, currentZ * 0.22 + r, currentZ * 0.33 + r * 1.1);
+                        scene.add(rock);
+                        waterShores.push(rock);
+                    }
+                }
+            }
         });
 
         if (physics) {
@@ -2453,17 +2453,17 @@ function resetEntireGame(advanceHole = false) {
 
                 const activeRadius = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                 const fringeOuterR = fringeOuterRadius(activeRadius);
-            const apronMask = currentHoleConfig && currentHoleConfig.fairwayMask;
-const keepFullWidth = !apronMask || (apronMask.meetGreen !== false && !apronMask.islandGreenSink);
-if (!keepFullWidth && !skipApronTaper(apronMask)) {
-    const apronEnd = -activeRadius;
-    if (approachDot > 0) {
-        fW = 0;
-    } else if (approachDot > apronEnd) {
-        const tApron = THREE.MathUtils.clamp((approachDot - apronEnd) / Math.max(0.001, -apronEnd), 0, 1);
-        fW = THREE.MathUtils.lerp(physics.fairwayWidth, 0, tApron);
-    }
-}
+                const apronMask = currentHoleConfig && currentHoleConfig.fairwayMask;
+                const keepFullWidth = !apronMask || (apronMask.meetGreen !== false && !apronMask.islandGreenSink);
+                if (!keepFullWidth && !skipApronTaper(apronMask)) {
+                    const apronEnd = -activeRadius;
+                    if (approachDot > 0) {
+                        fW = 0;
+                    } else if (approachDot > apronEnd) {
+                        const tApron = THREE.MathUtils.clamp((approachDot - apronEnd) / Math.max(0.001, -apronEnd), 0, 1);
+                        fW = THREE.MathUtils.lerp(physics.fairwayWidth, 0, tApron);
+                    }
+                }
 
                 const fWEdge = fW + 3.5;
 
@@ -2537,26 +2537,26 @@ if (!keepFullWidth && !skipApronTaper(apronMask)) {
                         isCustomHole
                     ); if (isOutsideFairwayBounds) {
                         calculatedHeight = hiddenFairwayH;
-                } else if (distToGreenCenter < fringeR) {
-    const mask = currentHoleConfig && currentHoleConfig.fairwayMask;
-    const meetsGreen = !mask || (mask.meetGreen !== false && !mask.islandGreenSink);
-    const buriedH = floorHeight - 0.45;
-    let meetH = floorHeight;
-    const tTuckFringe = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
-    const smoothFringeTuck = tTuckFringe * tTuckFringe * (3 - 2 * tTuckFringe);
-    if (distToGreenCenter < activeR) {
-        const tTuck = Math.max(0, Math.min(1, (activeR - distToGreenCenter) / 1.0));
-        const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-        meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
-    } else if (!meetsGreen || approachDot > 0) {
-        meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothFringeTuck);
-    }
-    const corridorExcess = Math.max(0, distanceToPath - fW);
-    const edgeSoft = meetsGreen ? 2.5 : 1.0;
-    const tOut = THREE.MathUtils.clamp(corridorExcess / edgeSoft, 0, 1);
-    const smoothOut = tOut * tOut * (3 - 2 * tOut);
-    calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
-} else if (approachDot > 0) {
+                    } else if (distToGreenCenter < fringeR) {
+                        const mask = currentHoleConfig && currentHoleConfig.fairwayMask;
+                        const meetsGreen = !mask || (mask.meetGreen !== false && !mask.islandGreenSink);
+                        const buriedH = floorHeight - 0.45;
+                        let meetH = floorHeight;
+                        const tTuckFringe = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
+                        const smoothFringeTuck = tTuckFringe * tTuckFringe * (3 - 2 * tTuckFringe);
+                        if (distToGreenCenter < activeR) {
+                            const tTuck = Math.max(0, Math.min(1, (activeR - distToGreenCenter) / 1.0));
+                            const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
+                            meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
+                        } else if (!meetsGreen || approachDot > 0) {
+                            meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothFringeTuck);
+                        }
+                        const corridorExcess = Math.max(0, distanceToPath - fW);
+                        const edgeSoft = meetsGreen ? 2.5 : 1.0;
+                        const tOut = THREE.MathUtils.clamp(corridorExcess / edgeSoft, 0, 1);
+                        const smoothOut = tOut * tOut * (3 - 2 * tOut);
+                        calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
+                    } else if (approachDot > 0) {
                         calculatedHeight = hiddenFairwayH;
                     } else {
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
@@ -4380,9 +4380,9 @@ function animate() {
         const dxHole = holePosition.x - ball.position.x;
         const dzHole = holePosition.z - ball.position.z;
         const holeDistYards = Math.sqrt(dxHole * dxHole + dzHole * dzHole) * 2.76923;
-const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
-const holeHudYards = getChipAdjustedYards(Math.sqrt(dxHole * dxHole + dzHole * dzHole));
-const closeToClub = !onGreen && holeHudYards <= 25;
+        const isChippingClose = !onGreen && (holeDistYards < 25.0 || camGreenDist < activeR + 8.0);
+        const holeHudYards = getChipAdjustedYards(Math.sqrt(dxHole * dxHole + dzHole * dzHole));
+        const closeToClub = !onGreen && holeHudYards <= 25;
 
         if (teeBox && teeBox.visible) {
             // NEW: Separate mobile and desktop sizing for the Tee
@@ -4399,7 +4399,7 @@ const closeToClub = !onGreen && holeHudYards <= 25;
             ballTargetScale = isMobile ? 0.35 : 0.35; // Fairway, rough, and sand size
         }
 
-const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (closeToClub ? 1.6 : (isChippingClose ? 2.6 : 4.8)));        const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.05 : 1.8));
+        const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (closeToClub ? 1.6 : (isChippingClose ? 2.6 : 4.8))); const camHeight = onGreen ? 1.0 : (isSand ? 1.8 : (isChippingClose ? 1.05 : 1.8));
         const lookDist = onGreen ? 6.0 : (isSand ? 8.0 : (isChippingClose ? 6.2 : 11.0));
         if (!isOverheadActive && !onGreen) {
             let baseTargetX = holePosition.x;
@@ -4435,16 +4435,16 @@ const camDist = onGreen ? 2.5 : (isSand ? 3.2 : (closeToClub ? 1.6 : (isChipping
             const camGroundY = physics.getGroundHeight(camX, camZ);
 
             let camY = Math.max(stableBallHeight + camHeight, camGroundY + camHeight);
-for (let t = 0.25; t <= 0.80; t += 0.15) {
-    const sx = camX + (ball.position.x - camX) * t;
-    const sz = camZ + (ball.position.z - camZ) * t;
-    const lineY = camY + (stableBallHeight - camY) * t;
-    const gY = physics.getGroundHeight(sx, sz);
-    if (gY + 0.45 > lineY) {
-        camY += (gY + 0.45 - lineY);
-    }
-}
-let activeLookUp = isChippingClose ? -0.40 : 0.70;
+            for (let t = 0.25; t <= 0.80; t += 0.15) {
+                const sx = camX + (ball.position.x - camX) * t;
+                const sz = camZ + (ball.position.z - camZ) * t;
+                const lineY = camY + (stableBallHeight - camY) * t;
+                const gY = physics.getGroundHeight(sx, sz);
+                if (gY + 0.45 > lineY) {
+                    camY += (gY + 0.45 - lineY);
+                }
+            }
+            let activeLookUp = isChippingClose ? -0.40 : 0.70;
             if (isSand) {
                 camY = stableBallHeight + camHeight;
                 activeLookUp = 0.4;
@@ -4860,9 +4860,9 @@ let activeLookUp = isChippingClose ? -0.40 : 0.70;
         } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
             // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
             surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
-       } else if (physics.currentSurface === 'Rough') {
-    surfaceHeight = terrainH + (0.5 * currentScale) + 0.04;
-}
+        } else if (physics.currentSurface === 'Rough') {
+            surfaceHeight = terrainH + (0.5 * currentScale) + 0.04;
+        }
 
         ball.position.y = surfaceHeight;
     }
@@ -4884,13 +4884,13 @@ let activeLookUp = isChippingClose ? -0.40 : 0.70;
                 // === REPLACE WITH THIS EXACT BLOCK ===
                 // Add these lines: Calculates the ball's real-time 2D screen percentage height
 
-              const tempProj = new THREE.Vector3();
-ball.getWorldPosition(tempProj);
-tempProj.project(camera);
-const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
-const ballOnScreen = tempProj.z > -1 && tempProj.z < 1 && Math.abs(tempProj.x) < 1.15;
-let dynamicBottom = ballOnScreen ? (ballBottomPercent - 2.0) : 12;
-dynamicBottom = THREE.MathUtils.clamp(dynamicBottom, 8, 36);
+                const tempProj = new THREE.Vector3();
+                ball.getWorldPosition(tempProj);
+                tempProj.project(camera);
+                const ballBottomPercent = (tempProj.y * 0.5 + 0.5) * 100;
+                const ballOnScreen = tempProj.z > -1 && tempProj.z < 1 && Math.abs(tempProj.x) < 1.15;
+                let dynamicBottom = ballOnScreen ? (ballBottomPercent - 2.0) : 12;
+                dynamicBottom = THREE.MathUtils.clamp(dynamicBottom, 8, 36);
 
 
 

@@ -122,19 +122,31 @@ export class PhysicsEngine {
             this.fairwayWidth = randomWidth || 8.5;
         }
 
-        // Randomize fairway/rough course contours for the new hole
-        this.courseSeedX1 = Math.random() * 50;
-        this.courseSeedZ1 = Math.random() * 50;
-        this.courseSeedX2 = Math.random() * 50;
-        this.courseSeedZ2 = Math.random() * 50;
+        // Randomize fairway/rough course contours unless the hole authored a locked layout
+        const terrain = this.holeConfig && this.holeConfig.terrain;
+        const seeds = terrain && terrain.seeds;
+        this.courseSeedX1 = (seeds && seeds.x1 !== undefined) ? seeds.x1 : Math.random() * 50;
+        this.courseSeedZ1 = (seeds && seeds.z1 !== undefined) ? seeds.z1 : Math.random() * 50;
+        this.courseSeedX2 = (seeds && seeds.x2 !== undefined) ? seeds.x2 : Math.random() * 50;
+        this.courseSeedZ2 = (seeds && seeds.z2 !== undefined) ? seeds.z2 : Math.random() * 50;
 
         this.obstacles = [];
 
         // Occasional big feature toggle (60% chance of a major hill or drop-off)
-        this.hasBigFeature = Math.random() > 0.4;
-        this.bigFeatureX = (Math.random() - 0.5) * 25;
-        this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120;
-        this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2);
+        const authoredBig = terrain && terrain.bigFeature;
+        if (authoredBig === false) {
+            this.hasBigFeature = false;
+        } else if (authoredBig && authoredBig.x !== undefined) {
+            this.hasBigFeature = true;
+            this.bigFeatureX = authoredBig.x;
+            this.bigFeatureZ = authoredBig.z;
+            this.bigFeatureScale = authoredBig.scale;
+        } else {
+            this.hasBigFeature = Math.random() > 0.4;
+            this.bigFeatureX = (Math.random() - 0.5) * 25;
+            this.bigFeatureZ = this.greenCenterZ + 40 + Math.random() * 120;
+            this.bigFeatureScale = (Math.random() > 0.5 ? 1.6 : -1.6) * (1.0 + Math.random() * 1.2);
+        }
     }
 
     getGreenHeight(x, z) {

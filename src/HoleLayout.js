@@ -255,10 +255,11 @@ function evaluateRolling(terrain, x, z, ctx) {
     const distFromTee = Math.sqrt(dxTee * dxTee + dzTee * dzTee);
     const teeFade = Math.min(1, Math.max(0, (distFromTee - 8) / 10));
 
-    const seedX1 = (ctx && ctx.courseSeedX1) || 0;
-    const seedZ1 = (ctx && ctx.courseSeedZ1) || 0;
-    const seedX2 = (ctx && ctx.courseSeedX2) || 0;
-    const seedZ2 = (ctx && ctx.courseSeedZ2) || 0;
+    const seeds = terrain.seeds || {};
+    const seedX1 = seeds.x1 !== undefined ? seeds.x1 : ((ctx && ctx.courseSeedX1) || 0);
+    const seedZ1 = seeds.z1 !== undefined ? seeds.z1 : ((ctx && ctx.courseSeedZ1) || 0);
+    const seedX2 = seeds.x2 !== undefined ? seeds.x2 : ((ctx && ctx.courseSeedX2) || 0);
+    const seedZ2 = seeds.z2 !== undefined ? seeds.z2 : ((ctx && ctx.courseSeedZ2) || 0);
 
     let height;
     if (terrain.style === 'oakmont') {
@@ -279,16 +280,23 @@ function evaluateRolling(terrain, x, z, ctx) {
         height = (flatWave1 * 0.05 + flatWave2 * 0.02);
         if (ctx) ctx.hasBigFeature = false;
     } else {
-        const wave1 = Math.sin(x * 0.05 + seedX1) * Math.cos(z * 0.03 + seedZ1);
-        const wave2 = Math.cos(x * 0.10 + seedX2) * Math.sin(z * 0.06 + seedZ2);
-        height = (wave1 * 1.8 + wave2 * 0.9);
-        if (ctx && ctx.hasBigFeature) {
-            const dxBig = x - ctx.bigFeatureX;
-            const dzBig = z - ctx.bigFeatureZ;
-            const distBigSq = dxBig * dxBig + dzBig * dzBig;
-            const bigInfluence = Math.exp(-distBigSq / 2500);
-            height += (ctx.bigFeatureScale || 0) * 1.8 * bigInfluence;
-        }
+   const wave1 = Math.sin(x * 0.05 + seedX1) * Math.cos(z * 0.03 + seedZ1);
+const wave2 = Math.cos(x * 0.10 + seedX2) * Math.sin(z * 0.06 + seedZ2);
+height = (wave1 * 1.8 + wave2 * 0.9);
+const authoredBig = terrain.bigFeature;
+if (authoredBig && authoredBig.x !== undefined) {
+    const dxBig = x - authoredBig.x;
+    const dzBig = z - authoredBig.z;
+    const distBigSq = dxBig * dxBig + dzBig * dzBig;
+    const bigInfluence = Math.exp(-distBigSq / 2500);
+    height += (authoredBig.scale || 0) * 1.8 * bigInfluence;
+} else if (authoredBig !== false && ctx && ctx.hasBigFeature) {
+    const dxBig = x - ctx.bigFeatureX;
+    const dzBig = z - ctx.bigFeatureZ;
+    const distBigSq = dxBig * dxBig + dzBig * dzBig;
+    const bigInfluence = Math.exp(-distBigSq / 2500);
+    height += (ctx.bigFeatureScale || 0) * 1.8 * bigInfluence;
+}
     }
 
     let maxLayoutWidth = 30;

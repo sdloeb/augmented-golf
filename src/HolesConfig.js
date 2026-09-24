@@ -1198,6 +1198,10 @@ path: [
             ],
             physicsAllow: [{ lte: 15 }]
         },
-        terrain: { style: 'rolling' }
+       terrain: {
+    style: 'rolling',
+    seeds: { x1: 3.7, z1: 8.2, x2: 1.1, z2: 4.6 },
+    bigFeature: { x: 20.0, z: -48.0, scale: 1.6 }
+}
     }
 };
