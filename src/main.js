@@ -5775,20 +5775,22 @@ function init() {
             }
         }
 
-        const isPuttingStroke = isPuttingLie(isOnGreen, club.name);
-        physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft); // Modify this line
-
-        // FIXED: Dynamically differentiate swing audios. Tee box launches play swing.wav,
-        // putting strokes play putt.wav, and fairway/rough lies trigger your new iron.wav.
-        if (sounds) {
-            if (isPuttingStroke) {
-                sounds.play('putt');
-            } else if (isOffTee) {
-                sounds.play('swing');
-            } else {
-                sounds.play('iron');
-            }
+   const isPuttingStroke = isPuttingLie(isOnGreen, club.name);
+const launchShot = () => {
+    physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft);
+    if (sounds) {
+        if (isPuttingStroke) {
+            sounds.play('putt');
+        } else if (isOffTee) {
+            sounds.play('swing');
+        } else {
+            sounds.play('iron');
         }
+    }
+};
+if (!isPuttingStroke) {
+    launchShot();
+}
 
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
@@ -5805,8 +5807,8 @@ function init() {
                 const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
                 const maxTravel = isMobileScreen ? 8.0 : 6.0;
 
-                const currentBottom = baseBottom - (maxTravel * ratio);
-                const followBottom = baseBottom + (maxTravel * ratio * 0.55);
+                const currentBottom = baseBottom - Math.max(2.5, maxTravel * ratio);
+const followBottom = baseBottom + Math.max(3.0, maxTravel * ratio * 0.55);
 
                 clubSwipe.style.setProperty('--putter-base-bottom', baseBottom + '%');
                 clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
@@ -5825,8 +5827,12 @@ function init() {
                 clubSwipe.classList.add('iron');
             }
 
-            // Kick off the swipe animation
-            clubSwipe.classList.add('swipe-animation');
+           // Kick off the swipe animation
+clubSwipe.classList.add('swipe-animation');
+if (isPuttingStroke) {
+    // 10% of the 1400ms putter swipe is when the face reaches the ball
+    setTimeout(launchShot, 140);
+}
 
             // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
             clubSwipe.style.removeProperty('bottom');
