@@ -768,36 +768,31 @@ function onWindowResize() {
     document.documentElement.style.setProperty('--club-scale', window.innerHeight / 1080);
 }
 
-function getPuttingAddressBallScale() {
+function getPuttingAddressCam() {
     const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const basePuttScale = isMobile ? 0.12 : 0.10;
-    if (!ball || !holePosition) return basePuttScale;
-
-    const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
+    const puttDistUnits = (ball && holePosition)
+        ? Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z)
+        : 3.0;
     const addressCamBoost = Math.max(0, Math.min(1.6, (puttDistUnits - 3.0) * 0.18));
-    const aspect = window.innerWidth / window.innerHeight;
-    const baseCamDist = aspect < 1 ? 2.2 : 2.4;
+    const baseCamDist = isMobile ? 2.2 : 2.4;
     const baseCamHeight = 1.1;
-    const boostedDist = baseCamDist + addressCamBoost;
-    const boostedHeight = baseCamHeight + addressCamBoost * 0.2;
-    const scaleRatio = Math.hypot(boostedDist, boostedHeight) / Math.hypot(baseCamDist, baseCamHeight);
+    const camRatio = Math.hypot(baseCamDist + addressCamBoost, baseCamHeight + addressCamBoost * 0.2)
+        / Math.hypot(baseCamDist, baseCamHeight);
+    return { isMobile, camRatio };
+}
 
-    const leftoverFeet = unitsToPuttFeet(puttDistUnits);
-    const closeBallT = 1 - Math.max(0, Math.min(1, (leftoverFeet - 3) / 7));
-    return basePuttScale * scaleRatio * (1 + 0.50 * closeBallT);
+function getPuttingAddressBallScale() {
+    // Locked to the cup: 0.25 geo * scale * 2 vs CUP_RIM diameter 0.23 ≈ real 4.25" / 1.68".
+    const { isMobile } = getPuttingAddressCam();
+    return isMobile ? 0.150 : 0.134;
 }
 
 function getPuttingAddressPutterScale(ballOnGreen) {
-    const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+    const { isMobile, camRatio } = getPuttingAddressCam();
     const farScale = ballOnGreen
-        ? (isMobile ? 0.58 : 0.76)
+        ? (isMobile ? 0.49 : 0.67)
         : (isMobile ? 0.76 : 0.98);
-    if (!ball || !holePosition) return farScale * 1.42;
-
-    const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
-    const addressCamBoost = Math.max(0, Math.min(1.6, (puttDistUnits - 3.0) * 0.18));
-    const closeT = 1 - (addressCamBoost / 1.6);
-    return farScale * (1 + 0.42 * closeT);
+    return farScale * (1.60 / Math.max(1, camRatio));
 }
 
 
@@ -4288,7 +4283,7 @@ function animate() {
                 window.shotStartScale = isCurrentMobile ? 0.55 : 0.55;
             } else if (launchedFromGreenSurface) {
                 // MODIFIED: Changed from 0.30 to 0.22 to match your smaller ball profile at launch
-                window.shotStartScale = 0.22;
+                window.shotStartScale = getPuttingAddressBallScale(); window.shotStartScale = 0.22;
             } else {
                 // FIXED: Factor in the exact proximity factor active at address so the ball launches at its true rendered size
                 const addressCamDist = camera.position.distanceTo(ball.position);
@@ -4335,20 +4330,7 @@ function animate() {
         const isPuttingStroke = currentActiveClub && currentActiveClub.name === 'Putter';
         const activeLaunchScale = window.shotStartScale !== undefined ? window.shotStartScale : 0.70;
         if (isPuttingStroke || activeLaunchScale === 0.30) {
-            // FIXED: Start with your original clean base green sizing
-            const basePuttScale = (window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1) ? 0.16 : 0.14;
-
-            // PERSPECTIVE CUSHION: The 3D camera naturally shrinks the ball automatically as it rolls away.
-            // By changing the minus to a plus (+) with a small scalar, we cushion the camera's harsh 
-            // drop-off so the ball shrinks beautifully and gradually instead of turning into a tiny speck!
-            // -- TWEAKING: Increase 0.0035 to shrink slower (stay larger), lower it to shrink faster.
-            const currentCamDist = camera.position.distanceTo(ball.position);
-            if (currentCamDist > 3.0) {
-                ballTargetScale = basePuttScale + ((currentCamDist - 3.0) * 0.0035);
-            } else {
-                ballTargetScale = basePuttScale;
-            }
-
+            ballTargetScale = getPuttingAddressBallScale();
         } else if (!isLongShot) {
             // FIXED: For short shots where the camera is stationary, lock code scale to launch size
             // and let natural WebGL 3D perspective handle making the ball smaller as it rolls away
@@ -4965,7 +4947,7 @@ function animate() {
 
                     if (activeClub.name === 'Putter') {
                         // 2. Adjust up/down height offset here (- 6.0 pulls it down, - 2.0 pushes it up):
-                        const putterBottom = dynamicBottom - 2.00;
+                        const putterBottom = dynamicBottom - 1.00;
                         clubSwipeElement.style.setProperty('bottom', `${putterBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
                         const putterScale = getPuttingAddressPutterScale(ballOnGreen);
@@ -5826,8 +5808,7 @@ function init() {
                 const tempProj = new THREE.Vector3();
                 ball.getWorldPosition(tempProj);
                 tempProj.project(camera);
-                const baseBottom = (tempProj.y * 0.5 + 0.5) * 100 - 4.0;
-
+                const baseBottom = (tempProj.y * 0.5 + 0.5) * 100 - 3.0;
                 const isMobileScreen = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
                 const maxTravel = isMobileScreen ? 8.0 : 6.0;
 
