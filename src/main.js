@@ -770,7 +770,7 @@ function onWindowResize() {
 
 function getPuttingAddressBallScale() {
     const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const basePuttScale = isMobile ? 0.14 : 0.12;
+const basePuttScale = isMobile ? 0.11 : 0.09;
     if (!ball || !holePosition) return basePuttScale;
 
     const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
@@ -3452,7 +3452,7 @@ function resetEntireGame(advanceHole = false) {
 
     // NEW: Generate visual 3D White Stakes along the exact Out of Bounds boundary lines
     if (physics && physics.fairwayPoints && physics.fairwayPoints.length > 1) {
-        const stakeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 4);
+        const stakeGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.8, 4);
         const stakeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
 
         // FIXED: Calculate precise game unit equivalent for 25 yards spacing (25 / par scale)
@@ -4537,9 +4537,9 @@ function animate() {
         } else {
             const holeDist = Math.sqrt((holePosition.x - ball.position.x) ** 2 + (holePosition.z - ball.position.z) ** 2);
 
-          const yardsToHole = holeDist * 2.76923;
+            const yardsToHole = holeDist * 2.76923;
 
-// Calculate the base alignment heading vector matching the player's current aim
+            // Calculate the base alignment heading vector matching the player's current aim
             let baseTargetX = holePosition.x;
             let baseTargetZ = holePosition.z;
             if (teeBox && teeBox.visible && currentHoleConfig) {
@@ -4588,13 +4588,13 @@ function animate() {
             const holeGroundY = physics.getGroundHeight(holePosition.x, holePosition.z);
 
             // Time the flyover from the camera's actual path so doglegs are not rushed
-const camDist1 = Math.sqrt((midCamX - startCamX) ** 2 + (midCamZ - startCamZ) ** 2);
-const camDist2 = stopAtGreen ? 0 : Math.sqrt((endCamX - midCamX) ** 2 + (endCamZ - midCamZ) ** 2);
-const totalFlightDist = camDist1 + camDist2 || 1;
-const splitPoint = camDist1 / totalFlightDist;
-const flightDurationSec = THREE.MathUtils.clamp(totalFlightDist / 16.5, 2.5, 10.0);
-if (!overheadFlightStartTime) overheadFlightStartTime = performance.now();
-previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (flightDurationSec * 1000));
+            const camDist1 = Math.sqrt((midCamX - startCamX) ** 2 + (midCamZ - startCamZ) ** 2);
+            const camDist2 = stopAtGreen ? 0 : Math.sqrt((endCamX - midCamX) ** 2 + (endCamZ - midCamZ) ** 2);
+            const totalFlightDist = camDist1 + camDist2 || 1;
+            const splitPoint = camDist1 / totalFlightDist;
+            const flightDurationSec = THREE.MathUtils.clamp(totalFlightDist / 16.5, 2.5, 10.0);
+            if (!overheadFlightStartTime) overheadFlightStartTime = performance.now();
+            previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (flightDurationSec * 1000));
 
             if (stopAtGreen || previewProgress < splitPoint) {
                 // PART 1: Fly from Tee Box to your custom Aim Point
@@ -4940,7 +4940,11 @@ previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (f
                         const putterBottom = dynamicBottom - 2.00;
                         clubSwipeElement.style.setProperty('bottom', `${putterBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${ballOnGreen ? 1.0 : 1.1})`, 'important');
+                        const putterIsMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+                        const putterScale = ballOnGreen
+                            ? (putterIsMobile ? 0.58 : 0.76)
+                            : (putterIsMobile ? 0.76 : 0.98);
+                        clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${putterScale})`, 'important');
                     } else {
                         clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
                         clubSwipeElement.style.left = '';
@@ -4958,7 +4962,11 @@ previewProgress = Math.min(1, (performance.now() - overheadFlightStartTime) / (f
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', currentLeft, 'important');
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${ballOnGreen ? 1.0 : 1.10})`, 'important');
+                        const putterIsMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+                        const putterScale = ballOnGreen
+                            ? (putterIsMobile ? 0.58 : 0.76)
+                            : (putterIsMobile ? 0.76 : 0.98);
+                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${putterScale})`, 'important');
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
@@ -5514,20 +5522,19 @@ function init() {
     scene.add(teeBox);
 
     // Add Left and Right Tee Markers as children of teeBox so they randomize together seamlessly
-    const markerGeo = new THREE.SphereGeometry(0.3, 16, 16); // Add this line
-    const markerMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.6 }); // Add this line (classic red markers)
+    const markerGeo = new THREE.SphereGeometry(0.085, 16, 16);
+    const markerMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.6 });
 
-    const leftMarker = new THREE.Mesh(markerGeo, markerMat); // Add this line
-    leftMarker.position.set(-2.4, 0.08, 0); // Add this line (placed on the left rim)
-    teeBox.add(leftMarker); // Add this line
+    const leftMarker = new THREE.Mesh(markerGeo, markerMat);
+    leftMarker.position.set(-2.4, 0.09, 0);
+    teeBox.add(leftMarker);
 
-    const rightMarker = new THREE.Mesh(markerGeo, markerMat); // Add this line
-    rightMarker.position.set(2.4, 0.08, 0); // Add this line (placed on the right rim)
+    const rightMarker = new THREE.Mesh(markerGeo, markerMat);
+    rightMarker.position.set(2.4, 0.09, 0);
     teeBox.add(rightMarker); // Add this line
 
     // Add the physical plastic Golf Tee asset
-    const teeCylinderGeo = new THREE.CylinderGeometry(0.015, 0.005, 0.12, 8); // Add this line
-    const teeCylinderMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }); // Add this line
+    const teeCylinderGeo = new THREE.CylinderGeometry(0.010, 0.004, 0.12, 8); const teeCylinderMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }); // Add this line
     golfTee = new THREE.Mesh(teeCylinderGeo, teeCylinderMat); // Add this line
     golfTee.position.set(0, 0.06, 10); // Add this line
     scene.add(golfTee); // Add this line
