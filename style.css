@@ -626,7 +626,7 @@ html {
     bottom: 21.8% !important;
 
     /* On-green putter: keep this below 0.7 so it matches the shrunk putting ball */
-    transform: rotate(0deg) scale(0.68) !important;
+    transform: rotate(0deg) scale(var(--putter-scale, 0.76)) !important;
 
     /* FIXED: Centers horizontally and anchors cleanly against the realistic camera baseline */
 }
@@ -875,7 +875,7 @@ html {
     #clubSwipe.putter.idle-stance {
         left: calc(50% - 83px) !important;
         bottom: 21% !important;
-        transform: rotate(0deg) scale(0.52) !important;
+        transform: rotate(0deg) scale(var(--putter-scale, 0.58)) !important;
     }
 
     #clubSwipe.pullback-stance {
@@ -897,7 +897,7 @@ html {
             left: calc(50% - 77.5px);
             right: auto;
             /* FIXED: Unbinds the default right-margin limits for mobile screens */
-            transform: rotate(0deg) scale(0.52);
+            transform: rotate(0deg) scale(var(--putter-scale, 0.58));
             opacity: 1;
         }
 
@@ -905,7 +905,7 @@ html {
             bottom: 30.0%;
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.52);
+            transform: rotate(0deg) scale(var(--putter-scale, 0.58));
             opacity: 1;
         }
 
@@ -913,7 +913,7 @@ html {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.52);
+            transform: rotate(0deg) scale(var(--putter-scale, 0.58));
             opacity: 1;
         }
 
@@ -921,7 +921,7 @@ html {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.52);
+            transform: rotate(0deg) scale(var(--putter-scale, 0.58));
             opacity: 1;
         }
 
@@ -929,7 +929,7 @@ html {
             bottom: var(--putter-follow-bottom, 38.2%);
             left: calc(50% - 77.5px);
             right: auto;
-            transform: rotate(0deg) scale(0.52);
+            transform: rotate(0deg) scale(var(--putter-scale, 0.58));
             opacity: 0;
         }
 
@@ -993,7 +993,7 @@ html {
         bottom: var(--putter-start-bottom, 21.8%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(0.68);
+        transform: rotate(0deg) scale(var(--putter-scale, 0.76));
         opacity: 1;
     }
 
@@ -1001,7 +1001,7 @@ html {
         bottom: var(--putter-base-bottom, 21.8%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(0.68);
+        transform: rotate(0deg) scale(var(--putter-scale, 0.76));
         opacity: 1;
     }
 
@@ -1009,7 +1009,7 @@ html {
         bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(0.68);
+        transform: rotate(0deg) scale(var(--putter-scale, 0.76));
         opacity: 1;
     }
 
@@ -1017,14 +1017,14 @@ html {
         bottom: var(--putter-follow-bottom, 25.0%);
         left: calc(50% - 77.5px);
         right: auto;
-        transform: rotate(0deg) scale(0.68);
+        transform: rotate(0deg) scale(var(--putter-scale, 0.76));
         opacity: 1;
     }
 
     100% {
         bottom: 25.0%;
         left: calc(50% - 77.5px);
-        transform: rotate(0deg) scale(0.68);
+        transform: rotate(0deg) scale(var(--putter-scale, 0.76));
         opacity: 0;
     }
 }

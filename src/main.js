@@ -770,7 +770,7 @@ function onWindowResize() {
 
 function getPuttingAddressBallScale() {
     const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-const basePuttScale = isMobile ? 0.11 : 0.09;
+    const basePuttScale = isMobile ? 0.12 : 0.10;
     if (!ball || !holePosition) return basePuttScale;
 
     const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
@@ -782,7 +782,22 @@ const basePuttScale = isMobile ? 0.11 : 0.09;
     const boostedHeight = baseCamHeight + addressCamBoost * 0.2;
     const scaleRatio = Math.hypot(boostedDist, boostedHeight) / Math.hypot(baseCamDist, baseCamHeight);
 
-    return basePuttScale * scaleRatio;
+    const leftoverFeet = unitsToPuttFeet(puttDistUnits);
+const closeBallT = 1 - Math.max(0, Math.min(1, (leftoverFeet - 3) / 7));
+return basePuttScale * scaleRatio * (1 + 0.50 * closeBallT);
+}
+
+function getPuttingAddressPutterScale(ballOnGreen) {
+    const isMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+    const farScale = ballOnGreen
+        ? (isMobile ? 0.58 : 0.76)
+        : (isMobile ? 0.76 : 0.98);
+    if (!ball || !holePosition) return farScale * 1.42;
+
+    const puttDistUnits = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z);
+    const addressCamBoost = Math.max(0, Math.min(1.6, (puttDistUnits - 3.0) * 0.18));
+    const closeT = 1 - (addressCamBoost / 1.6);
+    return farScale * (1 + 0.42 * closeT);
 }
 
 
@@ -4940,10 +4955,8 @@ function animate() {
                         const putterBottom = dynamicBottom - 2.00;
                         clubSwipeElement.style.setProperty('bottom', `${putterBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', putterCenteredLeft, 'important');
-                        const putterIsMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-                        const putterScale = ballOnGreen
-                            ? (putterIsMobile ? 0.58 : 0.76)
-                            : (putterIsMobile ? 0.76 : 0.98);
+                        const putterScale = getPuttingAddressPutterScale(ballOnGreen);
+                        clubSwipeElement.style.setProperty('--putter-scale', putterScale);
                         clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${putterScale})`, 'important');
                     } else {
                         clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
@@ -4962,11 +4975,9 @@ function animate() {
 
                         clubSwipeElement.style.setProperty('bottom', `${currentBottom}%`, 'important');
                         clubSwipeElement.style.setProperty('left', currentLeft, 'important');
-                        const putterIsMobile = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-                        const putterScale = ballOnGreen
-                            ? (putterIsMobile ? 0.58 : 0.76)
-                            : (putterIsMobile ? 0.76 : 0.98);
-                        clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${putterScale})`, 'important');
+                       const putterScale = getPuttingAddressPutterScale(ballOnGreen);
+clubSwipeElement.style.setProperty('--putter-scale', putterScale);
+clubSwipeElement.style.setProperty('transform', `rotate(${currentRotate}deg) scale(${putterScale})`, 'important');
                     } else {
                         // Clean defaults for woods/irons if pulled back
                         clubSwipeElement.style.bottom = '';
@@ -5775,22 +5786,22 @@ function init() {
             }
         }
 
-   const isPuttingStroke = isPuttingLie(isOnGreen, club.name);
-const launchShot = () => {
-    physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft);
-    if (sounds) {
-        if (isPuttingStroke) {
-            sounds.play('putt');
-        } else if (isOffTee) {
-            sounds.play('swing');
-        } else {
-            sounds.play('iron');
+        const isPuttingStroke = isPuttingLie(isOnGreen, club.name);
+        const launchShot = () => {
+            physics.applyImpulse(finalPower, angle, forward, right, isPuttingStroke, spin, loft);
+            if (sounds) {
+                if (isPuttingStroke) {
+                    sounds.play('putt');
+                } else if (isOffTee) {
+                    sounds.play('swing');
+                } else {
+                    sounds.play('iron');
+                }
+            }
+        };
+        if (!isPuttingStroke) {
+            launchShot();
         }
-    }
-};
-if (!isPuttingStroke) {
-    launchShot();
-}
 
         const clubSwipe = document.getElementById('clubSwipe');
         if (clubSwipe) {
@@ -5808,11 +5819,12 @@ if (!isPuttingStroke) {
                 const maxTravel = isMobileScreen ? 8.0 : 6.0;
 
                 const currentBottom = baseBottom - Math.max(2.5, maxTravel * ratio);
-const followBottom = baseBottom + Math.max(3.0, maxTravel * ratio * 0.55);
+                const followBottom = baseBottom + Math.max(3.0, maxTravel * ratio * 0.55);
 
-                clubSwipe.style.setProperty('--putter-base-bottom', baseBottom + '%');
-                clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
-                clubSwipe.style.setProperty('--putter-follow-bottom', followBottom + '%');
+               clubSwipe.style.setProperty('--putter-base-bottom', baseBottom + '%');
+clubSwipe.style.setProperty('--putter-start-bottom', currentBottom + '%');
+clubSwipe.style.setProperty('--putter-follow-bottom', followBottom + '%');
+clubSwipe.style.setProperty('--putter-scale', getPuttingAddressPutterScale(true));
             }
 
             const clubNameClass = club.name.toLowerCase().replace(' ', '-');
@@ -5827,12 +5839,12 @@ const followBottom = baseBottom + Math.max(3.0, maxTravel * ratio * 0.55);
                 clubSwipe.classList.add('iron');
             }
 
-           // Kick off the swipe animation
-clubSwipe.classList.add('swipe-animation');
-if (isPuttingStroke) {
-    // 10% of the 1400ms putter swipe is when the face reaches the ball
-    setTimeout(launchShot, 140);
-}
+            // Kick off the swipe animation
+            clubSwipe.classList.add('swipe-animation');
+            if (isPuttingStroke) {
+                // 10% of the 1400ms putter swipe is when the face reaches the ball
+                setTimeout(launchShot, 140);
+            }
 
             // NEW: Instantly wipe active dynamic inline styles so the CSS forward keyframes can execute cleanly
             clubSwipe.style.removeProperty('bottom');
