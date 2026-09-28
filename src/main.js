@@ -4943,19 +4943,26 @@ function animate() {
                         const putterScale = getPuttingAddressPutterScale(ballOnGreen);
                         clubSwipeElement.style.setProperty('--putter-scale', putterScale);
                         clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${putterScale})`, 'important');
-                   } else {
-    clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
-    clubSwipeElement.style.left = '';
-    const isMobileClub = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
-    const onTee = teeBox && teeBox.visible;
-    const inSand = physics && physics.isBallInSand();
-    const camToBall = camera.position.distanceTo(ball.position);
-    if (!isMobileClub && !ballOnGreen && !onTee && !inSand && camToBall < 3.4) {
-        clubSwipeElement.style.setProperty('transform', 'rotate(0deg) scale(1.25)', 'important');
-    } else {
-        clubSwipeElement.style.transform = '';
-    }
-}
+                    } else {
+                        clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
+                        clubSwipeElement.style.left = '';
+                        const isMobileClub = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+                        const onTee = teeBox && teeBox.visible;
+                        const inSand = physics && physics.isBallInSand();
+                        const camToBall = camera.position.distanceTo(ball.position);
+                        const ballOnFringe = stanceDist >= stanceActiveR && stanceDist <= stanceActiveR + FRINGE_WIDTH_UNITS;
+                        const holeDistYards = Math.hypot(holePosition.x - ball.position.x, holePosition.z - ball.position.z) * 2.76923;
+                        const isChipCamLie = !ballOnGreen && (holeDistYards < 25.0 || stanceDist < stanceActiveR + 8.0 || camToBall < 3.4);
+                        if (!onTee && !inSand && ballOnFringe) {
+                            const fringeScale = isMobileClub ? 1.26 : 1.40;
+                            clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${fringeScale})`, 'important');
+                        } else if (!onTee && !inSand && isChipCamLie) {
+                            const chipScale = isMobileClub ? 1.12 : 1.25;
+                            clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${chipScale})`, 'important');
+                        } else {
+                            clubSwipeElement.style.transform = '';
+                        }
+                    }
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass} ${clubNameClass}${aimClass}`;
 
