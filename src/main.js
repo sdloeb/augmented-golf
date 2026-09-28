@@ -166,7 +166,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 5; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -4022,7 +4022,8 @@ function animate() {
             0, 1
         );
 
-        if (distanceToHole < maxInfluenceRadius && isNearGround && physics.isMoving) {
+        const centerInCup = distanceToHole <= cupRimRadius * 0.75;
+        if (distanceToHole < maxInfluenceRadius && isNearGround && (physics.isMoving || centerInCup)) {
             const rawSpeed = physics.velocity.length();
             const currentScale = (physics && physics.isPutting) ? 0.70 : 1.0;
             const trueWorldSpeed = rawSpeed * currentScale;
@@ -4043,7 +4044,7 @@ function animate() {
 
             // Dying putt: half-or-more over the hole falls in. Uphill slope can save a 40% hang.
             const dyingNeed = 0.50 - THREE.MathUtils.clamp(slopeIntoHole * 0.7, 0, 0.12);
-            if (trueWorldSpeed <= 0.045 && overlapFrac >= dyingNeed) {
+            if ((centerInCup && trueWorldSpeed <= 0.16) || (trueWorldSpeed <= 0.045 && overlapFrac >= dyingNeed)) {
                 isSinking = true;
                 ball.userData.isLipRiding = false;
                 physics.velocity.x *= 0.2;
@@ -4164,7 +4165,7 @@ function animate() {
                     physics.velocity.z *= 0.2;
                     if (sounds) sounds.play('sink');
                 }
-                else if (overlapFrac >= 0.18 && rawSpeed > 0.004) {
+                else if (overlapFrac >= 0.18 && rawSpeed > 0.004 && !(crossTrack <= 0.05 && trueWorldSpeed <= 0.16)) {
                     if (overlapFrac < 0.28 && trueWorldSpeed > 0.30 && velDownhill > 0.05) {
                         ball.userData.hasLipDeflected = true;
                         ball.userData.isLipRiding = false;
