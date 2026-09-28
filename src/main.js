@@ -4943,11 +4943,19 @@ function animate() {
                         const putterScale = getPuttingAddressPutterScale(ballOnGreen);
                         clubSwipeElement.style.setProperty('--putter-scale', putterScale);
                         clubSwipeElement.style.setProperty('transform', `rotate(0deg) scale(${putterScale})`, 'important');
-                    } else {
-                        clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
-                        clubSwipeElement.style.left = '';
-                        clubSwipeElement.style.transform = '';
-                    }
+                   } else {
+    clubSwipeElement.style.setProperty('bottom', `${dynamicBottom}%`, 'important');
+    clubSwipeElement.style.left = '';
+    const isMobileClub = window.innerWidth <= 768 || window.innerWidth / window.innerHeight < 1;
+    const onTee = teeBox && teeBox.visible;
+    const inSand = physics && physics.isBallInSand();
+    const camToBall = camera.position.distanceTo(ball.position);
+    if (!isMobileClub && !ballOnGreen && !onTee && !inSand && camToBall < 3.4) {
+        clubSwipeElement.style.setProperty('transform', 'rotate(0deg) scale(1.25)', 'important');
+    } else {
+        clubSwipeElement.style.transform = '';
+    }
+}
                 } else if (input.state === 'PULLBACK') {
                     clubSwipeElement.className = `pullback-stance ${clubTypeClass} ${clubNameClass}${aimClass}`;
 
