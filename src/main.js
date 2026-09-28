@@ -166,7 +166,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 1; //1st hole start
+let currentHoleNumber = 4; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -5526,15 +5526,34 @@ function init() {
     teeTurfTexture.wrapT = THREE.RepeatWrapping;
     teeTurfTexture.repeat.set(TEE_W / 5.5, 1);
 
-    const teeGeo = new THREE.BoxGeometry(TEE_W, 0.04, TEE_D, 12, 1, 20);
- const teeMat = new THREE.MeshStandardMaterial({
+ const TEE_R = 0.32;
+const teeShape = new THREE.Shape();
+const hw = TEE_W * 0.5;
+const hd = TEE_D * 0.5;
+teeShape.moveTo(-hw + TEE_R, -hd);
+teeShape.lineTo(hw - TEE_R, -hd);
+teeShape.quadraticCurveTo(hw, -hd, hw, -hd + TEE_R);
+teeShape.lineTo(hw, hd - TEE_R);
+teeShape.quadraticCurveTo(hw, hd, hw - TEE_R, hd);
+teeShape.lineTo(-hw + TEE_R, hd);
+teeShape.quadraticCurveTo(-hw, hd, -hw, hd - TEE_R);
+teeShape.lineTo(-hw, -hd + TEE_R);
+teeShape.quadraticCurveTo(-hw, -hd, -hw + TEE_R, -hd);
+const teeGeo = new THREE.ExtrudeGeometry(teeShape, {
+    depth: 0.04,
+    bevelEnabled: false,
+    curveSegments: 8
+});
+teeGeo.rotateX(-Math.PI / 2);
+teeGeo.computeVertexNormals();
+const teeMat = new THREE.MeshStandardMaterial({
     color: 0x3cb371,
     roughness: 0.92,
     metalness: 0.0
 });
-    teeBox = new THREE.Mesh(teeGeo, teeMat);
-    teeBox.position.set(0, 0.02, 10);
-    scene.add(teeBox);
+teeBox = new THREE.Mesh(teeGeo, teeMat);
+teeBox.position.set(0, 0.02, 10);
+scene.add(teeBox);
 
     const markerWoodMat = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.72, metalness: 0.08 });
     const markerGoldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.32, metalness: 0.58 });

@@ -36,7 +36,7 @@ function anyRule(rules, x, z) {
     return false;
 }
 
-export const FAIRWAY_START_Z = 5.2;
+export const FAIRWAY_START_Z = -8;
 
 export function isFairwayHidden(mask, x, z, isCustomHole) {
     if (z > FAIRWAY_START_Z) return true;
