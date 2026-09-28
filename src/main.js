@@ -791,7 +791,7 @@ function getPuttingAddressPutterScale(ballOnGreen) {
     const { isMobile, camRatio } = getPuttingAddressCam();
     const farScale = ballOnGreen
         ? (isMobile ? 0.49 : 0.67)
-        : (isMobile ? 0.76 : 0.98);
+        : (isMobile ? 0.76 : 0.67);
     return farScale * (1.60 / Math.max(1, camRatio));
 }
 
