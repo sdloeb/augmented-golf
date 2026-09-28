@@ -1247,16 +1247,26 @@ export const HOLES_CONFIG = {
             new THREE.Vector3(-16, 0, -80),     // Safe left landing after the carry (~253 yds)
             new THREE.Vector3(18, 0, -124)      // Green on the north shore (~402 yds)
         ],
-        hazards: [
-            // Lake Kadijah — the cape carry. Safe line is left; a straight ball is wet.
-            { type: 'lake', x: 36, z: -48, radiusX: 42.0, radiusZ: 52.0 },
-            // Water along the right of the green; miss right and you are in the lake
-            { type: 'lake', x: 50, z: -120, radiusX: 22.0, radiusZ: 22.0 },
-            // Deep bunker complex left of the green — the only dry miss
-            { type: 'sand', x: 3.2, z: -121, radius: 3.8, depth: 1.40 },
-            { type: 'sand', x: 2.5, z: -128, radius: 4.2, depth: 1.50 },
-            { type: 'sand', x: 6.0, z: -134, radius: 3.6, depth: 1.35 }
-        ],
+    hazards: [
+    // Lake Kadijah — the cape carry. Safe line is left; a straight ball is wet.
+    { type: 'lake', x: 26, z: -48, radiusX: 55.0, radiusZ: 42.0 },
+    // Water right of the green, held off the kidney so the brown shore is not on the putting surface
+    { type: 'lake', x: 56, z: -122, radiusX: 22.0, radiusZ: 24.0 },
+    // One crescent bunker left of the green — no overlapping circles
+    {
+        type: 'sand',
+        shape: 'snake',
+        radius: 3.3,
+        depth: 1.45,
+        path: [
+            { x: 5.2, z: -115.8 },
+            { x: 0.4, z: -120.5 },
+            { x: -1.4, z: -126.0 },
+            { x: 0.8, z: -130.0 },
+            { x: 5.5, z: -136.0 }
+        ]
+    }
+],
         customTrees: [
             // Left oaks — away from the water, framing the safe line
             { x: -32, z: 8 }, { x: -36, z: -6 }, { x: -32, z: -20 }, { x: -38, z: -34 },
