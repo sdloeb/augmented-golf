@@ -473,13 +473,13 @@ export class PhysicsEngine {
     // ==========================================
     // GLOBAL LENGTHWISE FAIRWAY BOUNDARY CHECKER
     // ==========================================
- isWithinFairwayLongitudinalBounds(z) {
-    if (z > FAIRWAY_START_Z) return false;
-    const holeNum = this.currentHoleNumber || 1;
+    isWithinFairwayLongitudinalBounds(z) {
+        const holeMask = this.holeConfig && this.holeConfig.fairwayMask;
+        if (!(holeMask && holeMask.islandGreenSink) && z > FAIRWAY_START_Z) return false; const holeNum = this.currentHoleNumber || 1;
 
-  if (holeNum === 1) {
-    return z <= -8;
-}
+        if (holeNum === 1) {
+            return z <= -8;
+        }
         if (holeNum === 2) {
             // Hole 2: Downhill drop requires the fairway to start at -60.0
             return z <= -60.0;

@@ -36,10 +36,10 @@ function anyRule(rules, x, z) {
     return false;
 }
 
-export const FAIRWAY_START_Z = -8;
+export const FAIRWAY_START_Z = 5.2;
 
 export function isFairwayHidden(mask, x, z, isCustomHole) {
-    if (z > FAIRWAY_START_Z) return true;
+    if (!(mask && mask.islandGreenSink) && z > FAIRWAY_START_Z) return true;
     if (!mask) {
         return !isCustomHole && z > -8.0;
     }
@@ -48,7 +48,7 @@ export function isFairwayHidden(mask, x, z, isCustomHole) {
 }
 
 export function isWithinFairwayZ(mask, z) {
-    if (z > FAIRWAY_START_Z) return false;
+    if (!(mask && mask.islandGreenSink) && z > FAIRWAY_START_Z) return false;
     if (!mask) return z <= 15.0;
     if (mask.physicsAllow && mask.physicsAllow.length) {
         return anyRule(mask.physicsAllow, 0, z);
