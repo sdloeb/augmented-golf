@@ -68,9 +68,9 @@ export const HOLES_CONFIG = {
             stakesPerRow: 5
         },
         fairwayMask: {
-    hideIf: [{ gt: -8 }],
-    physicsAllow: [{ lte: -8 }],
-    widthBands: [
+            hideIf: [{ gt: -8 }],
+            physicsAllow: [{ lte: -8 }],
+            widthBands: [
                 { gt: -96, width: 10.5 },
                 { gte: -122, lte: -96, from: 10.5, to: 8.0, fromZ: -96, toZ: -110 },
                 { lt: -122, from: 8.0, to: 10.2, fromZ: -122, toZ: -140 }
@@ -113,7 +113,7 @@ export const HOLES_CONFIG = {
 
             features: [
                 { type: 'mound', x: 3.5, z: -4.0, radius: 3.5, height: 0.24 },
-                { type: 'tier', axis: 'z', position: 3.6, width: 2.6, height: -0.18 },
+                { type: 'tier', axis: 'z', position: 3.6, width: 2.6, height: -0.28 },
                 { type: 'bowl', x: 2.2, z: 1.4, radius: 3.0, depth: 0.12 }
             ]
         },
@@ -157,8 +157,7 @@ export const HOLES_CONFIG = {
 
             // --- RIGHT SIDE (Far Right Hillside) ---
 
-            { x: 8, z: -95, scale: 2.50 }, { x: 48, z: -5 }, { x: 48, z: -15 }, { x: 48, z: -25 }, { x: 48, z: -35 }, { x: 48, z: -45 }, { x: 48, z: -55 }, { x: 48, z: -65 }, { x: 48, z: -75 }, { x: 48, z: -85 }, { x: 48, z: -95 }, { x: 48, z: -105 }, { x: 48, z: -115 },
-
+            { x: 8, z: -95, scale: 2.50 }, { x: 13, z: -102, scale: 2.35 }, { x: 16, z: -110, scale: 2.45 }, { x: 48, z: -5 },
             // --- BACK OF GREEN ---
             { x: -10, z: -175 }, { x: 6, z: -185 }, { x: 22, z: -180 }, { x: 38, z: -183 },
         ],
@@ -166,8 +165,9 @@ export const HOLES_CONFIG = {
             hideIf: [{ gt: -60 }],
             physicsAllow: [{ lte: -60 }],
             widthBands: [
-                { gt: -108, width: 8.6 },
-                { lte: -108, width: 7.6 }
+                { gt: -92, width: 8.6 },
+                { gte: -118, lte: -92, from: 8.6, to: 7.0, fromZ: -92, toZ: -108 },
+                { lt: -118, width: 7.2 }
             ]
         },
         terrain: {
@@ -181,7 +181,8 @@ export const HOLES_CONFIG = {
                 { type: 'saddle', zMin: -15, zMax: 6, xRadius: 16, zCenter: 4, zRadius: 12, depth: 6.5 },
                 { type: 'rightHill', zMax: 15, zMin: -118, fadeZ: -100, slope: 0.25 },
                 { type: 'camber', zMin: -139, zMax: -108, width: 8.6, height: 0.42, fade: 6, side: 'right' },
-                { type: 'crown', zMin: -118, zMax: -88, width: 8.6, height: 0.40, fade: 7 }],
+                { type: 'crown', zMin: -118, zMax: -88, width: 8.6, height: 0.40, fade: 7 },
+                { type: 'swale', zMin: -118, zMax: -100, x: -6.5, swaleWidth: 5.5, depth: 0.38, fade: 5 }],
             xFade: { radius: 60, falloff: 10, positiveOnly: true }
         }
     },
