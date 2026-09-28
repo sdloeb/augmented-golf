@@ -166,7 +166,7 @@ let waterShores = [];
 let sceneryObjects = [];
 let divotObjects = [];
 let wildlife;
-let currentHoleNumber = 11; //1st hole start
+let currentHoleNumber = 1; //1st hole start
 let currentHoleConfig = null;
 let currentPar = 4;
 let currentWindSpeed = 0;
@@ -791,7 +791,7 @@ function getPuttingAddressPutterScale(ballOnGreen) {
     const { isMobile, camRatio } = getPuttingAddressCam();
     const farScale = ballOnGreen
         ? (isMobile ? 0.49 : 0.67)
-        : (isMobile ? 0.49 : 0.67);
+        : (isMobile ? 0.67 : 0.67);
     return farScale * (1.60 / Math.max(1, camRatio));
 }
 
