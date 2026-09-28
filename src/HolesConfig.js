@@ -1217,5 +1217,98 @@ export const HOLES_CONFIG = {
             seeds: { x1: 3.7, z1: 8.2, x2: 1.1, z2: 4.6 },
             bigFeature: { x: 20.0, z: -48.0, scale: 1.6 }
         }
+    },
+     11: { // Medinah No. 3 #16 — 402-yard cape par 4 over Lake Kadijah
+        par: 4,
+        fairwayWidth: 9.2,
+        greenRadius: 10.5,
+        greenShape: 'kidney',
+        horizonTheme: 'mountains',
+        theme: 'standard',
+        treeScale: 2.4,
+        treeHeightScale: 1.45,
+        // False front-right dies toward the lake; left pins sit above the bunker complex
+        slopeProfile: {
+            backLeft: { rx: -0.022, rz: 0.024 },
+            backRight: { rx: 0.028, rz: 0.018 },
+            midLeft: { rx: -0.016, rz: -0.010 },
+            midRight: { rx: 0.022, rz: -0.016 },
+            frontLeft: { rx: -0.010, rz: -0.036 },
+            frontRight: { rx: 0.026, rz: -0.048 },
+            features: [
+                { type: 'tier', axis: 'z', position: 3.8, width: 2.8, height: -0.24 },
+                { type: 'ridge', p1: { x: -4.8, z: -1.2 }, p2: { x: 5.2, z: 1.6 }, width: 2.6, height: 0.20 },
+                { type: 'bowl', x: -2.2, z: 1.4, radius: 3.2, depth: 0.12 },
+                { type: 'mound', x: 3.4, z: -3.2, radius: 3.6, height: 0.18 }
+            ]
+        },
+        waypoints: [
+            new THREE.Vector3(0, 0, 10),        // Championship tee
+            new THREE.Vector3(-16, 0, -80),     // Safe left landing after the carry (~253 yds)
+            new THREE.Vector3(18, 0, -124)      // Green on the north shore (~402 yds)
+        ],
+        hazards: [
+            // Lake Kadijah — the cape carry. Safe line is left; a straight ball is wet.
+            { type: 'lake', x: 36, z: -48, radiusX: 42.0, radiusZ: 52.0 },
+            // Water along the right of the green; miss right and you are in the lake
+            { type: 'lake', x: 50, z: -120, radiusX: 22.0, radiusZ: 22.0 },
+            // Deep bunker complex left of the green — the only dry miss
+            { type: 'sand', x: 3.2, z: -121, radius: 3.8, depth: 1.40 },
+            { type: 'sand', x: 2.5, z: -128, radius: 4.2, depth: 1.50 },
+            { type: 'sand', x: 6.0, z: -134, radius: 3.6, depth: 1.35 }
+        ],
+        customTrees: [
+            // Left oaks — away from the water, framing the safe line
+            { x: -32, z: 8 }, { x: -36, z: -6 }, { x: -32, z: -20 }, { x: -38, z: -34 },
+            { x: -34, z: -48 }, { x: -40, z: -62 }, { x: -36, z: -76 }, { x: -42, z: -90 },
+            { x: -38, z: -104 }, { x: -32, z: -118 }, { x: -28, z: -132 },
+            { x: -44, z: -18 }, { x: -46, z: -52 }, { x: -48, z: -86 },
+            // Behind the green
+            { x: 4, z: -146 }, { x: 14, z: -150 }, { x: 24, z: -148 }, { x: 8, z: -154 },
+            { x: -6, z: -144 }, { x: 32, z: -142 }
+        ],
+        cartPath: [
+            { x: -52, z: 22 },
+            { x: -52, z: 0 },
+            { x: -50, z: -28 },
+            { x: -48, z: -56 },
+            { x: -46, z: -84 },
+            { x: -40, z: -110 },
+            { x: -28, z: -132 },
+            { x: -8, z: -148 }
+        ],
+        customOOB: {
+            type: 'rectangle',
+            minX: -62,
+            maxX: 78,
+            minZ: -168,
+            maxZ: 30,
+            stakesPerSide: 10,
+            stakesPerRow: 4
+        },
+        fairwayMask: {
+            hideIf: [{ gt: -58 }],
+            physicsAllow: [{ lte: -58 }],
+            widthBands: [
+                { gt: -88, width: 9.2 },
+                { gte: -110, lte: -88, from: 9.2, to: 8.4, fromZ: -88, toZ: -110 },
+                { lt: -110, width: 10.0 }
+            ]
+        },
+        terrain: {
+            skipTeeFade: true,
+            bands: [
+                { gt: 5, height: 5.5 },
+                { gte: -25, highZ: 5, lowZ: -25, highH: 5.5, lowH: 0 },
+                { height: 0 }
+            ],
+            features: [
+                { type: 'crown', zMin: -96, zMax: -70, width: 9.2, height: 0.40, fade: 8 }
+            ]
+        },
+        water: { keepPutterCameraOnIsland: true }
     }
 };
+    
+
+
