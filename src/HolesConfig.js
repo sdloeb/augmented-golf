@@ -6,24 +6,22 @@ export const HOLES_CONFIG = {
         //horizonTheme: 'estate',
         horizonTheme: 'mountains',
         theme: 'standard',
-        fairwayWidth: 16.00, // 45 yards wide adjusted to game scale units
-        greenShape: 'kidney', // Changes the circle to the custom organic bean shape
+        fairwayWidth: 10.5, // ~58-yard corridor; landing pinches to ~44 yards        greenShape: 'kidney', // Changes the circle to the custom organic bean shape
         greenRadius: 10.5,    // Tightly matches the proportions of the photo
 
         // 6-Zone Slope Profile with Center Collection Bowl & Back Ridge
         slopeProfile: {
-            backLeft: { rx: -0.020, rz: 0.025 },
-            backRight: { rx: 0.025, rz: 0.020 },
-            midLeft: { rx: -0.010, rz: -0.005 },
-            midRight: { rx: 0.015, rz: -0.010 },
-            frontLeft: { rx: 0.015, rz: -0.025 },
-            frontRight: { rx: -0.020, rz: -0.030 },
+            backLeft: { rx: -0.028, rz: 0.032 },
+            backRight: { rx: 0.032, rz: 0.026 },
+            midLeft: { rx: -0.014, rz: -0.008 },
+            midRight: { rx: 0.020, rz: -0.014 },
+            frontLeft: { rx: 0.018, rz: -0.038 },
+            frontRight: { rx: -0.024, rz: -0.042 },
 
             features: [
-                // Soft collection bowl in the middle-left landing area
-                { type: 'bowl', x: -3.0, z: 0.0, radius: 4.5, depth: 0.08 },
-                // Transverse ridge separating the back shelf from the mid-green
-                { type: 'ridge', p1: { x: -6.0, z: -3.0 }, p2: { x: 6.0, z: -3.0 }, width: 3.0, height: 0.10 }
+                { type: 'bowl', x: -3.0, z: 0.0, radius: 4.5, depth: 0.16 },
+                { type: 'ridge', p1: { x: -6.0, z: -3.0 }, p2: { x: 6.0, z: -3.0 }, width: 3.0, height: 0.22 },
+                { type: 'tier', axis: 'z', position: 4.2, width: 2.8, height: -0.20 }
             ]
         },
         waypoints: [
@@ -41,8 +39,9 @@ export const HOLES_CONFIG = {
                 radiusZ: 10.0   // Shortens length down the fairway
             },
             //  twin traps by green
+            { type: 'sand', x: 8.2, z: -108.0, radius: 3.8, depth: 1.15 },
+            //  twin traps by green
             { type: 'sand', x: -9, z: -135, radius: 5.8, depth: 1.35 },
-            { type: 'sand', x: 10, z: -135, radius: 5.8, depth: 1.35 }
         ],
         cartPath: [
             { x: 43, z: 22 },
@@ -69,7 +68,12 @@ export const HOLES_CONFIG = {
             stakesPerRow: 5
         },
         fairwayMask: {
-            physicsAllow: [{ lte: 15 }]
+            physicsAllow: [{ lte: 15 }],
+            widthBands: [
+                { gt: -96, width: 10.5 },
+                { gte: -122, lte: -96, from: 10.5, to: 8.0, fromZ: -96, toZ: -110 },
+                { lt: -122, from: 8.0, to: 10.2, fromZ: -122, toZ: -140 }
+            ]
         },
         terrain: {
             skipTeeFade: true,
@@ -78,8 +82,10 @@ export const HOLES_CONFIG = {
                 { gte: -25, highZ: 5, lowZ: -25, highH: 5.5, lowH: 0 },
                 { height: 0 }
             ],
-            features: [{ type: 'waves', amp1: 0.05, amp2: 0.02, fx1: 0.06, fz1: 0.04, fx2: 0.12, fz2: 0.08 }],
-            xFade: { radius: 70, falloff: 10 },
+            features: [
+                { type: 'waves', amp1: 0.28, amp2: 0.14, fx1: 0.055, fz1: 0.038, fx2: 0.11, fz2: 0.075 },
+                { type: 'crown', zMin: -128, zMax: -92, width: 10.5, height: 0.55, fade: 8 }
+            ], xFade: { radius: 70, falloff: 10 },
             greenRipples: { f1: 0.55, amp1: 0.04, f2: 1.10, amp2: 0.015 },
             greenComplex: {
                 berm: { relZMin: -40, relZMax: -13, absX: 32, zCenter: -24, zRadius: 11, xRadius: 30, height: 3.2 },
@@ -92,21 +98,22 @@ export const HOLES_CONFIG = {
         theme: 'standard',
         treeScale: 2.75,
         treeHeightScale: 3.0,
-        fairwayWidth: 9.5,
+        fairwayWidth: 8.6,
         greenRadius: 9.0,
 
         // 6-Zone Slope Profile with Left-to-Right Downhill Funnel
         slopeProfile: {
-            backLeft: { rx: -0.035, rz: 0.015 },
-            backRight: { rx: -0.015, rz: 0.025 },
-            midLeft: { rx: -0.030, rz: -0.010 },
-            midRight: { rx: -0.010, rz: -0.015 },
-            frontLeft: { rx: -0.020, rz: -0.035 },
-            frontRight: { rx: -0.010, rz: -0.040 },
+            backLeft: { rx: -0.038, rz: 0.018 },
+            backRight: { rx: -0.018, rz: 0.030 },
+            midLeft: { rx: -0.034, rz: -0.012 },
+            midRight: { rx: -0.012, rz: -0.018 },
+            frontLeft: { rx: -0.024, rz: -0.042 },
+            frontRight: { rx: -0.012, rz: -0.050 },
 
             features: [
-                // Protective mound guarding the back-right pin location
-                { type: 'mound', x: 3.5, z: -4.0, radius: 3.5, height: 0.12 }
+                { type: 'mound', x: 3.5, z: -4.0, radius: 3.5, height: 0.24 },
+                { type: 'tier', axis: 'z', position: 3.6, width: 2.6, height: -0.18 },
+                { type: 'bowl', x: 2.2, z: 1.4, radius: 3.0, depth: 0.12 }
             ]
         },
 
@@ -156,7 +163,11 @@ export const HOLES_CONFIG = {
         ],
         fairwayMask: {
             hideIf: [{ gt: -60 }],
-            physicsAllow: [{ lte: -60 }]
+            physicsAllow: [{ lte: -60 }],
+            widthBands: [
+                { gt: -108, width: 8.6 },
+                { lte: -108, width: 7.6 }
+            ]
         },
         terrain: {
             skipTeeFade: true,
@@ -167,8 +178,9 @@ export const HOLES_CONFIG = {
             ],
             features: [
                 { type: 'saddle', zMin: -15, zMax: 6, xRadius: 16, zCenter: 4, zRadius: 12, depth: 6.5 },
-                { type: 'rightHill', zMax: 15, zMin: -118, fadeZ: -100, slope: 0.25 }
-            ],
+                { type: 'rightHill', zMax: 15, zMin: -118, fadeZ: -100, slope: 0.25 },
+                { type: 'camber', zMin: -139, zMax: -108, width: 8.6, height: 0.42, fade: 6, side: 'right' },
+                { type: 'crown', zMin: -118, zMax: -88, width: 8.6, height: 0.40, fade: 7 }],
             xFade: { radius: 60, falloff: 10, positiveOnly: true }
         }
     },
@@ -975,13 +987,13 @@ export const HOLES_CONFIG = {
             {
                 type: 'sand',
                 shape: 'snake',
-              radius: 2.25,
-depth: 1.1,
-path: [
-    { x: 7.0, z: -56.0 },
-    { x: 12.5, z: -58.5 },
-    { x: 16.0, z: -64.0 }
-]
+                radius: 2.25,
+                depth: 1.1,
+                path: [
+                    { x: 7.0, z: -56.0 },
+                    { x: 12.5, z: -58.5 },
+                    { x: 16.0, z: -64.0 }
+                ]
             },
 
             // 2. Left-Side Greenside Bunker
@@ -1198,10 +1210,10 @@ path: [
             ],
             physicsAllow: [{ lte: 15 }]
         },
-       terrain: {
-    style: 'rolling',
-    seeds: { x1: 3.7, z1: 8.2, x2: 1.1, z2: 4.6 },
-    bigFeature: { x: 20.0, z: -48.0, scale: 1.6 }
-}
+        terrain: {
+            style: 'rolling',
+            seeds: { x1: 3.7, z1: 8.2, x2: 1.1, z2: 4.6 },
+            bigFeature: { x: 20.0, z: -48.0, scale: 1.6 }
+        }
     }
 };

@@ -226,6 +226,49 @@ function applyTerrainFeature(feature, x, z, height, ctx) {
             + Math.cos(x * 0.22 + z * 0.16) * (feature.amp2 || 0.15);
         return height;
     }
+    if (t === 'crown' || t === 'camber' || t === 'swale') {
+        const zMin = feature.zMin !== undefined ? feature.zMin : -9999;
+        const zMax = feature.zMax !== undefined ? feature.zMax : 9999;
+        if (z < zMin || z > zMax) return height;
+        const fw = feature.width !== undefined ? feature.width : ((ctx && ctx.fairwayWidth) || 12);
+        let lateral = Math.abs(x);
+        let signed = x;
+        if (ctx && typeof ctx.getDistanceToSpline === 'function' && ctx.fairwayPoints && ctx.fairwayPoints.length) {
+            lateral = ctx.getDistanceToSpline(x, z);
+            let nearest = ctx.fairwayPoints[0];
+            let best = Infinity;
+            for (let i = 0; i < ctx.fairwayPoints.length; i++) {
+                const p = ctx.fairwayPoints[i];
+                const d = (x - p.x) * (x - p.x) + (z - p.z) * (z - p.z);
+                if (d < best) {
+                    best = d;
+                    nearest = p;
+                }
+            }
+            signed = x - nearest.x;
+        }
+        let fade = 1;
+        if (feature.fade) {
+            fade = smooth01(Math.min(1, (z - zMin) / feature.fade))
+                * smooth01(Math.min(1, (zMax - z) / feature.fade));
+        }
+        const u = Math.min(1, lateral / Math.max(0.5, fw));
+        if (t === 'crown') {
+            height += (feature.height || 0.45) * (1 - u * u) * fade;
+        } else if (t === 'camber') {
+            const side = feature.side === 'left' ? -1 : 1;
+            height += (feature.height || 0.35) * (signed / Math.max(0.5, fw)) * side * fade;
+        } else {
+            const center = feature.x !== undefined ? feature.x : (fw * 0.55);
+            const swaleW = feature.swaleWidth !== undefined ? feature.swaleWidth : fw * 0.45;
+            const d = Math.abs(signed - center);
+            if (d < swaleW) {
+                const factor = (1.0 + Math.cos((d / swaleW) * Math.PI)) * 0.5;
+                height -= (feature.depth || 0.40) * factor * fade;
+            }
+        }
+        return height;
+    }
     return height;
 }
 
@@ -280,23 +323,23 @@ function evaluateRolling(terrain, x, z, ctx) {
         height = (flatWave1 * 0.05 + flatWave2 * 0.02);
         if (ctx) ctx.hasBigFeature = false;
     } else {
-   const wave1 = Math.sin(x * 0.05 + seedX1) * Math.cos(z * 0.03 + seedZ1);
-const wave2 = Math.cos(x * 0.10 + seedX2) * Math.sin(z * 0.06 + seedZ2);
-height = (wave1 * 1.8 + wave2 * 0.9);
-const authoredBig = terrain.bigFeature;
-if (authoredBig && authoredBig.x !== undefined) {
-    const dxBig = x - authoredBig.x;
-    const dzBig = z - authoredBig.z;
-    const distBigSq = dxBig * dxBig + dzBig * dzBig;
-    const bigInfluence = Math.exp(-distBigSq / 2500);
-    height += (authoredBig.scale || 0) * 1.8 * bigInfluence;
-} else if (authoredBig !== false && ctx && ctx.hasBigFeature) {
-    const dxBig = x - ctx.bigFeatureX;
-    const dzBig = z - ctx.bigFeatureZ;
-    const distBigSq = dxBig * dxBig + dzBig * dzBig;
-    const bigInfluence = Math.exp(-distBigSq / 2500);
-    height += (ctx.bigFeatureScale || 0) * 1.8 * bigInfluence;
-}
+        const wave1 = Math.sin(x * 0.05 + seedX1) * Math.cos(z * 0.03 + seedZ1);
+        const wave2 = Math.cos(x * 0.10 + seedX2) * Math.sin(z * 0.06 + seedZ2);
+        height = (wave1 * 1.8 + wave2 * 0.9);
+        const authoredBig = terrain.bigFeature;
+        if (authoredBig && authoredBig.x !== undefined) {
+            const dxBig = x - authoredBig.x;
+            const dzBig = z - authoredBig.z;
+            const distBigSq = dxBig * dxBig + dzBig * dzBig;
+            const bigInfluence = Math.exp(-distBigSq / 2500);
+            height += (authoredBig.scale || 0) * 1.8 * bigInfluence;
+        } else if (authoredBig !== false && ctx && ctx.hasBigFeature) {
+            const dxBig = x - ctx.bigFeatureX;
+            const dzBig = z - ctx.bigFeatureZ;
+            const distBigSq = dxBig * dxBig + dzBig * dzBig;
+            const bigInfluence = Math.exp(-distBigSq / 2500);
+            height += (ctx.bigFeatureScale || 0) * 1.8 * bigInfluence;
+        }
     }
 
     let maxLayoutWidth = 30;
@@ -315,10 +358,20 @@ if (authoredBig && authoredBig.x !== undefined) {
 export function evaluateCourseHeight(terrain, x, z, ctx) {
     if (!terrain) return null;
     if (terrain.style === 'rolling' || terrain.style === 'flat' || terrain.style === 'oakmont') {
-        return evaluateRolling(terrain, x, z, ctx);
+        let height = evaluateRolling(terrain, x, z, ctx);
+        const extra = terrain.features || [];
+        for (let i = 0; i < extra.length; i++) {
+            height = applyTerrainFeature(extra[i], x, z, height, ctx);
+        }
+        return height;
     }
     if (terrain.style === 'cliffShelf') {
-        return evaluateCliffShelf(terrain, x, z);
+        let height = evaluateCliffShelf(terrain, x, z);
+        const extra = terrain.features || [];
+        for (let i = 0; i < extra.length; i++) {
+            height = applyTerrainFeature(extra[i], x, z, height, ctx);
+        }
+        return height;
     }
 
     let height = 0;

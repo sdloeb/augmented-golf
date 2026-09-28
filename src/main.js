@@ -2019,8 +2019,8 @@ function resetEntireGame(advanceHole = false) {
         // --- HOLE 5 WOODEN FOOTBRIDGE ---
         const bridgeGroup = new THREE.Group();
         const bridgeStartX = greenCenterX - 51.0; // Left rough shoreline
-        const bridgeEndX = greenCenterX - 17.2;   // Left edge of green fringe
-        const bridgeSpan = bridgeEndX - bridgeStartX;
+        const islandR = (currentHoleConfig && currentHoleConfig.greenRadius) ? currentHoleConfig.greenRadius : 13.5;
+        const bridgeEndX = greenCenterX - (islandR + 0.7);   // Left edge of green fringe        const bridgeSpan = bridgeEndX - bridgeStartX;
         const bridgeCenterX = (bridgeStartX + bridgeEndX) / 2;
         const bridgeCenterZ = greenCenterZ;
         const bridgeWidth = 2.4; // Walkway width
@@ -2663,28 +2663,18 @@ function resetEntireGame(advanceHole = false) {
         }
     });
 
-    // Randomize the Tee Box horizontal offset left or right to vary the shot angles
-    // Randomize the Tee Box horizontal offset left or right (locked at center 0 for Hole 2)
-    const teeBoxX = (currentHoleNumber === 2) ? 0 : (Math.random() - 0.5) * 7.0;
+    // Keep the tee pad centered and square to the fairway (no random offset, no lookAt yaw)
+    const teeBoxX = 0;
     if (teeBox) {
         const teeGroundY = physics.getGroundHeight(teeBoxX, 10);
 
-        // Calculate local surface normal slopes to align Tee Box flush to hill contour
-        const dTee = 0.5;
-        const hL = physics.getGroundHeight(teeBoxX - dTee, 10);
-        const hR = physics.getGroundHeight(teeBoxX + dTee, 10);
-        const hB = physics.getGroundHeight(teeBoxX, 10 - dTee);
-        const hF = physics.getGroundHeight(teeBoxX, 10 + dTee);
-        const slopeX = (hL - hR) / (2 * dTee);
-        const slopeZ = (hB - hF) / (2 * dTee);
+
 
         teeBox.position.set(teeBoxX, teeGroundY + 0.02, 10);
-        teeBox.rotation.set(Math.atan2(slopeZ, 1), 0, -Math.atan2(slopeX, 1));
+        teeBox.rotation.set(0, 0, 0);
         teeBox.visible = true;
 
-        // Add these lines: Automatically rotates the tee box and markers down the first fairway segment
-        const firstTarget = holeConfig.waypoints[1];
-        teeBox.lookAt(new THREE.Vector3(firstTarget.x, teeBox.position.y, firstTarget.z)); // Modify this line
+      
     }
 
     // Fetch the true 3D hill peak height at the tee location
@@ -3049,8 +3039,8 @@ function resetEntireGame(advanceHole = false) {
                     sampleZ = 10 + (-125.4 - 10) * (stepIndex / totalSteps);
                     sampleZ += ((stepIndex % 2) - 0.5) * 1.5;
 
-                    const fW = 16.0;
-                    const cushion = 12.0;
+                    const fW = (physics && physics.fairwayWidth) ? physics.fairwayWidth : 10.5;
+                    const cushion = 5.5;
                     const rowSpacing = 4.2;
 
                     if (rowPattern === 0) {
