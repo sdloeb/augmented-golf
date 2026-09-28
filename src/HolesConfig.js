@@ -68,8 +68,9 @@ export const HOLES_CONFIG = {
             stakesPerRow: 5
         },
         fairwayMask: {
-            physicsAllow: [{ lte: 15 }],
-            widthBands: [
+    hideIf: [{ gt: -8 }],
+    physicsAllow: [{ lte: -8 }],
+    widthBands: [
                 { gt: -96, width: 10.5 },
                 { gte: -122, lte: -96, from: 10.5, to: 8.0, fromZ: -96, toZ: -110 },
                 { lt: -122, from: 8.0, to: 10.2, fromZ: -122, toZ: -140 }

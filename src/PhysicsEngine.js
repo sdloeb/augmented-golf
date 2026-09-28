@@ -4,6 +4,7 @@ import {
     greenRippleHeight,
     isWithinFairwayZ,
     fairwayWidthAt,
+    FAIRWAY_START_Z,
     getWaterCliff,
     getCliffPathCenter,
     getCliffEdgeX
@@ -472,13 +473,13 @@ export class PhysicsEngine {
     // ==========================================
     // GLOBAL LENGTHWISE FAIRWAY BOUNDARY CHECKER
     // ==========================================
-    isWithinFairwayLongitudinalBounds(z) {
-        const holeNum = this.currentHoleNumber || 1;
+ isWithinFairwayLongitudinalBounds(z) {
+    if (z > FAIRWAY_START_Z) return false;
+    const holeNum = this.currentHoleNumber || 1;
 
-        if (holeNum === 1) {
-            // Hole 1: Visually spans all the way back to the tee box area
-            return z <= 15.0;
-        }
+  if (holeNum === 1) {
+    return z <= -8;
+}
         if (holeNum === 2) {
             // Hole 2: Downhill drop requires the fairway to start at -60.0
             return z <= -60.0;

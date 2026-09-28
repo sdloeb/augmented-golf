@@ -2674,7 +2674,7 @@ function resetEntireGame(advanceHole = false) {
         teeBox.rotation.set(0, 0, 0);
         teeBox.visible = true;
 
-      
+
     }
 
     // Fetch the true 3D hill peak height at the tee location
@@ -5510,24 +5510,53 @@ function init() {
 
 
 
-    // 6.1. Add Tee Box Mat (Grassy short turf area with red tee markers)
-    const teeGeo = new THREE.BoxGeometry(5.5, 0.01, 3.5); // Modify this line (wider low grass boundary)
-    const teeMat = new THREE.MeshStandardMaterial({ color: 0x3cb371, roughness: 0.5 }); // Modify this line (distinct short golf grass)
+    // 6.1. Championship tee: long fairway-green rectangle sitting in rough
+    const TEE_W = 3.7;
+    const TEE_D = 6.8;
+    const teeStripeCanvas = document.createElement('canvas');
+    teeStripeCanvas.width = 128;
+    teeStripeCanvas.height = 4;
+    const teeStripeCtx = teeStripeCanvas.getContext('2d');
+    teeStripeCtx.fillStyle = '#ffffff';
+    teeStripeCtx.fillRect(0, 0, 64, 4);
+    teeStripeCtx.fillStyle = '#b8b8b8';
+    teeStripeCtx.fillRect(64, 0, 64, 4);
+    const teeTurfTexture = new THREE.CanvasTexture(teeStripeCanvas);
+    teeTurfTexture.wrapS = THREE.RepeatWrapping;
+    teeTurfTexture.wrapT = THREE.RepeatWrapping;
+    teeTurfTexture.repeat.set(TEE_W / 5.5, 1);
+
+    const teeGeo = new THREE.BoxGeometry(TEE_W, 0.04, TEE_D, 12, 1, 20);
+ const teeMat = new THREE.MeshStandardMaterial({
+    color: 0x3cb371,
+    roughness: 0.92,
+    metalness: 0.0
+});
     teeBox = new THREE.Mesh(teeGeo, teeMat);
-    teeBox.position.set(0, 0.01, 10);
+    teeBox.position.set(0, 0.02, 10);
     scene.add(teeBox);
 
-    // Add Left and Right Tee Markers as children of teeBox so they randomize together seamlessly
-    const markerGeo = new THREE.SphereGeometry(0.085, 16, 16);
-    const markerMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.6 });
-
-    const leftMarker = new THREE.Mesh(markerGeo, markerMat);
-    leftMarker.position.set(-2.4, 0.09, 0);
+    const markerWoodMat = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.72, metalness: 0.08 });
+    const markerGoldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.32, metalness: 0.58 });
+    const makeTeeMarker = () => {
+        const marker = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.20, 0.20), markerWoodMat);
+        body.position.y = 0.10;
+        marker.add(body);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.05, 0.22), markerGoldMat);
+        cap.position.y = 0.225;
+        marker.add(cap);
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.07, 0.02), markerGoldMat);
+        plate.position.set(0, 0.10, 0.11);
+        marker.add(plate);
+        return marker;
+    };
+    const leftMarker = makeTeeMarker();
+    leftMarker.position.set(-1.45, 0.02, 0);
     teeBox.add(leftMarker);
-
-    const rightMarker = new THREE.Mesh(markerGeo, markerMat);
-    rightMarker.position.set(2.4, 0.09, 0);
-    teeBox.add(rightMarker); // Add this line
+    const rightMarker = makeTeeMarker();
+    rightMarker.position.set(1.45, 0.02, 0);
+    teeBox.add(rightMarker);
 
     // Add the physical plastic Golf Tee asset
     const teeCylinderGeo = new THREE.CylinderGeometry(0.010, 0.004, 0.12, 8); const teeCylinderMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }); // Add this line
