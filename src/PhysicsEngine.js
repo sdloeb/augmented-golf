@@ -516,8 +516,7 @@ export class PhysicsEngine {
 
         // FIXED: Dynamically calculate the 3D ground height beneath the ball's current coordinates
         const greenHeightOffset = this.getGroundHeight(this.ball.position.x, this.ball.position.z, true); // Modify this line: request the shallow water-surface height so the splash triggers as soon as the ball touches the water        let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
-        let groundY = (0.5 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; // Dynamic ground anchor matching ball scale
-        const gX = this.ball.position.x - this.greenCenterX;
+        let groundY = (0.25 * (this.ball ? this.ball.scale.x : 0.51)) + greenHeightOffset; const gX = this.ball.position.x - this.greenCenterX;
         const gZ = this.ball.position.z - this.greenCenterZ;
         const ballDist = Math.sqrt(gX * gX + gZ * gZ);
         const ballAngle = Math.atan2(-gZ, gX);
@@ -646,7 +645,7 @@ export class PhysicsEngine {
                     roughSit = 0.05;
                 }
             }
-            groundY = greenHeightOffset + (0.5 * this.ball.scale.x) + roughSit;
+            groundY = greenHeightOffset + (0.25 * this.ball.scale.x) + roughSit;
         }
 
         // Cleaned up putting override loop so it doesn't break approach shot rollouts

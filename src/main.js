@@ -4854,8 +4854,7 @@ function animate() {
         // LINE ABOVE:
         const ballRadius = 0.25 * currentScale;
 
-        let surfaceHeight = terrainH + (0.5 * ball.scale.x);
-
+let surfaceHeight = terrainH + ballRadius;
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (physics.isBallInSand()) {
@@ -4866,7 +4865,7 @@ function animate() {
             // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
             surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
         } else if (physics.currentSurface === 'Rough') {
-            surfaceHeight = terrainH + (0.5 * currentScale) + 0.04;
+            surfaceHeight = terrainH + ballRadius + 0.04;
         }
 
         ball.position.y = surfaceHeight;
