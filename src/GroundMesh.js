@@ -189,48 +189,78 @@ function applyFairwayHeight(calculatedHeightIn, targetMesh, fairway, uvAttr, i, 
                     const isCustomHole = currentHoleConfig && currentHoleConfig.waypoints;
                     const activeR = window.getGreenRadiusAtAngle(vertexAngle, window.activeGreenRadius || 12.0, window.activeGreenShape || 'circle');
                     const fringeR = fringeOuterRadius(activeR);
-                    const hiddenFairwayH = floorHeight - 0.10;
+                  const hiddenFairwayH = floorHeight - 0.10;
+const mask = currentHoleConfig && currentHoleConfig.fairwayMask;
+const meetsGreen = !mask || (mask.meetGreen !== false && !mask.islandGreenSink);
+// Distance in front of the green center. Positive toward the tee.
+const frontSpan = Math.max(0, -approachDot);
+// Full fairway width until just before the collar, then a tongue
+// narrower than the green so the sides stay rough.
+const tongue = Math.min(fW, Math.max(3.5, activeR * 0.55));
+const mouthStart = fringeR + 5;
+let visibleHalf = fW;
+if (meetsGreen && frontSpan < mouthStart) {
+    if (frontSpan <= activeR) {
+        visibleHalf = 0;
+    } else if (frontSpan <= fringeR) {
+        const t = (frontSpan - activeR) / Math.max(0.001, fringeR - activeR);
+        const s = t * t * (3 - 2 * t);
+        visibleHalf = tongue * s;
+    } else {
+        const u = (frontSpan - fringeR) / Math.max(0.001, mouthStart - fringeR);
+        const s = u * u * (3 - 2 * u);
+        visibleHalf = THREE.MathUtils.lerp(tongue, fW, s);
+    }
+}
+const inMouth = meetsGreen && approachDot <= 0 && visibleHalf > 0.4 && distanceToPath <= visibleHalf;
+const besideGreen = meetsGreen && approachDot <= 0 && frontSpan < mouthStart && !inMouth;
 
-                    // Boundary checks for fairway corridor
-                    const isOutsideFairwayBounds = isFairwayHidden(
-                        currentHoleConfig && currentHoleConfig.fairwayMask,
-                        worldX,
-                        worldZ,
-                        isCustomHole
-                    ); if (isOutsideFairwayBounds) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else if (distToGreenCenter < fringeR) {
-                        const mask = currentHoleConfig && currentHoleConfig.fairwayMask;
-                        const meetsGreen = !mask || (mask.meetGreen !== false && !mask.islandGreenSink);
-                        const buriedH = floorHeight - 0.45;
-                        let meetH = floorHeight;
-                        const tTuckFringe = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
-                        const smoothFringeTuck = tTuckFringe * tTuckFringe * (3 - 2 * tTuckFringe);
-                        if (distToGreenCenter < activeR) {
-                            meetH = floorHeight - 1.20;
-                        } else if (!meetsGreen || approachDot > 0) {
-                            meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothFringeTuck);
-                        }
-                        const corridorExcess = Math.max(0, distanceToPath - fW);
-                        const edgeSoft = meetsGreen ? 2.5 : 1.0;
-                        const tOut = THREE.MathUtils.clamp(corridorExcess / edgeSoft, 0, 1);
-                        const smoothOut = tOut * tOut * (3 - 2 * tOut);
-                        calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
-                    } else if (approachDot > 0) {
-                        calculatedHeight = hiddenFairwayH;
-                    } else {
-                        const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
-                        const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
-                        calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
-                    }
+// Boundary checks for fairway corridor
+const isOutsideFairwayBounds = isFairwayHidden(
+    currentHoleConfig && currentHoleConfig.fairwayMask,
+    worldX,
+    worldZ,
+    isCustomHole
+); if (isOutsideFairwayBounds) {
+    calculatedHeight = hiddenFairwayH;
+} else if (besideGreen) {
+    calculatedHeight = floorHeight - 1.20;
+} else if (distToGreenCenter < fringeR) {
+    const buriedH = floorHeight - 0.45;
+    // Fairway quads are about 1.3 units. The collar is 1 unit, so a 1.20
+    // cliff at the green edge rises through the fringe as a jagged stripe.
+    const deepInside = activeR - 1.4;
+    let meetH = floorHeight;
+    if (distToGreenCenter < deepInside) {
+        meetH = floorHeight - 1.20;
+    } else if (inMouth) {
+        const tUnder = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
+        const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
+        meetH = THREE.MathUtils.lerp(floorHeight - 0.035, floorHeight - 0.22, smoothUnder);
+    } else if (distToGreenCenter < activeR) {
+        meetH = floorHeight - 1.20;
+    } else {
+        const tTuckFringe = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
+        const smoothFringeTuck = tTuckFringe * tTuckFringe * (3 - 2 * tTuckFringe);
+        meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothFringeTuck);
+    }
+    if (inMouth) {
+        calculatedHeight = meetH;
+    } else {
+        const corridorExcess = Math.max(0, distanceToPath - fW);
+        const edgeSoft = meetsGreen ? 2.5 : 1.0;
+        const tOut = THREE.MathUtils.clamp(corridorExcess / edgeSoft, 0, 1);
+        const smoothOut = tOut * tOut * (3 - 2 * tOut);
+        calculatedHeight = THREE.MathUtils.lerp(meetH, buriedH, smoothOut);
+    }
+} else if (approachDot > 0) {
+    calculatedHeight = hiddenFairwayH;
+} else {
+    const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
+    const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
+    calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
+}
 
-                    const onApproachToFringe = approachDot <= 0
-                        && distToGreenCenter >= activeR
-                        && distToGreenCenter <= fringeR + 1.5
-                        && distanceToPath <= fW;
-                    if (onApproachToFringe) {
-                        calculatedHeight = physics.getGroundHeight(worldX, worldZ);
-                    }
 
                     if (buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask)) {
                         if (insideSandZone) calculatedHeight = hiddenFairwayH;

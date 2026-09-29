@@ -89,6 +89,18 @@ export class PhysicsEngine {
         }
         return false;
     }
+
+    ballRestY(terrainH, radius) {
+        const r = (typeof radius === 'number') ? radius : (0.25 * (this.ball ? this.ball.scale.x : 0.51));
+        const nestle = r * 0.22;
+        if (this.isBallInSand()) return terrainH + 0.02 + r - nestle;
+        if (this.isBallInSandCollar(0.7)) return terrainH + 0.035 + r - nestle;
+        if (this.currentSurface === 'Green') return terrainH + 0.020 + r;
+        if (this.currentSurface === 'Fringe') return terrainH + 0.016 + r;
+        if (this.currentSurface === 'Rough') return terrainH + r - nestle;
+        return terrainH + r;
+    }
+
     // NEW: Receives the shuffled configurations from the map setup
     setGreenContours(profileOrBack, midOrCenterX, frontOrCenterZ, centerXOrWidth, centerZ, randomWidth) {
         if (profileOrBack && typeof profileOrBack === 'object' && ('backLeft' in profileOrBack || 'features' in profileOrBack || 'back' in profileOrBack || 'rx' in profileOrBack)) {
@@ -679,6 +691,9 @@ export class PhysicsEngine {
             groundY = this.getGroundHeight(this.ball.position.x, this.ball.position.z) + 0.035 + ballRadius - (ballRadius * 0.15);
 
         }
+
+        groundY = this.ballRestY(greenHeightOffset);
+
         // Add this block here: Ground-snapping stickiness now runs safely with the finalized groundY plane
         if (this.ball.position.y > groundY && this.ball.position.y <= groundY + 0.4 && this.velocity.y <= 0.01) {
             this.ball.position.y = groundY;

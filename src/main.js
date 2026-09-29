@@ -4368,19 +4368,10 @@ function animate() {
         // LINE ABOVE:
         const ballRadius = 0.25 * currentScale;
 
-        let surfaceHeight = terrainH + ballRadius;
-        if (teeBox && teeBox.visible) {
-            surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
-        } else if (physics.isBallInSand()) {
-            // Embed the ball slightly into the sand grain plane (35% ball radius drop) for a natural lie
-            const trueFloorH = physics.getGroundHeight(bX, bZ);
-            surfaceHeight = trueFloorH + ballRadius - (ballRadius * 0.15);
-        } else if (physics.isBallInSandCollar && physics.isBallInSandCollar(0.7)) {
-            // Sits cleanly on top of the collar mesh (+0.035) with a slight rough nestle
-            surfaceHeight = terrainH + 0.035 + ballRadius - (ballRadius * 0.15);
-        } else if (physics.currentSurface === 'Rough') {
-            surfaceHeight = terrainH + ballRadius + 0.04;
-        }
+      let surfaceHeight = physics.ballRestY(terrainH, ballRadius);
+if (teeBox && teeBox.visible) {
+    surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
+}
 
         ball.position.y = surfaceHeight;
     }
