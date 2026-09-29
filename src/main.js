@@ -2500,10 +2500,12 @@ function resetEntireGame(advanceHole = false) {
                     const islandSink = islandGreenSink(currentHoleConfig && currentHoleConfig.fairwayMask);
                     if (islandSink && distToGreenCenter < fringeOuterR + islandSink) {
                         calculatedHeight -= islandSink;
+                    } else if (distToGreenCenter < activeRadius) {
+                        calculatedHeight -= 1.15;
                     } else if (distToGreenCenter < fringeOuterR) {
                         const tUnder = THREE.MathUtils.clamp((fringeOuterR - distToGreenCenter) / FRINGE_WIDTH_UNITS, 0, 1);
                         const smoothUnder = tUnder * tUnder * (3 - 2 * tUnder);
-                        calculatedHeight -= smoothUnder * 0.18;
+                        calculatedHeight -= smoothUnder * 1.15;
                     }
 
                 }
@@ -2556,9 +2558,7 @@ function resetEntireGame(advanceHole = false) {
                         const tTuckFringe = Math.max(0, Math.min(1, (fringeR - distToGreenCenter) / FRINGE_WIDTH_UNITS));
                         const smoothFringeTuck = tTuckFringe * tTuckFringe * (3 - 2 * tTuckFringe);
                         if (distToGreenCenter < activeR) {
-                            const tTuck = Math.max(0, Math.min(1, (activeR - distToGreenCenter) / 1.0));
-                            const smoothTuck = tTuck * tTuck * (3 - 2 * tTuck);
-                            meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothTuck);
+                            meetH = floorHeight - 1.20;
                         } else if (!meetsGreen || approachDot > 0) {
                             meetH = THREE.MathUtils.lerp(floorHeight, buriedH, smoothFringeTuck);
                         }
@@ -2573,6 +2573,14 @@ function resetEntireGame(advanceHole = false) {
                         const tEdge = THREE.MathUtils.clamp(fairwayExcess / 4.5, 0, 1);
                         const smoothEdge = THREE.MathUtils.smoothstep(tEdge, 0, 1);
                         calculatedHeight = THREE.MathUtils.lerp(floorHeight, hiddenFairwayH, smoothEdge);
+                    }
+
+                    const onApproachToFringe = approachDot <= 0
+                        && distToGreenCenter >= activeR
+                        && distToGreenCenter <= fringeR + 1.5
+                        && distanceToPath <= fW;
+                    if (onApproachToFringe) {
+                        calculatedHeight = physics.getGroundHeight(worldX, worldZ);
                     }
 
                     if (buryFairwayInSand(currentHoleConfig && currentHoleConfig.fairwayMask)) {
@@ -4854,7 +4862,7 @@ function animate() {
         // LINE ABOVE:
         const ballRadius = 0.25 * currentScale;
 
-let surfaceHeight = terrainH + ballRadius;
+        let surfaceHeight = terrainH + ballRadius;
         if (teeBox && teeBox.visible) {
             surfaceHeight = terrainH + ballRadius + 0.12; // Elevated cleanly on top of the plastic tee peg
         } else if (physics.isBallInSand()) {
